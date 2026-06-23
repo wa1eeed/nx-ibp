@@ -20,7 +20,9 @@ import { UnderwritingModule } from "./modules/underwriting/underwriting.module";
 import { ProductionModule } from "./modules/production/production.module";
 import { FinanceModule } from "./modules/finance/finance.module";
 import { DocumentsModule } from "./modules/documents/documents.module";
+import { ServiceModule } from "./modules/service/service.module";
 import { ClaimsModule } from "./modules/claims/claims.module";
+import { RenewalsModule } from "./modules/renewals/renewals.module";
 import { StaffModule } from "./modules/staff/staff.module";
 
 /**
@@ -48,7 +50,9 @@ import { StaffModule } from "./modules/staff/staff.module";
     ProductionModule,
     FinanceModule,
     DocumentsModule,
+    ServiceModule,
     ClaimsModule,
+    RenewalsModule,
     StaffModule,
   ],
   providers: [

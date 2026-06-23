@@ -2,6 +2,13 @@
 
 كل التغييرات الملموسة في منصة IBP، منظّمة حسب المراحل. الصيغة مستلهمة من [Keep a Changelog](https://keepachangelog.com).
 
+## [المرحلة 6] — الموديولز التشغيلية (Operational) ✅
+- **خدمة العملاء** (`ServiceRequest`): طلبات إضافة/حذف/تعديل/استفسار/تجديد بدورة حالات (RQ-).
+- **المطالبات** (`Claim`): دورة كاملة استقبال ← رفع ← تسوية ← إغلاق (CL-) محكومة بـ entitlement.
+- **التجديدات**: الوثائق المستحقّة خلال نافذة + بدء تجديد (ServiceRequest type=renewal).
+- واجهات: صفحات service/claims/renewals + عنصر «خدمة العملاء» في التنقّل وتفعيل المطالبات.
+- اختبارات: e2e 53/53. توثيق: [`docs/22`](./docs/22-operational-modules.md). الفرع `phase-6-operations`.
+
 ## [المرحلة 5] — وحدة المستندات (Document Service) ✅
 - وحدة مستندات موحّدة (polymorphic): رفع/عرض عبر **روابط موقّتة فقط** (Presigned، 5 دقائق) — لا روابط عامة.
 - خدمة تخزين حيادية المزوّد (`STORAGE_DRIVER`: local/s3/minio/alibaba_oss/gcs) + عزل بالمسار `tenant_{id}/`.

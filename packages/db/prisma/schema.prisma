@@ -438,22 +438,57 @@ enum PolicyStatus {
   CANCELLED
 }
 
+// طلب خدمة العميل (المرحلة 6): إضافة/حذف/تعديل على وثيقة سارية
 model ServiceRequest {
-  id         String  @id @default(cuid())
+  id         String        @id @default(cuid())
   tenantId   String
-  tenant     Tenant  @relation(fields: [tenantId], references: [id])
-  sequenceNo String?
+  tenant     Tenant        @relation(fields: [tenantId], references: [id])
+  sequenceNo String? // RQ-2026-1001
+  clientId   String?
+  policyId   String?
+  type       String // addition | deletion | amendment | inquiry | renewal
+  subject    String?
+  status     ServiceStatus @default(OPEN)
+  details    Json?
+  createdAt  DateTime      @default(now())
 
   @@index([tenantId])
 }
 
+enum ServiceStatus {
+  OPEN
+  IN_PROGRESS
+  SENT_TO_INSURER
+  CLOSED
+}
+
+// المطالبات (المرحلة 6): استقبال ← تحقّق ← رفع للمؤمِّن ← تسوية ← إغلاق
 model Claim {
-  id         String  @id @default(cuid())
-  tenantId   String
-  tenant     Tenant  @relation(fields: [tenantId], references: [id])
-  sequenceNo String?
+  id            String      @id @default(cuid())
+  tenantId      String
+  tenant        Tenant      @relation(fields: [tenantId], references: [id])
+  sequenceNo    String? // CL-2026-1001
+  clientId      String?
+  policyId      String?
+  insurerName   String?
+  incidentDate  DateTime?
+  claimedAmount Decimal?    @db.Decimal(14, 2)
+  deductible    Decimal?    @db.Decimal(14, 2)
+  settledAmount Decimal?    @db.Decimal(14, 2)
+  status        ClaimStatus @default(RECEIVED)
+  details       Json?
+  createdAt     DateTime    @default(now())
 
   @@index([tenantId])
+}
+
+enum ClaimStatus {
+  RECEIVED
+  UNDER_REVIEW
+  SUBMITTED
+  SETTLED
+  CLOSED
+  REJECTED
 }
 
 // ============================================================

@@ -54,4 +54,17 @@ export class SequenceService {
     const count = prefix === "DN" ? await this.prisma.debitNote.count() : await this.prisma.creditNote.count();
     return `${prefix}-${this.year()}-${1001 + count}`;
   }
+
+  /** رقم طلب خدمة: RQ-2026-1001 */
+  async nextServiceSeq(): Promise<string> {
+    const count = await this.prisma.serviceRequest.count();
+    return `RQ-${this.year()}-${1001 + count}`;
+  }
+
+  /** رقم مطالبة: CL-2026-1001 */
+  async nextClaimSeq(): Promise<string> {
+    const count = await this.prisma.claim.count();
+    return `CL-${this.year()}-${1001 + count}`;
+  }
 }
+

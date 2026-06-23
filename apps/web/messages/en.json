@@ -17,6 +17,7 @@
     "clients": "Clients",
     "requests": "Requests",
     "policies": "Policies",
+    "service": "Service",
     "renewals": "Renewals",
     "premiums": "Premiums",
     "commissions": "Commissions",
@@ -182,6 +183,31 @@
     "approveTechnical": "Technical approval",
     "approveFinance": "Finance approval",
     "col": { "seq": "Policy #", "insurer": "Insurer", "premium": "Total", "commission": "Commission", "status": "Status" }
+  },
+  "service": {
+    "title": "Customer Service",
+    "subtitle": "Client requests (add/delete/amend) and follow-up",
+    "new": "New request", "cancel": "Cancel", "create": "Create", "empty": "No service requests yet",
+    "type": "Type", "subject": "Subject",
+    "types": { "addition": "Addition", "deletion": "Deletion", "amendment": "Amendment", "inquiry": "Inquiry", "renewal": "Renewal" },
+    "col": { "seq": "Request #", "type": "Type", "subject": "Subject", "status": "Status" }
+  },
+  "claims": {
+    "title": "Claims",
+    "subtitle": "Claim lifecycle: received → submitted → settled → closed",
+    "new": "New claim", "cancel": "Cancel", "create": "Create", "empty": "No claims yet",
+    "locked": "Claims module is not enabled in your plan",
+    "insurer": "Insurer", "claimed": "Claimed amount", "deductible": "Deductible", "settled": "Settled", "incidentDate": "Incident date",
+    "settledPrompt": "Enter settled amount:",
+    "col": { "seq": "Claim #", "status": "Status" }
+  },
+  "renewals": {
+    "title": "Renewals",
+    "subtitle": "Policies due for renewal within 60 days",
+    "empty": "No policies due for renewal soon",
+    "initiate": "Initiate renewal",
+    "initiated": "Renewal request {seq} created",
+    "col": { "seq": "Policy #", "insurer": "Insurer", "end": "Expiry" }
   },
   "underwriting": {
     "title": "Underwriting",

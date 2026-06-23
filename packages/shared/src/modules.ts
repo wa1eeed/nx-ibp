@@ -6,6 +6,7 @@ export type ModuleKey =
   | "clients"
   | "requests"
   | "policies"
+  | "service"
   | "renewals"
   | "premiums"
   | "commissions"
@@ -47,10 +48,11 @@ export const TENANT_NAV: NavGroup[] = [
       { key: "clients", href: "/tenant/clients", icon: "Users", entitlement: "module.clients" },
       { key: "requests", href: "/tenant/requests", icon: "FileText", entitlement: "module.sales" },
       { key: "policies", href: "/tenant/policies", icon: "FileCheck2", entitlement: "module.production" },
+      { key: "service", href: "/tenant/service", icon: "Headset", entitlement: "module.service" },
       { key: "renewals", href: "/tenant/renewals", icon: "RefreshCw", entitlement: "module.production" },
       { key: "premiums", href: "/tenant/premiums", icon: "Coins", entitlement: "module.finance", comingSoon: true },
       { key: "commissions", href: "/tenant/commissions", icon: "Percent", entitlement: "module.finance" },
-      { key: "claims", href: "/tenant/claims", icon: "ClipboardList", entitlement: "module.claims", comingSoon: true },
+      { key: "claims", href: "/tenant/claims", icon: "ClipboardList", entitlement: "module.claims" },
       { key: "reports", href: "/tenant/reports", icon: "BarChart3", entitlement: "module.reports", comingSoon: true },
       { key: "compliance", href: "/tenant/compliance", icon: "ShieldCheck", entitlement: "module.compliance", comingSoon: true },
       { key: "finance", href: "/tenant/finance", icon: "Landmark", entitlement: "module.finance", comingSoon: true },

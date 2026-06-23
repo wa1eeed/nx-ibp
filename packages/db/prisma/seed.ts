@@ -76,6 +76,7 @@ const TENANTS: TenantDef[] = [
       { email: "laila@gulf-demo.sa", name: "ليلى الشمري", role: "accountant" },
       { email: "huda@gulf-demo.sa", name: "هدى الغامدي", role: "compliance_manager" },
       { email: "majed@gulf-demo.sa", name: "ماجد العمري", role: "pricing_officer" },
+      { email: "nora@gulf-demo.sa", name: "نورة الزهراني", role: "customer_care_manager" },
     ],
     clients: [
       { id: "cl-fahd", name: "شركة الفهد للمقاولات", cr: "0114567890", compliance: "APPROVED" },
