@@ -1,6 +1,7 @@
 // عميل API بسيط للواجهة — يرفق توكن JWT من التخزين المحلي.
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 const TOKEN_KEY = "ibp_token";
+const PLATFORM_TOKEN_KEY = "ibp_platform_token";
 
 export function getToken(): string | null {
   return typeof window === "undefined" ? null : window.localStorage.getItem(TOKEN_KEY);
@@ -10,6 +11,17 @@ export function setToken(token: string): void {
 }
 export function clearToken(): void {
   window.localStorage.removeItem(TOKEN_KEY);
+}
+
+// ----- توكن السوبر أدمن (لوحة المنصّة) -----
+export function getPlatformToken(): string | null {
+  return typeof window === "undefined" ? null : window.localStorage.getItem(PLATFORM_TOKEN_KEY);
+}
+export function setPlatformToken(token: string): void {
+  window.localStorage.setItem(PLATFORM_TOKEN_KEY, token);
+}
+export function clearPlatformToken(): void {
+  window.localStorage.removeItem(PLATFORM_TOKEN_KEY);
 }
 
 export class ApiError extends Error {
@@ -24,7 +36,15 @@ export class ApiError extends Error {
 }
 
 export async function api<T = unknown>(path: string, opts: RequestInit = {}): Promise<T> {
-  const token = getToken();
+  return request<T>(path, opts, getToken());
+}
+
+/** نداء بنطاق المنصّة (السوبر أدمن). */
+export async function papi<T = unknown>(path: string, opts: RequestInit = {}): Promise<T> {
+  return request<T>(path, opts, getPlatformToken());
+}
+
+async function request<T>(path: string, opts: RequestInit, token: string | null): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     ...opts,
     headers: {

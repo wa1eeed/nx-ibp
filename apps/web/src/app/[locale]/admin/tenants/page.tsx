@@ -1,0 +1,68 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
+import { papi, ApiError } from "@/lib/api";
+import { AdminShell } from "@/components/admin/AdminShell";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Badge, type BadgeTone } from "@/components/ui/Badge";
+
+interface Tenant {
+  id: string; name: string; status: string; billingModel: string;
+  subscription: { seatsUsed: number; plan: { code: string; name: string; seatLimit: number } } | null;
+  _count: { users: number; clients: number; policies: number };
+}
+
+const TONE: Record<string, BadgeTone> = { ACTIVE: "success", SUSPENDED: "danger", TRIAL: "warning", CANCELLED: "neutral" };
+
+export default function AdminTenantsPage() {
+  const t = useTranslations();
+  const [rows, setRows] = useState<Tenant[]>([]);
+  const [error, setError] = useState("");
+
+  const load = useCallback(async () => setRows(await papi<Tenant[]>("/platform/tenants")), []);
+  useEffect(() => { void load().catch(() => undefined); }, [load]);
+
+  async function toggle(id: string, current: string) {
+    setError("");
+    const status = current === "ACTIVE" ? "SUSPENDED" : "ACTIVE";
+    try { await papi(`/platform/tenants/${id}/status`, { method: "POST", body: JSON.stringify({ status }) }); await load(); }
+    catch (e) { setError(e instanceof ApiError ? e.message : "خطأ"); }
+  }
+
+  return (
+    <AdminShell>
+      <PageHeader title={t("admin.tenants.title")} subtitle={t("admin.tenants.subtitle")} />
+      {error ? <p className="mb-3 rounded-lg bg-danger-soft px-3 py-2 text-[12.5px] font-medium text-danger">{error}</p> : null}
+      <div className="overflow-x-auto rounded-card border border-line bg-card shadow-card">
+        <table className="w-full min-w-[760px]">
+          <thead><tr className="border-b border-line text-[11px] uppercase tracking-wide text-subtle">
+            <th className="px-5 py-3 text-start font-semibold">{t("admin.tenants.col.name")}</th>
+            <th className="px-5 py-3 text-start font-semibold">{t("admin.tenants.col.plan")}</th>
+            <th className="px-5 py-3 text-start font-semibold">{t("admin.tenants.col.seats")}</th>
+            <th className="px-5 py-3 text-start font-semibold">{t("admin.tenants.col.usage")}</th>
+            <th className="px-5 py-3 text-start font-semibold">{t("admin.tenants.col.billing")}</th>
+            <th className="px-5 py-3 text-start font-semibold">{t("admin.tenants.col.status")}</th>
+            <th className="px-5 py-3"></th></tr></thead>
+          <tbody className="divide-y divide-line">
+            {rows.map((r) => (
+              <tr key={r.id} className="hover:bg-surface-2/60">
+                <td className="px-5 py-3 text-[13.5px] font-medium text-ink">{r.name}</td>
+                <td className="px-5 py-3 text-[13px] text-muted">{r.subscription?.plan.name ?? "—"}</td>
+                <td className="px-5 py-3 text-[12.5px] tnum">{r.subscription ? `${r.subscription.seatsUsed}/${r.subscription.plan.seatLimit}` : "—"}</td>
+                <td className="px-5 py-3 text-[12px] text-subtle tnum">{r._count.clients} {t("admin.tenants.clients")} · {r._count.policies} {t("admin.tenants.policies")}</td>
+                <td className="px-5 py-3 text-[12px] text-muted">{r.billingModel}</td>
+                <td className="px-5 py-3"><Badge tone={TONE[r.status] ?? "neutral"}>{r.status}</Badge></td>
+                <td className="px-5 py-3 text-end">
+                  <button onClick={() => toggle(r.id, r.status)} className="rounded-lg border border-line bg-card px-2.5 py-1.5 text-[12px] font-medium text-muted hover:bg-surface-2 hover:text-ink">
+                    {r.status === "ACTIVE" ? t("admin.tenants.suspend") : t("admin.tenants.activate")}
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </AdminShell>
+  );
+}

@@ -1,0 +1,84 @@
+# 24 — لوحة السوبر أدمن (Platform Super Admin)
+
+> المرحلة 8أ: واجهة وخدمة **عابرة للمستأجرين** يديرها مالك المنصّة (لا شركة وساطة). تتيح رؤية كل المستأجرين، تعليق/تفعيل الاشتراكات، ومراقبة الاستخدام الكلّي، والأهمّ: **التحكّم في الباقات والـ entitlements والحدود** (مثل حدّ رفع الملفات) دون نشر كود. هذا هو البُعد الذي يفصل «من يملك المنصّة» عن «من يستأجرها».
+
+## جدول المحتويات
+- [1. المبدأ: نطاق المنصّة مقابل نطاق المستأجر](#1-المبدأ-نطاق-المنصّة-مقابل-نطاق-المستأجر)
+- [2. كيف يكسر السوبر أدمن العزل بأمان](#2-كيف-يكسر-السوبر-أدمن-العزل-بأمان)
+- [3. الـ endpoints](#3-الـ-endpoints)
+- [4. الواجهة (Super Admin Panel)](#4-الواجهة-super-admin-panel)
+- [5. التحكّم في الباقات والحدود](#5-التحكّم-في-الباقات-والحدود)
+- [6. الاختبارات](#6-الاختبارات)
+
+## 1. المبدأ: نطاق المنصّة مقابل نطاق المستأجر
+
+النظام له **مبدأَان أمنيَّان منفصلان**، لا يلتقيان أبداً:
+
+| | مستخدم المستأجر (Tenant User) | مدير المنصّة (Platform Admin) |
+|---|---|---|
+| الجدول | `User` (له `tenantId` و`roleId`) | `PlatformAdmin` (بلا `tenantId`) |
+| نطاق الـ JWT | `tenantId` محدّد | `scope: "platform"` (بلا `tenantId`) |
+| استعلامات Prisma | مفلترة تلقائياً بـ `tenantId` | **غير مفلترة** (تعبر كل المستأجرين) |
+| الحماية | `@Authorize` (entitlement + RBAC) | `PlatformGuard` (يفحص `isSuperAdmin`) |
+| المسارات | `/clients`, `/policies`, … | `/platform/*` فقط |
+
+**العزل ثنائي الاتجاه** ومُثبَت بالاختبار:
+- مستخدم المستأجر يُرفض من `/platform/*` ⇒ `403`.
+- مدير المنصّة يُرفض من مسارات المستأجر (`/clients` …) ⇒ `403` (لأنه بلا `roleId`/`tenantId`، فيسقط فحص RBAC والـ entitlement).
+
+## 2. كيف يكسر السوبر أدمن العزل بأمان
+
+طبقة العزل في [04](./04-security-and-multitenancy.md) تعتمد على قراءة `tenantId` من سياق الطلب (AsyncLocalStorage) داخل Prisma middleware. عندما يكون النطاق `platform`:
+
+1. `TenantContextMiddleware` يقرأ الـ JWT، يجد `scope === "platform"`، فيضبط `isSuperAdmin = true` و`store.tenantId = undefined`.
+2. Prisma `$use` middleware يرى `tenantId` غير معرّف ⇒ **يتخطّى الفلترة** ⇒ الاستعلام يعبر كل المستأجرين.
+3. الوصول لهذا المسار ممكن فقط عبر `PlatformGuard` ⇒ لا تسريب لمستخدم مستأجر عادي.
+
+أي: «كسر العزل» ليس ثغرة بل قرار تفويض صريح محصور في `/platform/*` ومحميّ ببوّابة مستقلّة. لا يمرّ عبر إخفاء المسار، بل عبر طبقة التفويض (التزاماً بـ CLAUDE.md §3).
+
+## 3. الـ endpoints
+
+كلّها تحت `@UseGuards(PlatformGuard)` عدا الدخول (`@Public`):
+
+| الطريقة والمسار | الوظيفة |
+|---|---|
+| `POST /platform/login` | دخول مدير المنصّة (bcrypt) ⇒ JWT بنطاق `platform` |
+| `GET /platform/tenants` | كل المستأجرين + الباقة + المقاعد + عدّادات الاستخدام |
+| `GET /platform/tenants/:id` | تفاصيل مستأجر واحد |
+| `POST /platform/tenants/:id/status` | تعليق/تفعيل (`ACTIVE`/`SUSPENDED`/`TRIAL`/`CANCELLED`) — يُسجَّل في `audit_log` |
+| `GET /platform/plans` | الباقات + الـ entitlements + عدد الاشتراكات لكل باقة |
+| `POST /platform/plans/:code/entitlements` | ضبط/تحديث entitlement لباقة (upsert) |
+| `GET /platform/usage` | عدّادات إجمالية عبر كل المستأجرين (مستأجرون/مستخدمون/عملاء/وثائق/طلبات/مطالبات/تحقّقات) |
+
+## 4. الواجهة (Super Admin Panel)
+
+مسار منفصل تماماً عن واجهة المستأجر: `/[locale]/admin/*`، بـ token مستقلّ (`ibp_platform_token`) ودالة نداء مستقلّة (`papi()` في [api.ts](../apps/web/src/lib/api.ts)).
+
+| الصفحة | المحتوى |
+|---|---|
+| `admin/login` | نموذج دخول ⇒ `setPlatformToken` ⇒ تحويل إلى `admin/usage` |
+| `admin/usage` | بطاقات إحصائية للاستخدام الكلّي |
+| `admin/tenants` | جدول المستأجرين + أزرار تعليق/تفعيل |
+| `admin/plans` | بطاقة لكل باقة: السعر، المقاعد، الموديولز المفعّلة، وحقل **حدّ رفع الملفات** قابل للتحرير والحفظ |
+
+`AdminShell` ([المكوّن](../apps/web/src/components/admin/AdminShell.tsx)) يغلّف الصفحات بشريط جانبي ووسم `SUPER ADMIN`، ويحرس الوصول: لا token ⇒ تحويل إلى `admin/login`. كلّه RTL وثنائي اللغة (namespace `admin` في [ar.json](../apps/web/messages/ar.json)/[en.json](../apps/web/messages/en.json)).
+
+## 5. التحكّم في الباقات والحدود
+
+تنفيذٌ لقرار المستخدم: **حدّ رفع الملفات قابل للتهيئة من لوحة السوبر أدمن عبر إدارة باقات المنصّة** — لا قيمة ثابتة في الكود.
+
+- كل باقة تحمل entitlements منها `upload.maxFileMb` (نمط `QUOTA` بقيمة عددية).
+- صفحة `admin/plans` تعرض القيمة الحالية في حقل قابل للتحرير، والحفظ ينادي `POST /platform/plans/:code/entitlements`.
+- نفس الآلية تضبط الموديولز (`module.*`) وأنماط التسعير (`INCLUDED`/`QUOTA`/`METERED`/`ADDON`/`DISABLED`) — الأساس الذي تقرأه طبقة الـ entitlements في [05](./05-rbac-and-entitlements.md) لتقرير ما هو متاح لكل مستأجر.
+
+> كل الأرقام (الحدود، الأسعار، الرسوم) بيانات قابلة للتهيئة في قاعدة البيانات لا ثوابت مكتوبة، تماشياً مع مبدأ «لا تُكتب القيم نهائياً في الكود».
+
+## 6. الاختبارات
+
+[`test/platform.e2e-spec.ts`](../apps/api/test/platform.e2e-spec.ts) — **8/8**: إصدار التوكن، رفض كلمة المرور الخاطئة (401)، رؤية كل المستأجرين عابرةً للعزل، رفض مستخدم المستأجر من `/platform` (403)، رفض مدير المنصّة من مسارات المستأجر (403)، عدّادات الاستخدام، ضبط entitlement (قابلية التهيئة)، تعليق/إعادة تفعيل مستأجر. الإجمالي التراكمي **e2e 68/68**.
+
+## انظر أيضاً
+- [04 — الأمان والعزل](./04-security-and-multitenancy.md) — طبقة العزل وكيف يتخطّاها نطاق المنصّة
+- [05 — RBAC والـ entitlements](./05-rbac-and-entitlements.md) — كيف تُقرأ القيم المضبوطة هنا
+- [03 — نموذج البيانات](./03-data-model.md) — `PlatformAdmin`/`Plan`/`Entitlement`/`Subscription`
+- [`BLUEPRINT.md`](../BLUEPRINT.md) — نموذج الاشتراكات والباقات

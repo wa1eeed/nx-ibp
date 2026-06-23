@@ -18,6 +18,15 @@ datasource db {
 // المنصة: المستأجرون والاشتراكات والصلاحيات (مستوى السوبر أدمن)
 // ============================================================
 
+// مالك المنصة (سوبر أدمن) — عابر للمستأجرين، بلا tenantId (لا يخضع لعزل Prisma).
+model PlatformAdmin {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  fullName     String
+  passwordHash String?
+  createdAt    DateTime @default(now())
+}
+
 model Tenant {
   id           String       @id @default(cuid())
   name         String

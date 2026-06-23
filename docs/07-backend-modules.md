@@ -38,7 +38,7 @@
 | **الجذر** | [`app.module.ts`](../apps/api/src/app.module.ts) | تركيب الوحدات + حارسان عالميان (`JwtAuthGuard`, `AuthorizationGuard`) + middleware السياق |
 | **common المشتركة** | [`src/common/`](../apps/api/src/common) | خدمات أفقية عابرة للمجالات: سياق الطلب، التدقيق، التسلسل |
 | **البنية التحتية** | [`src/prisma/`](../apps/api/src/prisma) · [`src/redis/`](../apps/api/src/redis) | عملاء قاعدة البيانات والكاش كـ Providers |
-| **المجالية** | [`src/modules/`](../apps/api/src/modules) | منطق الأعمال: auth, rbac, catalog, clients, requests, underwriting, claims, staff, health |
+| **المجالية** | [`src/modules/`](../apps/api/src/modules) | منطق الأعمال: auth, rbac, catalog, clients, requests, underwriting, production, finance, documents, service, claims, renewals, verification, **platform**, staff, health |
 
 ```mermaid
 flowchart TB

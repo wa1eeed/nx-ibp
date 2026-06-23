@@ -24,6 +24,7 @@ import { ServiceModule } from "./modules/service/service.module";
 import { ClaimsModule } from "./modules/claims/claims.module";
 import { RenewalsModule } from "./modules/renewals/renewals.module";
 import { VerificationModule } from "./modules/verification/verification.module";
+import { PlatformModule } from "./modules/platform/platform.module";
 import { StaffModule } from "./modules/staff/staff.module";
 
 /**
@@ -55,6 +56,7 @@ import { StaffModule } from "./modules/staff/staff.module";
     ClaimsModule,
     RenewalsModule,
     VerificationModule,
+    PlatformModule,
     StaffModule,
   ],
   providers: [

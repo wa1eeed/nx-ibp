@@ -8,9 +8,10 @@ import {
 
 interface JwtPayload {
   sub: string;
-  tenantId: string;
-  roleId: string | null;
+  tenantId?: string; // غائبة للسوبر أدمن
+  roleId?: string | null;
   email: string;
+  scope?: string; // "platform" للسوبر أدمن
 }
 
 /**
@@ -35,10 +36,12 @@ export class TenantContextMiddleware implements NestMiddleware {
         const payload = this.jwt.verify<JwtPayload>(token);
         (req as Request & { user?: unknown }).user = {
           userId: payload.sub,
-          tenantId: payload.tenantId,
+          tenantId: payload.tenantId ?? "",
           roleId: payload.roleId ?? null,
           email: payload.email,
+          isSuperAdmin: payload.scope === "platform",
         };
+        // بلا tenantId (سوبر أدمن) ⇒ ALS بلا مستأجر ⇒ استعلامات Prisma غير مفلترة (عابرة للمستأجرين)
         store.tenantId = payload.tenantId;
         store.userId = payload.sub;
         store.roleId = payload.roleId ?? null;

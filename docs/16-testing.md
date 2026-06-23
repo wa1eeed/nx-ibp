@@ -23,8 +23,13 @@
 | [`rbac.e2e-spec.ts`](../apps/api/test/rbac.e2e-spec.ts) | 10 | **بوّابة الباقة** (موديول خارج الباقة 403)، **بوّابة الدور** (موظف بلا صلاحية 403)، إدارة الموظفين، إنشاء موظف بمصفوفة تُطبَّق فعلاً |
 | [`requests.e2e-spec.ts`](../apps/api/test/requests.e2e-spec.ts) | 13 | الكتالوج المتنوّع، **التحقّق حسب المنتج** (طبي/مركبات/حياة → 201، حمولة ناقصة → 422)، **بوّابة الالتزام** (قبل الاعتماد 409)، تفاصيل الطلب بكتله |
 | [`underwriting.e2e-spec.ts`](../apps/api/test/underwriting.e2e-spec.ts) | 5 | حوكمة الالتزام على الـ Slip (409)، RBAC production (403)، **جدول المقارنة الآلي** (يحدّد الأرخص)، **Firm Order** ⇒ الطلب AWARDED، العزل |
+| [`finance.e2e-spec.ts`](../apps/api/test/finance.e2e-spec.ts) | 3 | إصدار من طلب AWARDED، **اعتماد مالي يولّد قيد JRV مزدوجاً متوازناً** + فاتورة ضريبية، فصل داخل/خارج الميزانية |
+| [`documents.e2e-spec.ts`](../apps/api/test/documents.e2e-spec.ts) | 6 | **روابط موقّتة فقط** (Presigned)، حدّ الرفع كـ entitlement، فحص MIME (رفض التنفيذي)، عزل المسار `tenant_{id}/` |
+| [`operations.e2e-spec.ts`](../apps/api/test/operations.e2e-spec.ts) | 8 | خدمة العملاء (دورة `RQ-`)، **المطالبات** (`CL-` محكومة بـ entitlement)، التجديدات، RBAC والعزل |
+| [`verification.e2e-spec.ts`](../apps/api/test/verification.e2e-spec.ts) | 7 | يقين يعبّئ النموذج و**يخصم عملية**، واثق (UBO)، العنوان مجاني، فحص PEP (low/high)، منع RBAC والعزل |
+| [`platform.e2e-spec.ts`](../apps/api/test/platform.e2e-spec.ts) | 8 | دخول السوبر أدمن، **رؤية كل المستأجرين عابرةً للعزل**، رفض المستأجر من `/platform` ورفض المنصّة من مسارات المستأجر (403)، الاستخدام، ضبط entitlement، تعليق/تفعيل |
 
-**الإجمالي: 36 اختباراً (4 ملفات).**
+**الإجمالي: 68 اختباراً (9 ملفات).**
 
 ## 3. التشغيل
 

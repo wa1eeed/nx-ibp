@@ -249,5 +249,46 @@
     "selectProduct": "Select a product to render its dynamic form",
     "notApproved": "Not approved",
     "pickClientFirst": "Pick a client first"
+  },
+  "admin": {
+    "brand": "IBP Platform",
+    "subtitle": "Platform control panel",
+    "logout": "Sign out",
+    "nav": { "usage": "Usage", "tenants": "Tenants", "plans": "Plans" },
+    "login": {
+      "title": "Super Admin sign-in",
+      "submit": "Sign in",
+      "error": "Invalid credentials"
+    },
+    "usage": {
+      "title": "Platform usage",
+      "subtitle": "Aggregate metrics across all tenants",
+      "tenants": "Tenants",
+      "users": "Users",
+      "clients": "Clients",
+      "policies": "Policies",
+      "requests": "Requests",
+      "claims": "Claims",
+      "checks": "Verification checks"
+    },
+    "tenants": {
+      "title": "Tenant management",
+      "subtitle": "Subscribed companies and their subscription status",
+      "clients": "clients",
+      "policies": "policies",
+      "suspend": "Suspend",
+      "activate": "Activate",
+      "col": { "name": "Tenant", "plan": "Plan", "seats": "Seats", "usage": "Usage", "billing": "Billing model", "status": "Status" }
+    },
+    "plans": {
+      "title": "Plans & entitlements",
+      "subtitle": "Control the modules and limits available per plan",
+      "seatLimit": "Seat limit",
+      "uploadLimit": "Upload limit (MB)",
+      "modules": "Enabled modules",
+      "save": "Save",
+      "saved": "Changes saved",
+      "price": "Price/mo"
+    }
   }
 }

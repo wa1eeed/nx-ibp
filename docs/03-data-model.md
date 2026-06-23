@@ -76,6 +76,18 @@ erDiagram
 ### `enum BillingModel`
 `PASS_THROUGH` (الممر — المستأجر يدفع للمزوّد مباشرة) · `RESELLER` (إعادة بيع — نخصم من رصيد المستأجر بهامش).
 
+### `PlatformAdmin`
+**الغرض:** مدير المنصّة (مالكها) — كيان **عابر للمستأجرين** يدير الباقات والاشتراكات والاستخدام عبر لوحة السوبر أدمن (راجع [`docs/24`](./24-platform-super-admin.md)).
+
+| الحقل | النوع | ملاحظة |
+|---|---|---|
+| `id` | String (cuid) | المفتاح |
+| `email` | String **@unique** | بريد الدخول |
+| `fullName` | String | الاسم |
+| `passwordHash` | String? | bcrypt |
+
+**العزل:** **بلا `tenantId`** — نطاقه `platform`، فلا يخضع لفلترة Prisma بل يتخطّاها (انظر [`docs/04` §نطاق المنصّة](./04-security-and-multitenancy.md)). الوصول محصور بـ `PlatformGuard` على مسارات `/platform/*` فقط.
+
 ### `Plan`
 **الغرض:** باقة اشتراك مرجعية على مستوى المنصة (يعرّفها السوبر أدمن).
 

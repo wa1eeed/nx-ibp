@@ -342,7 +342,14 @@ async function main() {
     });
   }
 
-  console.log(`✅ تمّ الزرع: ${TENANTS.length} مستأجر. كلمة مرور التطوير: ${DEV_PASSWORD}`);
+  // مالك المنصة (سوبر أدمن)
+  await prisma.platformAdmin.upsert({
+    where: { email: "admin@ibp-platform.sa" },
+    update: { passwordHash },
+    create: { email: "admin@ibp-platform.sa", fullName: "مالك المنصة", passwordHash },
+  });
+
+  console.log(`✅ تمّ الزرع: ${TENANTS.length} مستأجر + سوبر أدمن. كلمة مرور التطوير: ${DEV_PASSWORD}`);
   console.log("   الخليج (premium+مطالبات): waleed/sara/fahad/laila@gulf-demo.sa");
   console.log("   الأمان (basic): omar@aman-demo.sa");
 }
