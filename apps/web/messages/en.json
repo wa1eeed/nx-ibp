@@ -171,8 +171,17 @@
     "subtitle": "Insurance requests (RFQ) for clients",
     "new": "New request",
     "rfq": "Get quotes",
+    "issue": "Issue",
     "empty": "No requests yet — start a new request",
     "col": { "seq": "Request #", "client": "Client", "product": "Product", "status": "Status" }
+  },
+  "policies": {
+    "title": "Policies",
+    "subtitle": "Issuance & approval cascade (technical → finance)",
+    "empty": "No policies yet — issue from an awarded request",
+    "approveTechnical": "Technical approval",
+    "approveFinance": "Finance approval",
+    "col": { "seq": "Policy #", "insurer": "Insurer", "premium": "Total", "commission": "Commission", "status": "Status" }
   },
   "underwriting": {
     "title": "Underwriting",

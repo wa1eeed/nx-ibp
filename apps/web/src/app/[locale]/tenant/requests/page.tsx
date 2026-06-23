@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, FileText, FileSpreadsheet } from "lucide-react";
+import { Plus, FileText, FileSpreadsheet, FileCheck2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/routing";
 import { api, getToken, ApiError } from "@/lib/api";
@@ -46,6 +46,16 @@ export default function RequestsPage() {
     try {
       const slip = await api<{ id: string }>("/slips", { method: "POST", body: JSON.stringify({ requestId }) });
       router.push(`/tenant/slips/${slip.id}`);
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "خطأ");
+    }
+  }
+
+  async function issuePolicy(requestId: string) {
+    setError("");
+    try {
+      await api("/policies/issue", { method: "POST", body: JSON.stringify({ requestId }) });
+      router.push(`/tenant/policies`);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "خطأ");
     }
@@ -98,9 +108,15 @@ export default function RequestsPage() {
                     <Badge tone={STATUS_TONE[r.status] ?? "neutral"}>{r.status}</Badge>
                   </td>
                   <td className="px-5 py-3 text-end">
-                    <button onClick={() => startRfq(r.id)} className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-card px-2.5 py-1.5 text-[12px] font-medium text-primary hover:bg-surface-2">
-                      <FileSpreadsheet size={13} /> {t("requests.rfq")}
-                    </button>
+                    {r.status === "AWARDED" ? (
+                      <button onClick={() => issuePolicy(r.id)} className="inline-flex items-center gap-1.5 rounded-lg bg-primary-strong px-2.5 py-1.5 text-[12px] font-semibold text-primary-fg hover:bg-primary">
+                        <FileCheck2 size={13} /> {t("requests.issue")}
+                      </button>
+                    ) : (
+                      <button onClick={() => startRfq(r.id)} className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-card px-2.5 py-1.5 text-[12px] font-medium text-primary hover:bg-surface-2">
+                        <FileSpreadsheet size={13} /> {t("requests.rfq")}
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}

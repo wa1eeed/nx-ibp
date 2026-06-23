@@ -405,15 +405,37 @@ model Endorsement {
   @@index([policyId])
 }
 
-// نماذج مبسّطة — تُفصّل في مراحلها بـ ROADMAP.md
+// الوثيقة المُصدَرة (المرحلة 4ب): تنشأ من طلب AWARDED وتمرّ باعتماد فني ← مالي.
 model Policy {
-  id           String        @id @default(cuid())
-  tenantId     String
-  tenant       Tenant        @relation(fields: [tenantId], references: [id])
-  sequenceNo   String?
-  endorsements Endorsement[]
+  id               String        @id @default(cuid())
+  tenantId         String
+  tenant           Tenant        @relation(fields: [tenantId], references: [id])
+  requestId        String?
+  clientId         String?
+  productLineCode  String?
+  insurerName      String?
+  sequenceNo       String? // POL-RUH-MED-2026-1001
+  premium          Decimal?      @db.Decimal(14, 2) // القسط الصافي
+  vat              Decimal?      @db.Decimal(14, 2)
+  totalPremium     Decimal?      @db.Decimal(14, 2)
+  commissionRate   Decimal?      @db.Decimal(6, 3)
+  commissionAmount Decimal?      @db.Decimal(14, 2)
+  status           PolicyStatus  @default(TECHNICAL_REVIEW)
+  startDate        DateTime?
+  endDate          DateTime?
+  createdAt        DateTime      @default(now())
+  endorsements     Endorsement[]
 
   @@index([tenantId])
+  @@index([requestId])
+}
+
+enum PolicyStatus {
+  TECHNICAL_REVIEW // بانتظار الموافقة الفنية (Underwriter)
+  FINANCE_REVIEW // بانتظار الاعتماد المالي (Accountant)
+  ISSUED // مُصدَرة (بعد ترحيل القيد والإشعار والفاتورة)
+  REJECTED
+  CANCELLED
 }
 
 model ServiceRequest {

@@ -274,6 +274,55 @@ async function seedTenant(def: TenantDef, passwordHash: string) {
       create: { tenantId: def.id, service: w.service, balance: w.balance },
     });
   }
+
+  // الأساس المحاسبي (المرحلة 4ب): شجرة الحسابات المقفلة + مراكز التكلفة
+  await seedFinanceFoundation(def);
+}
+
+// شجرة الحسابات القياسية (المستوى 1/2 مقفل — توحيد تقارير هيئة التأمين).
+// كود 17 رقماً مبني من المسار الهرمي. فصل داخل/خارج الميزانية لأموال العملاء.
+const COA_TEMPLATE: Array<{ path: number[]; name: string; type: string; onBal: boolean }> = [
+  { path: [1], name: "الأصول", type: "asset", onBal: true },
+  { path: [1, 1], name: "الأصول المتداولة", type: "asset", onBal: true },
+  { path: [1, 3], name: "ذمم العملاء المدينة", type: "asset", onBal: true },
+  { path: [2], name: "الخصوم", type: "liability", onBal: true },
+  { path: [2, 1], name: "ذمم شركات التأمين الدائنة", type: "liability", onBal: true },
+  { path: [2, 2], name: "أمانات أقساط العملاء (خارج الميزانية)", type: "liability", onBal: false },
+  { path: [3], name: "حقوق الملكية", type: "equity", onBal: true },
+  { path: [4], name: "الإيرادات", type: "revenue", onBal: true },
+  { path: [4, 1], name: "عمولات الوساطة", type: "revenue", onBal: true },
+  { path: [5], name: "المصروفات", type: "expense", onBal: true },
+];
+
+const coa17 = (path: number[]) => path.map((p) => String(p).padStart(2, "0")).join("").padEnd(17, "0");
+
+async function seedFinanceFoundation(def: TenantDef) {
+  for (const a of COA_TEMPLATE) {
+    const code = coa17(a.path);
+    const level = a.path.length;
+    const parentCode = level > 1 ? coa17(a.path.slice(0, -1)) : null;
+    const data = {
+      name: a.name,
+      level,
+      isOnBalance: a.onBal,
+      isLocked: level <= 2, // المستوى 1/2 مقفل
+      accountType: a.type,
+      parentId: parentCode ? `coa-${def.id}-${parentCode}` : null,
+    };
+    await prisma.chartOfAccount.upsert({
+      where: { tenantId_code: { tenantId: def.id, code } },
+      update: data,
+      create: { id: `coa-${def.id}-${code}`, tenantId: def.id, code, ...data },
+    });
+  }
+  // مراكز التكلفة — مستوى 1 = الفروع
+  for (const b of def.branches) {
+    await prisma.costCenter.upsert({
+      where: { tenantId_code: { tenantId: def.id, code: b.code } },
+      update: { name: b.name },
+      create: { tenantId: def.id, code: b.code, name: b.name, level: 1 },
+    });
+  }
 }
 
 async function main() {

@@ -30,4 +30,28 @@ export class SequenceService {
     const count = await this.prisma.slip.count();
     return `RFQ-${classCode}-${this.year()}-${1001 + count}`;
   }
+
+  /** رقم وثيقة بالفرع: POL-RUH-MED-2026-1001 */
+  async nextPolicySeq(branchCode: string, classCode: string): Promise<string> {
+    const count = await this.prisma.policy.count();
+    return `POL-${branchCode}-${classCode}-${this.year()}-${1001 + count}`;
+  }
+
+  /** رقم سند بنوعه: JRV-2026-1001 */
+  async nextVoucherSeq(type: string): Promise<string> {
+    const count = await this.prisma.voucher.count();
+    return `${type}-${this.year()}-${1001 + count}`;
+  }
+
+  /** رقم فاتورة ضريبية: INV-2026-1001 */
+  async nextInvoiceSeq(): Promise<string> {
+    const count = await this.prisma.invoice.count();
+    return `INV-${this.year()}-${1001 + count}`;
+  }
+
+  /** رقم إشعار مدين/دائن: DN/CN-2026-1001 */
+  async nextNoteSeq(prefix: "DN" | "CN"): Promise<string> {
+    const count = prefix === "DN" ? await this.prisma.debitNote.count() : await this.prisma.creditNote.count();
+    return `${prefix}-${this.year()}-${1001 + count}`;
+  }
 }

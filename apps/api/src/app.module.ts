@@ -15,6 +15,8 @@ import { CatalogModule } from "./modules/catalog/catalog.module";
 import { ClientsModule } from "./modules/clients/clients.module";
 import { RequestsModule } from "./modules/requests/requests.module";
 import { UnderwritingModule } from "./modules/underwriting/underwriting.module";
+import { ProductionModule } from "./modules/production/production.module";
+import { FinanceModule } from "./modules/finance/finance.module";
 import { ClaimsModule } from "./modules/claims/claims.module";
 import { StaffModule } from "./modules/staff/staff.module";
 
@@ -39,6 +41,8 @@ import { StaffModule } from "./modules/staff/staff.module";
     ClientsModule,
     RequestsModule,
     UnderwritingModule,
+    ProductionModule,
+    FinanceModule,
     ClaimsModule,
     StaffModule,
   ],
