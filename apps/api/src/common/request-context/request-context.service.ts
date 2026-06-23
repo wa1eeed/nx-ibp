@@ -6,6 +6,8 @@ export interface RequestStore {
   userId?: string;
   roleId?: string | null;
   email?: string;
+  clientId?: string; // نطاق بوّابة العميل
+  scope?: string; // "platform" | "client" | undefined (موظف مستأجر)
 }
 
 /**

@@ -6,7 +6,8 @@
   "common": {
     "comingSoon": "Coming soon",
     "viewAll": "View all",
-    "search": "Search"
+    "search": "Search",
+    "sar": "SAR"
   },
   "navGroup": {
     "workspace": "Broker Workspace",
@@ -289,6 +290,57 @@
       "save": "Save",
       "saved": "Changes saved",
       "price": "Price/mo"
+    }
+  },
+  "portal": {
+    "brand": "Client Portal",
+    "subtitle": "Track your policies, claims and account",
+    "badge": "CLIENT PORTAL",
+    "logout": "Sign out",
+    "empty": "No data",
+    "nav": { "dashboard": "Home", "policies": "My policies", "requests": "My requests", "claims": "My claims", "statement": "Statement", "documents": "My documents" },
+    "login": { "title": "Client portal sign-in", "submit": "Sign in", "error": "Invalid credentials" },
+    "dashboard": {
+      "title": "Home",
+      "welcome": "Welcome,",
+      "subtitle": "A quick look at your insurance, claims and account",
+      "policies": "Active policies",
+      "openClaims": "Claims in progress",
+      "openRequests": "Open requests",
+      "outstanding": "Outstanding balance"
+    },
+    "policies": {
+      "title": "My policies",
+      "subtitle": "Active and expired insurance policies",
+      "col": { "no": "Policy no.", "product": "Product", "insurer": "Insurer", "total": "Total", "period": "Coverage period", "status": "Status" }
+    },
+    "claims": {
+      "title": "My claims",
+      "subtitle": "Insurance claims and their status",
+      "col": { "no": "Claim no.", "insurer": "Insurer", "incident": "Incident date", "claimed": "Claimed", "settled": "Settled", "status": "Status" }
+    },
+    "requests": {
+      "title": "My requests",
+      "subtitle": "Insurance requests and service requests",
+      "insurance": "Insurance requests",
+      "service": "Service requests",
+      "col": { "no": "No.", "product": "Product", "subject": "Subject", "date": "Date", "status": "Status" }
+    },
+    "statement": {
+      "title": "Statement of account",
+      "subtitle": "Debit notes, tax invoices and outstanding balance",
+      "outstanding": "Outstanding balance",
+      "debitNotes": "Debit notes",
+      "invoices": "Tax invoices",
+      "col": { "no": "No.", "date": "Date", "net": "Net", "vat": "VAT", "total": "Total", "insurer": "Insurer", "status": "Status" }
+    },
+    "documents": {
+      "title": "My documents",
+      "subtitle": "Your policies and documents — opened via a secure temporary link",
+      "official": "Official",
+      "attachment": "Attachment",
+      "download": "Open",
+      "col": { "file": "File", "type": "Type", "size": "Size", "date": "Date" }
     }
   }
 }

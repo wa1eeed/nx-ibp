@@ -6,6 +6,8 @@ export interface AuthUser {
   roleId: string | null;
   email: string;
   isSuperAdmin?: boolean;
+  clientId?: string; // نطاق بوّابة العميل
+  scope?: string; // "platform" | "client" | undefined
 }
 
 /** يستخرج المستخدم المصادَق (الذي يضبطه TenantContextMiddleware) من الطلب. */

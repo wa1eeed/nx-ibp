@@ -2,6 +2,7 @@
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 const TOKEN_KEY = "ibp_token";
 const PLATFORM_TOKEN_KEY = "ibp_platform_token";
+const PORTAL_TOKEN_KEY = "ibp_portal_token";
 
 export function getToken(): string | null {
   return typeof window === "undefined" ? null : window.localStorage.getItem(TOKEN_KEY);
@@ -24,6 +25,17 @@ export function clearPlatformToken(): void {
   window.localStorage.removeItem(PLATFORM_TOKEN_KEY);
 }
 
+// ----- توكن بوّابة العميل -----
+export function getPortalToken(): string | null {
+  return typeof window === "undefined" ? null : window.localStorage.getItem(PORTAL_TOKEN_KEY);
+}
+export function setPortalToken(token: string): void {
+  window.localStorage.setItem(PORTAL_TOKEN_KEY, token);
+}
+export function clearPortalToken(): void {
+  window.localStorage.removeItem(PORTAL_TOKEN_KEY);
+}
+
 export class ApiError extends Error {
   constructor(
     public status: number,
@@ -42,6 +54,11 @@ export async function api<T = unknown>(path: string, opts: RequestInit = {}): Pr
 /** نداء بنطاق المنصّة (السوبر أدمن). */
 export async function papi<T = unknown>(path: string, opts: RequestInit = {}): Promise<T> {
   return request<T>(path, opts, getPlatformToken());
+}
+
+/** نداء بنطاق بوّابة العميل. */
+export async function cpapi<T = unknown>(path: string, opts: RequestInit = {}): Promise<T> {
+  return request<T>(path, opts, getPortalToken());
 }
 
 async function request<T>(path: string, opts: RequestInit, token: string | null): Promise<T> {

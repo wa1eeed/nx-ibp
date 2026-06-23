@@ -327,6 +327,117 @@ async function seedFinanceFoundation(def: TenantDef) {
   }
 }
 
+const round2 = (n: number) => Math.round(n * 100) / 100;
+const D = (s: string) => new Date(`${s}T00:00:00.000Z`);
+
+/**
+ * بيانات تشغيلية واقعية (وهمية) — تُغذّي واجهات الموظف وبوّابة العميل معاً:
+ * وثائق سارية + طلبات + طلبات خدمة + مطالبات + إشعارات مدينة + فواتير + مستندات + مستخدمو بوّابة.
+ */
+async function seedOperations(passwordHash: string) {
+  // وثائق سارية لكل عميل (القسط الصافي → ضريبة 15% → الإجمالي + عمولة الوساطة)
+  const policies = [
+    { id: "pol-fahd-med", t: "demo-tenant", clientId: "cl-fahd", line: "GMI", insurer: "بوبا العربية", net: 180000, comm: 12.5, start: "2026-01-01", end: "2026-12-31" },
+    { id: "pol-fahd-mot", t: "demo-tenant", clientId: "cl-fahd", line: "MCI", insurer: "التعاونية للتأمين", net: 45000, comm: 10, start: "2026-02-01", end: "2027-01-31" },
+    { id: "pol-fahd-pro", t: "demo-tenant", clientId: "cl-fahd", line: "PAR", insurer: "وقاية للتأمين", net: 90000, comm: 15, start: "2026-03-01", end: "2027-02-28" },
+    { id: "pol-zahra-med", t: "demo-tenant", clientId: "cl-zahra", line: "GMI", insurer: "ملاذ للتأمين", net: 320000, comm: 12, start: "2026-01-15", end: "2027-01-14" },
+    { id: "pol-nukhba-mot", t: "demo-tenant-2", clientId: "cl2-nukhba", line: "MTP", insurer: "سلامة للتأمين", net: 28000, comm: 8, start: "2026-04-01", end: "2027-03-31" },
+  ];
+  let pi = 0;
+  for (const p of policies) {
+    pi++;
+    const vat = round2(p.net * 0.15);
+    const total = round2(p.net + vat);
+    await prisma.policy.upsert({
+      where: { id: p.id },
+      update: { insurerName: p.insurer, premium: p.net, vat, totalPremium: total, status: "ISSUED" },
+      create: {
+        id: p.id, tenantId: p.t, clientId: p.clientId, productLineCode: p.line, insurerName: p.insurer,
+        sequenceNo: `POL-RUH-${p.line}-2026-${1000 + pi}`, premium: p.net, vat, totalPremium: total,
+        commissionRate: p.comm, commissionAmount: round2((p.net * p.comm) / 100), status: "ISSUED",
+        startDate: D(p.start), endDate: D(p.end),
+      },
+    });
+    await prisma.debitNote.upsert({
+      where: { id: `dn-${p.id}` }, update: {},
+      create: { id: `dn-${p.id}`, tenantId: p.t, clientId: p.clientId, policyId: p.id, sequenceNo: `DN-2026-${1000 + pi}`, netAmount: p.net, vatAmount: vat },
+    });
+    await prisma.invoice.upsert({
+      where: { id: `inv-${p.id}` }, update: {},
+      create: {
+        id: `inv-${p.id}`, tenantId: p.t, policyId: p.id, insurerName: p.insurer, sequenceNo: `INV-2026-${1000 + pi}`,
+        netAmount: p.net, vatAmount: vat, totalAmount: total, status: "issued",
+        zatcaUuid: `zatca-${p.id}`, zatcaHash: "demo-hash", qrPayload: "demo-qr",
+      },
+    });
+  }
+
+  // طلبات تأمين بمراحل مختلفة (تظهر للموظف والعميل)
+  const requests = [
+    { id: "req-fahd-eng", t: "demo-tenant", clientId: "cl-fahd", line: "CAR", status: "QUOTING", seq: "SL-RUH-CAR-2026-2001" },
+    { id: "req-fahd-mar", t: "demo-tenant", clientId: "cl-fahd", line: "MCG", status: "DRAFT", seq: "SL-RUH-MCG-2026-2002" },
+    { id: "req-zahra-life", t: "demo-tenant", clientId: "cl-zahra", line: "GLI", status: "AWARDED", seq: "SL-RUH-GLI-2026-2003" },
+  ];
+  for (const r of requests) {
+    await prisma.policyRequest.upsert({
+      where: { id: r.id }, update: { status: r.status as never },
+      create: { id: r.id, tenantId: r.t, clientId: r.clientId, productLineCode: r.line, status: r.status as never, sequenceNo: r.seq, base: {} },
+    });
+  }
+
+  // طلبات خدمة العملاء
+  const services = [
+    { id: "svc-fahd-add", t: "demo-tenant", clientId: "cl-fahd", policyId: "pol-fahd-med", type: "addition", subject: "إضافة 3 موظفين للوثيقة الطبية", status: "IN_PROGRESS", seq: "RQ-2026-3001" },
+    { id: "svc-fahd-inq", t: "demo-tenant", clientId: "cl-fahd", policyId: "pol-fahd-mot", type: "inquiry", subject: "استفسار عن حدود تغطية المركبات", status: "CLOSED", seq: "RQ-2026-3002" },
+  ];
+  for (const s of services) {
+    await prisma.serviceRequest.upsert({
+      where: { id: s.id }, update: {},
+      create: { id: s.id, tenantId: s.t, clientId: s.clientId, policyId: s.policyId, type: s.type, subject: s.subject, status: s.status as never, sequenceNo: s.seq },
+    });
+  }
+
+  // مطالبات (إثراء المطالبة المزروعة + إضافة جديدة)
+  const claims = [
+    { id: "claim-t1-1", t: "demo-tenant", clientId: "cl-fahd", policyId: "pol-fahd-mot", insurer: "التعاونية للتأمين", incident: "2026-03-12", claimed: 12000, deduct: 1000, settled: null, status: "UNDER_REVIEW", seq: "CL-RUH-2026-0001" },
+    { id: "claim-t1-2", t: "demo-tenant", clientId: "cl-fahd", policyId: "pol-fahd-med", insurer: "بوبا العربية", incident: "2026-02-20", claimed: 9500, deduct: 500, settled: 8500, status: "SETTLED", seq: "CL-RUH-2026-0002" },
+    { id: "claim-t1-3", t: "demo-tenant", clientId: "cl-zahra", policyId: "pol-zahra-med", insurer: "ملاذ للتأمين", incident: "2026-04-05", claimed: 22000, deduct: 2000, settled: null, status: "SUBMITTED", seq: "CL-RUH-2026-0003" },
+  ];
+  for (const c of claims) {
+    await prisma.claim.upsert({
+      where: { id: c.id },
+      update: { clientId: c.clientId, policyId: c.policyId, insurerName: c.insurer, claimedAmount: c.claimed, deductible: c.deduct, settledAmount: c.settled ?? null, status: c.status as never, incidentDate: D(c.incident) },
+      create: { id: c.id, tenantId: c.t, clientId: c.clientId, policyId: c.policyId, insurerName: c.insurer, claimedAmount: c.claimed, deductible: c.deduct, settledAmount: c.settled ?? null, status: c.status as never, incidentDate: D(c.incident), sequenceNo: c.seq },
+    });
+  }
+
+  // مستندات (بيانات وصفية — العرض عبر رابط موقّت في البوّابة)
+  const docs = [
+    { id: "doc-fahd-med-sched", t: "demo-tenant", entityType: "policy", entityId: "pol-fahd-med", fileName: "جدول الوثيقة الطبية.pdf", docType: "OFFICIAL" },
+    { id: "doc-fahd-mot-cert", t: "demo-tenant", entityType: "policy", entityId: "pol-fahd-mot", fileName: "شهادة تأمين المركبات.pdf", docType: "OFFICIAL" },
+    { id: "doc-fahd-claim", t: "demo-tenant", entityType: "claim", entityId: "claim-t1-1", fileName: "نموذج المطالبة.pdf", docType: "ATTACHMENT" },
+    { id: "doc-fahd-profile", t: "demo-tenant", entityType: "client", entityId: "cl-fahd", fileName: "السجل التجاري.pdf", docType: "ATTACHMENT" },
+  ];
+  for (const d of docs) {
+    await prisma.document.upsert({
+      where: { id: d.id }, update: {},
+      create: { id: d.id, tenantId: d.t, storageKey: `${d.t}/seed/${d.id}.pdf`, fileName: d.fileName, mime: "application/pdf", sizeBytes: 124000, hash: "seed", docType: d.docType as never, entityType: d.entityType, entityId: d.entityId },
+    });
+  }
+
+  // مستخدمو بوّابة العميل (نطاق client)
+  const portalUsers = [
+    { id: "cu-fahd", t: "demo-tenant", clientId: "cl-fahd", email: "portal@alfahd.sa", name: "إدارة شركة الفهد" },
+    { id: "cu-nukhba", t: "demo-tenant-2", clientId: "cl2-nukhba", email: "portal@nukhba.sa", name: "مؤسسة النخبة التجارية" },
+  ];
+  for (const u of portalUsers) {
+    await prisma.clientUser.upsert({
+      where: { email: u.email }, update: { fullName: u.name, passwordHash },
+      create: { id: u.id, tenantId: u.t, clientId: u.clientId, email: u.email, fullName: u.name, passwordHash },
+    });
+  }
+}
+
 async function main() {
   console.log("🌱 IBP seed — بيانات وهمية فقط");
   const passwordHash = await bcrypt.hash(DEV_PASSWORD, 10);
@@ -342,6 +453,8 @@ async function main() {
     });
   }
 
+  await seedOperations(passwordHash);
+
   // مالك المنصة (سوبر أدمن)
   await prisma.platformAdmin.upsert({
     where: { email: "admin@ibp-platform.sa" },
@@ -349,9 +462,11 @@ async function main() {
     create: { email: "admin@ibp-platform.sa", fullName: "مالك المنصة", passwordHash },
   });
 
-  console.log(`✅ تمّ الزرع: ${TENANTS.length} مستأجر + سوبر أدمن. كلمة مرور التطوير: ${DEV_PASSWORD}`);
+  console.log(`✅ تمّ الزرع: ${TENANTS.length} مستأجر + سوبر أدمن + بيانات تشغيلية. كلمة مرور التطوير: ${DEV_PASSWORD}`);
   console.log("   الخليج (premium+مطالبات): waleed/sara/fahad/laila@gulf-demo.sa");
   console.log("   الأمان (basic): omar@aman-demo.sa");
+  console.log("   سوبر أدمن: admin@ibp-platform.sa");
+  console.log("   بوّابة العميل: portal@alfahd.sa (الفهد) · portal@nukhba.sa (النخبة)");
 }
 
 main()

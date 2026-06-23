@@ -25,6 +25,7 @@ import { ClaimsModule } from "./modules/claims/claims.module";
 import { RenewalsModule } from "./modules/renewals/renewals.module";
 import { VerificationModule } from "./modules/verification/verification.module";
 import { PlatformModule } from "./modules/platform/platform.module";
+import { PortalModule } from "./modules/portal/portal.module";
 import { StaffModule } from "./modules/staff/staff.module";
 
 /**
@@ -57,6 +58,7 @@ import { StaffModule } from "./modules/staff/staff.module";
     RenewalsModule,
     VerificationModule,
     PlatformModule,
+    PortalModule,
     StaffModule,
   ],
   providers: [

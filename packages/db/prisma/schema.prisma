@@ -39,6 +39,7 @@ model Tenant {
 
   subscription Subscription?
   users        User[]
+  clientUsers  ClientUser[]
   branches     Branch[]
   config       TenantConfig?
   wallets      Wallet[]
@@ -267,12 +268,30 @@ model Client {
   complianceNote   String?
   createdAt        DateTime         @default(now())
   policyRequests   PolicyRequest[]
+  portalUsers      ClientUser[]
 
   // تفرّد لكل مستأجر (NULL لا يتعارض ⇒ الأفراد بلا CR والمنشآت بلا هوية مسموح بهما)
   @@unique([tenantId, code])
   @@unique([tenantId, crNumber])
   @@unique([tenantId, nationalId])
   @@index([tenantId])
+}
+
+/// مستخدم بوّابة العميل (المرحلة 8ب) — مبدأ مستقلّ عن موظفي المستأجر.
+/// نطاقه `client`: يخضع لعزل المستأجر (tenantId) + يرى بيانات عميله فقط (clientId).
+model ClientUser {
+  id           String   @id @default(cuid())
+  tenantId     String
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+  clientId     String
+  client       Client   @relation(fields: [clientId], references: [id])
+  email        String   @unique
+  fullName     String
+  passwordHash String?
+  createdAt    DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([clientId])
 }
 
 enum ClientType {

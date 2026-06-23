@@ -586,8 +586,13 @@ curl -X POST http://localhost:4000/staff \
 | `POST` | `/platform/tenants/:id/status` | PlatformGuard | 200 |
 | `GET` | `/platform/plans` · `/usage` | PlatformGuard | 200 |
 | `POST` | `/platform/plans/:code/entitlements` | PlatformGuard | 201 |
+| `POST` | `/portal/login` | Public | 201 |
+| `GET` | `/portal/me` · `/policies` · `/requests` · `/claims` · `/statement` · `/documents` | PortalGuard (نطاق العميل) | 200 |
+| `GET` | `/portal/documents/:id/url` | PortalGuard | 200 |
 
 > **نطاق المنصّة (Platform):** مسارات `/platform/*` لا تخضع لعزل المستأجر بل لبوّابة `PlatformGuard` المستقلّة (نطاق `scope:platform` عابر للمستأجرين). تفصيلها الكامل في [24 — لوحة السوبر أدمن](./24-platform-super-admin.md).
+
+> **نطاق العميل (Portal):** مسارات `/portal/*` بنطاق `scope:client` — عزل مزدوج (مستأجر + عميل) عبر `PortalGuard`. تفصيلها في [25 — بوّابة العميل](./25-client-portal.md).
 
 > رمز النجاح الافتراضي لـ `POST` في NestJS هو `201`؛ أُعيد ضبطه إلى `200` بـ `@HttpCode(200)` في `/clients/:id/compliance` و`/slips/:id/select` لأنهما عمليتا **حالة** (اعتماد/إسناد) لا إنشاء مورد.
 
@@ -601,4 +606,5 @@ curl -X POST http://localhost:4000/staff \
 - [04 — الأمان وعزل المستأجرين](./04-security-and-multitenancy.md) — المصادقة والعزل ومعالجة `404` العابر للمستأجرين
 - [05 — الصلاحيات و Entitlements](./05-rbac-and-entitlements.md) — تفصيل عمود «الحماية»
 - [24 — لوحة السوبر أدمن](./24-platform-super-admin.md) — مسارات `/platform/*` ونطاق المنصّة
+- [25 — بوّابة العميل](./25-client-portal.md) — مسارات `/portal/*` ونطاق العميل
 - الكود: المتحكّمات تحت [`apps/api/src/modules/`](../apps/api/src/modules/) · إعداد الحدود في [`main.ts`](../apps/api/src/main.ts)

@@ -28,8 +28,18 @@
 | [`operations.e2e-spec.ts`](../apps/api/test/operations.e2e-spec.ts) | 8 | خدمة العملاء (دورة `RQ-`)، **المطالبات** (`CL-` محكومة بـ entitlement)، التجديدات، RBAC والعزل |
 | [`verification.e2e-spec.ts`](../apps/api/test/verification.e2e-spec.ts) | 7 | يقين يعبّئ النموذج و**يخصم عملية**، واثق (UBO)، العنوان مجاني، فحص PEP (low/high)، منع RBAC والعزل |
 | [`platform.e2e-spec.ts`](../apps/api/test/platform.e2e-spec.ts) | 8 | دخول السوبر أدمن، **رؤية كل المستأجرين عابرةً للعزل**، رفض المستأجر من `/platform` ورفض المنصّة من مسارات المستأجر (403)، الاستخدام، ضبط entitlement، تعليق/تفعيل |
+| [`portal.e2e-spec.ts`](../apps/api/test/portal.e2e-spec.ts) | 11 | دخول العميل، الملف/الوثائق/المطالبات/كشف الحساب/المستندات، **العزل المزدوج** (عميل مستأجر آخر، موظف ممنوع، عميل ممنوع من مسارات المستأجر، رابط مستند لا يملكه 404) |
 
-**الإجمالي: 68 اختباراً (9 ملفات).**
+**الإجمالي: 79 اختباراً (10 ملفات).**
+
+### قاعدة اختبار منفصلة (`ibp_test`)
+
+منذ المرحلة 8ب، تعمل الاختبارات على قاعدة **`ibp_test`** مستقلّة كي لا تلوّث بيانات العرض في `ibp_dev`. الآلية: [`setup-e2e.ts`](../apps/api/test/setup-e2e.ts) يحمّل `.env` ثم **يتجاوز `DATABASE_URL`** من [`.env.test`](../.env.test) إن وُجد. التهيئة لمرّة واحدة:
+
+```bash
+pnpm --filter @ibp/db test:setup   # migrate deploy + seed على ibp_test
+pnpm --filter @ibp/api test:e2e    # الاختبارات تعمل على ibp_test تلقائياً
+```
 
 ## 3. التشغيل
 

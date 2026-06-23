@@ -11,7 +11,8 @@ interface JwtPayload {
   tenantId?: string; // غائبة للسوبر أدمن
   roleId?: string | null;
   email: string;
-  scope?: string; // "platform" للسوبر أدمن
+  scope?: string; // "platform" للسوبر أدمن · "client" لبوّابة العميل
+  clientId?: string; // نطاق بوّابة العميل
 }
 
 /**
@@ -40,12 +41,17 @@ export class TenantContextMiddleware implements NestMiddleware {
           roleId: payload.roleId ?? null,
           email: payload.email,
           isSuperAdmin: payload.scope === "platform",
+          clientId: payload.clientId,
+          scope: payload.scope,
         };
         // بلا tenantId (سوبر أدمن) ⇒ ALS بلا مستأجر ⇒ استعلامات Prisma غير مفلترة (عابرة للمستأجرين)
+        // نطاق العميل ⇒ يبقى tenantId (عزل المستأجر) + clientId (يفلتر به portal.service صراحةً)
         store.tenantId = payload.tenantId;
         store.userId = payload.sub;
         store.roleId = payload.roleId ?? null;
         store.email = payload.email;
+        store.clientId = payload.clientId;
+        store.scope = payload.scope;
       } catch {
         // توكن غير صالح — نتركه فارغاً
       }

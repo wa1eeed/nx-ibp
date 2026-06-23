@@ -2,6 +2,15 @@
 
 كل التغييرات الملموسة في منصة IBP، منظّمة حسب المراحل. الصيغة مستلهمة من [Keep a Changelog](https://keepachangelog.com).
 
+## [المرحلة 8ب] — بوّابة العميل (Client Portal) ✅
+- **النطاق الأمني الثالث `client`**: كيان `ClientUser` (tenantId + clientId) + JWT `scope:client` + `PortalGuard`.
+- **عزل مزدوج**: فلترة Prisma بـ `tenantId` (الطبقة القائمة) + فلترة صريحة بـ `clientId` في `PortalService` ⇒ العميل يرى بياناته هو فقط.
+- وحدة `portal`: login, me, policies, requests (تأمين+خدمة), claims, statement (إشعارات مدين+فواتير+رصيد), documents + رابط موقّت بفحص ملكية.
+- واجهة `/[locale]/portal/*` بـ token مستقلّ (`cpapi`): dashboard/policies/requests/claims/statement/documents + `PortalShell` — RTL وثنائية اللغة (namespace `portal`).
+- **بذرة تشغيلية كاملة**: وثائق/طلبات/خدمة/مطالبات/إشعارات مدينة/فواتير/مستندات + مستخدمو بوّابة (`portal@alfahd.sa`, `portal@nukhba.sa`).
+- **قاعدة اختبار منفصلة `ibp_test`** (عبر `.env.test`) كي لا تلوّث الاختبارات بيانات العرض في `ibp_dev`.
+- اختبارات: e2e 79/79 (portal: 11). توثيق: [`docs/25`](./docs/25-client-portal.md). الفرع `phase-8b-portal`.
+
 ## [المرحلة 8أ] — لوحة السوبر أدمن (Platform Super Admin) ✅
 - **نطاق منصّة عابر للمستأجرين**: كيان `PlatformAdmin` (بلا `tenantId`) + JWT بنطاق `scope:platform` ⇒ استعلامات Prisma غير مفلترة + `PlatformGuard` مستقلّ.
 - عزل ثنائي الاتجاه مُثبَت: مستخدم المستأجر يُرفض من `/platform` (403)، ومدير المنصّة يُرفض من مسارات المستأجر (403).

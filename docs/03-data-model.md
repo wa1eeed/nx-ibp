@@ -88,6 +88,20 @@ erDiagram
 
 **العزل:** **بلا `tenantId`** — نطاقه `platform`، فلا يخضع لفلترة Prisma بل يتخطّاها (انظر [`docs/04` §نطاق المنصّة](./04-security-and-multitenancy.md)). الوصول محصور بـ `PlatformGuard` على مسارات `/platform/*` فقط.
 
+### `ClientUser`
+**الغرض:** مستخدم بوّابة العميل (المؤمَّن له) — مبدأ مستقلّ عن موظفي المستأجر، يدخل لمتابعة بياناته فقط (راجع [`docs/25`](./25-client-portal.md)).
+
+| الحقل | النوع | ملاحظة |
+|---|---|---|
+| `id` | String (cuid) | المفتاح |
+| `tenantId` | String (FK→Tenant) | المستأجر (شركة الوساطة) |
+| `clientId` | String (FK→Client) | العميل الذي يتبع له |
+| `email` | String **@unique** | بريد الدخول |
+| `fullName` | String | الاسم |
+| `passwordHash` | String? | bcrypt |
+
+**العزل المزدوج:** نطاقه `client` ⇒ يخضع لفلترة Prisma بـ `tenantId` (كأي مستأجر) **+** يُفلتر صراحةً بـ `clientId` في `PortalService` ⇒ يرى بياناته هو فقط. الوصول محصور بـ `PortalGuard` على `/portal/*`.
+
 ### `Plan`
 **الغرض:** باقة اشتراك مرجعية على مستوى المنصة (يعرّفها السوبر أدمن).
 
