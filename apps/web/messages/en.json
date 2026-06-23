@@ -15,6 +15,7 @@
   "nav": {
     "dashboard": "Dashboard",
     "clients": "Clients",
+    "verification": "Verification",
     "requests": "Requests",
     "policies": "Policies",
     "service": "Service",
@@ -183,6 +184,19 @@
     "approveTechnical": "Technical approval",
     "approveFinance": "Finance approval",
     "col": { "seq": "Policy #", "insurer": "Insurer", "premium": "Total", "commission": "Commission", "status": "Status" }
+  },
+  "verification": {
+    "title": "Government Verification",
+    "subtitle": "KYC/KYB via Yaqeen/Wathiq/Nafath/National Address + PEP/sanctions screening",
+    "opsLeft": "operations left",
+    "smartFill": "Sandbox pull to smart-fill the form (Yaqeen)",
+    "nationalId": "National ID / Iqama",
+    "runYaqeen": "Verify via Yaqeen",
+    "fetched": "Data fetched",
+    "history": "Verification history",
+    "noChecks": "No verification checks yet",
+    "providers": { "yaqeen": "Yaqeen", "wathiq": "Wathiq", "nafath": "Nafath", "spl": "National Address" },
+    "col": { "type": "Type", "status": "Status", "cost": "Cost", "risk": "Risk", "date": "Date" }
   },
   "service": {
     "title": "Customer Service",

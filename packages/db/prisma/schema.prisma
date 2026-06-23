@@ -633,10 +633,13 @@ model VerificationCheck {
   tenant     Tenant               @relation(fields: [tenantId], references: [id])
   providerId String
   provider   VerificationProvider @relation(fields: [providerId], references: [id])
-  checkType  String // identity | cr | ubo | mobile | address
+  checkType  String // identity | cr | ubo | mobile | address | pep_sanctions
   status     String // success | failed | pending
   cost       Decimal?             @db.Decimal(8, 2)
-  resultRef  String? // مرجع نتيجة مشفّر
+  resultRef  String? // ملخّص/مرجع نتيجة
+  clientId   String? // ربط بالعميل
+  requestId  String? // ربط بالطلب
+  riskLevel  String? // low | medium | high (لفحص PEP/العقوبات)
   createdAt  DateTime             @default(now())
 
   @@index([tenantId])

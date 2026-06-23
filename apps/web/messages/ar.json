@@ -15,6 +15,7 @@
   "nav": {
     "dashboard": "لوحة التحكم",
     "clients": "العملاء",
+    "verification": "التحقّق",
     "requests": "الطلبات",
     "policies": "الوثائق",
     "service": "خدمة العملاء",
@@ -183,6 +184,19 @@
     "approveTechnical": "موافقة فنية",
     "approveFinance": "اعتماد مالي",
     "col": { "seq": "رقم الوثيقة", "insurer": "شركة التأمين", "premium": "الإجمالي", "commission": "العمولة", "status": "الحالة" }
+  },
+  "verification": {
+    "title": "التحقّق الحكومي",
+    "subtitle": "KYC/KYB عبر يقين/واثق/نفاذ/العنوان الوطني وفحص PEP/العقوبات",
+    "opsLeft": "عمليات متبقية",
+    "smartFill": "سحب تجريبي يعبّئ النموذج (يقين)",
+    "nationalId": "رقم الهوية/الإقامة",
+    "runYaqeen": "تحقّق عبر يقين",
+    "fetched": "تم سحب البيانات",
+    "history": "سجل عمليات التحقّق",
+    "noChecks": "لا توجد عمليات تحقّق بعد",
+    "providers": { "yaqeen": "يقين", "wathiq": "واثق", "nafath": "نفاذ", "spl": "العنوان الوطني" },
+    "col": { "type": "النوع", "status": "الحالة", "cost": "التكلفة", "risk": "المخاطر", "date": "التاريخ" }
   },
   "service": {
     "title": "خدمة العملاء",

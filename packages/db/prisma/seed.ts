@@ -168,6 +168,7 @@ async function seedProviders() {
     { key: "yaqeen", name: "يقين" },
     { key: "wathiq", name: "واثق" },
     { key: "spl", name: "العنوان الوطني" },
+    { key: "screening", name: "فحص PEP/العقوبات" },
   ];
   for (const p of providers) {
     await prisma.verificationProvider.upsert({ where: { key: p.key }, update: { name: p.name }, create: p });

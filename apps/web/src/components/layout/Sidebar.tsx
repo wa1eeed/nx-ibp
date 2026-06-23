@@ -3,6 +3,7 @@
 import {
   LayoutDashboard,
   Users,
+  BadgeCheck,
   FileText,
   FileCheck2,
   RefreshCw,
@@ -27,6 +28,7 @@ import { Link, usePathname } from "@/i18n/routing";
 const ICONS: Record<string, LucideIcon> = {
   LayoutDashboard,
   Users,
+  BadgeCheck,
   FileText,
   FileCheck2,
   RefreshCw,
