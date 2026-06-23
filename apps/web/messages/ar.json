@@ -1,0 +1,185 @@
+{
+  "brand": {
+    "name": "IBP",
+    "tagline": "منصة وساطة التأمين"
+  },
+  "common": {
+    "comingSoon": "قريباً",
+    "viewAll": "عرض الكل",
+    "search": "بحث"
+  },
+  "navGroup": {
+    "workspace": "مساحة عمل الوسيط",
+    "settings": "الإعدادات"
+  },
+  "nav": {
+    "dashboard": "لوحة التحكم",
+    "clients": "العملاء",
+    "requests": "الطلبات",
+    "policies": "الوثائق",
+    "renewals": "التجديدات",
+    "premiums": "الأقساط",
+    "commissions": "العمولات",
+    "claims": "المطالبات",
+    "reports": "التقارير",
+    "compliance": "الالتزام",
+    "finance": "المالية",
+    "addons": "الإضافات",
+    "settings": {
+      "company": "الشركة",
+      "branding": "الهوية البصرية",
+      "staff": "الموظفون",
+      "notifications": "التنبيهات"
+    }
+  },
+  "topbar": {
+    "searchPlaceholder": "ابحث في العملاء والوثائق والطلبات…",
+    "userName": "وليد الحربي",
+    "userRole": "أدمن الشركة"
+  },
+  "demo": {
+    "title": "وضع تجريبي",
+    "subtitle": "نموذج أولي للواجهة — بيانات وهمية فقط"
+  },
+  "dashboard": {
+    "title": "لوحة التحكم",
+    "subtitle": "أولوياتك اليوم — مرتّبة حسب الإلحاح",
+    "kpi": {
+      "expiringTitle": "وثائق تنتهي هذا الأسبوع",
+      "expiringSub": "تحتاج إجراءً عاجلاً",
+      "pendingTitle": "طلبات بانتظار الاعتماد",
+      "pendingSub": "في انتظار المراجعة",
+      "renewalsTitle": "تجديدات هذا الشهر",
+      "commissionsTitle": "عمولات معلّقة",
+      "commissionsSub": "لم تُستلم بعد"
+    },
+    "urgentTasks": "مهام عاجلة",
+    "openTask": "فتح المهمة",
+    "upcomingRenewals": "تجديدات قادمة (12 شهراً)",
+    "renewalsDist": "توزيع التجديدات خلال السنة القادمة",
+    "recentActivity": "النشاط الأخير"
+  },
+  "clients": {
+    "title": "العملاء",
+    "subtitle": "إدارة العملاء من المنشآت والأفراد",
+    "newClient": "عميل جديد",
+    "searchPlaceholder": "ابحث بالاسم أو السجل التجاري أو الهوية…",
+    "tabs": { "all": "كل العملاء", "corporate": "منشآت", "individual": "أفراد" },
+    "type": { "label": "النوع", "corporate": "منشأة", "individual": "فرد" },
+    "code": "الكود",
+    "nationalId": "الهوية الوطنية",
+    "email": "البريد",
+    "compliance": "حالة الالتزام",
+    "complianceStatus": { "PENDING": "بانتظار الالتزام", "APPROVED": "معتمد", "REJECTED": "مرفوض" },
+    "approve": "اعتماد",
+    "reject": "رفض",
+    "create": "إنشاء العميل",
+    "cancel": "إلغاء",
+    "table": {
+      "client": "العميل",
+      "contact": "جهة الاتصال / الجوال",
+      "city": "المدينة",
+      "activePolicies": "وثائق فعّالة",
+      "kyc": "حالة التحقق",
+      "lastInteraction": "آخر تفاعل"
+    }
+  },
+  "commissions": {
+    "title": "العمولات",
+    "subtitle": "تتبّع العمولات المستحقة والمستلمة والفروقات",
+    "exportByInsurer": "تصدير حسب شركة التأمين",
+    "exportByClient": "تصدير حسب العميل",
+    "kpi": {
+      "total": "إجمالي العمولات",
+      "received": "المستلمة",
+      "receivedSub": "من الإجمالي",
+      "pending": "المعلّقة",
+      "variance": "الفروقات",
+      "varianceSub": "بحاجة لتسوية"
+    },
+    "table": {
+      "policyNo": "رقم الوثيقة",
+      "client": "العميل",
+      "insurer": "شركة التأمين",
+      "rate": "النسبة",
+      "amount": "المبلغ",
+      "received": "المستلم",
+      "variance": "الفرق",
+      "status": "الحالة"
+    }
+  },
+  "status": {
+    "completed": "مكتمل",
+    "inProgress": "قيد التنفيذ",
+    "expired": "منتهٍ",
+    "received": "مستلمة",
+    "variance": "فرق",
+    "accrued": "مستحقة",
+    "pending": "معلّقة"
+  },
+  "placeholder": {
+    "title": "قيد الإنشاء",
+    "body": "تُبنى هذه الشاشة في مرحلة لاحقة من ROADMAP. الواجهة هنا سقالة فقط."
+  },
+  "login": {
+    "title": "تسجيل الدخول",
+    "subtitle": "منصة وساطة التأمين",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "submit": "دخول",
+    "error": "بيانات الدخول غير صحيحة",
+    "demoHint": "حساب تجريبي مُعبّأ مسبقاً (waleed@gulf-demo.sa)"
+  },
+  "staff": {
+    "title": "الموظفون",
+    "subtitle": "إدارة موظفي الشركة ومصفوفة صلاحياتهم",
+    "new": "موظف جديد",
+    "name": "الاسم",
+    "email": "البريد",
+    "role": "الدور",
+    "status": "الحالة",
+    "fullName": "الاسم الكامل",
+    "password": "كلمة المرور",
+    "roleName": "اسم الدور",
+    "template": "قالب الدور",
+    "templateHint": "اختر قالباً لتعبئة المصفوفة",
+    "matrix": "مصفوفة الصلاحيات",
+    "create": "إنشاء الموظف",
+    "cancel": "إلغاء",
+    "forbidden": "لا تملك صلاحية إدارة الموظفين (settings).",
+    "colAccess": "وصول",
+    "colCreate": "إضافة",
+    "colEdit": "تعديل",
+    "colDelete": "حذف"
+  },
+  "modules": {
+    "dashboard": "لوحة التحكم",
+    "sales": "المبيعات",
+    "clients": "العملاء",
+    "production": "الإنتاج",
+    "renewals": "التجديدات",
+    "service": "الخدمة",
+    "claims": "المطالبات",
+    "finance": "المالية",
+    "reports": "التقارير",
+    "compliance": "الالتزام",
+    "hr": "الموارد البشرية",
+    "settings": "الإعدادات"
+  },
+  "requests": {
+    "title": "الطلبات",
+    "subtitle": "طلبات التأمين (RFQ) للعملاء",
+    "new": "طلب جديد",
+    "empty": "لا توجد طلبات بعد — ابدأ بطلب جديد",
+    "col": { "seq": "رقم الطلب", "client": "العميل", "product": "المنتج", "status": "الحالة" }
+  },
+  "requestForm": {
+    "title": "طلب تأمين جديد",
+    "subtitle": "اختر العميل والمنتج لتوليد النموذج المناسب لنوع التأمين",
+    "client": "العميل",
+    "product": "المنتج",
+    "selectProduct": "اختر منتجاً لعرض نموذجه الديناميكي",
+    "notApproved": "غير معتمد",
+    "pickClientFirst": "اختر عميلاً أولاً"
+  }
+}

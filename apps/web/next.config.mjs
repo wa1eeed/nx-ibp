@@ -1,0 +1,12 @@
+import createNextIntlPlugin from "next-intl/plugin";
+
+const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
+
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  reactStrictMode: true,
+  // الحزم المشتركة تُترجم كمصدر TS
+  transpilePackages: ["@ibp/shared"],
+};
+
+export default withNextIntl(nextConfig);

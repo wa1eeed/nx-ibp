@@ -1,0 +1,12 @@
+**/node_modules
+**/dist
+**/.next
+**/out
+packages/db/generated
+.git
+.env
+.env.*
+!.env.example
+**/*.log
+.DS_Store
+design-references

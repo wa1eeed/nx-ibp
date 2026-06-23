@@ -1,0 +1,474 @@
+// schema.prisma — نموذج بيانات منصة IBP
+// المصدر الحقيقي الوحيد للبنية. كل الجداول التشغيلية مفلترة بـ tenantId.
+// هذا أساس قابل للتوسّع — أضف الحقول التفصيلية مع كل مرحلة في ROADMAP.md.
+
+generator client {
+  provider = "prisma-client-js"
+  // مخرج مخصّص داخل الحزمة لتفادي تعارض pnpm في monorepo؛
+  // يُعاد تصديره عبر packages/db/index.js
+  output   = "../generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// المنصة: المستأجرون والاشتراكات والصلاحيات (مستوى السوبر أدمن)
+// ============================================================
+
+model Tenant {
+  id           String       @id @default(cuid())
+  name         String
+  nameEn       String?
+  crNumber     String? // السجل التجاري لشركة الوساطة
+  status       TenantStatus @default(ACTIVE)
+  billingModel BillingModel @default(PASS_THROUGH) // فوترة التحقق: ممر/إعادة بيع
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  subscription Subscription?
+  users        User[]
+  branches     Branch[]
+  config       TenantConfig?
+  wallets      Wallet[]
+
+  // العلاقات التشغيلية — كلها مرتبطة بـ tenantId كمفتاح أجنبي لفرض العزل والتكامل المرجعي
+  roles              Role[]
+  clients            Client[]
+  policyRequests     PolicyRequest[]
+  policies           Policy[]
+  serviceRequests    ServiceRequest[]
+  claims             Claim[]
+  chartOfAccounts    ChartOfAccount[]
+  vouchers           Voucher[]
+  invoices           Invoice[]
+  commissions        Commission[]
+  verificationChecks VerificationCheck[]
+  documents          Document[]
+  auditLogs          AuditLog[]
+  requestBlockRows   RequestBlockRow[]
+}
+
+enum TenantStatus {
+  ACTIVE
+  SUSPENDED
+  TRIAL
+  CANCELLED
+}
+
+enum BillingModel {
+  PASS_THROUGH
+  RESELLER
+}
+
+model Plan {
+  id            String         @id @default(cuid())
+  code          String         @unique // basic | premium | enterprise
+  name          String
+  seatLimit     Int // الحد الأقصى للمقاعد
+  priceMonthly  Decimal        @db.Decimal(12, 2)
+  priceYearly   Decimal        @db.Decimal(12, 2)
+  entitlements  Entitlement[]
+  subscriptions Subscription[]
+}
+
+// الصلاحية/الحد لميزة ضمن باقة: مشمول/حصّة/رسوم/إضافة/معطّل
+model Entitlement {
+  id           String          @id @default(cuid())
+  planId       String
+  plan         Plan            @relation(fields: [planId], references: [id])
+  featureKey   String // مثال: module.claims | dynamic_form | upload.maxFileMb
+  mode         EntitlementMode
+  quota        Int? // للحصص (عدد طلبات/أدوار...)
+  numericValue Decimal?        @db.Decimal(12, 2) // لحدود مثل ميغابايت الرفع
+  unitFee      Decimal?        @db.Decimal(12, 2) // لرسوم الاستخدام
+
+  @@unique([planId, featureKey])
+}
+
+enum EntitlementMode {
+  INCLUDED
+  QUOTA
+  METERED
+  ADDON
+  DISABLED
+}
+
+model Subscription {
+  id        String          @id @default(cuid())
+  tenantId  String          @unique
+  tenant    Tenant          @relation(fields: [tenantId], references: [id])
+  planId    String
+  plan      Plan            @relation(fields: [planId], references: [id])
+  cycle     BillingCycle    @default(MONTHLY)
+  seatsUsed Int             @default(0)
+  startedAt DateTime        @default(now())
+  renewsAt  DateTime?
+  addons    AddonPurchase[]
+}
+
+enum BillingCycle {
+  MONTHLY
+  YEARLY
+}
+
+model AddonPurchase {
+  id             String       @id @default(cuid())
+  subscriptionId String
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id])
+  addonKey       String // extra_seats | module.claims | api_integration ...
+  quantity       Int          @default(1)
+  createdAt      DateTime     @default(now())
+}
+
+// ============================================================
+// المستخدمون والصلاحيات (RBAC)
+// ============================================================
+
+model User {
+  id           String     @id @default(cuid())
+  tenantId     String
+  tenant       Tenant     @relation(fields: [tenantId], references: [id])
+  email        String
+  fullName     String
+  passwordHash String? // bcrypt — يُضبط عند الإنشاء/الدعوة (المرحلة 1)
+  status       UserStatus @default(ACTIVE)
+  roleId       String?
+  role         Role?      @relation(fields: [roleId], references: [id])
+  createdAt    DateTime   @default(now())
+
+  @@unique([tenantId, email])
+  @@index([tenantId])
+}
+
+enum UserStatus {
+  ACTIVE
+  INVITED
+  DISABLED
+}
+
+model Role {
+  id          String       @id @default(cuid())
+  tenantId    String // الأدوار قابلة للتخصيص لكل مستأجر
+  tenant      Tenant       @relation(fields: [tenantId], references: [id])
+  name        String // المدير العام، مدير المبيعات ...
+  isPreset    Boolean      @default(false)
+  permissions Permission[]
+  users       User[]
+
+  @@index([tenantId])
+}
+
+// صلاحية موديول واحد: وصول/إضافة/تعديل/حذف
+model Permission {
+  id        String  @id @default(cuid())
+  roleId    String
+  role      Role    @relation(fields: [roleId], references: [id])
+  module    String // sales | clients | production | finance ...
+  canAccess Boolean @default(false)
+  canCreate Boolean @default(false)
+  canEdit   Boolean @default(false)
+  canDelete Boolean @default(false)
+
+  @@unique([roleId, module])
+}
+
+// ============================================================
+// التهيئة لكل مستأجر
+// ============================================================
+
+model TenantConfig {
+  id              String   @id @default(cuid())
+  tenantId        String   @unique
+  tenant          Tenant   @relation(fields: [tenantId], references: [id])
+  enabledProducts String[] // أكواد الفروع المفعّلة من كتالوج المنتجات
+  sequenceFormats Json? // صيغ أرقام التسلسل
+  emailTemplates  Json? // قوالب الإيميلات
+  approvalChains  Json? // سلاسل الاعتماد
+  branding        Json? // الشعار والألوان
+}
+
+model Branch {
+  id       String @id @default(cuid())
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  code     String // RUH | KBR ...
+  name     String
+
+  @@unique([tenantId, code])
+}
+
+// ============================================================
+// كتالوج المنتجات (من الملحق 6.A) — مرجعي على مستوى المنصة
+// ============================================================
+
+model ProductClass {
+  id    String        @id @default(cuid())
+  code  String        @unique // MED | MOT | ENG ...
+  name  String
+  lines ProductLine[]
+}
+
+model ProductLine {
+  id         String       @id @default(cuid())
+  classId    String
+  class      ProductClass @relation(fields: [classId], references: [id])
+  code       String // GMI | MIC | CAR ...
+  name       String
+  formSchema FormSchema?
+}
+
+// مخطط النموذج الديناميكي لكل فرع (versioned)
+model FormSchema {
+  id         String      @id @default(cuid())
+  lineId     String      @unique
+  line       ProductLine @relation(fields: [lineId], references: [id])
+  version    Int         @default(1)
+  baseFields Json // الحقول الأساسية
+  blocks     Json // الكتل المتكررة المفعّلة: members/vehicles/locations/shipments
+}
+
+// ============================================================
+// التشغيل: العملاء والإصدار والخدمة والمطالبات
+// ============================================================
+
+model Client {
+  id               String           @id @default(cuid())
+  tenantId         String
+  tenant           Tenant           @relation(fields: [tenantId], references: [id])
+  code             String? // معرّف تجاري مقروء (CLI-RUH-2026-1001)
+  type             ClientType
+  name             String
+  crNumber         String? // للمنشآت
+  nationalId       String? // للأفراد
+  email            String?
+  phone            String?
+  city             String?
+  nationalAddress  String?
+  status           String?          @default("active")
+  complianceStatus ComplianceStatus @default(PENDING)
+  complianceNote   String?
+  createdAt        DateTime         @default(now())
+  policyRequests   PolicyRequest[]
+
+  // تفرّد لكل مستأجر (NULL لا يتعارض ⇒ الأفراد بلا CR والمنشآت بلا هوية مسموح بهما)
+  @@unique([tenantId, code])
+  @@unique([tenantId, crNumber])
+  @@unique([tenantId, nationalId])
+  @@index([tenantId])
+}
+
+enum ClientType {
+  CORPORATE
+  INDIVIDUAL
+}
+
+enum ComplianceStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model PolicyRequest {
+  id              String            @id @default(cuid())
+  tenantId        String
+  tenant          Tenant            @relation(fields: [tenantId], references: [id])
+  sequenceNo      String? // SL/POL-RUH-MED-2025-1001
+  clientId        String
+  client          Client            @relation(fields: [clientId], references: [id])
+  productLineCode String
+  status          RequestStatus     @default(DRAFT)
+  base            Json // الحقول الأساسية المعبّأة (محقّقة ضد FormSchema)
+  details         Json? // حقول خاصة بالفرع
+  blockRows       RequestBlockRow[]
+  createdAt       DateTime          @default(now())
+
+  @@index([tenantId])
+  @@index([clientId])
+}
+
+enum RequestStatus {
+  DRAFT
+  UNDER_REVIEW
+  FINANCE_REVIEW
+  APPROVED
+  REJECTED
+  ISSUED
+}
+
+// مخزن عام موحّد لصفوف الكتل المتكررة لأي منتج (تابعون/مركبات/مواقع/شحنات/أرواح/مسافرون…)
+// مدفوع بمخطط FormSchema بدل جداول ثابتة — يستوعب تنوّع منتجات التأمين.
+model RequestBlockRow {
+  id        String        @id @default(cuid())
+  tenantId  String
+  tenant    Tenant        @relation(fields: [tenantId], references: [id])
+  requestId String
+  request   PolicyRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  blockKey  String // members | vehicles | locations | shipments | lives | travellers
+  rowIndex  Int
+  data      Json
+
+  @@index([tenantId])
+  @@index([requestId, blockKey])
+}
+
+// نماذج مبسّطة — تُفصّل في مراحلها بـ ROADMAP.md
+model Policy {
+  id         String  @id @default(cuid())
+  tenantId   String
+  tenant     Tenant  @relation(fields: [tenantId], references: [id])
+  sequenceNo String?
+
+  @@index([tenantId])
+}
+
+model ServiceRequest {
+  id         String  @id @default(cuid())
+  tenantId   String
+  tenant     Tenant  @relation(fields: [tenantId], references: [id])
+  sequenceNo String?
+
+  @@index([tenantId])
+}
+
+model Claim {
+  id         String  @id @default(cuid())
+  tenantId   String
+  tenant     Tenant  @relation(fields: [tenantId], references: [id])
+  sequenceNo String?
+
+  @@index([tenantId])
+}
+
+// ============================================================
+// المالية
+// ============================================================
+
+model ChartOfAccount {
+  id       String @id @default(cuid())
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  code     String
+  name     String
+
+  @@index([tenantId])
+}
+
+model Voucher {
+  id         String  @id @default(cuid())
+  tenantId   String
+  tenant     Tenant  @relation(fields: [tenantId], references: [id])
+  type       String
+  sequenceNo String?
+
+  @@index([tenantId])
+}
+
+model Invoice {
+  id         String  @id @default(cuid())
+  tenantId   String
+  tenant     Tenant  @relation(fields: [tenantId], references: [id])
+  sequenceNo String?
+  zatcaUuid  String?
+
+  @@index([tenantId])
+}
+
+model Commission {
+  id       String  @id @default(cuid())
+  tenantId String
+  tenant   Tenant  @relation(fields: [tenantId], references: [id])
+  amount   Decimal @db.Decimal(12, 2)
+
+  @@index([tenantId])
+}
+
+// ============================================================
+// التحقق الحكومي والأرصدة
+// ============================================================
+
+model VerificationProvider {
+  id     String              @id @default(cuid())
+  key    String              @unique // nafath | yaqeen | wathiq | spl
+  name   String
+  checks VerificationCheck[]
+}
+
+model VerificationCheck {
+  id         String               @id @default(cuid())
+  tenantId   String
+  tenant     Tenant               @relation(fields: [tenantId], references: [id])
+  providerId String
+  provider   VerificationProvider @relation(fields: [providerId], references: [id])
+  checkType  String // identity | cr | ubo | mobile | address
+  status     String // success | failed | pending
+  cost       Decimal?             @db.Decimal(8, 2)
+  resultRef  String? // مرجع نتيجة مشفّر
+  createdAt  DateTime             @default(now())
+
+  @@index([tenantId])
+}
+
+model Wallet {
+  id       String              @id @default(cuid())
+  tenantId String
+  tenant   Tenant              @relation(fields: [tenantId], references: [id])
+  service  String // yaqeen | wathiq | nafath
+  balance  Int                 @default(0) // عدد العمليات المتبقية
+  ledger   TransactionLedger[]
+
+  @@unique([tenantId, service])
+}
+
+model TransactionLedger {
+  id        String   @id @default(cuid())
+  walletId  String
+  wallet    Wallet   @relation(fields: [walletId], references: [id])
+  delta     Int // + شحن / - خصم
+  reason    String
+  createdAt DateTime @default(now())
+}
+
+// ============================================================
+// المستندات والتدقيق
+// ============================================================
+
+model Document {
+  id         String   @id @default(cuid())
+  tenantId   String
+  tenant     Tenant   @relation(fields: [tenantId], references: [id])
+  storageKey String // tenant_{id}/...
+  fileName   String
+  mime       String
+  sizeBytes  Int
+  hash       String
+  docType    DocType  @default(ATTACHMENT)
+  entityType String // client | policy_request | claim ...
+  entityId   String
+  rowId      String? // ربط بصفّ متكرر (تابع/مركبة)
+  createdAt  DateTime @default(now())
+
+  @@index([tenantId])
+}
+
+enum DocType {
+  ATTACHMENT
+  OFFICIAL
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  userId    String?
+  action    String // create | update | delete | file_url | verify | approve
+  entity    String
+  entityId  String?
+  meta      Json?
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([createdAt])
+}

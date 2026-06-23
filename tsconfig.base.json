@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "forceConsistentCasingInFileNames": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "declaration": true,
+    "sourceMap": true,
+    "baseUrl": ".",
+    "paths": {
+      "@ibp/shared": ["packages/shared/src/index.ts"],
+      "@ibp/shared/*": ["packages/shared/src/*"],
+      "@ibp/db": ["packages/db/index.d.ts"]
+    }
+  },
+  "exclude": ["node_modules", "dist", ".next", "**/generated/**"]
+}

@@ -1,0 +1,33 @@
+{
+  "name": "nx-ibp",
+  "private": true,
+  "version": "0.0.0",
+  "description": "IBP — منصة SaaS متعددة المستأجرين لوساطة التأمين في السعودية",
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "scripts": {
+    "dev": "pnpm --filter ./apps/* --parallel run dev",
+    "dev:web": "pnpm --filter @ibp/web dev",
+    "dev:api": "pnpm --filter @ibp/api dev",
+    "build": "pnpm --filter @ibp/db generate && pnpm -r run build",
+    "lint": "pnpm -r run lint",
+    "typecheck": "pnpm -r run typecheck",
+    "db:generate": "pnpm --filter @ibp/db generate",
+    "db:migrate": "pnpm --filter @ibp/db migrate",
+    "db:migrate:deploy": "pnpm --filter @ibp/db migrate:deploy",
+    "db:seed": "pnpm --filter @ibp/db seed",
+    "db:studio": "pnpm --filter @ibp/db studio",
+    "db:reset": "pnpm --filter @ibp/db reset",
+    "infra:up": "docker compose up -d postgres redis",
+    "infra:down": "docker compose down",
+    "compose:up": "docker compose up -d --build",
+    "compose:down": "docker compose down"
+  },
+  "devDependencies": {
+    "prettier": "^3.3.3",
+    "typescript": "^5.5.4"
+  }
+}
