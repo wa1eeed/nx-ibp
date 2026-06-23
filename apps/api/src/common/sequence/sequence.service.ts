@@ -24,4 +24,10 @@ export class SequenceService {
     const count = await this.prisma.policyRequest.count();
     return `SL-${classCode}-${this.year()}-${1001 + count}`;
   }
+
+  /** رقم طلب أسعار: RFQ-MED-2026-1001 */
+  async nextSlipSeq(classCode: string): Promise<string> {
+    const count = await this.prisma.slip.count();
+    return `RFQ-${classCode}-${this.year()}-${1001 + count}`;
+  }
 }

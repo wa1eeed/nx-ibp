@@ -170,8 +170,27 @@
     "title": "Requests",
     "subtitle": "Insurance requests (RFQ) for clients",
     "new": "New request",
+    "rfq": "Get quotes",
     "empty": "No requests yet — start a new request",
     "col": { "seq": "Request #", "client": "Client", "product": "Product", "status": "Status" }
+  },
+  "underwriting": {
+    "title": "Underwriting",
+    "addQuotation": "Add quotation",
+    "comparison": "Quotation comparison sheet",
+    "insurer": "Insurer",
+    "rate": "Rate %",
+    "premium": "Net premium",
+    "vat": "VAT",
+    "totalPremium": "Total",
+    "deductible": "Deductible",
+    "limit": "Limit",
+    "remarks": "Remarks & conditions (free text)",
+    "add": "Save quotation",
+    "firmOrder": "Firm order",
+    "selected": "Selected",
+    "sentTo": "Sent to",
+    "noQuotations": "No quotations yet — add insurer offers"
   },
   "requestForm": {
     "title": "New insurance request",

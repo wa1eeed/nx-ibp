@@ -49,6 +49,12 @@ model Tenant {
   documents          Document[]
   auditLogs          AuditLog[]
   requestBlockRows   RequestBlockRow[]
+  slips              Slip[]
+  quotations         Quotation[]
+  endorsements       Endorsement[]
+  costCenters        CostCenter[]
+  debitNotes         DebitNote[]
+  creditNotes        CreditNote[]
 }
 
 enum TenantStatus {
@@ -283,6 +289,7 @@ model PolicyRequest {
   base            Json // الحقول الأساسية المعبّأة (محقّقة ضد FormSchema)
   details         Json? // حقول خاصة بالفرع
   blockRows       RequestBlockRow[]
+  slips           Slip[]
   createdAt       DateTime          @default(now())
 
   @@index([tenantId])
@@ -291,6 +298,8 @@ model PolicyRequest {
 
 enum RequestStatus {
   DRAFT
+  QUOTING // أُرسل الـ Slip وتُجمع العروض
+  AWARDED // أمر إسناد العميل (Firm Order) — جاهز للإصدار (المرحلة 4ب)
   UNDER_REVIEW
   FINANCE_REVIEW
   APPROVED
@@ -314,12 +323,95 @@ model RequestBlockRow {
   @@index([requestId, blockKey])
 }
 
+// ============================================================
+// المرحلة 4أ — الاكتتاب الفني: طلب الأسعار (Slip/RFQ) والعروض
+// ============================================================
+
+model Slip {
+  id                  String        @id @default(cuid())
+  tenantId            String
+  tenant              Tenant        @relation(fields: [tenantId], references: [id])
+  requestId           String
+  request             PolicyRequest @relation(fields: [requestId], references: [id])
+  sequenceNo          String? // RFQ-MED-2026-1001
+  status              SlipStatus    @default(DRAFT)
+  insurers            String[] // شركات التأمين المستهدفة
+  notes               String?
+  selectedQuotationId String? // العرض المختار (Firm Order)
+  createdAt           DateTime      @default(now())
+  quotations          Quotation[]
+
+  @@index([tenantId])
+  @@index([requestId])
+}
+
+enum SlipStatus {
+  DRAFT
+  SENT
+  QUOTED
+  SELECTED
+  CLOSED
+}
+
+// عرض شركة تأمين — هجين: حقول معيارية للمقارنة الآلية + نص حر للشروط
+model Quotation {
+  id                   String          @id @default(cuid())
+  tenantId             String
+  tenant               Tenant          @relation(fields: [tenantId], references: [id])
+  slipId               String
+  slip                 Slip            @relation(fields: [slipId], references: [id], onDelete: Cascade)
+  insurerName          String
+  // ----- الحقول المعيارية (Structured — لجدول المقارنة الآلي) -----
+  rate                 Decimal?        @db.Decimal(6, 3) // نسبة %
+  premium              Decimal?        @db.Decimal(14, 2) // القسط الصافي
+  vat                  Decimal?        @db.Decimal(14, 2)
+  totalPremium         Decimal?        @db.Decimal(14, 2)
+  deductible           Decimal?        @db.Decimal(14, 2) // مبلغ التحمل
+  limit                Decimal?        @db.Decimal(16, 2) // حد التغطية
+  validUntil           DateTime?
+  coverFields          Json? // حقول معيارية إضافية خاصة بالمنتج
+  // ----- القسم الحر (Free Text) -----
+  generalRemarks       String?
+  additionalConditions String?
+  status               QuotationStatus @default(RECEIVED)
+  createdAt            DateTime        @default(now())
+
+  @@index([tenantId])
+  @@index([slipId])
+}
+
+enum QuotationStatus {
+  RECEIVED
+  SELECTED
+  REJECTED
+}
+
+// ملحق وثيقة (إضافة/حذف/تعديل/إلغاء) — الكيان جاهز، ودورته الكاملة في 4ب
+model Endorsement {
+  id            String        @id @default(cuid())
+  tenantId      String
+  tenant        Tenant        @relation(fields: [tenantId], references: [id])
+  policyId      String
+  policy        Policy        @relation(fields: [policyId], references: [id])
+  sequenceNo    String? // POL-…/E1
+  type          String // addition | deletion | amendment | cancellation
+  effectiveDate DateTime?
+  premiumDelta  Decimal?      @db.Decimal(14, 2)
+  details       Json?
+  status        RequestStatus @default(DRAFT)
+  createdAt     DateTime      @default(now())
+
+  @@index([tenantId])
+  @@index([policyId])
+}
+
 // نماذج مبسّطة — تُفصّل في مراحلها بـ ROADMAP.md
 model Policy {
-  id         String  @id @default(cuid())
-  tenantId   String
-  tenant     Tenant  @relation(fields: [tenantId], references: [id])
-  sequenceNo String?
+  id           String        @id @default(cuid())
+  tenantId     String
+  tenant       Tenant        @relation(fields: [tenantId], references: [id])
+  sequenceNo   String?
+  endorsements Endorsement[]
 
   @@index([tenantId])
 }
@@ -343,35 +435,117 @@ model Claim {
 }
 
 // ============================================================
-// المالية
+// المالية — بنية مهيّأة للمرحلة 4ب (المنطق يُبنى لاحقاً)
 // ============================================================
 
+// شجرة الحسابات: كود 17 رقماً. المستوى 1/2 مقفل (توحيد تقارير الهيئة)،
+// المستوى 3 تحليلي ديناميكي (رفع Excel للهجرة). فصل داخل/خارج الميزانية.
 model ChartOfAccount {
-  id       String @id @default(cuid())
+  id           String           @id @default(cuid())
+  tenantId     String
+  tenant       Tenant           @relation(fields: [tenantId], references: [id])
+  code         String // 17 رقماً
+  name         String
+  level        Int              @default(3) // 1 | 2 | 3
+  parentId     String?
+  parent       ChartOfAccount?  @relation("CoaTree", fields: [parentId], references: [id])
+  children     ChartOfAccount[] @relation("CoaTree")
+  isOnBalance  Boolean          @default(true) // فصل أموال العملاء (On) عن عمولات الوسيط (Off)
+  isLocked     Boolean          @default(false) // المستوى 1/2 مقفل
+  accountType  String? // asset | liability | revenue | expense | equity
+  clientId     String? // حساب تحليلي مرتبط بعميل (يُفتح عند الاعتماد)
+  costCenterId String?
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+  @@index([parentId])
+}
+
+// مراكز التكلفة — 3 مستويات تبدأ بالفرع
+model CostCenter {
+  id       String       @id @default(cuid())
   tenantId String
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  tenant   Tenant       @relation(fields: [tenantId], references: [id])
   code     String
   name     String
+  level    Int          @default(1) // 1=فرع
+  parentId String?
+  parent   CostCenter?  @relation("CcTree", fields: [parentId], references: [id])
+  children CostCenter[] @relation("CcTree")
 
+  @@unique([tenantId, code])
   @@index([tenantId])
 }
 
+// السندات: قيد (JRV)، صرف (PYV)، قبض (RCV)، دفع مباشر (DPV) — يدوي أو مولّد آلياً
 model Voucher {
-  id         String  @id @default(cuid())
+  id         String      @id @default(cuid())
   tenantId   String
-  tenant     Tenant  @relation(fields: [tenantId], references: [id])
-  type       String
+  tenant     Tenant      @relation(fields: [tenantId], references: [id])
+  type       VoucherType
   sequenceNo String?
+  amount     Decimal?    @db.Decimal(16, 2)
+  status     String?     @default("draft")
+  isAuto     Boolean     @default(false) // مولّد آلياً من الإنتاج
+  reference  String? // مرجع (policyId/invoiceId…)
+  lines      Json? // أطراف القيد (debit/credit)
+  createdAt  DateTime    @default(now())
 
   @@index([tenantId])
 }
 
+enum VoucherType {
+  JRV // قيد يومية
+  PYV // صرف
+  RCV // قبض
+  DPV // دفع مباشر
+}
+
+// الفاتورة الضريبية الصادرة لشركة التأمين (تحصيل العمولة) — بنية ممهّدة لـ ZATCA
 model Invoice {
-  id         String  @id @default(cuid())
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  sequenceNo  String?
+  insurerName String?
+  policyId    String?
+  netAmount   Decimal? @db.Decimal(14, 2)
+  vatAmount   Decimal? @db.Decimal(14, 2)
+  totalAmount Decimal? @db.Decimal(14, 2)
+  status      String?  @default("draft")
+  zatcaUuid   String?
+  zatcaHash   String? // تمهيد ZATCA (Fatoora)
+  qrPayload   String?
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId])
+}
+
+// إشعار مدين/دائن للعميل (يُولَّد عند الاعتماد المالي)
+model DebitNote {
+  id         String   @id @default(cuid())
   tenantId   String
-  tenant     Tenant  @relation(fields: [tenantId], references: [id])
+  tenant     Tenant   @relation(fields: [tenantId], references: [id])
   sequenceNo String?
-  zatcaUuid  String?
+  clientId   String?
+  policyId   String?
+  netAmount  Decimal? @db.Decimal(14, 2)
+  vatAmount  Decimal? @db.Decimal(14, 2)
+  createdAt  DateTime @default(now())
+
+  @@index([tenantId])
+}
+
+model CreditNote {
+  id         String   @id @default(cuid())
+  tenantId   String
+  tenant     Tenant   @relation(fields: [tenantId], references: [id])
+  sequenceNo String?
+  clientId   String?
+  policyId   String?
+  netAmount  Decimal? @db.Decimal(14, 2)
+  vatAmount  Decimal? @db.Decimal(14, 2)
+  createdAt  DateTime @default(now())
 
   @@index([tenantId])
 }

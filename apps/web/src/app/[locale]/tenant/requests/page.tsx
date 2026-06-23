@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, FileText } from "lucide-react";
+import { Plus, FileText, FileSpreadsheet } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/routing";
-import { api, getToken } from "@/lib/api";
+import { api, getToken, ApiError } from "@/lib/api";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Badge, type BadgeTone } from "@/components/ui/Badge";
 
@@ -31,6 +31,8 @@ export default function RequestsPage() {
   const router = useRouter();
   const [rows, setRows] = useState<RequestRow[]>([]);
 
+  const [error, setError] = useState("");
+
   useEffect(() => {
     if (!getToken()) {
       router.replace("/login");
@@ -38,6 +40,16 @@ export default function RequestsPage() {
     }
     void api<RequestRow[]>("/requests").then(setRows).catch(() => undefined);
   }, [router]);
+
+  async function startRfq(requestId: string) {
+    setError("");
+    try {
+      const slip = await api<{ id: string }>("/slips", { method: "POST", body: JSON.stringify({ requestId }) });
+      router.push(`/tenant/slips/${slip.id}`);
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "خطأ");
+    }
+  }
 
   return (
     <div>
@@ -55,6 +67,8 @@ export default function RequestsPage() {
         }
       />
 
+      {error ? <p className="mb-3 rounded-lg bg-danger-soft px-3 py-2 text-[12.5px] font-medium text-danger">{error}</p> : null}
+
       {rows.length === 0 ? (
         <div className="grid min-h-[40vh] place-items-center rounded-card border border-dashed border-line bg-card text-center shadow-card">
           <div className="text-muted">
@@ -71,6 +85,7 @@ export default function RequestsPage() {
                 <th className="px-5 py-3 text-start font-semibold">{t("requests.col.client")}</th>
                 <th className="px-5 py-3 text-start font-semibold">{t("requests.col.product")}</th>
                 <th className="px-5 py-3 text-start font-semibold">{t("requests.col.status")}</th>
+                <th className="px-5 py-3"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
@@ -81,6 +96,11 @@ export default function RequestsPage() {
                   <td className="px-5 py-3 text-[13px] text-muted">{r.productLineCode}</td>
                   <td className="px-5 py-3">
                     <Badge tone={STATUS_TONE[r.status] ?? "neutral"}>{r.status}</Badge>
+                  </td>
+                  <td className="px-5 py-3 text-end">
+                    <button onClick={() => startRfq(r.id)} className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-card px-2.5 py-1.5 text-[12px] font-medium text-primary hover:bg-surface-2">
+                      <FileSpreadsheet size={13} /> {t("requests.rfq")}
+                    </button>
                   </td>
                 </tr>
               ))}
