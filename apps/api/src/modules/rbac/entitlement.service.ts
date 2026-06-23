@@ -24,6 +24,16 @@ export class EntitlementService {
     return ent.mode === "INCLUDED" || ent.mode === "QUOTA" || ent.mode === "METERED";
   }
 
+  /** القيمة العددية لميزة (مثل حد الرفع upload.maxFileMb) — null إن لم تُحدَّد. */
+  async getNumericValue(tenantId: string, featureKey: string): Promise<number | null> {
+    const sub = await this.prisma.subscription.findFirst({
+      where: { tenantId },
+      include: { plan: { include: { entitlements: true } } },
+    });
+    const ent = sub?.plan.entitlements.find((e) => e.featureKey === featureKey);
+    return ent?.numericValue != null ? Number(ent.numericValue) : null;
+  }
+
   /** خريطة كاملة لـ entitlements المستأجر (للواجهات/التقارير لاحقاً). */
   async getEffective(tenantId: string) {
     const sub = await this.prisma.subscription.findFirst({

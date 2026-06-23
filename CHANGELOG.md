@@ -2,6 +2,12 @@
 
 كل التغييرات الملموسة في منصة IBP، منظّمة حسب المراحل. الصيغة مستلهمة من [Keep a Changelog](https://keepachangelog.com).
 
+## [المرحلة 5] — وحدة المستندات (Document Service) ✅
+- وحدة مستندات موحّدة (polymorphic): رفع/عرض عبر **روابط موقّتة فقط** (Presigned، 5 دقائق) — لا روابط عامة.
+- خدمة تخزين حيادية المزوّد (`STORAGE_DRIVER`: local/s3/minio/alibaba_oss/gcs) + عزل بالمسار `tenant_{id}/`.
+- حد الرفع كـ **entitlement** للباقة (`upload.maxFileMb`)، فحص MIME (رفض التنفيذي)، تمييز الرسمي/المرفق (WebP)، وتسجيل كل رابط في التدقيق.
+- اختبارات: e2e 45/45. توثيق: [`docs/21`](./docs/21-document-service.md). الفرع `phase-5-documents`.
+
 ## [المرحلة 4ب] — الإصدار والنواة المالية (Finance Core) ✅
 - كيان `Policy` محسّن (premium/vat/commission/status) + `PolicyStatus` + مولّد تسلسلي بالفرع `POL-…`.
 - **شجرة الحسابات (COA) 17 رقماً** مزروعة لكل مستأجر: المستوى 1/2 مقفل + فصل داخل/خارج الميزانية + مراكز التكلفة.

@@ -12,6 +12,9 @@ build/
 # prisma generated client
 packages/db/generated/
 
+# تخزين المستندات المحلي (سائق local)
+.storage/
+
 # env & secrets — لا تُرفع أبداً
 .env
 .env.*

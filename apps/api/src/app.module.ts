@@ -1,10 +1,12 @@
-import { Module, MiddlewareConsumer, NestModule } from "@nestjs/common";
+import { Module, MiddlewareConsumer, NestModule, RequestMethod } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { APP_GUARD } from "@nestjs/core";
+import { raw } from "express";
 import { RequestContextModule } from "./common/request-context/request-context.module";
 import { TenantContextMiddleware } from "./common/middleware/tenant-context.middleware";
 import { AuditModule } from "./common/audit/audit.module";
 import { SequenceModule } from "./common/sequence/sequence.module";
+import { StorageModule } from "./common/storage/storage.module";
 import { PrismaModule } from "./prisma/prisma.module";
 import { RedisModule } from "./redis/redis.module";
 import { RbacModule } from "./modules/rbac/rbac.module";
@@ -17,6 +19,7 @@ import { RequestsModule } from "./modules/requests/requests.module";
 import { UnderwritingModule } from "./modules/underwriting/underwriting.module";
 import { ProductionModule } from "./modules/production/production.module";
 import { FinanceModule } from "./modules/finance/finance.module";
+import { DocumentsModule } from "./modules/documents/documents.module";
 import { ClaimsModule } from "./modules/claims/claims.module";
 import { StaffModule } from "./modules/staff/staff.module";
 
@@ -32,6 +35,7 @@ import { StaffModule } from "./modules/staff/staff.module";
     RequestContextModule,
     AuditModule,
     SequenceModule,
+    StorageModule,
     PrismaModule,
     RedisModule,
     RbacModule,
@@ -43,6 +47,7 @@ import { StaffModule } from "./modules/staff/staff.module";
     UnderwritingModule,
     ProductionModule,
     FinanceModule,
+    DocumentsModule,
     ClaimsModule,
     StaffModule,
   ],
@@ -53,6 +58,10 @@ import { StaffModule } from "./modules/staff/staff.module";
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {
+    // بايتات خام لرفع المستندات (يعمل في الإقلاع والاختبار معاً)
+    consumer
+      .apply(raw({ type: () => true, limit: "50mb" }))
+      .forRoutes({ path: "documents/blob/:token", method: RequestMethod.PUT });
     consumer.apply(TenantContextMiddleware).forRoutes("*");
   }
 }
