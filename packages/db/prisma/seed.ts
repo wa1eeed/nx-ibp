@@ -90,7 +90,7 @@ const TENANTS: TenantDef[] = [
       { service: "wathiq", balance: 120 },
       { service: "nafath", balance: 500 },
     ],
-    addons: ["module.claims"], // اشترى موديول المطالبات
+    addons: ["module.claims", "module.reports"], // اشترى موديولَي المطالبات والتقارير
     claims: [{ id: "claim-t1-1", seq: "CL-RUH-2026-0001" }],
   },
   {
@@ -341,6 +341,7 @@ async function seedOperations(passwordHash: string) {
     { id: "pol-fahd-mot", t: "demo-tenant", clientId: "cl-fahd", line: "MCI", insurer: "التعاونية للتأمين", net: 45000, comm: 10, start: "2026-02-01", end: "2027-01-31" },
     { id: "pol-fahd-pro", t: "demo-tenant", clientId: "cl-fahd", line: "PAR", insurer: "وقاية للتأمين", net: 90000, comm: 15, start: "2026-03-01", end: "2027-02-28" },
     { id: "pol-zahra-med", t: "demo-tenant", clientId: "cl-zahra", line: "GMI", insurer: "ملاذ للتأمين", net: 320000, comm: 12, start: "2026-01-15", end: "2027-01-14" },
+    { id: "pol-shorouq-mot", t: "demo-tenant", clientId: "cl-shorouq", line: "MCI", insurer: "التعاونية للتأمين", net: 60000, comm: 10, start: "2025-07-15", end: "2026-07-14" }, // مستحقّة للتجديد قريباً
     { id: "pol-nukhba-mot", t: "demo-tenant-2", clientId: "cl2-nukhba", line: "MTP", insurer: "سلامة للتأمين", net: 28000, comm: 8, start: "2026-04-01", end: "2027-03-31" },
   ];
   let pi = 0;
@@ -377,6 +378,7 @@ async function seedOperations(passwordHash: string) {
     { id: "req-fahd-eng", t: "demo-tenant", clientId: "cl-fahd", line: "CAR", status: "QUOTING", seq: "SL-RUH-CAR-2026-2001" },
     { id: "req-fahd-mar", t: "demo-tenant", clientId: "cl-fahd", line: "MCG", status: "DRAFT", seq: "SL-RUH-MCG-2026-2002" },
     { id: "req-zahra-life", t: "demo-tenant", clientId: "cl-zahra", line: "GLI", status: "AWARDED", seq: "SL-RUH-GLI-2026-2003" },
+    { id: "req-wahah-fire", t: "demo-tenant", clientId: "cl-wahah", line: "FIR", status: "UNDER_REVIEW", seq: "SL-RUH-FIR-2026-2004" },
   ];
   for (const r of requests) {
     await prisma.policyRequest.upsert({
@@ -422,6 +424,21 @@ async function seedOperations(passwordHash: string) {
     await prisma.document.upsert({
       where: { id: d.id }, update: {},
       create: { id: d.id, tenantId: d.t, storageKey: `${d.t}/seed/${d.id}.pdf`, fileName: d.fileName, mime: "application/pdf", sizeBytes: 124000, hash: "seed", docType: d.docType as never, entityType: d.entityType, entityId: d.entityId },
+    });
+  }
+
+  // قيود العمولات (أساس تقرير العمولات) — حالات مختلطة: مستلمة/مستحقّة/فرق
+  const commissions = [
+    { id: "com-fahd-med", t: "demo-tenant", policyId: "pol-fahd-med", insurer: "بوبا العربية", client: "شركة الفهد للمقاولات", line: "GMI", rate: 12.5, amount: 22500, received: 22500, status: "received", period: "2026-01" },
+    { id: "com-fahd-mot", t: "demo-tenant", policyId: "pol-fahd-mot", insurer: "التعاونية للتأمين", client: "شركة الفهد للمقاولات", line: "MCI", rate: 10, amount: 4500, received: null, status: "accrued", period: "2026-02" },
+    { id: "com-fahd-pro", t: "demo-tenant", policyId: "pol-fahd-pro", insurer: "وقاية للتأمين", client: "شركة الفهد للمقاولات", line: "PAR", rate: 15, amount: 13500, received: 12000, status: "variance", period: "2026-03" },
+    { id: "com-zahra-med", t: "demo-tenant", policyId: "pol-zahra-med", insurer: "ملاذ للتأمين", client: "مجموعة الزهراء الطبية", line: "GMI", rate: 12, amount: 38400, received: 38400, status: "received", period: "2026-01" },
+    { id: "com-nukhba-mot", t: "demo-tenant-2", policyId: "pol-nukhba-mot", insurer: "سلامة للتأمين", client: "مؤسسة النخبة التجارية", line: "MTP", rate: 8, amount: 2240, received: null, status: "accrued", period: "2026-04" },
+  ];
+  for (const c of commissions) {
+    await prisma.commission.upsert({
+      where: { id: c.id }, update: {},
+      create: { id: c.id, tenantId: c.t, policyId: c.policyId, insurerName: c.insurer, clientName: c.client, productLine: c.line, rate: c.rate, amount: c.amount, receivedAmount: c.received ?? null, status: c.status, periodMonth: c.period },
     });
   }
 

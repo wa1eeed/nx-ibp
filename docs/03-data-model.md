@@ -102,6 +102,18 @@ erDiagram
 
 **العزل المزدوج:** نطاقه `client` ⇒ يخضع لفلترة Prisma بـ `tenantId` (كأي مستأجر) **+** يُفلتر صراحةً بـ `clientId` في `PortalService` ⇒ يرى بياناته هو فقط. الوصول محصور بـ `PortalGuard` على `/portal/*`.
 
+### `Commission` (قيد عمولة)
+**الغرض:** قيد عمولة وساطة لكل وثيقة — أساس [تقرير العمولات](./26-reports-and-analytics.md) وتسويتها مع شركات التأمين.
+
+| الحقل | النوع | ملاحظة |
+|---|---|---|
+| `policyId` / `insurerName` / `clientName` / `productLine` | — | ربط ووصف |
+| `rate` | Decimal(6,3) | نسبة العمولة |
+| `amount` | Decimal(12,2) | **المتوقّعة** |
+| `receivedAmount` | Decimal? | المُستلم فعلاً |
+| `status` | String? | `accrued` (مستحقّة) \| `received` (مستلمة) \| `variance` (فرق) |
+| `periodMonth` | String? | `2026-01` |
+
 ### `Plan`
 **الغرض:** باقة اشتراك مرجعية على مستوى المنصة (يعرّفها السوبر أدمن).
 

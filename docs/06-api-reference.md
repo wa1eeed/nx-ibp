@@ -589,6 +589,9 @@ curl -X POST http://localhost:4000/staff \
 | `POST` | `/portal/login` | Public | 201 |
 | `GET` | `/portal/me` · `/policies` · `/requests` · `/claims` · `/statement` · `/documents` | PortalGuard (نطاق العميل) | 200 |
 | `GET` | `/portal/documents/:id/url` | PortalGuard | 200 |
+| `GET` | `/reports/dashboard` | `dashboard:read` | 200 |
+| `GET` | `/reports/commissions` | `finance:read` + `module.finance` | 200 |
+| `GET` | `/reports/production` · `/claims` · `/regulatory` · `/catalog` | `reports:read` + `module.reports` | 200 |
 
 > **نطاق المنصّة (Platform):** مسارات `/platform/*` لا تخضع لعزل المستأجر بل لبوّابة `PlatformGuard` المستقلّة (نطاق `scope:platform` عابر للمستأجرين). تفصيلها الكامل في [24 — لوحة السوبر أدمن](./24-platform-super-admin.md).
 
@@ -607,4 +610,5 @@ curl -X POST http://localhost:4000/staff \
 - [05 — الصلاحيات و Entitlements](./05-rbac-and-entitlements.md) — تفصيل عمود «الحماية»
 - [24 — لوحة السوبر أدمن](./24-platform-super-admin.md) — مسارات `/platform/*` ونطاق المنصّة
 - [25 — بوّابة العميل](./25-client-portal.md) — مسارات `/portal/*` ونطاق العميل
+- [26 — التقارير والتحليلات](./26-reports-and-analytics.md) — مسارات `/reports/*` والتفويض المتدرّج
 - الكود: المتحكّمات تحت [`apps/api/src/modules/`](../apps/api/src/modules/) · إعداد الحدود في [`main.ts`](../apps/api/src/main.ts)

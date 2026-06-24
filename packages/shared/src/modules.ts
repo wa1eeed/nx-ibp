@@ -55,7 +55,7 @@ export const TENANT_NAV: NavGroup[] = [
       { key: "premiums", href: "/tenant/premiums", icon: "Coins", entitlement: "module.finance", comingSoon: true },
       { key: "commissions", href: "/tenant/commissions", icon: "Percent", entitlement: "module.finance" },
       { key: "claims", href: "/tenant/claims", icon: "ClipboardList", entitlement: "module.claims" },
-      { key: "reports", href: "/tenant/reports", icon: "BarChart3", entitlement: "module.reports", comingSoon: true },
+      { key: "reports", href: "/tenant/reports", icon: "BarChart3", entitlement: "module.reports" },
       { key: "compliance", href: "/tenant/compliance", icon: "ShieldCheck", entitlement: "module.compliance", comingSoon: true },
       { key: "finance", href: "/tenant/finance", icon: "Landmark", entitlement: "module.finance", comingSoon: true },
       { key: "addons", href: "/tenant/add-ons", icon: "Blocks" },

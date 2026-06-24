@@ -2,6 +2,15 @@
 
 كل التغييرات الملموسة في منصة IBP، منظّمة حسب المراحل. الصيغة مستلهمة من [Keep a Changelog](https://keepachangelog.com).
 
+## [المرحلة 8ج] — التقارير والتحليلات (Reports & Analytics) ✅
+- **ربط الواجهات ببيانات حيّة**: تحوّلت لوحة التحكّم وصفحة العمولات من `@/lib/mock` إلى مكوّنات عميل تجلب من `/reports/*`.
+- وحدة `reports`: dashboard, commissions, production, claims, regulatory, catalog — تجميعات `aggregate`/`groupBy` مفلترة تلقائياً بالمستأجر.
+- كيان `Commission` المبسّط ⇐ **قيد عمولة كامل** (وثيقة/شركة/عميل/نسبة/متوقّع/مستلم/حالة/شهر) + migration `commission_ledger`.
+- **تفويض متدرّج**: اللوحة `dashboard:read` (للجميع)، العمولات `module.finance` (للجميع)، التحليلات وتقارير الهيئة `module.reports` (مدفوع) — basic بلا الإضافة يُرفض (403).
+- صفحة `/tenant/reports` جديدة (إنتاج/مطالبات/هيئة التأمين + كتالوج الـ12) + تفعيل عنصر «التقارير» في التنقّل.
+- بذرة عمولات + وثيقة مستحقّة للتجديد وطلب قيد المراجعة (إثراء مؤشّرات اللوحة).
+- اختبارات: e2e 88/88 (reports: 9). توثيق: [`docs/26`](./docs/26-reports-and-analytics.md). الفرع `phase-8c-reports`.
+
 ## [المرحلة 8ب] — بوّابة العميل (Client Portal) ✅
 - **النطاق الأمني الثالث `client`**: كيان `ClientUser` (tenantId + clientId) + JWT `scope:client` + `PortalGuard`.
 - **عزل مزدوج**: فلترة Prisma بـ `tenantId` (الطبقة القائمة) + فلترة صريحة بـ `clientId` في `PortalService` ⇒ العميل يرى بياناته هو فقط.
