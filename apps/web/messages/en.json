@@ -178,6 +178,14 @@
     "reject": "Reject",
     "create": "Create client",
     "cancel": "Cancel",
+    "verify": {
+      "button": "Verify now",
+      "title": "Confirm government verification",
+      "desc": "A “{provider}” check will run on the client's data, one operation will be deducted from the wallet, and the result linked to the client file.",
+      "action": "Verify",
+      "done": "“{name}” verified via {provider} and linked to the file.",
+      "missingId": "Cannot verify: this client has no CR / national ID."
+    },
     "table": {
       "client": "Client",
       "contact": "Contact / Mobile",

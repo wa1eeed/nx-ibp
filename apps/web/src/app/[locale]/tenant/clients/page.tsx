@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
-import { Plus, Building2, User, X, Check, Ban, Search } from "lucide-react";
+import { Plus, Building2, User, X, Check, Ban, Search, BadgeCheck } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/routing";
 import { api, getToken, ApiError } from "@/lib/api";
@@ -32,7 +32,9 @@ export default function ClientsPage() {
   const [rows, setRows] = useState<ClientRow[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const [saving, setSaving] = useState(false);
+  const [verifying, setVerifying] = useState("");
   const [tab, setTab] = useState<Tab>("ALL");
   const [query, setQuery] = useState("");
 
@@ -117,6 +119,30 @@ export default function ClientsPage() {
     }
   }
 
+  // تحقّق حكومي مباشر من صفحة العميل (يقين للأفراد · واثق للمنشآت) — مربوط بالعميل.
+  async function verify(c: ClientRow) {
+    const idVal = c.type === "CORPORATE" ? c.crNumber : c.nationalId;
+    if (!idVal) { setNotice(""); setError(t("clients.verify.missingId")); return; }
+    const provider = c.type === "CORPORATE" ? t("verification.providers.wathiq") : t("verification.providers.yaqeen");
+    const ok = await confirm({
+      title: t("clients.verify.title"),
+      description: t("clients.verify.desc", { provider }),
+      confirmLabel: t("clients.verify.action"),
+    });
+    if (!ok) return;
+    setError(""); setNotice(""); setVerifying(c.id);
+    try {
+      const endpoint = c.type === "CORPORATE" ? "/verification/wathiq" : "/verification/yaqeen";
+      const body = c.type === "CORPORATE" ? { crNumber: idVal, clientId: c.id } : { nationalId: idVal, clientId: c.id };
+      await api(endpoint, { method: "POST", body: JSON.stringify(body) });
+      setNotice(t("clients.verify.done", { provider, name: c.name }));
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "خطأ");
+    } finally {
+      setVerifying("");
+    }
+  }
+
   return (
     <div>
       <PageHeader
@@ -134,6 +160,7 @@ export default function ClientsPage() {
       />
 
       {error ? <p className="mb-3 rounded-lg bg-danger-soft px-3 py-2 text-[12.5px] font-medium text-danger">{error}</p> : null}
+      {notice ? <p className="mb-3 rounded-lg bg-success-soft px-3 py-2 text-[12.5px] font-medium text-success">{notice}</p> : null}
 
       {showForm ? (
         <form onSubmit={createClient} className="mb-4 grid grid-cols-1 gap-3 rounded-card border border-line bg-card p-5 shadow-card sm:grid-cols-3">
@@ -223,6 +250,9 @@ export default function ClientsPage() {
                   <td className="px-5 py-3">
                     {c.complianceStatus === "PENDING" ? (
                       <div className="flex items-center gap-1.5">
+                        <button onClick={() => verify(c)} disabled={verifying === c.id} title={t("clients.verify.button")} className="inline-flex items-center gap-1 rounded-md border border-line bg-card px-2 py-1.5 text-[11.5px] font-medium text-primary hover:bg-surface-2 disabled:opacity-60">
+                          <BadgeCheck size={14} /> {verifying === c.id ? "…" : t("clients.verify.button")}
+                        </button>
                         <button onClick={() => decide(c.id, "APPROVED")} title={t("clients.approve")} className="grid h-7 w-7 place-items-center rounded-md bg-success-soft text-success hover:opacity-80">
                           <Check size={15} />
                         </button>
