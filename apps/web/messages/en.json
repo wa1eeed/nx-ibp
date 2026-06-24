@@ -39,7 +39,8 @@
   "topbar": {
     "searchPlaceholder": "Search clients, policies, requests…",
     "userName": "Waleed Al-Harbi",
-    "userRole": "Tenant Admin"
+    "userRole": "Tenant Admin",
+    "logout": "Sign out"
   },
   "demo": {
     "title": "Demo Mode",

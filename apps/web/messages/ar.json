@@ -39,7 +39,8 @@
   "topbar": {
     "searchPlaceholder": "ابحث في العملاء والوثائق والطلبات…",
     "userName": "وليد الحربي",
-    "userRole": "أدمن الشركة"
+    "userRole": "أدمن الشركة",
+    "logout": "تسجيل الخروج"
   },
   "demo": {
     "title": "وضع تجريبي",
