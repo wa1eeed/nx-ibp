@@ -28,7 +28,13 @@
   },
   "navGroup": {
     "workspace": "Broker Workspace",
-    "settings": "Settings"
+    "overview": "Overview",
+    "clients": "Clients & Compliance",
+    "production": "Production & Renewals",
+    "operations": "Service & Claims",
+    "finance": "Finance",
+    "insights": "Reports & Analytics",
+    "settings": "Settings & Subscription"
   },
   "nav": {
     "dashboard": "Dashboard",

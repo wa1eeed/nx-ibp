@@ -39,32 +39,66 @@ export interface NavGroup {
   /** مفتاح ترجمة عنوان المجموعة: navGroup.<key>. */
   key: string;
   items: NavItem[];
+  /** إخفاء عنوان المجموعة (للعنصر المثبَّت أعلى القائمة مثل لوحة التحكّم). */
+  hideLabel?: boolean;
 }
 
-/** تنقّل لوحة موظف/أدمن شركة الوساطة (Broker Workspace). */
+/**
+ * تنقّل لوحة موظف/أدمن شركة الوساطة — مُجمَّع حسب دورة عمل الوساطة
+ * (CLAUDE.md §1: مبيعات ← تسعير ← إنتاج ← خدمة ← مطالبات ← مالية) لتحسين تجربة المستخدم.
+ */
 export const TENANT_NAV: NavGroup[] = [
+  // مثبَّت أعلى القائمة بلا عنوان
   {
-    key: "workspace",
+    key: "overview",
+    hideLabel: true,
+    items: [{ key: "dashboard", href: "/tenant/dashboard", icon: "LayoutDashboard" }],
+  },
+  // العملاء والامتثال (الاستقطاب والتحقّق)
+  {
+    key: "clients",
     items: [
-      { key: "dashboard", href: "/tenant/dashboard", icon: "LayoutDashboard" },
       { key: "clients", href: "/tenant/clients", icon: "Users", entitlement: "module.clients" },
       { key: "verification", href: "/tenant/verification", icon: "BadgeCheck" },
-      { key: "requests", href: "/tenant/requests", icon: "FileText", entitlement: "module.sales" },
-      { key: "policies", href: "/tenant/policies", icon: "FileCheck2", entitlement: "module.production" },
-      { key: "service", href: "/tenant/service", icon: "Headset", entitlement: "module.service" },
-      { key: "renewals", href: "/tenant/renewals", icon: "RefreshCw", entitlement: "module.production" },
-      { key: "premiums", href: "/tenant/premiums", icon: "Coins", entitlement: "module.finance" },
-      { key: "commissions", href: "/tenant/commissions", icon: "Percent", entitlement: "module.finance" },
-      { key: "claims", href: "/tenant/claims", icon: "ClipboardList", entitlement: "module.claims" },
-      { key: "reports", href: "/tenant/reports", icon: "BarChart3", entitlement: "module.reports" },
       { key: "compliance", href: "/tenant/compliance", icon: "ShieldCheck", entitlement: "module.compliance" },
-      { key: "finance", href: "/tenant/finance", icon: "Landmark", entitlement: "module.finance" },
-      { key: "addons", href: "/tenant/add-ons", icon: "Blocks" },
     ],
   },
+  // الإنتاج والتجديد (طلب ← اكتتاب ← إصدار ← تجديد)
+  {
+    key: "production",
+    items: [
+      { key: "requests", href: "/tenant/requests", icon: "FileText", entitlement: "module.sales" },
+      { key: "policies", href: "/tenant/policies", icon: "FileCheck2", entitlement: "module.production" },
+      { key: "renewals", href: "/tenant/renewals", icon: "RefreshCw", entitlement: "module.production" },
+    ],
+  },
+  // الخدمة والمطالبات (ما بعد البيع)
+  {
+    key: "operations",
+    items: [
+      { key: "service", href: "/tenant/service", icon: "Headset", entitlement: "module.service" },
+      { key: "claims", href: "/tenant/claims", icon: "ClipboardList", entitlement: "module.claims" },
+    ],
+  },
+  // المالية
+  {
+    key: "finance",
+    items: [
+      { key: "finance", href: "/tenant/finance", icon: "Landmark", entitlement: "module.finance" },
+      { key: "premiums", href: "/tenant/premiums", icon: "Coins", entitlement: "module.finance" },
+      { key: "commissions", href: "/tenant/commissions", icon: "Percent", entitlement: "module.finance" },
+    ],
+  },
+  // التقارير والتحليلات
+  {
+    key: "insights",
+    items: [{ key: "reports", href: "/tenant/reports", icon: "BarChart3", entitlement: "module.reports" }],
+  },
+  // الإعدادات والاشتراك
   {
     key: "settings",
     items: [
+      { key: "addons", href: "/tenant/add-ons", icon: "Blocks" },
       { key: "settings.company", href: "/tenant/settings/company", icon: "Building2", comingSoon: true },
       { key: "settings.branding", href: "/tenant/settings/branding", icon: "Palette", comingSoon: true },
       { key: "settings.staff", href: "/tenant/settings/staff", icon: "UserCog" },

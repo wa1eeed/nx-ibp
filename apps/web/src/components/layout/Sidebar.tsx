@@ -68,9 +68,11 @@ export function Sidebar() {
       <nav className="flex-1 overflow-y-auto px-3 pb-4">
         {TENANT_NAV.map((group) => (
           <div key={group.key} className="mt-4 first:mt-2">
-            <div className="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-subtle">
-              {t(`navGroup.${group.key}`)}
-            </div>
+            {group.hideLabel ? null : (
+              <div className="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-subtle">
+                {t(`navGroup.${group.key}`)}
+              </div>
+            )}
             <ul className="space-y-0.5">
               {group.items.map((item) => {
                 const Icon = ICONS[item.icon] ?? FileText;
