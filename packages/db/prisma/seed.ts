@@ -473,6 +473,200 @@ async function seedOperations(passwordHash: string) {
   }
 }
 
+// شركات تأمين سعودية واقعية (للتنويع في الإنتاج والعمولات).
+const INSURERS = [
+  "شركة التعاونية للتأمين", "بوبا العربية للتأمين", "شركة ملاذ للتأمين", "شركة سلامة للتأمين",
+  "شركة الدرع العربي للتأمين", "المتوسط والخليج للتأمين (ميدغلف)", "gig الخليج للتأمين", "الإنماء طوكيو مارين",
+  "شركة عناية السعودية للتأمين", "شركة الصقر للتأمين", "تكافل الراجحي", "شركة الاتحاد للتأمين",
+  "الشركة المتحدة للتأمين (ولاء)", "شركة بروج للتأمين", "شركة الوطنية للتأمين", "أمانة للتأمين",
+];
+
+/**
+ * بيانات شبه واقعية واسعة عبر كل المنصّة (إضافية — معرّفات جديدة لا تمسّ كيانات الاختبارات
+ * cl-fahd/cl2-nukhba). تملأ: عملاء، وثائق سارية ومالية مشتقّة، طلبات وعروض أسعار،
+ * خدمة، مطالبات، تحقّق KYC/PEP، مستندات، ملاحق، ومستخدمي بوّابة.
+ */
+async function seedRichData(passwordHash: string) {
+  // ---- عملاء إضافيون واقعيون ----
+  const clients: Array<{ id: string; t: string; name: string; id2: string; type: "CORPORATE" | "INDIVIDUAL"; city: string; email: string; phone: string; compliance: "APPROVED" | "PENDING" | "REJECTED" }> = [
+    { id: "cl-redsea", t: "demo-tenant", name: "شركة البحر الأحمر للتطوير", id2: "4030112233", type: "CORPORATE", city: "جدة", email: "info@redsea-dev.sa", phone: "0126540011", compliance: "APPROVED" },
+    { id: "cl-rowad", t: "demo-tenant", name: "مصنع الرواد للبلاستيك", id2: "1010334455", type: "CORPORATE", city: "الرياض", email: "ops@rowad-plastic.sa", phone: "0114220033", compliance: "APPROVED" },
+    { id: "cl-naseej", t: "demo-tenant", name: "مجموعة نسيج القابضة", id2: "1010556677", type: "CORPORATE", city: "الرياض", email: "corp@naseej-holding.sa", phone: "0112998800", compliance: "APPROVED" },
+    { id: "cl-darb", t: "demo-tenant", name: "درب الحرير اللوجستية", id2: "2050778899", type: "CORPORATE", city: "الدمام", email: "logistics@silkroad.sa", phone: "0138110022", compliance: "PENDING" },
+    { id: "cl-salamah", t: "demo-tenant", name: "مستشفى السلامة التخصصي", id2: "4030991122", type: "CORPORATE", city: "جدة", email: "admin@salamah-hospital.sa", phone: "0126710099", compliance: "APPROVED" },
+    { id: "cl-emaar", t: "demo-tenant", name: "مقاولات الإعمار الحديثة", id2: "1010223344", type: "CORPORATE", city: "الرياض", email: "pm@emaar-modern.sa", phone: "0114550066", compliance: "APPROVED" },
+    { id: "cl-taif", t: "demo-tenant", name: "شركة طيف للتقنية", id2: "1010445566", type: "CORPORATE", city: "الرياض", email: "hello@taif-tech.sa", phone: "0112334455", compliance: "APPROVED" },
+    { id: "cl-aseel", t: "demo-tenant", name: "مجموعة الأصيل التجارية", id2: "3040667788", type: "CORPORATE", city: "مكة", email: "trade@aseel-group.sa", phone: "0125660077", compliance: "APPROVED" },
+    { id: "cl-khazaf", t: "demo-tenant", name: "مصانع الخزف السعودي", id2: "2050889900", type: "CORPORATE", city: "الخبر", email: "factory@saudi-ceramics.sa", phone: "0138990011", compliance: "REJECTED" },
+    { id: "cl-abdullah", t: "demo-tenant", name: "عبدالله محمد الشمري", id2: "1098765432", type: "INDIVIDUAL", city: "الرياض", email: "a.alshammari@email.sa", phone: "0551122334", compliance: "APPROVED" },
+    { id: "cl-fatima", t: "demo-tenant", name: "فاطمة سعد القحطاني", id2: "1087654321", type: "INDIVIDUAL", city: "أبها", email: "f.alqahtani@email.sa", phone: "0567788990", compliance: "APPROVED" },
+    // المستأجر الثاني
+    { id: "cl2-rimal", t: "demo-tenant-2", name: "شركة رمال للعقارات", id2: "3050112233", type: "CORPORATE", city: "جدة", email: "info@rimal-realestate.sa", phone: "0126112233", compliance: "APPROVED" },
+    { id: "cl2-khair", t: "demo-tenant-2", name: "مزارع الخير الزراعية", id2: "3050334455", type: "CORPORATE", city: "المدينة", email: "farm@alkhair-agri.sa", phone: "0148445566", compliance: "APPROVED" },
+    { id: "cl2-lulu", t: "demo-tenant-2", name: "فندق اللؤلؤة", id2: "3050556677", type: "CORPORATE", city: "مكة", email: "stay@allulu-hotel.sa", phone: "0125667788", compliance: "PENDING" },
+  ];
+  const nameOf: Record<string, string> = { "cl-zahra": "مجموعة الزهراء الطبية", "cl-manara": "منارة تك", "cl-shorouq": "الشروق للنقل والتجارة", "cl-wahah": "أغذية الواحة" };
+  let ci = 2000;
+  for (const c of clients) {
+    ci++;
+    nameOf[c.id] = c.name;
+    await prisma.client.upsert({
+      where: { id: c.id }, update: { name: c.name, city: c.city, email: c.email, complianceStatus: c.compliance },
+      create: { id: c.id, tenantId: c.t, type: c.type, name: c.name, crNumber: c.type === "CORPORATE" ? c.id2 : null, nationalId: c.type === "INDIVIDUAL" ? c.id2 : null, email: c.email, phone: c.phone, city: c.city, code: `CLI-2026-${ci}`, status: "active", complianceStatus: c.compliance },
+    });
+  }
+
+  // ---- وثائق سارية + إشعار مدين + فاتورة + عمولة لكل وثيقة سارية ----
+  const policies: Array<{ id: string; t: string; clientId: string; line: string; ins: number; net: number; comm: number; start: string; end: string; status: string }> = [
+    { id: "rp-redsea-pro", t: "demo-tenant", clientId: "cl-redsea", line: "PAR", ins: 5, net: 240000, comm: 14, start: "2026-01-10", end: "2027-01-09", status: "ISSUED" },
+    { id: "rp-redsea-eng", t: "demo-tenant", clientId: "cl-redsea", line: "CAR", ins: 7, net: 410000, comm: 16, start: "2026-02-15", end: "2027-08-14", status: "ISSUED" },
+    { id: "rp-rowad-pro", t: "demo-tenant", clientId: "cl-rowad", line: "FIR", ins: 2, net: 130000, comm: 12.5, start: "2026-03-01", end: "2027-02-28", status: "ISSUED" },
+    { id: "rp-rowad-mot", t: "demo-tenant", clientId: "cl-rowad", line: "MCI", ins: 0, net: 88000, comm: 10, start: "2026-04-20", end: "2027-04-19", status: "ISSUED" },
+    { id: "rp-naseej-med", t: "demo-tenant", clientId: "cl-naseej", line: "GMI", ins: 1, net: 520000, comm: 11, start: "2026-01-01", end: "2026-12-31", status: "ISSUED" },
+    { id: "rp-naseej-life", t: "demo-tenant", clientId: "cl-naseej", line: "GLI", ins: 10, net: 145000, comm: 9, start: "2026-05-01", end: "2027-04-30", status: "ISSUED" },
+    { id: "rp-salamah-med", t: "demo-tenant", clientId: "cl-salamah", line: "GMI", ins: 1, net: 680000, comm: 12, start: "2026-02-01", end: "2027-01-31", status: "ISSUED" },
+    { id: "rp-salamah-pli", t: "demo-tenant", clientId: "cl-salamah", line: "PLI", ins: 13, net: 95000, comm: 15, start: "2026-06-01", end: "2026-07-20", status: "ISSUED" },
+    { id: "rp-emaar-eng", t: "demo-tenant", clientId: "cl-emaar", line: "EAR", ins: 6, net: 360000, comm: 16, start: "2026-03-15", end: "2027-09-14", status: "ISSUED" },
+    { id: "rp-emaar-mot", t: "demo-tenant", clientId: "cl-emaar", line: "MTP", ins: 3, net: 52000, comm: 8, start: "2026-06-10", end: "2026-07-09", status: "ISSUED" },
+    { id: "rp-aseel-mar", t: "demo-tenant", clientId: "cl-aseel", line: "MCG", ins: 8, net: 175000, comm: 13, start: "2026-04-01", end: "2027-03-31", status: "ISSUED" },
+    { id: "rp-taif-med", t: "demo-tenant", clientId: "cl-taif", line: "GMI", ins: 1, net: 210000, comm: 11.5, start: "2026-01-20", end: "2027-01-19", status: "ISSUED" },
+    { id: "rp-abdullah-mot", t: "demo-tenant", clientId: "cl-abdullah", line: "MCI", ins: 0, net: 9800, comm: 10, start: "2026-05-15", end: "2027-05-14", status: "ISSUED" },
+    { id: "rp-fatima-trv", t: "demo-tenant", clientId: "cl-fatima", line: "TRV", ins: 14, net: 1800, comm: 20, start: "2026-06-15", end: "2026-12-15", status: "ISSUED" },
+    { id: "rp-khazaf-pro", t: "demo-tenant", clientId: "cl-khazaf", line: "PAR", ins: 5, net: 150000, comm: 13, start: "2026-06-20", end: "2027-06-19", status: "TECHNICAL_REVIEW" },
+    { id: "rp-darb-mot", t: "demo-tenant", clientId: "cl-darb", line: "MCI", ins: 11, net: 120000, comm: 10, start: "2026-06-18", end: "2027-06-17", status: "FINANCE_REVIEW" },
+    // المستأجر الثاني
+    { id: "rp2-rimal-pro", t: "demo-tenant-2", clientId: "cl2-rimal", line: "PAR", ins: 4, net: 96000, comm: 12, start: "2026-03-05", end: "2027-03-04", status: "ISSUED" },
+    { id: "rp2-khair-gen", t: "demo-tenant-2", clientId: "cl2-khair", line: "GPA", ins: 9, net: 34000, comm: 10, start: "2026-04-12", end: "2027-04-11", status: "ISSUED" },
+    { id: "rp2-lulu-pro", t: "demo-tenant-2", clientId: "cl2-lulu", line: "FIR", ins: 2, net: 72000, comm: 11, start: "2026-06-12", end: "2026-07-11", status: "ISSUED" },
+  ];
+  let sp = 3000;
+  for (const p of policies) {
+    sp++;
+    const vat = round2(p.net * 0.15), total = round2(p.net + vat), comm = round2((p.net * p.comm) / 100);
+    await prisma.policy.upsert({
+      where: { id: p.id }, update: { status: p.status as never },
+      create: { id: p.id, tenantId: p.t, clientId: p.clientId, productLineCode: p.line, insurerName: INSURERS[p.ins], sequenceNo: `POL-RUH-${p.line}-2026-${sp}`, premium: p.net, vat, totalPremium: total, commissionRate: p.comm, commissionAmount: comm, status: p.status as never, startDate: D(p.start), endDate: D(p.end) },
+    });
+    if (p.status !== "ISSUED") continue;
+    await prisma.debitNote.upsert({ where: { id: `dn-${p.id}` }, update: {}, create: { id: `dn-${p.id}`, tenantId: p.t, clientId: p.clientId, policyId: p.id, sequenceNo: `DN-2026-${sp}`, netAmount: p.net, vatAmount: vat } });
+    await prisma.invoice.upsert({ where: { id: `inv-${p.id}` }, update: {}, create: { id: `inv-${p.id}`, tenantId: p.t, policyId: p.id, insurerName: INSURERS[p.ins], sequenceNo: `INV-2026-${sp}`, netAmount: p.net, vatAmount: vat, totalAmount: total, status: "issued", zatcaUuid: `zatca-${p.id}`, zatcaHash: "demo-hash", qrPayload: "demo-qr" } });
+    const st = ["received", "accrued", "variance"][sp % 3];
+    const recv = st === "received" ? comm : st === "variance" ? round2(comm * 0.9) : null;
+    await prisma.commission.upsert({ where: { id: `com-${p.id}` }, update: {}, create: { id: `com-${p.id}`, tenantId: p.t, policyId: p.id, insurerName: INSURERS[p.ins], clientName: nameOf[p.clientId] ?? "—", productLine: p.line, rate: p.comm, amount: comm, receivedAmount: recv, status: st, periodMonth: p.start.slice(0, 7) } });
+  }
+
+  // ---- طلبات في مراحل مختلفة + عروض أسعار (RFQ) للطلبات في مرحلة التسعير ----
+  const reqs: Array<{ id: string; t: string; clientId: string; line: string; status: string; seq: string; quote?: number[] }> = [
+    { id: "rr-naseej-mot", t: "demo-tenant", clientId: "cl-naseej", line: "MCI", status: "QUOTING", seq: "SL-RUH-MCI-2026-4001", quote: [0, 3, 11] },
+    { id: "rr-aseel-pro", t: "demo-tenant", clientId: "cl-aseel", line: "PAR", status: "QUOTING", seq: "SL-RUH-PAR-2026-4002", quote: [5, 2, 13] },
+    { id: "rr-taif-life", t: "demo-tenant", clientId: "cl-taif", line: "GLI", status: "QUOTING", seq: "SL-RUH-GLI-2026-4003", quote: [10, 1, 14] },
+    { id: "rr-rowad-mar", t: "demo-tenant", clientId: "cl-rowad", line: "MCG", status: "DRAFT", seq: "SL-RUH-MCG-2026-4004" },
+    { id: "rr-emaar-gpa", t: "demo-tenant", clientId: "cl-emaar", line: "GPA", status: "AWARDED", seq: "SL-RUH-GPA-2026-4005" },
+    { id: "rr-redsea-med", t: "demo-tenant", clientId: "cl-redsea", line: "GMI", status: "UNDER_REVIEW", seq: "SL-RUH-GMI-2026-4006" },
+    { id: "rr-darb-eng", t: "demo-tenant", clientId: "cl-darb", line: "EAR", status: "REJECTED", seq: "SL-RUH-EAR-2026-4007" },
+    { id: "rr2-rimal-mot", t: "demo-tenant-2", clientId: "cl2-rimal", line: "MTP", status: "QUOTING", seq: "SL-JED-MTP-2026-4008", quote: [3, 4, 9] },
+  ];
+  let sq = 5000;
+  for (const r of reqs) {
+    await prisma.policyRequest.upsert({ where: { id: r.id }, update: { status: r.status as never }, create: { id: r.id, tenantId: r.t, clientId: r.clientId, productLineCode: r.line, status: r.status as never, sequenceNo: r.seq, base: {} } });
+    if (!r.quote) continue;
+    const slipId = `slip-${r.id}`;
+    await prisma.slip.upsert({ where: { id: slipId }, update: {}, create: { id: slipId, tenantId: r.t, requestId: r.id, sequenceNo: `RFQ-${r.line}-2026-${sq}`, insurers: r.quote.map((i) => INSURERS[i]), notes: "طلب عروض أسعار — مقارنة فنية وسعرية" } });
+    let qi = 0;
+    for (const ins of r.quote) {
+      qi++; sq++;
+      const net = 40000 + ins * 7000 + qi * 5000;
+      const vat = round2(net * 0.15);
+      await prisma.quotation.upsert({
+        where: { id: `q-${r.id}-${qi}` }, update: {},
+        create: { id: `q-${r.id}-${qi}`, tenantId: r.t, slipId, insurerName: INSURERS[ins], rate: 2 + qi * 0.5, premium: net, vat, totalPremium: round2(net + vat), deductible: 1000 * qi, limit: 1000000 * qi, validUntil: D("2026-08-31"), generalRemarks: "شامل التغطيات الأساسية", additionalConditions: qi === 2 ? "خصم عدم مطالبات 10%" : null },
+      });
+    }
+  }
+
+  // ---- طلبات خدمة العملاء ----
+  const svcs = [
+    { id: "rs-naseej-add", t: "demo-tenant", clientId: "cl-naseej", policyId: "rp-naseej-med", type: "addition", subject: "إضافة 12 موظفاً جديداً للوثيقة الطبية", status: "IN_PROGRESS", seq: "RQ-2026-5001" },
+    { id: "rs-salamah-amd", t: "demo-tenant", clientId: "cl-salamah", policyId: "rp-salamah-med", type: "amendment", subject: "رفع حد التغطية للفئة A", status: "SENT_TO_INSURER", seq: "RQ-2026-5002" },
+    { id: "rs-emaar-del", t: "demo-tenant", clientId: "cl-emaar", policyId: "rp-emaar-eng", type: "deletion", subject: "حذف معدّة من وثيقة التركيب", status: "CLOSED", seq: "RQ-2026-5003" },
+    { id: "rs-aseel-inq", t: "demo-tenant", clientId: "cl-aseel", policyId: "rp-aseel-mar", type: "inquiry", subject: "استفسار عن استثناءات الشحن البحري", status: "OPEN", seq: "RQ-2026-5004" },
+    { id: "rs-redsea-ren", t: "demo-tenant", clientId: "cl-redsea", policyId: "rp-redsea-pro", type: "renewal", subject: "طلب تجديد وثيقة الممتلكات", status: "OPEN", seq: "RQ-2026-5005" },
+    { id: "rs2-rimal-add", t: "demo-tenant-2", clientId: "cl2-rimal", policyId: "rp2-rimal-pro", type: "addition", subject: "إضافة موقع جديد للتغطية", status: "IN_PROGRESS", seq: "RQ-2026-5006" },
+  ];
+  for (const s of svcs) {
+    await prisma.serviceRequest.upsert({ where: { id: s.id }, update: {}, create: { id: s.id, tenantId: s.t, clientId: s.clientId, policyId: s.policyId, type: s.type, subject: s.subject, status: s.status as never, sequenceNo: s.seq } });
+  }
+
+  // ---- مطالبات متنوّعة (ليست على cl-fahd) ----
+  const claims = [
+    { id: "rc-naseej-med", t: "demo-tenant", clientId: "cl-naseej", policyId: "rp-naseej-med", ins: 1, incident: "2026-03-22", claimed: 18500, deduct: 1500, settled: 15000, status: "SETTLED", seq: "CL-RUH-2026-1101" },
+    { id: "rc-rowad-fire", t: "demo-tenant", clientId: "cl-rowad", policyId: "rp-rowad-pro", ins: 2, incident: "2026-04-30", claimed: 240000, deduct: 25000, settled: null, status: "UNDER_REVIEW", seq: "CL-RUH-2026-1102" },
+    { id: "rc-emaar-eng", t: "demo-tenant", clientId: "cl-emaar", policyId: "rp-emaar-eng", ins: 6, incident: "2026-05-11", claimed: 95000, deduct: 10000, settled: null, status: "SUBMITTED", seq: "CL-RUH-2026-1103" },
+    { id: "rc-aseel-mar", t: "demo-tenant", clientId: "cl-aseel", policyId: "rp-aseel-mar", ins: 8, incident: "2026-05-28", claimed: 62000, deduct: 5000, settled: null, status: "RECEIVED", seq: "CL-RUH-2026-1104" },
+    { id: "rc-abdullah-mot", t: "demo-tenant", clientId: "cl-abdullah", policyId: "rp-abdullah-mot", ins: 0, incident: "2026-06-02", claimed: 7400, deduct: 500, settled: 6900, status: "SETTLED", seq: "CL-RUH-2026-1105" },
+    { id: "rc-salamah-pli", t: "demo-tenant", clientId: "cl-salamah", policyId: "rp-salamah-pli", ins: 13, incident: "2026-06-09", claimed: 33000, deduct: 3000, settled: null, status: "REJECTED", seq: "CL-RUH-2026-1106" },
+    { id: "rc2-rimal-pro", t: "demo-tenant-2", clientId: "cl2-rimal", policyId: "rp2-rimal-pro", ins: 4, incident: "2026-05-19", claimed: 41000, deduct: 4000, settled: 30000, status: "SETTLED", seq: "CL-JED-2026-1107" },
+  ];
+  for (const c of claims) {
+    await prisma.claim.upsert({
+      where: { id: c.id }, update: {},
+      create: { id: c.id, tenantId: c.t, clientId: c.clientId, policyId: c.policyId, insurerName: INSURERS[c.ins], claimedAmount: c.claimed, deductible: c.deduct, settledAmount: c.settled ?? null, status: c.status as never, incidentDate: D(c.incident), sequenceNo: c.seq },
+    });
+  }
+
+  // ---- عمليات تحقّق إضافية (KYC/KYB + PEP) ----
+  const provs = Object.fromEntries((await prisma.verificationProvider.findMany({ select: { id: true, key: true } })).map((p) => [p.key, p.id]));
+  const checks = [
+    { id: "rk-redsea-cr", clientId: "cl-redsea", key: "wathiq", checkType: "cr", risk: null },
+    { id: "rk-naseej-pep", clientId: "cl-naseej", key: "screening", checkType: "pep_sanctions", risk: "low" },
+    { id: "rk-salamah-pep", clientId: "cl-salamah", key: "screening", checkType: "pep_sanctions", risk: "low" },
+    { id: "rk-darb-pep", clientId: "cl-darb", key: "screening", checkType: "pep_sanctions", risk: "medium" },
+    { id: "rk-khazaf-pep", clientId: "cl-khazaf", key: "screening", checkType: "pep_sanctions", risk: "high" },
+    { id: "rk-abdullah-id", clientId: "cl-abdullah", key: "yaqeen", checkType: "identity", risk: null },
+    { id: "rk-fatima-id", clientId: "cl-fatima", key: "yaqeen", checkType: "identity", risk: null },
+    { id: "rk-emaar-addr", clientId: "cl-emaar", key: "spl", checkType: "address", risk: null },
+    { id: "rk-aseel-cr", clientId: "cl-aseel", key: "wathiq", checkType: "cr", risk: null },
+  ];
+  for (const c of checks) {
+    if (!provs[c.key]) continue;
+    await prisma.verificationCheck.upsert({ where: { id: c.id }, update: {}, create: { id: c.id, tenantId: "demo-tenant", providerId: provs[c.key], checkType: c.checkType, status: "success", clientId: c.clientId, riskLevel: c.risk, cost: c.key === "spl" ? 0 : 3 } });
+  }
+
+  // ---- ملاحق على وثائق سارية ----
+  const ends = [
+    { id: "re-naseej-1", t: "demo-tenant", policyId: "rp-naseej-med", type: "addition", seq: "POL-RUH-GMI-2026-3005/E1", delta: 45000, eff: "2026-04-01" },
+    { id: "re-salamah-1", t: "demo-tenant", policyId: "rp-salamah-med", type: "amendment", seq: "POL-RUH-GMI-2026-3007/E1", delta: 12000, eff: "2026-05-15" },
+    { id: "re-emaar-1", t: "demo-tenant", policyId: "rp-emaar-eng", type: "deletion", seq: "POL-RUH-EAR-2026-3009/E1", delta: -8000, eff: "2026-06-01" },
+  ];
+  for (const e of ends) {
+    await prisma.endorsement.upsert({ where: { id: e.id }, update: {}, create: { id: e.id, tenantId: e.t, policyId: e.policyId, type: e.type, sequenceNo: e.seq, premiumDelta: e.delta, effectiveDate: D(e.eff) } });
+  }
+
+  // ---- مستندات إضافية ----
+  const docs = [
+    { id: "rd-naseej-sched", t: "demo-tenant", entityType: "policy", entityId: "rp-naseej-med", fileName: "جدول الوثيقة الطبية — نسيج.pdf", docType: "OFFICIAL" },
+    { id: "rd-redsea-cert", t: "demo-tenant", entityType: "policy", entityId: "rp-redsea-pro", fileName: "شهادة تأمين الممتلكات.pdf", docType: "OFFICIAL" },
+    { id: "rd-emaar-eng", t: "demo-tenant", entityType: "policy", entityId: "rp-emaar-eng", fileName: "وثيقة جميع أخطار التركيب.pdf", docType: "OFFICIAL" },
+    { id: "rd-rowad-claim", t: "demo-tenant", entityType: "claim", entityId: "rc-rowad-fire", fileName: "تقرير معاينة الحريق.pdf", docType: "ATTACHMENT" },
+    { id: "rd-naseej-cr", t: "demo-tenant", entityType: "client", entityId: "cl-naseej", fileName: "السجل التجاري — نسيج.pdf", docType: "ATTACHMENT" },
+    { id: "rd-aseel-mar", t: "demo-tenant", entityType: "policy", entityId: "rp-aseel-mar", fileName: "بوليصة الشحن البحري.pdf", docType: "OFFICIAL" },
+  ];
+  for (const d of docs) {
+    await prisma.document.upsert({ where: { id: d.id }, update: {}, create: { id: d.id, tenantId: d.t, storageKey: `${d.t}/seed/${d.id}.pdf`, fileName: d.fileName, mime: "application/pdf", sizeBytes: 138000, hash: "seed", docType: d.docType as never, entityType: d.entityType, entityId: d.entityId } });
+  }
+
+  // ---- مستخدمو بوّابة لعملاء إضافيين ----
+  const portalUsers = [
+    { id: "rcu-naseej", t: "demo-tenant", clientId: "cl-naseej", email: "portal@naseej.sa", name: "إدارة مجموعة نسيج" },
+    { id: "rcu-salamah", t: "demo-tenant", clientId: "cl-salamah", email: "portal@salamah-hospital.sa", name: "مستشفى السلامة" },
+    { id: "rcu-redsea", t: "demo-tenant", clientId: "cl-redsea", email: "portal@redsea-dev.sa", name: "البحر الأحمر للتطوير" },
+    { id: "rcu2-rimal", t: "demo-tenant-2", clientId: "cl2-rimal", email: "portal@rimal.sa", name: "رمال للعقارات" },
+  ];
+  for (const u of portalUsers) {
+    await prisma.clientUser.upsert({ where: { email: u.email }, update: { fullName: u.name, passwordHash }, create: { id: u.id, tenantId: u.t, clientId: u.clientId, email: u.email, fullName: u.name, passwordHash } });
+  }
+}
+
 async function main() {
   console.log("🌱 IBP seed — بيانات وهمية فقط");
   const passwordHash = await bcrypt.hash(DEV_PASSWORD, 10);
@@ -489,6 +683,7 @@ async function main() {
   }
 
   await seedOperations(passwordHash);
+  await seedRichData(passwordHash);
 
   // مالك المنصة (سوبر أدمن)
   await prisma.platformAdmin.upsert({
@@ -497,11 +692,13 @@ async function main() {
     create: { email: "admin@ibp-platform.sa", fullName: "مالك المنصة", passwordHash },
   });
 
-  console.log(`✅ تمّ الزرع: ${TENANTS.length} مستأجر + سوبر أدمن + بيانات تشغيلية. كلمة مرور التطوير: ${DEV_PASSWORD}`);
+  const [nc, np, ncl] = await Promise.all([prisma.client.count(), prisma.policy.count(), prisma.claim.count()]);
+  console.log(`✅ تمّ الزرع: ${TENANTS.length} مستأجر + سوبر أدمن + بيانات شبه واقعية واسعة. كلمة مرور التطوير: ${DEV_PASSWORD}`);
+  console.log(`   البيانات: ${nc} عميل · ${np} وثيقة · ${ncl} مطالبة + طلبات/عروض/عمولات/تحقّق/مستندات`);
   console.log("   الخليج (premium+مطالبات): waleed/sara/fahad/laila@gulf-demo.sa");
   console.log("   الأمان (basic): omar@aman-demo.sa");
   console.log("   سوبر أدمن: admin@ibp-platform.sa");
-  console.log("   بوّابة العميل: portal@alfahd.sa (الفهد) · portal@nukhba.sa (النخبة)");
+  console.log("   بوّابة العميل: portal@alfahd.sa · portal@naseej.sa · portal@nukhba.sa");
 }
 
 main()
