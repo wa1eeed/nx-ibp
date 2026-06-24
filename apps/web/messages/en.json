@@ -142,7 +142,8 @@
     "title": "Clients",
     "subtitle": "Manage both corporate and individual clients",
     "newClient": "New client",
-    "searchPlaceholder": "Search by name, CR or national ID…",
+    "searchPlaceholder": "Search by name, CR, ID or mobile…",
+    "noResults": "No matching results",
     "tabs": { "all": "All clients", "corporate": "Corporate", "individual": "Individual" },
     "type": { "label": "Type", "corporate": "Corporate", "individual": "Individual" },
     "code": "Code",
@@ -157,6 +158,8 @@
     "table": {
       "client": "Client",
       "contact": "Contact / Mobile",
+      "idNumber": "CR / ID",
+      "phone": "Mobile",
       "city": "City",
       "activePolicies": "Active policies",
       "kyc": "KYC status",

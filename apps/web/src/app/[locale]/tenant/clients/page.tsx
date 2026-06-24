@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { Plus, Building2, User, X, Check, Ban } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import { Plus, Building2, User, X, Check, Ban, Search } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/routing";
 import { api, getToken, ApiError } from "@/lib/api";
@@ -14,8 +14,13 @@ interface ClientRow {
   type: "CORPORATE" | "INDIVIDUAL";
   name: string;
   crNumber: string | null;
+  nationalId: string | null;
+  phone: string | null;
+  city: string | null;
   complianceStatus: "PENDING" | "APPROVED" | "REJECTED";
 }
+
+type Tab = "ALL" | "CORPORATE" | "INDIVIDUAL";
 
 const COMPLIANCE_TONE: Record<string, BadgeTone> = { APPROVED: "success", PENDING: "warning", REJECTED: "danger" };
 
@@ -26,6 +31,25 @@ export default function ClientsPage() {
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [tab, setTab] = useState<Tab>("ALL");
+  const [query, setQuery] = useState("");
+
+  const counts = useMemo(() => ({
+    ALL: rows.length,
+    CORPORATE: rows.filter((c) => c.type === "CORPORATE").length,
+    INDIVIDUAL: rows.filter((c) => c.type === "INDIVIDUAL").length,
+  }), [rows]);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return rows.filter((c) => {
+      if (tab !== "ALL" && c.type !== tab) return false;
+      if (!q) return true;
+      return [c.name, c.crNumber, c.nationalId, c.phone, c.code, c.city]
+        .filter(Boolean)
+        .some((v) => v!.toLowerCase().includes(q));
+    });
+  }, [rows, tab, query]);
 
   const [type, setType] = useState<"CORPORATE" | "INDIVIDUAL">("CORPORATE");
   const [name, setName] = useState("");
@@ -126,20 +150,47 @@ export default function ClientsPage() {
         </form>
       ) : null}
 
+      {/* تبويبات (الكل/شركات/أفراد) + بحث */}
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="inline-flex rounded-lg border border-line bg-card p-0.5">
+          {(["ALL", "CORPORATE", "INDIVIDUAL"] as Tab[]).map((k) => (
+            <button
+              key={k}
+              onClick={() => setTab(k)}
+              className={["rounded-md px-3.5 py-1.5 text-[12.5px] font-medium transition-colors", tab === k ? "bg-primary-soft text-primary-strong" : "text-muted hover:text-ink"].join(" ")}
+            >
+              {t(`clients.tabs.${k.toLowerCase()}`)} <span className="text-[11px] text-subtle tnum">{counts[k]}</span>
+            </button>
+          ))}
+        </div>
+        <div className="relative w-full sm:w-80">
+          <Search size={15} className="pointer-events-none absolute inset-y-0 my-auto h-4 w-4 text-subtle ltr:left-3 rtl:right-3" />
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={t("clients.searchPlaceholder")}
+            className="h-9 w-full rounded-lg border border-line bg-card text-[13px] text-ink placeholder:text-subtle focus:outline-none focus:ring-2 focus:ring-primary/30 ltr:pl-9 ltr:pr-3 rtl:pr-9 rtl:pl-3"
+          />
+        </div>
+      </div>
+
       <div className="overflow-hidden rounded-card border border-line bg-card shadow-card">
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full min-w-[760px]">
             <thead>
               <tr className="border-b border-line text-[11px] uppercase tracking-wide text-subtle">
                 <th className="px-5 py-3 text-start font-semibold">{t("clients.code")}</th>
                 <th className="px-5 py-3 text-start font-semibold">{t("clients.table.client")}</th>
-                <th className="px-5 py-3 text-start font-semibold">CR</th>
+                <th className="px-5 py-3 text-start font-semibold">{t("clients.table.idNumber")}</th>
+                <th className="px-5 py-3 text-start font-semibold">{t("clients.table.phone")}</th>
+                <th className="px-5 py-3 text-start font-semibold">{t("clients.table.city")}</th>
                 <th className="px-5 py-3 text-start font-semibold">{t("clients.compliance")}</th>
                 <th className="px-5 py-3 text-start font-semibold"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
-              {rows.map((c) => (
+              {filtered.map((c) => (
                 <tr key={c.id} className="transition-colors hover:bg-surface-2/60">
                   <td className="px-5 py-3 text-[12px] text-subtle tnum">{c.code ?? "—"}</td>
                   <td className="px-5 py-3">
@@ -147,10 +198,15 @@ export default function ClientsPage() {
                       <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${c.type === "CORPORATE" ? "bg-info-soft text-info" : "bg-primary-soft text-primary"}`}>
                         {c.type === "CORPORATE" ? <Building2 size={16} /> : <User size={16} />}
                       </span>
-                      <span className="text-[13.5px] font-medium text-ink">{c.name}</span>
+                      <div>
+                        <div className="text-[13.5px] font-medium text-ink">{c.name}</div>
+                        <div className="text-[11px] text-subtle">{t(`clients.tabs.${c.type.toLowerCase()}`)}</div>
+                      </div>
                     </div>
                   </td>
-                  <td className="px-5 py-3 text-[12.5px] text-muted tnum">{c.crNumber ?? "—"}</td>
+                  <td className="px-5 py-3 text-[12.5px] text-muted tnum">{c.crNumber ?? c.nationalId ?? "—"}</td>
+                  <td className="px-5 py-3 text-[12.5px] text-muted tnum">{c.phone ?? "—"}</td>
+                  <td className="px-5 py-3 text-[12.5px] text-muted">{c.city ?? "—"}</td>
                   <td className="px-5 py-3">
                     <Badge tone={COMPLIANCE_TONE[c.complianceStatus]}>{t(`clients.complianceStatus.${c.complianceStatus}`)}</Badge>
                   </td>
@@ -168,6 +224,9 @@ export default function ClientsPage() {
                   </td>
                 </tr>
               ))}
+              {filtered.length === 0 ? (
+                <tr><td colSpan={7} className="px-5 py-10 text-center text-[13px] text-subtle">{t("clients.noResults")}</td></tr>
+              ) : null}
             </tbody>
           </table>
         </div>

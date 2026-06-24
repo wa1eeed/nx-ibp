@@ -142,7 +142,8 @@
     "title": "العملاء",
     "subtitle": "إدارة العملاء من المنشآت والأفراد",
     "newClient": "عميل جديد",
-    "searchPlaceholder": "ابحث بالاسم أو السجل التجاري أو الهوية…",
+    "searchPlaceholder": "ابحث بالاسم أو السجل أو الهوية أو الجوال…",
+    "noResults": "لا توجد نتائج مطابقة",
     "tabs": { "all": "كل العملاء", "corporate": "منشآت", "individual": "أفراد" },
     "type": { "label": "النوع", "corporate": "منشأة", "individual": "فرد" },
     "code": "الكود",
@@ -157,6 +158,8 @@
     "table": {
       "client": "العميل",
       "contact": "جهة الاتصال / الجوال",
+      "idNumber": "السجل / الهوية",
+      "phone": "الجوال",
       "city": "المدينة",
       "activePolicies": "وثائق فعّالة",
       "kyc": "حالة التحقق",

@@ -36,7 +36,7 @@ export class ClientsService {
   list() {
     return this.prisma.client.findMany({
       orderBy: { createdAt: "asc" },
-      select: { id: true, code: true, type: true, name: true, crNumber: true, complianceStatus: true, tenantId: true },
+      select: { id: true, code: true, type: true, name: true, crNumber: true, nationalId: true, phone: true, city: true, complianceStatus: true, tenantId: true },
     });
   }
 
