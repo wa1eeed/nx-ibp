@@ -4,6 +4,7 @@ import { getMessages, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { dirForLocale, type Locale } from "@ibp/shared";
 import { routing } from "@/i18n/routing";
+import { ConfirmProvider } from "@/components/ui/ConfirmProvider";
 import "../globals.css";
 
 export const metadata = {
@@ -38,7 +39,9 @@ export default async function LocaleLayout({
         />
       </head>
       <body>
-        <NextIntlClientProvider messages={messages}>{children}</NextIntlClientProvider>
+        <NextIntlClientProvider messages={messages}>
+          <ConfirmProvider>{children}</ConfirmProvider>
+        </NextIntlClientProvider>
       </body>
     </html>
   );

@@ -8,6 +8,7 @@ import { useRouter } from "@/i18n/routing";
 import { api, getToken, ApiError } from "@/lib/api";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Badge, type BadgeTone } from "@/components/ui/Badge";
+import { useConfirm } from "@/components/ui/ConfirmProvider";
 
 interface Slip { id: string; sequenceNo: string | null; status: string; insurers: string[]; selectedQuotationId: string | null; request: { id: string; productLineCode: string; client: { name: string } | null } | null }
 interface Column { key: string; labelAr: string; labelEn: string }
@@ -18,6 +19,7 @@ const STATUS_TONE: Record<string, BadgeTone> = { DRAFT: "neutral", SENT: "info",
 
 export default function SlipWorkbenchPage() {
   const t = useTranslations();
+  const confirm = useConfirm();
   const locale = useLocale();
   const router = useRouter();
   const params = useParams();
@@ -43,7 +45,13 @@ export default function SlipWorkbenchPage() {
     void load().catch(() => undefined);
   }, [load, router]);
 
-  async function firmOrder(quotationId: string) {
+  async function firmOrder(quotationId: string, insurer: string) {
+    const ok = await confirm({
+      title: t("confirm.firmOrder.title"),
+      description: t("confirm.firmOrder.desc", { insurer }),
+      confirmLabel: t("confirm.firmOrder.action"),
+    });
+    if (!ok) return;
     setError("");
     try {
       await api(`/slips/${id}/select`, { method: "POST", body: JSON.stringify({ quotationId }) });
@@ -118,7 +126,7 @@ export default function SlipWorkbenchPage() {
                         {selected ? (
                           <Badge tone="success">{t("underwriting.selected")}</Badge>
                         ) : slip?.status !== "SELECTED" ? (
-                          <button onClick={() => firmOrder(r.id)} className="inline-flex items-center gap-1 rounded-lg border border-line bg-card px-2.5 py-1.5 text-[12px] font-medium text-primary hover:bg-surface-2">
+                          <button onClick={() => firmOrder(r.id, r.insurer)} className="inline-flex items-center gap-1 rounded-lg border border-line bg-card px-2.5 py-1.5 text-[12px] font-medium text-primary hover:bg-surface-2">
                             <Award size={13} /> {t("underwriting.firmOrder")}
                           </button>
                         ) : null}

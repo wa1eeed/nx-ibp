@@ -7,6 +7,7 @@ import { useRouter } from "@/i18n/routing";
 import { api, getToken, ApiError } from "@/lib/api";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Badge, type BadgeTone } from "@/components/ui/Badge";
+import { useConfirm } from "@/components/ui/ConfirmProvider";
 
 interface WalletRow { service: string; balance: number; tenantId: string }
 interface CheckRow { id: string; checkType: string; status: string; cost: string | null; riskLevel: string | null; createdAt: string }
@@ -16,6 +17,7 @@ const RISK_TONE: Record<string, BadgeTone> = { low: "success", medium: "warning"
 
 export default function VerificationPage() {
   const t = useTranslations();
+  const confirm = useConfirm();
   const router = useRouter();
   const [wallets, setWallets] = useState<WalletRow[]>([]);
   const [checks, setChecks] = useState<CheckRow[]>([]);
@@ -33,7 +35,14 @@ export default function VerificationPage() {
   }, [load, router]);
 
   async function runYaqeen(e: FormEvent) {
-    e.preventDefault(); setError(""); setResult(null);
+    e.preventDefault();
+    const ok = await confirm({
+      title: t("confirm.runYaqeen.title"),
+      description: t("confirm.runYaqeen.desc"),
+      confirmLabel: t("confirm.runYaqeen.action"),
+    });
+    if (!ok) return;
+    setError(""); setResult(null);
     try {
       const res = await api<VerifyResult>("/verification/yaqeen", { method: "POST", body: JSON.stringify({ nationalId }) });
       setResult(res);

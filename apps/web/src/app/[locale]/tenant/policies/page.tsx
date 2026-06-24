@@ -7,6 +7,7 @@ import { useRouter } from "@/i18n/routing";
 import { api, getToken, ApiError } from "@/lib/api";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Badge, type BadgeTone } from "@/components/ui/Badge";
+import { useConfirm } from "@/components/ui/ConfirmProvider";
 
 interface Policy {
   id: string;
@@ -29,6 +30,7 @@ const STATUS_TONE: Record<string, BadgeTone> = {
 
 export default function PoliciesPage() {
   const t = useTranslations();
+  const confirm = useConfirm();
   const router = useRouter();
   const [rows, setRows] = useState<Policy[]>([]);
   const [error, setError] = useState("");
@@ -46,7 +48,13 @@ export default function PoliciesPage() {
     void load().catch(() => undefined);
   }, [load, router]);
 
-  async function act(path: string) {
+  async function act(path: string, kind: "approveTechnical" | "approveFinance") {
+    const ok = await confirm({
+      title: t(`confirm.${kind}.title`),
+      description: t(`confirm.${kind}.desc`),
+      confirmLabel: t(`confirm.${kind}.action`),
+    });
+    if (!ok) return;
     setError("");
     try {
       await api(path, { method: "POST" });
@@ -94,11 +102,11 @@ export default function PoliciesPage() {
                     <td className="px-5 py-3"><Badge tone={STATUS_TONE[p.status] ?? "neutral"}>{p.status}</Badge></td>
                     <td className="px-5 py-3 text-end">
                       {p.status === "TECHNICAL_REVIEW" ? (
-                        <button onClick={() => act(`/policies/${p.id}/approve-technical`)} className="inline-flex items-center gap-1 rounded-lg border border-line bg-card px-2.5 py-1.5 text-[12px] font-medium text-primary hover:bg-surface-2">
+                        <button onClick={() => act(`/policies/${p.id}/approve-technical`, "approveTechnical")} className="inline-flex items-center gap-1 rounded-lg border border-line bg-card px-2.5 py-1.5 text-[12px] font-medium text-primary hover:bg-surface-2">
                           <CheckCircle2 size={13} /> {t("policies.approveTechnical")}
                         </button>
                       ) : p.status === "FINANCE_REVIEW" ? (
-                        <button onClick={() => act(`/finance/policies/${p.id}/approve`)} className="inline-flex items-center gap-1 rounded-lg bg-primary-strong px-2.5 py-1.5 text-[12px] font-semibold text-primary-fg hover:bg-primary">
+                        <button onClick={() => act(`/finance/policies/${p.id}/approve`, "approveFinance")} className="inline-flex items-center gap-1 rounded-lg bg-primary-strong px-2.5 py-1.5 text-[12px] font-semibold text-primary-fg hover:bg-primary">
                           <Landmark size={13} /> {t("policies.approveFinance")}
                         </button>
                       ) : null}

@@ -6,11 +6,13 @@ import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/routing";
 import { api, getToken, ApiError } from "@/lib/api";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { useConfirm } from "@/components/ui/ConfirmProvider";
 
 interface Due { id: string; sequenceNo: string | null; insurerName: string | null; endDate: string | null; productLineCode: string | null; tenantId: string }
 
 export default function RenewalsPage() {
   const t = useTranslations();
+  const confirm = useConfirm();
   const router = useRouter();
   const [rows, setRows] = useState<Due[]>([]);
   const [error, setError] = useState("");
@@ -23,6 +25,12 @@ export default function RenewalsPage() {
   }, [load, router]);
 
   async function initiate(policyId: string) {
+    const ok = await confirm({
+      title: t("confirm.renewal.title"),
+      description: t("confirm.renewal.desc"),
+      confirmLabel: t("confirm.renewal.action"),
+    });
+    if (!ok) return;
     setError(""); setDone("");
     try {
       const sr = await api<{ sequenceNo: string }>(`/renewals/${policyId}/initiate`, { method: "POST" });

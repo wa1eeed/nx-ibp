@@ -9,6 +9,23 @@
     "search": "Search",
     "sar": "SAR"
   },
+  "confirm": {
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "firmOrder": { "title": "Confirm firm order", "desc": "“{insurer}” will be selected as the final quotation and the request moves to issuance.", "action": "Firm order" },
+    "renewal": { "title": "Start renewal", "desc": "A renewal request will be created for this policy, starting a new cycle.", "action": "Start renewal" },
+    "approveClient": { "title": "Approve client", "desc": "The client will be compliance-approved and policies can be issued.", "action": "Approve" },
+    "rejectClient": { "title": "Reject client", "desc": "The client will be rejected and requests cannot proceed (reversible later).", "action": "Reject" },
+    "startRfq": { "title": "Start RFQ", "desc": "A slip will be created to collect insurer quotations and the request moves to quoting.", "action": "Start RFQ" },
+    "issuePolicy": { "title": "Issue policy", "desc": "A policy will be issued from this awarded request and moved to production.", "action": "Issue" },
+    "approveTechnical": { "title": "Technical approval", "desc": "The policy will be technically approved and move to financial approval.", "action": "Approve" },
+    "approveFinance": { "title": "Financial approval", "desc": "Financial approval auto-generates a journal voucher, debit note and tax invoice, and the policy becomes active.", "action": "Approve" },
+    "claimStatus": { "title": "Update claim status", "desc": "The claim status will change to “{status}”.", "action": "Update" },
+    "serviceStatus": { "title": "Update request status", "desc": "The service request status will change to “{status}”.", "action": "Update" },
+    "tenantSuspend": { "title": "Suspend tenant", "desc": "Tenant “{name}” access to the platform will be suspended immediately.", "action": "Suspend" },
+    "tenantActivate": { "title": "Activate tenant", "desc": "Tenant “{name}” access to the platform will be restored.", "action": "Activate" },
+    "runYaqeen": { "title": "Confirm verification", "desc": "A Yaqeen identity check will run and one paid operation will be deducted from your wallet.", "action": "Verify" }
+  },
   "navGroup": {
     "workspace": "Broker Workspace",
     "settings": "Settings"

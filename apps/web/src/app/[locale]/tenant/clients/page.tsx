@@ -7,6 +7,7 @@ import { useRouter } from "@/i18n/routing";
 import { api, getToken, ApiError } from "@/lib/api";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Badge, type BadgeTone } from "@/components/ui/Badge";
+import { useConfirm } from "@/components/ui/ConfirmProvider";
 
 interface ClientRow {
   id: string;
@@ -26,6 +27,7 @@ const COMPLIANCE_TONE: Record<string, BadgeTone> = { APPROVED: "success", PENDIN
 
 export default function ClientsPage() {
   const t = useTranslations();
+  const confirm = useConfirm();
   const router = useRouter();
   const [rows, setRows] = useState<ClientRow[]>([]);
   const [showForm, setShowForm] = useState(false);
@@ -98,6 +100,14 @@ export default function ClientsPage() {
   }
 
   async function decide(id: string, decision: "APPROVED" | "REJECTED") {
+    const k = decision === "APPROVED" ? "approveClient" : "rejectClient";
+    const ok = await confirm({
+      title: t(`confirm.${k}.title`),
+      description: t(`confirm.${k}.desc`),
+      confirmLabel: t(`confirm.${k}.action`),
+      tone: decision === "REJECTED" ? "danger" : "primary",
+    });
+    if (!ok) return;
     setError("");
     try {
       await api(`/clients/${id}/compliance`, { method: "POST", body: JSON.stringify({ decision }) });

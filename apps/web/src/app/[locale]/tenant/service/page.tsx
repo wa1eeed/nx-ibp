@@ -7,6 +7,7 @@ import { useRouter } from "@/i18n/routing";
 import { api, getToken, ApiError } from "@/lib/api";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Badge, type BadgeTone } from "@/components/ui/Badge";
+import { useConfirm } from "@/components/ui/ConfirmProvider";
 
 interface SR { id: string; sequenceNo: string | null; type: string; subject: string | null; status: string; clientId: string | null; tenantId: string }
 
@@ -16,6 +17,7 @@ const TYPES = ["addition", "deletion", "amendment", "inquiry", "renewal"];
 
 export default function ServicePage() {
   const t = useTranslations();
+  const confirm = useConfirm();
   const router = useRouter();
   const [rows, setRows] = useState<SR[]>([]);
   const [show, setShow] = useState(false);
@@ -40,6 +42,12 @@ export default function ServicePage() {
   }
 
   async function setStatus(id: string, status: string) {
+    const ok = await confirm({
+      title: t("confirm.serviceStatus.title"),
+      description: t("confirm.serviceStatus.desc", { status }),
+      confirmLabel: t("confirm.serviceStatus.action"),
+    });
+    if (!ok) { await load(); return; }
     setError("");
     try { await api(`/service-requests/${id}/status`, { method: "POST", body: JSON.stringify({ status }) }); await load(); }
     catch (err) { setError(err instanceof ApiError ? err.message : "خطأ"); }

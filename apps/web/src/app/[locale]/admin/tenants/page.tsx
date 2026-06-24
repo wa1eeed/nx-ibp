@@ -6,6 +6,7 @@ import { papi, ApiError } from "@/lib/api";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Badge, type BadgeTone } from "@/components/ui/Badge";
+import { useConfirm } from "@/components/ui/ConfirmProvider";
 
 interface Tenant {
   id: string; name: string; status: string; billingModel: string;
@@ -17,15 +18,24 @@ const TONE: Record<string, BadgeTone> = { ACTIVE: "success", SUSPENDED: "danger"
 
 export default function AdminTenantsPage() {
   const t = useTranslations();
+  const confirm = useConfirm();
   const [rows, setRows] = useState<Tenant[]>([]);
   const [error, setError] = useState("");
 
   const load = useCallback(async () => setRows(await papi<Tenant[]>("/platform/tenants")), []);
   useEffect(() => { void load().catch(() => undefined); }, [load]);
 
-  async function toggle(id: string, current: string) {
-    setError("");
+  async function toggle(id: string, current: string, name: string) {
     const status = current === "ACTIVE" ? "SUSPENDED" : "ACTIVE";
+    const k = status === "SUSPENDED" ? "tenantSuspend" : "tenantActivate";
+    const ok = await confirm({
+      title: t(`confirm.${k}.title`),
+      description: t(`confirm.${k}.desc`, { name }),
+      confirmLabel: t(`confirm.${k}.action`),
+      tone: status === "SUSPENDED" ? "danger" : "primary",
+    });
+    if (!ok) return;
+    setError("");
     try { await papi(`/platform/tenants/${id}/status`, { method: "POST", body: JSON.stringify({ status }) }); await load(); }
     catch (e) { setError(e instanceof ApiError ? e.message : "خطأ"); }
   }
@@ -54,7 +64,7 @@ export default function AdminTenantsPage() {
                 <td className="px-5 py-3 text-[12px] text-muted">{r.billingModel}</td>
                 <td className="px-5 py-3"><Badge tone={TONE[r.status] ?? "neutral"}>{r.status}</Badge></td>
                 <td className="px-5 py-3 text-end">
-                  <button onClick={() => toggle(r.id, r.status)} className="rounded-lg border border-line bg-card px-2.5 py-1.5 text-[12px] font-medium text-muted hover:bg-surface-2 hover:text-ink">
+                  <button onClick={() => toggle(r.id, r.status, r.name)} className="rounded-lg border border-line bg-card px-2.5 py-1.5 text-[12px] font-medium text-muted hover:bg-surface-2 hover:text-ink">
                     {r.status === "ACTIVE" ? t("admin.tenants.suspend") : t("admin.tenants.activate")}
                   </button>
                 </td>

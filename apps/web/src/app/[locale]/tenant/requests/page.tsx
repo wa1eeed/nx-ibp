@@ -7,6 +7,7 @@ import { Link, useRouter } from "@/i18n/routing";
 import { api, getToken, ApiError } from "@/lib/api";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Badge, type BadgeTone } from "@/components/ui/Badge";
+import { useConfirm } from "@/components/ui/ConfirmProvider";
 
 interface RequestRow {
   id: string;
@@ -28,6 +29,7 @@ const STATUS_TONE: Record<string, BadgeTone> = {
 
 export default function RequestsPage() {
   const t = useTranslations();
+  const confirm = useConfirm();
   const router = useRouter();
   const [rows, setRows] = useState<RequestRow[]>([]);
 
@@ -42,6 +44,12 @@ export default function RequestsPage() {
   }, [router]);
 
   async function startRfq(requestId: string) {
+    const ok = await confirm({
+      title: t("confirm.startRfq.title"),
+      description: t("confirm.startRfq.desc"),
+      confirmLabel: t("confirm.startRfq.action"),
+    });
+    if (!ok) return;
     setError("");
     try {
       const slip = await api<{ id: string }>("/slips", { method: "POST", body: JSON.stringify({ requestId }) });
@@ -52,6 +60,12 @@ export default function RequestsPage() {
   }
 
   async function issuePolicy(requestId: string) {
+    const ok = await confirm({
+      title: t("confirm.issuePolicy.title"),
+      description: t("confirm.issuePolicy.desc"),
+      confirmLabel: t("confirm.issuePolicy.action"),
+    });
+    if (!ok) return;
     setError("");
     try {
       await api("/policies/issue", { method: "POST", body: JSON.stringify({ requestId }) });

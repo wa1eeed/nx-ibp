@@ -7,6 +7,7 @@ import { useRouter } from "@/i18n/routing";
 import { api, getToken, ApiError } from "@/lib/api";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Badge, type BadgeTone } from "@/components/ui/Badge";
+import { useConfirm } from "@/components/ui/ConfirmProvider";
 
 interface Claim { id: string; sequenceNo: string | null; status: string; insurerName: string | null; claimedAmount: string | null; settledAmount: string | null; tenantId: string }
 
@@ -15,6 +16,7 @@ const STATUSES = ["RECEIVED", "UNDER_REVIEW", "SUBMITTED", "SETTLED", "CLOSED", 
 
 export default function ClaimsPage() {
   const t = useTranslations();
+  const confirm = useConfirm();
   const router = useRouter();
   const [rows, setRows] = useState<Claim[]>([]);
   const [locked, setLocked] = useState(false);
@@ -40,6 +42,13 @@ export default function ClaimsPage() {
     } catch (err) { setError(err instanceof ApiError ? err.message : "خطأ"); }
   }
   async function setStatus(id: string, status: string) {
+    const ok = await confirm({
+      title: t("confirm.claimStatus.title"),
+      description: t("confirm.claimStatus.desc", { status }),
+      confirmLabel: t("confirm.claimStatus.action"),
+      tone: status === "REJECTED" ? "danger" : "primary",
+    });
+    if (!ok) { await load(); return; } // إعادة التحميل تُعيد قيمة القائمة المنسدلة
     setError("");
     const body: Record<string, unknown> = { status };
     if (status === "SETTLED") { const a = prompt(t("claims.settledPrompt")); if (a) body.settledAmount = Number(a); }
