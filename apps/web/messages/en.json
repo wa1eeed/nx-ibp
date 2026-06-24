@@ -43,8 +43,8 @@
     "logout": "Sign out"
   },
   "demo": {
-    "title": "Demo Mode",
-    "subtitle": "UI-First prototype — mock data only"
+    "title": "Demo Session",
+    "subtitle": "Temporary preview mode"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -319,7 +319,25 @@
     "firmOrder": "Firm order",
     "selected": "Selected",
     "sentTo": "Sent to",
-    "noQuotations": "No quotations yet — add insurer offers"
+    "noQuotations": "No quotations yet — add insurer offers",
+    "hint": {
+      "insurer": "Name of the insurer submitting this quotation",
+      "rate": "Premium rate as a % of the sum insured — drives the net premium",
+      "premium": "Annual net premium before VAT",
+      "vat": "Value-added tax (15%) on the net premium",
+      "totalPremium": "Total premium due from the client = net premium + VAT",
+      "deductible": "Amount the client bears on each claim before cover applies",
+      "limit": "Maximum insurer liability (the policy's cover ceiling)",
+      "remarks": "Free-text conditions, exclusions and add-ons — shown in the comparison sheet"
+    },
+    "sub": {
+      "rate": "% of sum insured",
+      "premium": "before VAT",
+      "vat": "15% of net",
+      "totalPremium": "net + VAT",
+      "deductible": "client bears",
+      "limit": "cover ceiling"
+    }
   },
   "requestForm": {
     "title": "New insurance request",

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { useParams } from "next/navigation";
-import { Plus, Award, Trophy } from "lucide-react";
+import { Plus, Award, Trophy, Info } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/routing";
 import { api, getToken, ApiError } from "@/lib/api";
@@ -169,27 +169,39 @@ function AddQuotation({ slipId, onDone, onError }: { slipId: string; onDone: () 
     }
   }
 
-  const F = (k: string, label: string, type = "number") => (
+  // حقل مع أيقونة تلميح (tooltip) بجانب العنوان + نص تعريفي صغير تحته.
+  const F = (k: string, label: string, opts: { type?: string; hint?: string; sub?: string } = {}) => (
     <label className="block">
-      <span className="mb-1 block text-[12px] font-medium text-muted">{label}</span>
-      <input type={type} value={v[k] ?? ""} onChange={set(k)} className="h-9 w-full rounded-lg border border-line bg-card px-3 text-[13px]" />
+      <span className="mb-1 flex items-center gap-1 text-[12px] font-medium text-muted">
+        {label}
+        {opts.hint ? (
+          <span title={opts.hint} className="inline-flex cursor-help text-subtle hover:text-primary" aria-label={opts.hint}>
+            <Info size={12.5} />
+          </span>
+        ) : null}
+      </span>
+      <input type={opts.type ?? "number"} value={v[k] ?? ""} onChange={set(k)} className="h-9 w-full rounded-lg border border-line bg-card px-3 text-[13px]" />
+      {opts.sub ? <span className="mt-1 block text-[10.5px] leading-tight text-subtle">{opts.sub}</span> : null}
     </label>
   );
 
   return (
     <form onSubmit={submit} className="mb-4 rounded-card border border-line bg-card p-5 shadow-card">
       <div className="mb-3 text-[14px] font-semibold text-ink">{t("underwriting.addQuotation")}</div>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
-        {F("insurerName", t("underwriting.insurer"), "text")}
-        {F("rate", t("underwriting.rate"))}
-        {F("premium", t("underwriting.premium"))}
-        {F("vat", t("underwriting.vat"))}
-        {F("totalPremium", t("underwriting.totalPremium"))}
-        {F("deductible", t("underwriting.deductible"))}
-        {F("limit", t("underwriting.limit"))}
+      <div className="grid grid-cols-1 gap-x-3 gap-y-4 sm:grid-cols-4">
+        {F("insurerName", t("underwriting.insurer"), { type: "text", hint: t("underwriting.hint.insurer") })}
+        {F("rate", t("underwriting.rate"), { hint: t("underwriting.hint.rate"), sub: t("underwriting.sub.rate") })}
+        {F("premium", t("underwriting.premium"), { hint: t("underwriting.hint.premium"), sub: t("underwriting.sub.premium") })}
+        {F("vat", t("underwriting.vat"), { hint: t("underwriting.hint.vat"), sub: t("underwriting.sub.vat") })}
+        {F("totalPremium", t("underwriting.totalPremium"), { hint: t("underwriting.hint.totalPremium"), sub: t("underwriting.sub.totalPremium") })}
+        {F("deductible", t("underwriting.deductible"), { hint: t("underwriting.hint.deductible"), sub: t("underwriting.sub.deductible") })}
+        {F("limit", t("underwriting.limit"), { hint: t("underwriting.hint.limit"), sub: t("underwriting.sub.limit") })}
       </div>
-      <label className="mt-3 block">
-        <span className="mb-1 block text-[12px] font-medium text-muted">{t("underwriting.remarks")}</span>
+      <label className="mt-4 block">
+        <span className="mb-1 flex items-center gap-1 text-[12px] font-medium text-muted">
+          {t("underwriting.remarks")}
+          <span title={t("underwriting.hint.remarks")} className="inline-flex cursor-help text-subtle hover:text-primary" aria-label={t("underwriting.hint.remarks")}><Info size={12.5} /></span>
+        </span>
         <textarea value={v.generalRemarks ?? ""} onChange={set("generalRemarks")} className="h-16 w-full rounded-lg border border-line bg-card px-3 py-2 text-[13px]" />
       </label>
       <div className="mt-3 flex justify-end">
