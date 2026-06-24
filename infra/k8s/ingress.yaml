@@ -1,0 +1,28 @@
+# Ingress مع TLS (in-transit). الشهادات تُدار بـ cert-manager.
+# app.ibp.sa ⇒ الواجهة · api.ibp.sa ⇒ الـ API.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ibp
+  namespace: ibp
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts: [app.ibp.sa, api.ibp.sa]
+      secretName: ibp-tls
+  rules:
+    - host: app.ibp.sa
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend: { service: { name: ibp-web, port: { number: 80 } } }
+    - host: api.ibp.sa
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend: { service: { name: ibp-api, port: { number: 80 } } }

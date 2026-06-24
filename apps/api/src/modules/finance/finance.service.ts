@@ -3,9 +3,11 @@ import { Prisma } from "@ibp/db";
 import { PrismaService } from "../../prisma/prisma.service";
 import { SequenceService } from "../../common/sequence/sequence.service";
 import { AuditService } from "../../common/audit/audit.service";
+import { zatcaPackage } from "../../common/zatca/zatca.util";
 
 const asJson = (v: unknown) => v as Prisma.InputJsonValue;
 const r2 = (n: number) => +n.toFixed(2);
+const num = (d: unknown) => (d == null ? 0 : Number(d));
 
 /**
  * الهندسة المالية (المرحلة 4ب): الاعتماد المالي للوثيقة يُولّد آلياً:
@@ -25,6 +27,94 @@ export class FinanceService {
 
   listVouchers() {
     return this.prisma.voucher.findMany({ orderBy: { createdAt: "desc" } });
+  }
+
+  /** الرقم الضريبي للبائع (15 رقماً) — مُشتقّ من السجل التجاري للعرض (يُهيَّأ لاحقاً من الإعدادات). */
+  private vatNumber(crNumber: string | null): string {
+    const cr = (crNumber ?? "0000000000").replace(/\D/g, "").padEnd(10, "0").slice(0, 10);
+    return `3${cr}00003`.slice(0, 15);
+  }
+
+  /** شجرة الحسابات (17 رقماً) مرتّبة بالكود. */
+  coa() {
+    return this.prisma.chartOfAccount.findMany({
+      orderBy: { code: "asc" },
+      select: { id: true, code: true, name: true, level: true, isOnBalance: true, isLocked: true, accountType: true, clientId: true },
+    });
+  }
+
+  /** الفواتير الضريبية مع حزمة ZATCA (Fatoora) لكل فاتورة. */
+  async invoices(tenantId: string) {
+    const tenant = await this.prisma.tenant.findFirst({ where: { id: tenantId }, select: { name: true, crNumber: true } });
+    const sellerName = tenant?.name ?? "—";
+    const vatNumber = this.vatNumber(tenant?.crNumber ?? null);
+    const rows = await this.prisma.invoice.findMany({
+      orderBy: { createdAt: "desc" },
+      select: { id: true, sequenceNo: true, insurerName: true, netAmount: true, vatAmount: true, totalAmount: true, status: true, createdAt: true },
+    });
+    return rows.map((inv) => ({
+      ...inv,
+      zatca: zatcaPackage({
+        sellerName,
+        vatNumber,
+        timestamp: new Date(inv.createdAt).toISOString(),
+        total: num(inv.totalAmount),
+        vat: num(inv.vatAmount),
+      }),
+    }));
+  }
+
+  /** الذمم المدينة (المستحقّ على العملاء) من إشعارات المدين، مُجمّعة حسب العميل. */
+  async receivables() {
+    const notes = await this.prisma.debitNote.findMany({
+      orderBy: { createdAt: "desc" },
+      select: { id: true, sequenceNo: true, clientId: true, policyId: true, netAmount: true, vatAmount: true, createdAt: true },
+    });
+    const clientIds = [...new Set(notes.map((n) => n.clientId).filter((x): x is string => !!x))];
+    const clients = clientIds.length
+      ? await this.prisma.client.findMany({ where: { id: { in: clientIds } }, select: { id: true, name: true } })
+      : [];
+    const nameOf = Object.fromEntries(clients.map((c) => [c.id, c.name]));
+
+    const byClient = new Map<string, { clientId: string; clientName: string; total: number; count: number }>();
+    let outstanding = 0;
+    for (const n of notes) {
+      const t = num(n.netAmount) + num(n.vatAmount);
+      outstanding += t;
+      const key = n.clientId ?? "—";
+      const cur = byClient.get(key) ?? { clientId: key, clientName: nameOf[key] ?? "—", total: 0, count: 0 };
+      cur.total += t;
+      cur.count += 1;
+      byClient.set(key, cur);
+    }
+    return {
+      outstanding: r2(outstanding),
+      byClient: [...byClient.values()].sort((a, b) => b.total - a.total),
+      notes: notes.map((n) => ({ id: n.id, sequenceNo: n.sequenceNo, clientName: nameOf[n.clientId ?? ""] ?? "—", total: r2(num(n.netAmount) + num(n.vatAmount)), createdAt: n.createdAt })),
+    };
+  }
+
+  /** ملخّص مالي: القسط المكتتب، العمولة، الأمانات (خارج الميزانية)، الذمم. */
+  async summary() {
+    const [policyAgg, commissionAgg, invoiceAgg, debitAgg, vouchers] = await Promise.all([
+      this.prisma.policy.aggregate({ where: { status: "ISSUED" }, _sum: { premium: true, vat: true, totalPremium: true, commissionAmount: true } }),
+      this.prisma.commission.aggregate({ _sum: { amount: true } }),
+      this.prisma.invoice.aggregate({ _sum: { totalAmount: true }, _count: true }),
+      this.prisma.debitNote.aggregate({ _sum: { netAmount: true, vatAmount: true } }),
+      this.prisma.voucher.count(),
+    ]);
+    const total = num(policyAgg._sum.totalPremium);
+    const commission = num(policyAgg._sum.commissionAmount);
+    return {
+      grossPremium: total,
+      netPremium: num(policyAgg._sum.premium),
+      vat: num(policyAgg._sum.vat),
+      commission: num(commissionAgg._sum.amount),
+      offBalanceTrust: r2(total - commission), // أمانات أقساط العملاء (خارج الميزانية)
+      receivables: r2(num(debitAgg._sum.netAmount) + num(debitAgg._sum.vatAmount)),
+      invoiceCount: invoiceAgg._count,
+      voucherCount: vouchers,
+    };
   }
 
   async postings(policyId: string) {

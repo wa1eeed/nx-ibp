@@ -90,7 +90,7 @@ const TENANTS: TenantDef[] = [
       { service: "wathiq", balance: 120 },
       { service: "nafath", balance: 500 },
     ],
-    addons: ["module.claims", "module.reports"], // اشترى موديولَي المطالبات والتقارير
+    addons: ["module.claims", "module.reports", "module.compliance"], // إضافات: المطالبات والتقارير والالتزام
     claims: [{ id: "claim-t1-1", seq: "CL-RUH-2026-0001" }],
   },
   {
@@ -424,6 +424,24 @@ async function seedOperations(passwordHash: string) {
     await prisma.document.upsert({
       where: { id: d.id }, update: {},
       create: { id: d.id, tenantId: d.t, storageKey: `${d.t}/seed/${d.id}.pdf`, fileName: d.fileName, mime: "application/pdf", sizeBytes: 124000, hash: "seed", docType: d.docType as never, entityType: d.entityType, entityId: d.entityId },
+    });
+  }
+
+  // عمليات تحقّق (KYC/KYB + فحص PEP) — تغذّي لوحة الالتزام
+  const provs = Object.fromEntries((await prisma.verificationProvider.findMany({ select: { id: true, key: true } })).map((p) => [p.key, p.id]));
+  const checks = [
+    { id: "chk-fahd-id", clientId: "cl-fahd", key: "yaqeen", checkType: "identity", status: "success", risk: null },
+    { id: "chk-fahd-cr", clientId: "cl-fahd", key: "wathiq", checkType: "cr", status: "success", risk: null },
+    { id: "chk-fahd-pep", clientId: "cl-fahd", key: "screening", checkType: "pep_sanctions", status: "success", risk: "low" },
+    { id: "chk-zahra-pep", clientId: "cl-zahra", key: "screening", checkType: "pep_sanctions", status: "success", risk: "medium" },
+    { id: "chk-manara-pep", clientId: "cl-manara", key: "screening", checkType: "pep_sanctions", status: "success", risk: "high" },
+    { id: "chk-shorouq-addr", clientId: "cl-shorouq", key: "spl", checkType: "address", status: "success", risk: null },
+  ];
+  for (const c of checks) {
+    if (!provs[c.key]) continue;
+    await prisma.verificationCheck.upsert({
+      where: { id: c.id }, update: {},
+      create: { id: c.id, tenantId: "demo-tenant", providerId: provs[c.key], checkType: c.checkType, status: c.status, clientId: c.clientId, riskLevel: c.risk, cost: c.key === "spl" ? 0 : 3 },
     });
   }
 

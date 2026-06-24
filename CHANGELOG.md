@@ -2,6 +2,16 @@
 
 كل التغييرات الملموسة في منصة IBP، منظّمة حسب المراحل. الصيغة مستلهمة من [Keep a Changelog](https://keepachangelog.com).
 
+## [المرحلة 9] — التكاملات التنظيمية والإطلاق (Regulatory & Launch) ✅
+- **ZATCA (Fatoora) المرحلة 1**: مولّد رمز QR بترميز TLV (الحقول الخمسة) + بصمة SHA-256 + UUID؛ يُرفق بكل فاتورة عبر `/finance/invoices`.
+- **النواة المالية الحيّة**: `/finance/{summary,coa,invoices,receivables}` — الفصل الائتماني (أمانات خارج الميزانية)، شجرة الحسابات 17 رقماً، الذمم حسب العميل.
+- **لوحة الالتزام**: موديول `compliance` (`/compliance/overview`) — حالة العملاء + توزيع مخاطر PEP/العقوبات (`module.compliance`).
+- **طبقة التكاملات التنظيمية**: موديول `regulatory` (`/regulatory/status`) — 9 موصِّلات حكومية (Sandbox في التطوير) + صفحة الإعدادات ← التكاملات.
+- **استكمال كل الصفحات**: بُنيت `finance`/`premiums`/`compliance`/`settings/integrations` وأُزيل `comingSoon` — لا صفحات ناقصة.
+- **النشر داخل المملكة**: `infra/k8s` (نشر+HPA+TLS+تقوية) و`infra/terraform` (حياديّ سحابياً + حارس توطين داخل المملكة + تشفير).
+- بذرة: عمليات تحقّق KYC/PEP (low/medium/high) + إضافة `module.compliance` لـ demo-tenant.
+- اختبارات: e2e 95/95 (regulatory: 7). توثيق: [`docs/27`](./docs/27-regulatory-and-launch.md). الفرع `phase-9-regulatory`.
+
 ## [المرحلة 8ج] — التقارير والتحليلات (Reports & Analytics) ✅
 - **ربط الواجهات ببيانات حيّة**: تحوّلت لوحة التحكّم وصفحة العمولات من `@/lib/mock` إلى مكوّنات عميل تجلب من `/reports/*`.
 - وحدة `reports`: dashboard, commissions, production, claims, regulatory, catalog — تجميعات `aggregate`/`groupBy` مفلترة تلقائياً بالمستأجر.

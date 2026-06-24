@@ -1,0 +1,70 @@
+# خدمة الـ API (NestJS) — نشر + خدمة داخلية. الأسرار/الإعدادات من ConfigMap+Secret.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ibp-api
+  namespace: ibp
+  labels: { app: ibp-api }
+spec:
+  replicas: 3
+  selector:
+    matchLabels: { app: ibp-api }
+  template:
+    metadata:
+      labels: { app: ibp-api }
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+        - name: api
+          image: REGISTRY/ibp-api:latest # يُحقن الوسم من خط الإصدار (CI)
+          ports: [{ containerPort: 4000 }]
+          envFrom:
+            - configMapRef: { name: ibp-api-config }
+            - secretRef: { name: ibp-api-secrets }
+          resources:
+            requests: { cpu: "250m", memory: "512Mi" }
+            limits: { cpu: "1", memory: "1Gi" }
+          readinessProbe:
+            httpGet: { path: /health, port: 4000 }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /health/live, port: 4000 }
+            initialDelaySeconds: 20
+            periodSeconds: 15
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ibp-api
+  namespace: ibp
+spec:
+  selector: { app: ibp-api }
+  ports:
+    - port: 80
+      targetPort: 4000
+---
+# تمدّد أفقي حسب الحمل.
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: ibp-api
+  namespace: ibp
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: ibp-api
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target: { type: Utilization, averageUtilization: 70 }

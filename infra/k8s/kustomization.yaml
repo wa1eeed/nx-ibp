@@ -1,0 +1,12 @@
+# تجميع موارد IBP. النشر: kubectl apply -k infra/k8s
+# (قاعدة البيانات والكاش خدمات مُدارة داخل المملكة — تُعرّف في Terraform، لا هنا.)
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: ibp
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - secrets.example.yaml # استبدله بأسرار حقيقية محقونة من مدير الأسرار
+  - api.yaml
+  - web.yaml
+  - ingress.yaml

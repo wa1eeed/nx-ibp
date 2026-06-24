@@ -19,6 +19,7 @@ import {
   Palette,
   UserCog,
   Bell,
+  Plug,
   type LucideIcon,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -44,6 +45,7 @@ const ICONS: Record<string, LucideIcon> = {
   Palette,
   UserCog,
   Bell,
+  Plug,
 };
 
 export function Sidebar() {

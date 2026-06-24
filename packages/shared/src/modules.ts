@@ -19,6 +19,7 @@ export type ModuleKey =
   | "settings.company"
   | "settings.branding"
   | "settings.staff"
+  | "settings.integrations"
   | "settings.notifications";
 
 export interface NavItem {
@@ -52,12 +53,12 @@ export const TENANT_NAV: NavGroup[] = [
       { key: "policies", href: "/tenant/policies", icon: "FileCheck2", entitlement: "module.production" },
       { key: "service", href: "/tenant/service", icon: "Headset", entitlement: "module.service" },
       { key: "renewals", href: "/tenant/renewals", icon: "RefreshCw", entitlement: "module.production" },
-      { key: "premiums", href: "/tenant/premiums", icon: "Coins", entitlement: "module.finance", comingSoon: true },
+      { key: "premiums", href: "/tenant/premiums", icon: "Coins", entitlement: "module.finance" },
       { key: "commissions", href: "/tenant/commissions", icon: "Percent", entitlement: "module.finance" },
       { key: "claims", href: "/tenant/claims", icon: "ClipboardList", entitlement: "module.claims" },
       { key: "reports", href: "/tenant/reports", icon: "BarChart3", entitlement: "module.reports" },
-      { key: "compliance", href: "/tenant/compliance", icon: "ShieldCheck", entitlement: "module.compliance", comingSoon: true },
-      { key: "finance", href: "/tenant/finance", icon: "Landmark", entitlement: "module.finance", comingSoon: true },
+      { key: "compliance", href: "/tenant/compliance", icon: "ShieldCheck", entitlement: "module.compliance" },
+      { key: "finance", href: "/tenant/finance", icon: "Landmark", entitlement: "module.finance" },
       { key: "addons", href: "/tenant/add-ons", icon: "Blocks" },
     ],
   },
@@ -67,6 +68,7 @@ export const TENANT_NAV: NavGroup[] = [
       { key: "settings.company", href: "/tenant/settings/company", icon: "Building2", comingSoon: true },
       { key: "settings.branding", href: "/tenant/settings/branding", icon: "Palette", comingSoon: true },
       { key: "settings.staff", href: "/tenant/settings/staff", icon: "UserCog" },
+      { key: "settings.integrations", href: "/tenant/settings/integrations", icon: "Plug" },
       { key: "settings.notifications", href: "/tenant/settings/notifications", icon: "Bell", comingSoon: true },
     ],
   },

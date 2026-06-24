@@ -1,0 +1,9 @@
+# مساحة أسماء IBP — كل موارد المنصّة معزولة هنا.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ibp
+  labels:
+    app.kubernetes.io/part-of: ibp
+    # توطين بيانات الإنتاج داخل المملكة (PDPL/NCA) — تُفرض عبر اختيار المنطقة في Terraform.
+    data-residency: in-kingdom

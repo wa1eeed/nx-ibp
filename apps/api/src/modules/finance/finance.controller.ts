@@ -33,4 +33,28 @@ export class FinanceController {
   postings(@Param("id") id: string) {
     return this.finance.postings(id);
   }
+
+  @Authorize({ module: "finance", action: "read", entitlement: "module.finance" })
+  @Get("summary")
+  summary() {
+    return this.finance.summary();
+  }
+
+  @Authorize({ module: "finance", action: "read", entitlement: "module.finance" })
+  @Get("coa")
+  coa() {
+    return this.finance.coa();
+  }
+
+  @Authorize({ module: "finance", action: "read", entitlement: "module.finance" })
+  @Get("invoices")
+  invoices(@CurrentUser("tenantId") tenantId: string) {
+    return this.finance.invoices(tenantId);
+  }
+
+  @Authorize({ module: "finance", action: "read", entitlement: "module.finance" })
+  @Get("receivables")
+  receivables() {
+    return this.finance.receivables();
+  }
 }

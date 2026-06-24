@@ -27,6 +27,8 @@ import { VerificationModule } from "./modules/verification/verification.module";
 import { PlatformModule } from "./modules/platform/platform.module";
 import { PortalModule } from "./modules/portal/portal.module";
 import { ReportsModule } from "./modules/reports/reports.module";
+import { ComplianceModule } from "./modules/compliance/compliance.module";
+import { RegulatoryModule } from "./modules/regulatory/regulatory.module";
 import { StaffModule } from "./modules/staff/staff.module";
 
 /**
@@ -61,6 +63,8 @@ import { StaffModule } from "./modules/staff/staff.module";
     PlatformModule,
     PortalModule,
     ReportsModule,
+    ComplianceModule,
+    RegulatoryModule,
     StaffModule,
   ],
   providers: [

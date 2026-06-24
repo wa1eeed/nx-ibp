@@ -1,0 +1,15 @@
+# إعدادات غير سرّية للـ API. الأسرار في Secret منفصل (انظر secrets.example.yaml).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ibp-api-config
+  namespace: ibp
+data:
+  NODE_ENV: "production"
+  API_PORT: "4000"
+  STORAGE_DRIVER: "s3" # حياديّ سحابياً: s3 | minio | alibaba_oss | gcs
+  PRESIGNED_URL_EXPIRY_SECONDS: "300"
+  JWT_EXPIRES_IN: "15m"
+  CORS_ORIGINS: "https://app.ibp.sa"
+  # ملاحظة: التكاملات الحكومية في الإنتاج فقط وداخل المملكة (Sandbox في غير الإنتاج).
+  REGULATORY_ENV: "production"

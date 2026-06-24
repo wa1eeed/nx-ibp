@@ -32,6 +32,7 @@
       "company": "Company",
       "branding": "Branding",
       "staff": "Staff",
+      "integrations": "Integrations",
       "notifications": "Notifications"
     }
   },
@@ -84,6 +85,57 @@
     "reg": { "gwp": "Gross written premium (GWP)", "net": "Net premium", "vat": "VAT", "commission": "Brokerage commission", "claims": "Claims (count · settled)" },
     "catalogTitle": "Approved reports catalog",
     "cat": { "production": "Production", "finance": "Finance", "claims": "Claims", "compliance": "Compliance", "regulatory": "Regulatory" }
+  },
+  "finance": {
+    "title": "Finance & accounting",
+    "subtitle": "Chart of accounts, ZATCA tax invoices, and fiduciary separation",
+    "grossPremium": "Gross written premium",
+    "commission": "Brokerage commission",
+    "offBalance": "Client trust (off-balance)",
+    "offBalanceSub": "Funds held for the insurer",
+    "receivables": "Receivables",
+    "coa": "Chart of accounts (17-digit)",
+    "coaSub": "Levels 1/2 locked · on/off-balance separation",
+    "onBalance": "On-balance",
+    "offBalanceTag": "Off-balance",
+    "invoices": "Tax invoices (ZATCA / Fatoora)",
+    "invoicesSub": "Each invoice carries a Phase-1 compliant QR (TLV)",
+    "zatcaOk": "Compliant",
+    "zatcaShow": "ZATCA details",
+    "zatcaHash": "Hash",
+    "col": { "code": "Code", "account": "Account", "type": "Type", "balance": "Balance", "invoiceNo": "Invoice no.", "insurer": "Insurer", "total": "Total" }
+  },
+  "premiums": {
+    "title": "Premiums & collections",
+    "subtitle": "Amounts due from clients via debit notes",
+    "outstanding": "Total outstanding",
+    "clients": "Debtor clients",
+    "notes": "Debit notes",
+    "byClient": "Outstanding by client",
+    "debitNotes": "Debit notes",
+    "col": { "no": "No.", "client": "Client", "date": "Date", "total": "Total" }
+  },
+  "compliance": {
+    "title": "Compliance & risk",
+    "subtitle": "Client compliance status and PEP/sanctions risk distribution",
+    "approved": "Approved clients",
+    "pending": "Under review",
+    "rejected": "Rejected",
+    "checks": "Verification checks",
+    "riskDist": "Risk distribution (PEP/sanctions)",
+    "checksByType": "Checks by type",
+    "recent": "Latest checks",
+    "risk": { "low": "Low", "medium": "Medium", "high": "High" },
+    "col": { "client": "Client", "type": "Type", "risk": "Risk", "date": "Date" }
+  },
+  "integrations": {
+    "title": "Regulatory integrations",
+    "subtitle": "Government connectors and their status — Sandbox in development",
+    "sandbox": "Sandbox environment",
+    "residencyNote": "Real production data in-Kingdom only (PDPL/NCA)",
+    "active": "active",
+    "status": { "active": "Active", "planned": "Planned" },
+    "cat": { "invoicing": "Invoicing", "auth": "Auth", "identity": "Identity", "registry": "Registry", "address": "Address", "compliance": "Compliance", "motor": "Motor", "medical": "Medical", "regulator": "Regulator" }
   },
   "clients": {
     "title": "Clients",

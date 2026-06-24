@@ -1,0 +1,46 @@
+# واجهة الويب (Next.js) — نشر + خدمة داخلية.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ibp-web
+  namespace: ibp
+  labels: { app: ibp-web }
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: ibp-web }
+  template:
+    metadata:
+      labels: { app: ibp-web }
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+        - name: web
+          image: REGISTRY/ibp-web:latest
+          ports: [{ containerPort: 3000 }]
+          env:
+            - name: NEXT_PUBLIC_API_URL
+              value: "https://api.ibp.sa"
+          resources:
+            requests: { cpu: "100m", memory: "256Mi" }
+            limits: { cpu: "500m", memory: "512Mi" }
+          readinessProbe:
+            httpGet: { path: /ar, port: 3000 }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ibp-web
+  namespace: ibp
+spec:
+  selector: { app: ibp-web }
+  ports:
+    - port: 80
+      targetPort: 3000
