@@ -82,6 +82,17 @@ open http://localhost:3000                  # يحوّل إلى /ar/tenant/dashb
 
 > بنية النشر الإنتاجي (k8s/terraform) في [`infra/`](../infra) تُكتب في المرحلة 9.
 
+## 7. استكشاف الأخطاء (مشاكل شائعة)
+
+| العَرَض | السبب | الحل |
+|---|---|---|
+| `Cannot find module './vendor-chunks/@formatjs.js'` أو أجزاء `.next` مفقودة | تشغيل `pnpm build` (إنتاج) **أثناء** عمل خادم التطوير ⇒ يدهس `.next` ويترك أجزاء غير متّسقة | أوقف خادم الويب، ثم `rm -rf apps/web/.next apps/web/node_modules/.cache` وأعد `pnpm --filter @ibp/web dev` |
+| `P1001 Can't reach database server at localhost:5434` | Docker Desktop متوقّف | `open -a Docker` ثم `docker start ibp-postgres ibp-redis` |
+| nest watch يُظهر أخطاء أنواع قديمة (مثل `Commission` ناقص حقول) | عميل Prisma مولَّد قديم / كاش tsbuildinfo | `pnpm --filter @ibp/db generate` ثم احذف `apps/api/dist` وأعد التشغيل |
+| اختبارات e2e تلوّث بيانات العرض | استخدام قاعدة `ibp_dev` للاختبار | الاختبارات تستخدم `ibp_test` عبر `.env.test` — شغّل `pnpm --filter @ibp/db test:setup` مرّة |
+
+> **قاعدة:** لا تشغّل بناء الإنتاج (`pnpm build`) وخادم التطوير على نفس `.next` في آنٍ واحد.
+
 ## انظر أيضاً
 - [14 — متغيّرات البيئة](./14-environment-variables.md) · [15 — قاعدة البيانات والترحيلات](./15-database-and-migrations.md)
 - [16 — الاختبارات](./16-testing.md) · [02 — المعمار](./02-architecture.md)
