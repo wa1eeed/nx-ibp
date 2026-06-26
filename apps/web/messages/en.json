@@ -470,5 +470,60 @@
       "download": "Open",
       "col": { "file": "File", "type": "Type", "size": "Size", "date": "Date" }
     }
+  },
+  "landing": {
+    "nav": { "login": "Sign in" },
+    "hero": {
+      "badge": "ZATCA Phase 2 (Fatoora) compliant",
+      "title": "The Operating System for Insurance Brokerage",
+      "titleEn": "InsurTech SaaS Platform for Insurance Brokers",
+      "subtitle": "A multi-tenant SaaS platform that automates the entire insurance-brokerage workflow — from client and underwriting to policy issuance, finance, claims and reporting — with granular permissions and full Saudi compliance.",
+      "ctaPrimary": "Get started",
+      "ctaSecondary": "View plans",
+      "t1": "Fast setup, no infrastructure",
+      "t2": "Isolated data per firm",
+      "t3": "Compliant e-invoicing"
+    },
+    "features": {
+      "title": "Everything a brokerage needs, in one platform",
+      "subtitle": "Integrated modules covering the workflow end to end.",
+      "lifecycle": { "title": "Full deal lifecycle", "desc": "Sales → pricing → production → service → claims → finance, with governed state machines and gates." },
+      "underwriting": { "title": "Underwriting & RFQ", "desc": "Request quotes, auto comparison sheet that picks the best offer, firm order in one click." },
+      "finance": { "title": "Finance & e-invoicing", "desc": "Balanced double-entry, 17-digit chart of accounts, and ZATCA Phase 2 invoices." },
+      "claims": { "title": "Claims & client service", "desc": "Full claims cycle, service requests and renewals with status tracking." },
+      "verification": { "title": "Government verification", "desc": "Yaqeen, Wathiq, Nafath, National Address and PEP screening — smart-fill and compliance." },
+      "multitenant": { "title": "Multi-tenant & analytics", "desc": "Strict per-firm data isolation, granular RBAC, and live analytics dashboards." }
+    },
+    "target": {
+      "title": "Built specifically for insurance brokers",
+      "desc": "Replace scattered systems and spreadsheets with one operating system that runs every operation and keeps you regulator-ready.",
+      "p1": "An independent portal per brokerage (tenant) with its own data, settings and plan.",
+      "p2": "A client portal to track policies, claims, statements and documents.",
+      "p3": "A super-admin console to manage plans, subscriptions and usage.",
+      "p4": "Ready government integrations (ZATCA · Nafath · Yaqeen · Wathiq · Insurance Authority)."
+    },
+    "pricing": {
+      "title": "Plans that grow with your firm",
+      "subtitle": "Subscribe monthly or yearly, and enable only the modules you need.",
+      "perMonth": "SAR/month",
+      "popular": "Most popular",
+      "cta": "Start with this plan",
+      "basic": { "name": "Basic", "tagline": "For startups and small firms", "f1": "Up to 5 users", "f2": "Clients, sales and production", "f3": "Core finance and verification" },
+      "premium": { "name": "Professional", "tagline": "For growing firms", "f1": "Up to 20 users", "f2": "Everything in Basic + claims and reports", "f3": "Compliance and advanced verification add-ons" },
+      "enterprise": { "name": "Enterprise", "tagline": "For large firms", "f1": "Up to 100 users", "f2": "All modules enabled", "f3": "Dedicated support and higher limits" }
+    },
+    "compliance": {
+      "title": "Saudi compliance from day one",
+      "zatca": "ZATCA — Phase 2 invoicing",
+      "pdpl": "Data protection (PDPL/NCA)",
+      "ia": "Insurance Authority reports",
+      "nafath": "Nafath · Yaqeen · Wathiq"
+    },
+    "cta": {
+      "title": "Ready to run your brokerage professionally?",
+      "subtitle": "Start today and move your operations onto one compliant operating system.",
+      "button": "Get started"
+    },
+    "footer": { "rights": "All rights reserved", "madeIn": "Hosted inside Saudi Arabia" }
   }
 }
