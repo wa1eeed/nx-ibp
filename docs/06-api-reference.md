@@ -595,6 +595,10 @@ curl -X POST http://localhost:4000/staff \
 | `GET` | `/finance/summary` · `/coa` · `/invoices` · `/receivables` | `finance:read` + `module.finance` | 200 |
 | `GET` | `/compliance/overview` | `compliance:read` + `module.compliance` | 200 |
 | `GET` | `/regulatory/status` | `settings:read` | 200 |
+| `GET` · `PUT` | `/zatca/config` | `settings:read` · `settings:update` (VAT خاطئ ⇒ 422) | 200 |
+| `POST` | `/zatca/onboard/{generate-csr,exchange-otp,run-compliance,finalize}` | `settings:update` | 200 |
+| `GET` | `/zatca/billing-documents` | `finance:read` + `module.finance` | 200 |
+| `POST` | `/zatca/reporting/drain` | `finance:update` + `module.finance` | 200 |
 
 > **نطاق المنصّة (Platform):** مسارات `/platform/*` لا تخضع لعزل المستأجر بل لبوّابة `PlatformGuard` المستقلّة (نطاق `scope:platform` عابر للمستأجرين). تفصيلها الكامل في [24 — لوحة السوبر أدمن](./24-platform-super-admin.md).
 
@@ -615,4 +619,5 @@ curl -X POST http://localhost:4000/staff \
 - [25 — بوّابة العميل](./25-client-portal.md) — مسارات `/portal/*` ونطاق العميل
 - [26 — التقارير والتحليلات](./26-reports-and-analytics.md) — مسارات `/reports/*` والتفويض المتدرّج
 - [27 — التكاملات التنظيمية](./27-regulatory-and-launch.md) — مسارات `/finance/*` · `/compliance/*` · `/regulatory/*` و ZATCA
+- [28 — ZATCA Fatoora المرحلة 2](./28-zatca-phase2-fatoora.md) — مسارات `/zatca/*` (التهيئة والفوترة والتوجيه)
 - الكود: المتحكّمات تحت [`apps/api/src/modules/`](../apps/api/src/modules/) · إعداد الحدود في [`main.ts`](../apps/api/src/main.ts)

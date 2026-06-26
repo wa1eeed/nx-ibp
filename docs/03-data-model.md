@@ -114,6 +114,18 @@ erDiagram
 | `status` | String? | `accrued` (مستحقّة) \| `received` (مستلمة) \| `variance` (فرق) |
 | `periodMonth` | String? | `2026-01` |
 
+### `TenantZatcaConfig` (هوية ZATCA المعزولة)
+**الغرض:** هوية ZATCA التشفيرية وإعدادات الوساطة لكل مستأجر (راجع [`docs/28`](./28-zatca-phase2-fatoora.md)). يحمل الرقم الضريبي (15 رقماً)، حالة التهيئة، المفاتيح/الشهادات **مشفّرة at-rest (AES-256-GCM)**، و**عدّاد الفواتير وآخر تجزئة معزولَين بالمستأجر** (`invoiceCounter`/`lastDocumentHash`). علاقة 1:1 مع `Tenant`.
+
+### `BillingDocument` (مستند فوترة ZATCA الموحّد)
+**الغرض:** مستند متوافق مع ZATCA المرحلة 2 يُغني عن `Invoice`/`DebitNote`/`CreditNote` المبسّطة. `documentType` (TAX_INVOICE/DEBIT_NOTE/CREDIT_NOTE) + `invoiceSubtype` (B2B/B2C) + `uuid` (v4) + `counter`/`previousHash`/`hash` (سلسلة معزولة) + `qrTlv` + `xmlPayload` (UBL) + كل حقول التعريب والإجماليات ومراجع التسوية.
+
+| قيد | الغرض |
+|---|---|
+| `@@unique([uuid])` | معرّف عالمي فريد |
+| `@@unique([tenantId, counter])` | عدّاد تسلسلي معزول بالمستأجر |
+| `@@unique([tenantId, serialNumber])` | رقم تسلسلي فريد لكل مستأجر |
+
 ### `Plan`
 **الغرض:** باقة اشتراك مرجعية على مستوى المنصة (يعرّفها السوبر أدمن).
 
