@@ -685,6 +685,19 @@ async function main() {
   await seedOperations(passwordHash);
   await seedRichData(passwordHash);
 
+  // تهيئة ZATCA لكل مستأجر (Sandbox، مُفعّلة للعرض) — رقم ضريبي صالح 15 رقماً
+  const vat15 = (cr: string) => `3${cr.replace(/\D/g, "").padEnd(13, "0").slice(0, 13)}3`.slice(0, 15);
+  for (const def of TENANTS) {
+    await prisma.tenantZatcaConfig.upsert({
+      where: { tenantId: def.id },
+      update: { vatNumber: vat15(def.cr), businessNameAr: def.name, businessNameEn: def.nameEn },
+      create: {
+        tenantId: def.id, vatNumber: vat15(def.cr), businessNameAr: def.name, businessNameEn: def.nameEn,
+        environment: "SANDBOX", egsSerialNumber: `EGS-${def.id}-001`, onboardingStatus: "ACTIVE", lastActivatedAt: new Date(),
+      },
+    });
+  }
+
   // مالك المنصة (سوبر أدمن)
   await prisma.platformAdmin.upsert({
     where: { email: "admin@ibp-platform.sa" },

@@ -7,6 +7,8 @@ import { TenantContextMiddleware } from "./common/middleware/tenant-context.midd
 import { AuditModule } from "./common/audit/audit.module";
 import { SequenceModule } from "./common/sequence/sequence.module";
 import { StorageModule } from "./common/storage/storage.module";
+import { ZatcaCryptoModule } from "./common/zatca/zatca-crypto.module";
+import { ZatcaModule } from "./modules/finance/zatca/zatca.module";
 import { PrismaModule } from "./prisma/prisma.module";
 import { RedisModule } from "./redis/redis.module";
 import { RbacModule } from "./modules/rbac/rbac.module";
@@ -44,6 +46,7 @@ import { StaffModule } from "./modules/staff/staff.module";
     AuditModule,
     SequenceModule,
     StorageModule,
+    ZatcaCryptoModule,
     PrismaModule,
     RedisModule,
     RbacModule,
@@ -55,6 +58,7 @@ import { StaffModule } from "./modules/staff/staff.module";
     UnderwritingModule,
     ProductionModule,
     FinanceModule,
+    ZatcaModule,
     DocumentsModule,
     ServiceModule,
     ClaimsModule,

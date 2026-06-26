@@ -1,9 +1,11 @@
-import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
+import { ConflictException, Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { Prisma } from "@ibp/db";
 import { PrismaService } from "../../prisma/prisma.service";
 import { SequenceService } from "../../common/sequence/sequence.service";
 import { AuditService } from "../../common/audit/audit.service";
 import { zatcaPackage } from "../../common/zatca/zatca.util";
+import { ZatcaBillingService } from "./zatca/zatca-billing.service";
+import { ZatcaInvoiceRouter } from "./zatca/zatca-invoice.router";
 
 const asJson = (v: unknown) => v as Prisma.InputJsonValue;
 const r2 = (n: number) => +n.toFixed(2);
@@ -19,10 +21,14 @@ const num = (d: unknown) => (d == null ? 0 : Number(d));
  */
 @Injectable()
 export class FinanceService {
+  private readonly logger = new Logger(FinanceService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly seq: SequenceService,
     private readonly audit: AuditService,
+    private readonly zatcaBilling: ZatcaBillingService,
+    private readonly zatcaRouter: ZatcaInvoiceRouter,
   ) {}
 
   listVouchers() {
@@ -144,6 +150,13 @@ export class FinanceService {
     const debitSeq = await this.seq.nextNoteSeq("DN");
     const invoiceSeq = await this.seq.nextInvoiceSeq();
 
+    // بيانات العميل + وجود تهيئة ZATCA (لتوليد مستندات الفوترة المتوافقة)
+    const client = policy.clientId
+      ? await this.prisma.client.findFirst({ where: { id: policy.clientId }, select: { name: true, type: true, crNumber: true, nationalId: true, city: true } })
+      : null;
+    const hasZatca = await this.prisma.tenantZatcaConfig.findFirst({ where: { tenantId }, select: { id: true } });
+    const supplyDate = policy.startDate ? policy.startDate.toISOString().slice(0, 10) : null;
+
     const result = await this.prisma.$transaction(async (tx) => {
       // 1) قيد يومية (JRV) — مدين = دائن
       const voucher = await tx.voucher.create({
@@ -208,14 +221,39 @@ export class FinanceService {
         }
       }
 
-      // 5) تحديث الحالات ⇒ الوثيقة والطلب ISSUED
+      // 5) مستندات ZATCA المتوافقة (داخل المعاملة — عدّاد/تجزئة/UUID معزولة بالمستأجر)
+      const billing: string[] = [];
+      if (hasZatca) {
+        const subtype = client?.type === "INDIVIDUAL" ? ("SIMPLIFIED_B2C" as const) : ("STANDARD_B2B" as const);
+        const dn = await this.zatcaBilling.createInTx(tx, tenantId, {
+          documentType: "DEBIT_NOTE", subtype, clientId: policy.clientId, policyId: policy.id,
+          customer: { name: client?.name, crOrId: client?.crNumber ?? client?.nationalId, address: client?.city },
+          lines: [{ description: policy.productLineCode ?? "قسط تأمين", quantity: 1, unitPrice: premium, vatRate: 15, vatAmount: vat, net: premium }],
+          supplyDate,
+        });
+        const inv = await this.zatcaBilling.createInTx(tx, tenantId, {
+          documentType: "TAX_INVOICE", subtype: "STANDARD_B2B", clientId: policy.clientId, policyId: policy.id,
+          customer: { name: policy.insurerName },
+          lines: [{ description: "عمولة وساطة", quantity: 1, unitPrice: commission, vatRate: 15, vatAmount: commVat, net: commission }],
+          supplyDate,
+        });
+        billing.push(dn.id, inv.id);
+      }
+
+      // 6) تحديث الحالات ⇒ الوثيقة والطلب ISSUED
       await tx.policy.update({ where: { id: policyId }, data: { status: "ISSUED" } });
       if (policy.requestId) await tx.policyRequest.update({ where: { id: policy.requestId }, data: { status: "ISSUED" } });
 
-      return { voucher: voucher.sequenceNo, debitNote: debitNote.sequenceNo, invoice: invoice.sequenceNo };
+      return { voucher: voucher.sequenceNo, debitNote: debitNote.sequenceNo, invoice: invoice.sequenceNo, billing };
     });
 
-    await this.audit.log({ tenantId, userId, action: "approve", entity: "policy_finance", entityId: policyId, meta: result });
-    return { policyId, status: "ISSUED", ...result };
+    await this.audit.log({ tenantId, userId, action: "approve", entity: "policy_finance", entityId: policyId, meta: { voucher: result.voucher, debitNote: result.debitNote, invoice: result.invoice } });
+
+    // توجيه مستندات ZATCA بعد تثبيت المعاملة (مقاصة B2B فوراً / إبلاغ B2C خلفياً)
+    for (const docId of result.billing) {
+      await this.zatcaRouter.route(docId).catch((e) => this.logger.warn(`ZATCA routing failed for ${docId}: ${e?.message}`));
+    }
+
+    return { policyId, status: "ISSUED", voucher: result.voucher, debitNote: result.debitNote, invoice: result.invoice, billingDocuments: result.billing.length };
   }
 }

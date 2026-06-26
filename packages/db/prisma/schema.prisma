@@ -65,6 +65,8 @@ model Tenant {
   costCenters        CostCenter[]
   debitNotes         DebitNote[]
   creditNotes        CreditNote[]
+  zatcaConfig        TenantZatcaConfig?
+  billingDocuments   BillingDocument[]
 }
 
 enum TenantStatus {
@@ -633,6 +635,116 @@ model CreditNote {
   createdAt  DateTime @default(now())
 
   @@index([tenantId])
+}
+
+// ============================================================
+// ZATCA المرحلة 2 (Fatoora / Integration) — جاهزية متعددة المستأجرين
+// ============================================================
+
+enum ZatcaEnvironment {
+  SANDBOX
+  PRE_PRODUCTION
+  PRODUCTION
+}
+
+/// حالة تهيئة المستأجر مع ZATCA (Fatoora Onboarding).
+enum ZatcaOnboardingStatus {
+  NOT_STARTED
+  CSR_GENERATED
+  COMPLIANCE_PASSED
+  ACTIVE
+}
+
+/// هوية ZATCA التشفيرية وإعدادات الوساطة (broker settings) المستقلّة لكل مستأجر — معزولة منطقياً.
+/// تجمع: بيانات المورِّد + بيانات الاعتماد المشفّرة + حالة التهيئة + عدّاد وتجزئة معزولَين بالمستأجر.
+model TenantZatcaConfig {
+  id                 String                @id @default(cuid())
+  tenantId           String                @unique
+  tenant             Tenant                @relation(fields: [tenantId], references: [id])
+  vatNumber          String // 15 رقماً تبدأ وتنتهي بـ 3 (يُتحقَّق في الخدمة)
+  businessNameAr     String
+  businessNameEn     String?
+  environment        ZatcaEnvironment      @default(SANDBOX)
+  // EGS (حل توليد الفواتير الإلكترونية) + حالة التهيئة
+  egsSerialNumber    String? // رقم تسلسلي فريد لوحدة EGS
+  onboardingStatus   ZatcaOnboardingStatus @default(NOT_STARTED)
+  // مفاتيح/شهادات مشفّرة at-rest (AES-256-GCM) — تُخزَّن نصاً مشفّراً لا خاماً أبداً
+  privateKeyEnc      String?               @db.Text // المفتاح الخاص (ECDSA secp256k1)
+  csrPem             String?               @db.Text // طلب توقيع الشهادة (CSR)
+  complianceCsidEnc  String?               @db.Text // شهادة الامتثال المؤقتة (CCSID)
+  productionCsidEnc  String?               @db.Text // شهادة الإنتاج الدائمة (PCSID)
+  publicKey          String?               @db.Text
+  lastActivatedAt    DateTime?
+  // تسلسل وسلسلة تجزئة معزولان بالمستأجر (anti-tampering)
+  invoiceCounter     Int                   @default(0)
+  lastDocumentHash   String? // تجزئة SHA-256 (Base64) لآخر مستند صادر لهذا المستأجر
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+
+  @@index([tenantId])
+}
+
+enum BillingDocType {
+  TAX_INVOICE // فاتورة ضريبية (عمولة على شركات التأمين) — B2B
+  DEBIT_NOTE // إشعار مدين (قسط على العميل)
+  CREDIT_NOTE // إشعار دائن (استرداد/إلغاء)
+}
+
+enum BillingSubtype {
+  STANDARD_B2B
+  SIMPLIFIED_B2C
+}
+
+/// مستند فوترة موحّد متوافق مع ZATCA (يُغني عن Invoice/DebitNote/CreditNote المبسّطة).
+/// عدّاد وتجزئة وتسلسل معزولة بالمستأجر + UUIDv4 عالمي + حِمل QR (TLV) و UBL (JSON).
+model BillingDocument {
+  id                 String         @id @default(cuid())
+  tenantId           String
+  tenant             Tenant         @relation(fields: [tenantId], references: [id])
+  uuid               String // UUIDv4 عالمي فريد
+  documentType       BillingDocType
+  invoiceSubtype     BillingSubtype @default(STANDARD_B2B)
+  serialNumber       String // DNP-RUH-2026-JAN-10001
+  counter            Int // تسلسل معزول بالمستأجر
+  previousHash       String? // سلسلة التجزئة — تجزئة المستند السابق لنفس المستأجر
+  hash               String // SHA-256 (Base64) لهذا المستند
+  qrTlv              String         @db.Text // Base64 TLV (الوسوم 1–5، و6/7 للمرحلة 2)
+  xmlPayload         Json? // بنية تُحاكي UBL 2.1 (للتسلسل في المرحلة 9)
+  issueDate          String // YYYY-MM-DD
+  issueTimestamp     String // ISO 8601 (مع HH:MM:SS)
+  supplyDate         String? // تاريخ بدء التغطية
+  // المورِّد (لقطة من TenantZatcaConfig وقت الإصدار)
+  supplierName       String
+  supplierVat        String
+  // العميل/المستلم
+  customerName       String?
+  customerVat        String?
+  customerCrOrId     String?
+  customerAddress    String?
+  clientId           String?
+  policyId           String?
+  // البنود والإجماليات
+  lineItems          Json // [{ description, qty, unitPrice, discount, vatRate, vatAmount, net }]
+  totalExclVat       Decimal        @db.Decimal(14, 2)
+  totalVat           Decimal        @db.Decimal(14, 2)
+  totalInclVat       Decimal        @db.Decimal(14, 2)
+  // مراجع التسوية (إشعارات مدين/دائن)
+  billingReferenceId String? // UUID الفاتورة الأصلية المُعدَّلة
+  reasonForIssuance  String? // مطلوب من ZATCA للإشعارات
+  status             String         @default("ISSUED")
+  // توجيه ZATCA: B2B = مقاصة فورية (Clearance) · B2C = إبلاغ خلال 24س (Reporting)
+  zatcaFlow          String? // CLEARANCE | REPORTING
+  zatcaStatus        String         @default("PENDING") // PENDING | CLEARED | REPORTED | FAILED
+  zatcaStampB64      String?        @db.Text // الختم التشفيري المُعاد من ZATCA (Clearance)
+  zatcaReportedAt    DateTime?
+  createdAt          DateTime       @default(now())
+
+  @@unique([uuid])
+  @@unique([tenantId, counter]) // عدّاد معزول بالمستأجر
+  @@unique([tenantId, serialNumber])
+  @@index([tenantId])
+  @@index([clientId])
+  @@index([policyId])
 }
 
 /// قيد عمولة وساطة (لكل وثيقة) — أساس تقرير العمولات وتسويتها مع شركات التأمين.
