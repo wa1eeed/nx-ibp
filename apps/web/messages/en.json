@@ -241,7 +241,28 @@
     "password": "Password",
     "submit": "Sign in",
     "error": "Invalid credentials",
-    "demoHint": "Demo account pre-filled (waleed@gulf-demo.sa)"
+    "demoHint": "Demo account pre-filled (waleed@gulf-demo.sa)",
+    "noAccount": "No account yet?",
+    "signupLink": "Create your company account"
+  },
+  "signup": {
+    "title": "Create your company account",
+    "subtitle": "Start a 14-day free trial — your platform is provisioned automatically",
+    "company": "Brokerage name",
+    "companyEn": "Name in English (optional)",
+    "cr": "Commercial registration no. (optional)",
+    "adminName": "Admin name",
+    "email": "Email",
+    "password": "Password",
+    "passwordHint": "At least 8 chars with an uppercase, lowercase and a digit",
+    "plan": "Plan",
+    "planBasic": "Basic",
+    "planPremium": "Premium",
+    "planEnterprise": "Enterprise",
+    "submit": "Create account & start",
+    "error": "Could not create account",
+    "haveAccount": "Already have an account?",
+    "loginLink": "Sign in"
   },
   "staff": {
     "title": "Staff",

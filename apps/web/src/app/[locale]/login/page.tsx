@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { ShieldCheck, LogIn } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useRouter } from "@/i18n/routing";
+import { Link, useRouter } from "@/i18n/routing";
 import { api, setToken } from "@/lib/api";
 
 export default function LoginPage() {
@@ -76,6 +76,9 @@ export default function LoginPage() {
             {loading ? "…" : t("login.submit")}
           </button>
           <p className="text-center text-[11px] text-subtle">{t("login.demoHint")}</p>
+          <p className="text-center text-[12px] text-subtle">
+            {t("login.noAccount")} <Link href="/signup" className="font-semibold text-primary hover:underline">{t("login.signupLink")}</Link>
+          </p>
         </form>
       </div>
     </div>

@@ -51,7 +51,7 @@ export default function LandingPage() {
         <p className="mx-auto mt-3 text-[15px] font-medium text-primary-strong">{t("landing.hero.titleEn")}</p>
         <p className="mx-auto mt-4 max-w-2xl text-[15px] leading-relaxed text-muted">{t("landing.hero.subtitle")}</p>
         <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
-          <Link href="/login" className="inline-flex items-center gap-2 rounded-lg bg-primary-strong px-5 py-2.5 text-[14px] font-semibold text-primary-fg hover:bg-primary">
+          <Link href="/signup" className="inline-flex items-center gap-2 rounded-lg bg-primary-strong px-5 py-2.5 text-[14px] font-semibold text-primary-fg hover:bg-primary">
             {t("landing.hero.ctaPrimary")} <ArrowLeft size={16} className="ltr:rotate-180" />
           </Link>
           <a href="#pricing" className="inline-flex items-center gap-2 rounded-lg border border-line bg-card px-5 py-2.5 text-[14px] font-semibold text-muted hover:bg-surface-2 hover:text-ink">{t("landing.hero.ctaSecondary")}</a>
@@ -116,7 +116,7 @@ export default function LandingPage() {
                   <li key={f} className="flex items-start gap-2 text-[13px] text-muted"><Check size={15} className="mt-0.5 shrink-0 text-success" /> {t(`landing.pricing.${p.code}.${f}`)}</li>
                 ))}
               </ul>
-              <Link href="/login" className={["mt-6 inline-flex items-center justify-center rounded-lg px-4 py-2.5 text-[13.5px] font-semibold", p.highlight ? "bg-primary-strong text-primary-fg hover:bg-primary" : "border border-line bg-card text-ink hover:bg-surface-2"].join(" ")}>
+              <Link href="/signup" className={["mt-6 inline-flex items-center justify-center rounded-lg px-4 py-2.5 text-[13.5px] font-semibold", p.highlight ? "bg-primary-strong text-primary-fg hover:bg-primary" : "border border-line bg-card text-ink hover:bg-surface-2"].join(" ")}>
                 {t("landing.pricing.cta")}
               </Link>
             </div>
@@ -143,7 +143,7 @@ export default function LandingPage() {
         <Headset size={28} className="mx-auto text-primary" />
         <h2 className="mt-3 text-[26px] font-bold tracking-tight text-ink">{t("landing.cta.title")}</h2>
         <p className="mx-auto mt-2 max-w-xl text-[14px] text-muted">{t("landing.cta.subtitle")}</p>
-        <Link href="/login" className="mt-6 inline-flex items-center gap-2 rounded-lg bg-primary-strong px-6 py-3 text-[14px] font-semibold text-primary-fg hover:bg-primary">
+        <Link href="/signup" className="mt-6 inline-flex items-center gap-2 rounded-lg bg-primary-strong px-6 py-3 text-[14px] font-semibold text-primary-fg hover:bg-primary">
           {t("landing.cta.button")} <ArrowLeft size={16} className="ltr:rotate-180" />
         </Link>
       </section>
