@@ -31,5 +31,8 @@ pnpm-debug.log*
 .vscode/*
 !.vscode/extensions.json
 
+# Claude Code — الإعدادات المحلية الشخصية لا تُرفع (launch.json المشترك مسموح)
+.claude/settings.local.json
+
 # test / coverage
 coverage/
