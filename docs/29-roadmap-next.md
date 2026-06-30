@@ -74,7 +74,7 @@
 - [ ] **A3** Git: إنشاء `main` + رفع للريموت + PRs
 - [x] **B1** تسجيل ذاتي + تزويد مستأجر آلي: ✅ `POST /signup` (مستأجر TRIAL + اشتراك + دور مالك + مدير + شجرة حسابات، ذرّي ومعزول، `signup.e2e` 6/6) · ✅ صفحة `/signup` ثنائية اللغة + روابط من اللاندينق/الدخول — مُتحقَّقة حيًّا في المتصفح (تسجيل ⇒ دخول تلقائي ⇒ لوحة المستأجر الجديد)
 - [x] **B2** فوترة الاشتراكات (بوّابة دفع): ✅ خلفية — `SubscriptionInvoice` + تجريد `PaymentGateway` (محوّل **Tap.company** + Sandbox) + checkout/confirm/webhook(hashstring)/invoices/subscription/plans + تفعيل TRIAL→ACTIVE ذرّي (`billing.e2e` 7/7) · ✅ صفحة `/tenant/settings/billing` + صفحة العودة `/billing/return` + عنصر تنقّل — **مُتحقَّقة حيًّا**: اشتراك premium ⇒ دفع Sandbox ⇒ تفعيل ACTIVE + فاتورة PAID
-- [ ] **C1** الهيكل الإداري والأقسام + صفحة الهيكل
+- [x] **C1** الهيكل الإداري والأقسام: ✅ `Department` هرمي (parentId) + دور افتراضي يُورَّث عند الإسناد + منع الدورات + عزل (migration `departments`) · `/org/departments` (tree/create/update/delete/assign/roles/members) · صفحة `/tenant/settings/org` (مخطط شجري + إضافة) + عنصر تنقّل — **مُتحقَّقة حيًّا** (`org.e2e` 6/6)
 - [ ] **D1** حصص تخزين لكل مستأجر + حجز ذرّي + تلميتري
 - [ ] **D2** ضغط Sharp (WebP/80%/≤1200px)
 - [ ] **D3** CDN/Zero-Egress + خيار سيادة البيانات لكل مستأجر

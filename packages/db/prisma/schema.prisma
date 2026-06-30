@@ -68,6 +68,7 @@ model Tenant {
   zatcaConfig        TenantZatcaConfig?
   billingDocuments   BillingDocument[]
   subscriptionInvoices SubscriptionInvoice[]
+  departments        Department[]
 }
 
 enum TenantStatus {
@@ -188,6 +189,8 @@ model User {
   status       UserStatus @default(ACTIVE)
   roleId       String?
   role         Role?      @relation(fields: [roleId], references: [id])
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id])
   createdAt    DateTime   @default(now())
 
   @@unique([tenantId, email])
@@ -208,6 +211,25 @@ model Role {
   isPreset    Boolean      @default(false)
   permissions Permission[]
   users       User[]
+  defaultForDepartments Department[]
+
+  @@index([tenantId])
+}
+
+/// قسم تنظيمي هرمي داخل شركة الوساطة (المرحلة C1). معزول بالمستأجر.
+/// قد يحمل دورًا افتراضيًا (defaultRole) يُطبَّق على من يُسند إليه ما لم يُتجاوز فرديًا.
+model Department {
+  id            String       @id @default(cuid())
+  tenantId      String
+  tenant        Tenant       @relation(fields: [tenantId], references: [id])
+  name          String
+  parentId      String?
+  parent        Department?  @relation("DeptHierarchy", fields: [parentId], references: [id])
+  children      Department[] @relation("DeptHierarchy")
+  defaultRoleId String?
+  defaultRole   Role?        @relation(fields: [defaultRoleId], references: [id])
+  members       User[]
+  createdAt     DateTime     @default(now())
 
   @@index([tenantId])
 }

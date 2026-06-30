@@ -35,6 +35,7 @@ import { RegulatoryModule } from "./modules/regulatory/regulatory.module";
 import { StaffModule } from "./modules/staff/staff.module";
 import { SignupModule } from "./modules/signup/signup.module";
 import { BillingModule } from "./modules/billing/billing.module";
+import { OrgModule } from "./modules/org/org.module";
 
 /**
  * الوحدة الجذرية. معماري وحدات — module لكل مجال (CLAUDE.md §5).
@@ -76,6 +77,7 @@ import { BillingModule } from "./modules/billing/billing.module";
     StaffModule,
     SignupModule,
     BillingModule,
+    OrgModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

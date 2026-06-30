@@ -53,6 +53,7 @@
     "addons": "Add-ons",
     "settings": {
       "billing": "Subscription & Billing",
+      "org": "Org structure",
       "company": "Company",
       "branding": "Branding",
       "staff": "Staff",
@@ -301,6 +302,24 @@
       "backToBilling": "Back to billing",
       "backToDashboard": "Dashboard"
     }
+  },
+  "org": {
+    "title": "Org structure & departments",
+    "subtitle": "Organize departments hierarchically and set each one's default role",
+    "addDepartment": "Add department",
+    "nameField": "Department name",
+    "parent": "Parent department",
+    "noParent": "— Top-level —",
+    "defaultRole": "Default role",
+    "noRole": "— No default role —",
+    "create": "Add",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "members": "members",
+    "roleLabel": "Default role:",
+    "empty": "No departments yet — start by adding a top-level one",
+    "error": "Operation failed",
+    "deleteConfirm": "Delete this department? Its members and sub-departments will be detached."
   },
   "staff": {
     "title": "Staff",

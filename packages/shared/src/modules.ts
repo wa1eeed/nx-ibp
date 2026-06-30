@@ -17,6 +17,7 @@ export type ModuleKey =
   | "finance"
   | "addons"
   | "settings.billing"
+  | "settings.org"
   | "settings.company"
   | "settings.branding"
   | "settings.staff"
@@ -101,6 +102,7 @@ export const TENANT_NAV: NavGroup[] = [
     items: [
       { key: "addons", href: "/tenant/add-ons", icon: "Blocks" },
       { key: "settings.billing", href: "/tenant/settings/billing", icon: "CreditCard" },
+      { key: "settings.org", href: "/tenant/settings/org", icon: "Network" },
       { key: "settings.company", href: "/tenant/settings/company", icon: "Building2", comingSoon: true },
       { key: "settings.branding", href: "/tenant/settings/branding", icon: "Palette", comingSoon: true },
       { key: "settings.staff", href: "/tenant/settings/staff", icon: "UserCog" },
