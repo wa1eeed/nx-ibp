@@ -3,6 +3,7 @@ import { JwtService } from "@nestjs/jwt";
 import * as bcrypt from "bcryptjs";
 import { PrismaService } from "../../prisma/prisma.service";
 import { AuditService } from "../../common/audit/audit.service";
+import { RateLimitService } from "../../common/security/rate-limit.service";
 import type { TenantStatusDto, UpdateEntitlementDto } from "./dto/platform.dto";
 
 /**
@@ -15,13 +16,17 @@ export class PlatformService {
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
     private readonly audit: AuditService,
+    private readonly rateLimit: RateLimitService,
   ) {}
 
   async login(email: string, password: string) {
+    await this.rateLimit.assertNotLocked("login", email);
     const admin = await this.prisma.platformAdmin.findFirst({ where: { email } });
     if (!admin?.passwordHash || !(await bcrypt.compare(password, admin.passwordHash))) {
+      await this.rateLimit.recordFailure("login", email);
       throw new UnauthorizedException("بيانات الدخول غير صحيحة");
     }
+    await this.rateLimit.clear("login", email);
     const accessToken = await this.jwt.signAsync({ sub: admin.id, scope: "platform", email: admin.email });
     return { accessToken, admin: { id: admin.id, email: admin.email, fullName: admin.fullName } };
   }

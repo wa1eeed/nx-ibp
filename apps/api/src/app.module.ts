@@ -8,6 +8,7 @@ import { AuditModule } from "./common/audit/audit.module";
 import { SequenceModule } from "./common/sequence/sequence.module";
 import { StorageModule } from "./common/storage/storage.module";
 import { ZatcaCryptoModule } from "./common/zatca/zatca-crypto.module";
+import { SecurityModule } from "./common/security/security.module";
 import { ZatcaModule } from "./modules/finance/zatca/zatca.module";
 import { PrismaModule } from "./prisma/prisma.module";
 import { RedisModule } from "./redis/redis.module";
@@ -47,6 +48,7 @@ import { StaffModule } from "./modules/staff/staff.module";
     SequenceModule,
     StorageModule,
     ZatcaCryptoModule,
+    SecurityModule,
     PrismaModule,
     RedisModule,
     RbacModule,

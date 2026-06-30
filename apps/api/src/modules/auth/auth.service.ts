@@ -3,6 +3,7 @@ import { JwtService } from "@nestjs/jwt";
 import * as bcrypt from "bcryptjs";
 import { PrismaService } from "../../prisma/prisma.service";
 import { AuditService } from "../../common/audit/audit.service";
+import { RateLimitService } from "../../common/security/rate-limit.service";
 
 @Injectable()
 export class AuthService {
@@ -10,6 +11,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
     private readonly audit: AuditService,
+    private readonly rateLimit: RateLimitService,
   ) {}
 
   /**
@@ -17,10 +19,13 @@ export class AuthService {
    * بريد المستخدم يحدّد مستأجره، ثم نُصدر توكناً يحمل tenantId.
    */
   async login(email: string, password: string) {
+    await this.rateLimit.assertNotLocked("login", email); // حماية القوّة الغاشمة
     const user = await this.prisma.user.findFirst({ where: { email, status: "ACTIVE" } });
     if (!user?.passwordHash || !(await bcrypt.compare(password, user.passwordHash))) {
+      await this.rateLimit.recordFailure("login", email);
       throw new UnauthorizedException("بيانات الدخول غير صحيحة");
     }
+    await this.rateLimit.clear("login", email); // نجاح ⇒ تصفير العدّاد
 
     const payload = {
       sub: user.id,

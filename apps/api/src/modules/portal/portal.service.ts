@@ -4,6 +4,7 @@ import * as bcrypt from "bcryptjs";
 import { PrismaService } from "../../prisma/prisma.service";
 import { StorageService } from "../../common/storage/storage.service";
 import { AuditService } from "../../common/audit/audit.service";
+import { RateLimitService } from "../../common/security/rate-limit.service";
 
 /**
  * بوّابة العميل (المرحلة 8ب) — نطاق `client`.
@@ -17,16 +18,20 @@ export class PortalService {
     private readonly jwt: JwtService,
     private readonly storage: StorageService,
     private readonly audit: AuditService,
+    private readonly rateLimit: RateLimitService,
   ) {}
 
   async login(email: string, password: string) {
+    await this.rateLimit.assertNotLocked("login", email);
     const user = await this.prisma.clientUser.findFirst({
       where: { email },
       include: { client: { select: { id: true, name: true, code: true } } },
     });
     if (!user?.passwordHash || !(await bcrypt.compare(password, user.passwordHash))) {
+      await this.rateLimit.recordFailure("login", email);
       throw new UnauthorizedException("بيانات الدخول غير صحيحة");
     }
+    await this.rateLimit.clear("login", email);
     const accessToken = await this.jwt.signAsync({
       sub: user.id,
       scope: "client",

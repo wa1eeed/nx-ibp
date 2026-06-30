@@ -84,5 +84,5 @@
 - [ ] **F1** ZATCA إنتاجي حقيقي + PDF/A-3 بالختم
 - [ ] **F2** BullMQ worker للإبلاغ B2C
 - [ ] **F3** نشر داخل المملكة (تجسيد Terraform) + تدقيق
-- [ ] **G/P0** تحصين أمني: rate limiting + قفل الحساب + سياسة كلمات + MFA للأدمن
+- [~] **G/P0** تحصين أمني: ✅ rate limiting + قفل الحساب (Redis) · ✅ سياسة كلمات · [ ] MFA للأدمن
 - [ ] **G/P1** refresh tokens + KMS/Vault + تشفير PII + مراقبة/WAF + SCA/SAST + نسخ احتياطي/DR + استجابة حوادث + حوكمة (NCA ECC)
