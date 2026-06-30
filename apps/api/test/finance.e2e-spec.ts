@@ -94,7 +94,12 @@ describe("الإصدار والاعتماد المالي (e2e)", () => {
     expect(debit).toBe(credit); // توازن القيد المزدوج
     expect(debit).toBe(69000);
     expect(Number(post.invoice.netAmount)).toBe(7500); // العمولة
+    expect(Number(post.invoice.vatAmount)).toBe(1125); // ضريبة العمولة 15% (على فاتورة المؤمِّن)
     expect(Number(post.debitNote.netAmount)).toBe(60000); // القسط الصافي
+    expect(Number(post.debitNote.vatAmount)).toBe(9000); // ضريبة القسط 15% (على إشعار العميل)
+    // ضريبة مخرجات الوسيط على العمولة مُقيَّدة كالتزام (Output VAT Payable)
+    const vatLine = entries.find((e) => Number(e.credit) === 1125);
+    expect(vatLine).toBeTruthy();
 
     // 7) الطلب أصبح ISSUED
     const req = (await request(app.getHttpServer()).get(`/requests/${requestId}`).set(auth(gm)).expect(200)).body;

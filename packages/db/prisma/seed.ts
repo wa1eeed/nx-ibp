@@ -290,6 +290,7 @@ const COA_TEMPLATE: Array<{ path: number[]; name: string; type: string; onBal: b
   { path: [2], name: "الخصوم", type: "liability", onBal: true },
   { path: [2, 1], name: "ذمم شركات التأمين الدائنة", type: "liability", onBal: true },
   { path: [2, 2], name: "أمانات أقساط العملاء (خارج الميزانية)", type: "liability", onBal: false },
+  { path: [2, 3], name: "ضريبة القيمة المضافة المستحقة", type: "liability", onBal: true },
   { path: [3], name: "حقوق الملكية", type: "equity", onBal: true },
   { path: [4], name: "الإيرادات", type: "revenue", onBal: true },
   { path: [4, 1], name: "عمولات الوساطة", type: "revenue", onBal: true },

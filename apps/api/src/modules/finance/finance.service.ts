@@ -111,12 +111,14 @@ export class FinanceService {
     ]);
     const total = num(policyAgg._sum.totalPremium);
     const commission = num(policyAgg._sum.commissionAmount);
+    const outputVatPayable = r2(commission * 0.15); // ضريبة مخرجات الوسيط على العمولات (تُورَّد لـ ZATCA)
     return {
       grossPremium: total,
       netPremium: num(policyAgg._sum.premium),
       vat: num(policyAgg._sum.vat),
       commission: num(commissionAgg._sum.amount),
-      offBalanceTrust: r2(total - commission), // أمانات أقساط العملاء (خارج الميزانية)
+      outputVatPayable, // ضريبة القيمة المضافة المستحقة على العمولة
+      offBalanceTrust: r2(total - commission - outputVatPayable), // أمانات أقساط العملاء (خارج الميزانية)
       receivables: r2(num(debitAgg._sum.netAmount) + num(debitAgg._sum.vatAmount)),
       invoiceCount: invoiceAgg._count,
       voucherCount: vouchers,
@@ -143,8 +145,9 @@ export class FinanceService {
     const vat = Number(policy.vat ?? 0);
     const total = Number(policy.totalPremium ?? premium + vat);
     const commission = Number(policy.commissionAmount ?? 0);
-    const commVat = r2(commission * 0.15);
-    const trust = r2(total - commission); // الجزء المحتفظ به أمانةً للمؤمِّن (خارج الميزانية)
+    const commVat = r2(commission * 0.15); // ضريبة القيمة المضافة على عمولة الوساطة (مخرجات الوسيط)
+    // الوسيط يحتفظ بعمولته + ضريبتها، ويحوّل الباقي (القسط + ضريبته − العمولة − ضريبتها) أمانةً للمؤمِّن.
+    const trust = r2(total - commission - commVat); // أمانات أقساط العملاء (خارج الميزانية)
 
     const voucherSeq = await this.seq.nextVoucherSeq("JRV");
     const debitSeq = await this.seq.nextNoteSeq("DN");
@@ -174,6 +177,7 @@ export class FinanceService {
               { account: "01030000000000000", name: "ذمم العملاء المدينة", debit: total, credit: 0 },
               { account: "02020000000000000", name: "أمانات أقساط العملاء (Off-Balance)", debit: 0, credit: trust },
               { account: "04010000000000000", name: "عمولات الوساطة", debit: 0, credit: commission },
+              { account: "02030000000000000", name: "ضريبة القيمة المضافة المستحقة (Output VAT)", debit: 0, credit: commVat },
             ],
           }),
         },
