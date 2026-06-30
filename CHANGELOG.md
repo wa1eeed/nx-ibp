@@ -2,7 +2,11 @@
 
 كل التغييرات الملموسة في منصة IBP، منظّمة حسب المراحل. الصيغة مستلهمة من [Keep a Changelog](https://keepachangelog.com).
 
-## [المرحلة B2] — فوترة الاشتراكات (بوّابة الدفع — الواجهة الخلفية) ✅
+## [المرحلة B2] — فوترة الاشتراكات (بوّابة الدفع) ✅
+- **صفحة `/tenant/settings/billing` (الواجهة)**: تعرض الاشتراك الحالي (الحالة/الباقة/المقاعد/التجديد) + كتالوج الباقات (مبدّل شهري/سنوي) + زر اشتراك يحوّل لصفحة الدفع + جدول الفواتير. ثنائية اللغة، عنصر تنقّل جديد في الإعدادات. + صفحة العودة `/billing/return` تطابق الحالة بعد الدفع. (نقطة `GET /billing/plans`.)
+- **مُتحقَّق حيًّا في المتصفح:** مالك TRIAL ⇒ اشتراك «الاحترافية» ⇒ دفع Sandbox ⇒ العودة «تم الدفع وتفعيل اشتراكك» ⇒ صفحة الفوترة تعرض **نشط** + الباقة الاحترافية + مقاعد 20 + فاتورة **PAID** (1,499 SAR).
+
+### الواجهة الخلفية
 - **تجريد `PaymentGateway`** (نقطة تبديل واحدة، نمط seam مثل ZATCA): محوّل **Tap.company** للإنتاج (Charges API: `POST /v2/charges/`، Bearer `sk_…`، استرجاع، تحقّق `hashstring` عبر HMAC-SHA256) + **`SandboxGateway`** للتطوير/الاختبار (بلا شبكة). يُختار من `BILLING_GATEWAY`.
 - **نموذج `SubscriptionInvoice`** (معزول بالمستأجر، منفصل عن فواتير التأمين) + enum `BillingInvoiceStatus`. migration `subscription_billing`.
 - **التدفّق**: `POST /billing/checkout` (يُنشئ فاتورة PENDING + شحنة ويعيد رابط الدفع) ⇒ `POST /billing/:id/confirm` (يطابق الحالة بعد العودة) أو **`POST /billing/webhook`** (عام، موقّع) ⇒ **تفعيل ذرّي** `TRIAL → ACTIVE` + ترقية الباقة + تمديد `renewsAt`. + `GET /billing/{invoices,subscription}`.

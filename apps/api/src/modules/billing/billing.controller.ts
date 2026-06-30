@@ -31,6 +31,12 @@ export class BillingController {
   }
 
   @Authorize({ module: "settings", action: "read" })
+  @Get("plans")
+  plans() {
+    return this.billing.plans();
+  }
+
+  @Authorize({ module: "settings", action: "read" })
   @Get("invoices")
   invoices(@CurrentUser("tenantId") tenantId: string) {
     return this.billing.invoices(tenantId);

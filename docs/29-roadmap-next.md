@@ -73,7 +73,7 @@
 - [x] **A2** تجهيز نشر Coolify: `docker-compose.coolify.yml` (فحوص صحّة + أسرار إلزامية fail-fast) + `docker-entrypoint.sh` (هجرات تلقائية) + دليل `coolify.md` + `migrate:deploy:prod`
 - [ ] **A3** Git: إنشاء `main` + رفع للريموت + PRs
 - [x] **B1** تسجيل ذاتي + تزويد مستأجر آلي: ✅ `POST /signup` (مستأجر TRIAL + اشتراك + دور مالك + مدير + شجرة حسابات، ذرّي ومعزول، `signup.e2e` 6/6) · ✅ صفحة `/signup` ثنائية اللغة + روابط من اللاندينق/الدخول — مُتحقَّقة حيًّا في المتصفح (تسجيل ⇒ دخول تلقائي ⇒ لوحة المستأجر الجديد)
-- [~] **B2** فوترة الاشتراكات (بوّابة دفع): ✅ الواجهة الخلفية — `SubscriptionInvoice` + تجريد `PaymentGateway` (محوّل **Tap.company** للإنتاج + Sandbox للاختبار) + checkout/confirm/webhook(hashstring)/invoices/subscription + تفعيل TRIAL→ACTIVE ذرّي (`billing.e2e` 7/7) · [ ] صفحة فوترة في الواجهة
+- [x] **B2** فوترة الاشتراكات (بوّابة دفع): ✅ خلفية — `SubscriptionInvoice` + تجريد `PaymentGateway` (محوّل **Tap.company** + Sandbox) + checkout/confirm/webhook(hashstring)/invoices/subscription/plans + تفعيل TRIAL→ACTIVE ذرّي (`billing.e2e` 7/7) · ✅ صفحة `/tenant/settings/billing` + صفحة العودة `/billing/return` + عنصر تنقّل — **مُتحقَّقة حيًّا**: اشتراك premium ⇒ دفع Sandbox ⇒ تفعيل ACTIVE + فاتورة PAID
 - [ ] **C1** الهيكل الإداري والأقسام + صفحة الهيكل
 - [ ] **D1** حصص تخزين لكل مستأجر + حجز ذرّي + تلميتري
 - [ ] **D2** ضغط Sharp (WebP/80%/≤1200px)

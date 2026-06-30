@@ -106,6 +106,14 @@ export class BillingService {
     this.logger.log(`تفعيل اشتراك المستأجر ${tenantId} (${planCode}/${cycle})`);
   }
 
+  /** كتالوج الباقات للعرض في صفحة الفوترة (Plan جدول عام غير معزول). */
+  plans() {
+    return this.prisma.plan.findMany({
+      orderBy: { priceMonthly: "asc" },
+      select: { code: true, name: true, seatLimit: true, priceMonthly: true, priceYearly: true },
+    });
+  }
+
   invoices(tenantId: string) {
     return this.prisma.subscriptionInvoice.findMany({
       where: { tenantId },

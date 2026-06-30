@@ -20,6 +20,7 @@ import {
   UserCog,
   Bell,
   Plug,
+  CreditCard,
   type LucideIcon,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -46,6 +47,7 @@ const ICONS: Record<string, LucideIcon> = {
   UserCog,
   Bell,
   Plug,
+  CreditCard,
 };
 
 export function Sidebar() {
