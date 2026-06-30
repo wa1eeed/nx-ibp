@@ -1,0 +1,41 @@
+import { IsEmail, IsOptional, IsString, Matches, MaxLength, MinLength } from "class-validator";
+
+/**
+ * تسجيل ذاتي لشركة وساطة جديدة (مستأجر جديد). عام بلا مصادقة — يُزوّد المستأجر
+ * آليًا (اشتراك + أدوار + مدير + شجرة حسابات) ويُسجّل الدخول مباشرةً.
+ */
+export class SignupDto {
+  @IsString()
+  @MinLength(2, { message: "اسم الشركة مطلوب" })
+  @MaxLength(120)
+  companyName!: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  companyNameEn?: string;
+
+  @IsOptional()
+  @IsString()
+  @Matches(/^\d{10}$/, { message: "رقم السجل التجاري 10 أرقام" })
+  crNumber?: string;
+
+  @IsString()
+  @MinLength(2, { message: "اسم المدير مطلوب" })
+  @MaxLength(120)
+  adminName!: string;
+
+  @IsEmail({}, { message: "بريد إلكتروني غير صالح" })
+  adminEmail!: string;
+
+  // نفس سياسة كلمات المرور المعتمدة (8 أحرف + كبير/صغير/رقم)
+  @IsString()
+  @MinLength(8, { message: "كلمة المرور 8 أحرف على الأقل" })
+  @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/, { message: "كلمة المرور يجب أن تحوي حرفاً كبيراً وصغيراً ورقماً" })
+  password!: string;
+
+  /** كود الباقة (افتراضي basic). يُتحقَّق من وجوده. */
+  @IsOptional()
+  @IsString()
+  planCode?: string;
+}

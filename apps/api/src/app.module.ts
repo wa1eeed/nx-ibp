@@ -33,6 +33,7 @@ import { ReportsModule } from "./modules/reports/reports.module";
 import { ComplianceModule } from "./modules/compliance/compliance.module";
 import { RegulatoryModule } from "./modules/regulatory/regulatory.module";
 import { StaffModule } from "./modules/staff/staff.module";
+import { SignupModule } from "./modules/signup/signup.module";
 
 /**
  * الوحدة الجذرية. معماري وحدات — module لكل مجال (CLAUDE.md §5).
@@ -72,6 +73,7 @@ import { StaffModule } from "./modules/staff/staff.module";
     ComplianceModule,
     RegulatoryModule,
     StaffModule,
+    SignupModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },
