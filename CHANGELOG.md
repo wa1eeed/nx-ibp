@@ -2,6 +2,12 @@
 
 كل التغييرات الملموسة في منصة IBP، منظّمة حسب المراحل. الصيغة مستلهمة من [Keep a Changelog](https://keepachangelog.com).
 
+## [المرحلة A2] — تجهيز نشر الإنتاج (Coolify) ✅
+- **`infra/docker/docker-compose.coolify.yml`**: حزمة إنتاج كاملة (API + Web + Postgres + Redis) بفحوص صحّة لكل خدمة، تبعيات `service_healthy`، وأسرار **إلزامية بصيغة `${VAR:?}`** تُفشل النشر فورًا إن نقصت (لا قيم افتراضية ضعيفة). تحقّقت صحّة الـ Compose + عمل حارس الأسرار.
+- **`apps/api/docker-entrypoint.sh`**: يطبّق `prisma migrate deploy` تلقائيًا عند الإقلاع ثم يُقلع الـ API — قابل للتعطيل بـ `SKIP_MIGRATIONS=true` للنشر متعدّد النسخ. سكربت `@ibp/db` جديد `migrate:deploy:prod` (يقرأ `DATABASE_URL` من البيئة بلا dotenv) + `seed:prod`. `Dockerfile` يستخدم الآن `ENTRYPOINT`.
+- **دليل `infra/docker/coolify.md`**: خطوات النشر + جدول متغيّرات البيئة + توليد الأسرار + ربط الدومينات/TLS + ملاحظة سيادة البيانات + الهجرات متعدّدة النسخ.
+- فحص صحّي للحاويات عبر `node fetch` لـ `/health/live` (بلا تبعية curl). توثيق: [`infra/docker/README`](./infra/docker/README.md)، [`docs/29`](./docs/29-roadmap-next.md).
+
 ## [المرحلة A1] — سائق تخزين سحابي متوافق S3 (بلا تبعية SDK) ✅
 - **سائق S3-متوافق** (`s3-driver.ts`) يعمل مع **AWS S3 / Cloudflare R2 / MinIO / Alibaba OSS** عبر واجهة واحدة — **توقيع AWS SigV4 يدويًا** (`node:crypto` HMAC) + `fetch` العام، **بلا إضافة أي تبعية** (التزامًا بثبات الحزمة التقنية).
 - **روابط موقّتة مباشِرة للدلو** (`direct:true`): البايتات لا تمرّ بالـ API. رحلة الرفع: `upload-url` ⇒ رفع مباشر ⇒ **`POST /documents/:id/confirm`** (HEAD يثبّت الحجم/البصمة). محليًا يبقى الرفع عبر الـ API بلا تأكيد.

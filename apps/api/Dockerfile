@@ -21,5 +21,7 @@ FROM base AS runtime
 ENV NODE_ENV=production
 COPY --from=build /app /app
 WORKDIR /app/apps/api
+RUN chmod +x docker-entrypoint.sh
 EXPOSE 4000
-CMD ["node", "dist/main.js"]
+# نقطة الدخول تطبّق الهجرات (prisma migrate deploy) ثم تُقلع — عطّلها بـ SKIP_MIGRATIONS=true
+ENTRYPOINT ["./docker-entrypoint.sh"]

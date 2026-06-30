@@ -1,0 +1,107 @@
+# ============================================================================
+# IBP — حزمة إنتاج لنشر Coolify (Docker Compose)
+# ----------------------------------------------------------------------------
+# الاستخدام: في Coolify ⇒ مشروع جديد ⇒ "Docker Compose" ⇒ أشِر لهذا الملف،
+# ثم اضبط متغيّرات البيئة (القائمة في infra/docker/coolify.md) واربط الدومينات.
+# الهجرات تُطبَّق تلقائيًا عند إقلاع الـ API (prisma migrate deploy عبر docker-entrypoint.sh).
+# الأسرار بصيغة ${VAR:?...} تُفشل النشر فورًا إن لم تُضبط (لا قيم افتراضية ضعيفة).
+# ⚠️ سيادة البيانات: لا تُنشر بيانات إنتاج حقيقية خارج المملكة (PDPL/هيئة التأمين) — انظر docs/30 §4.
+# ============================================================================
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-ibp}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD مطلوب}
+      POSTGRES_DB: ${POSTGRES_DB:-ibp}
+    volumes:
+      - ibp_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ibp} -d ${POSTGRES_DB:-ibp}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - ibp_redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build:
+      context: ../..
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      API_PORT: 4000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-ibp}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-ibp}?schema=public
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET مطلوب}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-15m}
+      CORS_ORIGINS: ${CORS_ORIGINS:?CORS_ORIGINS مطلوب (دومين الواجهة)}
+      ZATCA_ENC_KEY: ${ZATCA_ENC_KEY:?ZATCA_ENC_KEY مطلوب (base64 32 بايت)}
+      ZATCA_DEFAULT_ENV: ${ZATCA_DEFAULT_ENV:-SANDBOX}
+      PRESIGNED_URL_EXPIRY_SECONDS: ${PRESIGNED_URL_EXPIRY_SECONDS:-300}
+      LOGIN_MAX_FAILURES: ${LOGIN_MAX_FAILURES:-8}
+      LOGIN_LOCK_WINDOW_SEC: ${LOGIN_LOCK_WINDOW_SEC:-900}
+      # التخزين: local افتراضيًا؛ للإنتاج السحابي اضبط STORAGE_DRIVER=s3|r2 وبقيّة STORAGE_*
+      STORAGE_DRIVER: ${STORAGE_DRIVER:-local}
+      STORAGE_LOCAL_DIR: ${STORAGE_LOCAL_DIR:-/data/storage}
+      STORAGE_ENDPOINT: ${STORAGE_ENDPOINT:-}
+      STORAGE_REGION: ${STORAGE_REGION:-auto}
+      STORAGE_BUCKET: ${STORAGE_BUCKET:-}
+      STORAGE_ACCESS_KEY: ${STORAGE_ACCESS_KEY:-}
+      STORAGE_SECRET_KEY: ${STORAGE_SECRET_KEY:-}
+      STORAGE_FORCE_PATH_STYLE: ${STORAGE_FORCE_PATH_STYLE:-true}
+    volumes:
+      - ibp_storage:/data/storage # يستخدم فقط مع STORAGE_DRIVER=local
+    expose:
+      - "4000" # Coolify يوجّه دومين الـ API لهذا المنفذ
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4000/health/live').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s # مهلة الإقلاع + تطبيق الهجرات
+
+  web:
+    build:
+      context: ../..
+      dockerfile: apps/web/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      # دومين الـ API العام كما يراه المتصفح (يضبطه Coolify عند ربط دومين الـ API)
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?NEXT_PUBLIC_API_URL مطلوب}
+      NEXT_TELEMETRY_DISABLED: "1"
+    expose:
+      - "3000" # Coolify يوجّه الدومين الرئيسي لهذا المنفذ
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.status<500?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  ibp_pgdata:
+  ibp_redisdata:
+  ibp_storage:

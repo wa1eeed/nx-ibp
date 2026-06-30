@@ -70,7 +70,7 @@
 
 ### قادم (Pending) — حسب المسارات
 - [x] **A1** سائق تخزين سحابي متوافق S3 (R2/S3/MinIO/Alibaba) — SigV4 يدوي بلا SDK + رفع مباشر presigned + تأكيد `confirm` (اختبار `storage-s3.e2e` 8/8، دون شبكة)
-- [ ] **A2** تجهيز نشر Coolify (Docker إنتاجي + env + migrate + TLS)
+- [x] **A2** تجهيز نشر Coolify: `docker-compose.coolify.yml` (فحوص صحّة + أسرار إلزامية fail-fast) + `docker-entrypoint.sh` (هجرات تلقائية) + دليل `coolify.md` + `migrate:deploy:prod`
 - [ ] **A3** Git: إنشاء `main` + رفع للريموت + PRs
 - [ ] **B1** تسجيل ذاتي + تزويد مستأجر آلي
 - [ ] **B2** فوترة الاشتراكات (بوابة دفع)
