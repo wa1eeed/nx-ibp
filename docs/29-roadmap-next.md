@@ -71,6 +71,7 @@
 ### قادم (Pending) — حسب المسارات
 - [x] **A1** سائق تخزين سحابي متوافق S3 (R2/S3/MinIO/Alibaba) — SigV4 يدوي بلا SDK + رفع مباشر presigned + تأكيد `confirm` (اختبار `storage-s3.e2e` 8/8، دون شبكة)
 - [x] **A2** تجهيز نشر Coolify: `docker-compose.coolify.yml` (فحوص صحّة + أسرار إلزامية fail-fast) + `docker-entrypoint.sh` (هجرات تلقائية) + دليل `coolify.md` + `migrate:deploy:prod`
+- [~] **A2+** البيئات الثلاث (dev/staging/production): ✅ الأساس موثّق + مصفوفة التهيئة + تدفّق الترقية + انضباط الهجرات في [`docs/32`](./32-environments.md) · [ ] إنشاء نسخ staging/production الفعلية (مؤجَّل لاكتمال المشروع — قرار المستخدم)
 - [ ] **A3** Git: إنشاء `main` + رفع للريموت + PRs
 - [x] **B1** تسجيل ذاتي + تزويد مستأجر آلي: ✅ `POST /signup` (مستأجر TRIAL + اشتراك + دور مالك + مدير + شجرة حسابات، ذرّي ومعزول، `signup.e2e` 6/6) · ✅ صفحة `/signup` ثنائية اللغة + روابط من اللاندينق/الدخول — مُتحقَّقة حيًّا في المتصفح (تسجيل ⇒ دخول تلقائي ⇒ لوحة المستأجر الجديد)
 - [x] **B2** فوترة الاشتراكات (بوّابة دفع): ✅ خلفية — `SubscriptionInvoice` + تجريد `PaymentGateway` (محوّل **Tap.company** + Sandbox) + checkout/confirm/webhook(hashstring)/invoices/subscription/plans + تفعيل TRIAL→ACTIVE ذرّي (`billing.e2e` 7/7) · ✅ صفحة `/tenant/settings/billing` + صفحة العودة `/billing/return` + عنصر تنقّل — **مُتحقَّقة حيًّا**: اشتراك premium ⇒ دفع Sandbox ⇒ تفعيل ACTIVE + فاتورة PAID
