@@ -577,7 +577,21 @@ curl -X POST http://localhost:4000/staff \
 | `GET` | `/slips/:id/comparison` | `production:read` + `module.production` | 200 |
 | `POST` | `/slips/:id/quotations` | `production:create` + `module.production` | 201 |
 | `POST` | `/slips/:id/select` | `production:update` + `module.production` | 200 |
-| `GET` | `/claims` | `claims:read` + `module.claims` | 200 |
+| `POST` | `/policies/issue` | `production:create` + `module.production` | 201 |
+| `GET` | `/policies` · `/policies/:id` | `production:read` + `module.production` | 200 |
+| `POST` | `/policies/:id/approve-technical` | `production:update` + `module.production` | 200 |
+| `POST` | `/finance/policies/:id/approve` | `finance:update` + `module.finance` | 200 |
+| `GET` | `/documents` · `/documents/:id/url` | `clients:read` (وفق الكيان) | 200 |
+| `POST` | `/documents/upload-url` | `clients:create` (حدّ الباقة `upload.maxFileMb`) | 201 |
+| `PUT` · `GET` | `/documents/blob/:token` | Public (التوكن الموقّع هو التفويض) | 200 |
+| `POST` | `/verification/yaqeen` · `/wathiq` · `/address` | `clients:update` | 200 |
+| `POST` | `/verification/screening` | `compliance:update` | 200 |
+| `GET` | `/verification/wallets` · `/checks` | `clients:read` | 200 |
+| `GET` | `/renewals` | `production:read` + `module.production` | 200 |
+| `POST` | `/renewals/:policyId/initiate` | `production:update` + `module.production` | 200 |
+| `GET` · `POST` | `/service-requests` | `service:read` · `service:create` + `module.service` | 200/201 |
+| `POST` | `/service-requests/:id/status` | `service:update` + `module.service` | 200 |
+| `GET` | `/claims` · `POST` `/claims` · `POST` `/claims/:id/status` | `claims:*` + `module.claims` | 200/201 |
 | `GET` | `/staff` | `settings:read` | 200 |
 | `GET` | `/staff/roles` | `settings:read` | 200 |
 | `POST` | `/staff` | `settings:create` | 201 |
