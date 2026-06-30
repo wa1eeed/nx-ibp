@@ -67,6 +67,7 @@ model Tenant {
   creditNotes        CreditNote[]
   zatcaConfig        TenantZatcaConfig?
   billingDocuments   BillingDocument[]
+  subscriptionInvoices SubscriptionInvoice[]
 }
 
 enum TenantStatus {
@@ -139,6 +140,38 @@ model AddonPurchase {
   addonKey       String // extra_seats | module.claims | api_integration ...
   quantity       Int          @default(1)
   createdAt      DateTime     @default(now())
+}
+
+enum BillingInvoiceStatus {
+  PENDING // صدرت بانتظار الدفع
+  PAID // اكتمل الدفع (CAPTURED)
+  FAILED // فشل/رُفض الدفع
+  VOID // أُلغيت
+}
+
+/// فاتورة اشتراك المنصّة (مدفوعات SaaS عبر بوّابة دفع) — منفصلة تمامًا عن
+/// فواتير التأمين (Invoice/BillingDocument). معزولة بالمستأجر.
+model SubscriptionInvoice {
+  id              String               @id @default(cuid())
+  tenantId        String
+  tenant          Tenant               @relation(fields: [tenantId], references: [id])
+  planCode        String
+  cycle           BillingCycle
+  amount          Decimal              @db.Decimal(12, 2)
+  currency        String               @default("SAR")
+  status          BillingInvoiceStatus @default(PENDING)
+  gateway         String // sandbox | tap
+  gatewayChargeId String? // معرّف الشحنة لدى البوّابة (chg_…)
+  redirectUrl     String? @db.Text // رابط صفحة الدفع المستضافة
+  reference       String? // مرجعنا الداخلي المُمرَّر للبوّابة
+  periodStart     DateTime?
+  periodEnd       DateTime?
+  paidAt          DateTime?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  @@index([tenantId])
+  @@index([gatewayChargeId])
 }
 
 // ============================================================
