@@ -77,6 +77,30 @@ export class DocumentsService {
     return this.storage.get(payload.sk);
   }
 
+  /**
+   * تأكيد الرفع المباشر (سحابي): البايتات صعدت للدلو دون مرورها بالـ API،
+   * فنتحقّق من وجودها وحجمها (HEAD) ونثبّت الحجم/البصمة. معزول بالمستأجر.
+   */
+  async confirmUpload(tenantId: string, userId: string, documentId: string) {
+    const doc = await this.prisma.document.findFirst({
+      where: { id: documentId },
+      select: { id: true, tenantId: true, storageKey: true },
+    });
+    if (!doc) throw new NotFoundException("المستند غير موجود");
+
+    const head = await this.storage.head(doc.storageKey);
+    const maxMb = (await this.entitlements.getNumericValue(tenantId, "upload.maxFileMb")) ?? DEFAULT_MAX_MB;
+    if (head.size > maxMb * 1024 * 1024) {
+      throw new ForbiddenException(`حجم الملف يتجاوز حد باقتك (${maxMb}MB)`);
+    }
+    await this.prisma.document.update({
+      where: { id: doc.id },
+      data: { sizeBytes: head.size, hash: head.etag ? `etag:${head.etag}` : "uploaded" },
+    });
+    await this.audit.log({ tenantId, userId, action: "update", entity: "document", entityId: doc.id, meta: { confirmed: true, size: head.size } });
+    return { ok: true, size: head.size };
+  }
+
   /** توليد رابط عرض موقّت (5 دقائق) + تسجيل التوليد في التدقيق (مطلب). */
   async getViewUrl(tenantId: string, userId: string, id: string) {
     const doc = await this.prisma.document.findFirst({

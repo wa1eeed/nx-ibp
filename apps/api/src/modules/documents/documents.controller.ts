@@ -36,6 +36,16 @@ export class DocumentsController {
     return this.documents.createUploadUrl(tenantId, userId, dto);
   }
 
+  // تأكيد الرفع المباشر للدلو (سحابي) — يثبّت الحجم/البصمة بعد رفع العميل مباشرةً
+  @Post(":id/confirm")
+  confirmUpload(
+    @CurrentUser("tenantId") tenantId: string,
+    @CurrentUser("userId") userId: string,
+    @Param("id") id: string,
+  ) {
+    return this.documents.confirmUpload(tenantId, userId, id);
+  }
+
   @Get()
   list(@Query("entityType") entityType: string, @Query("entityId") entityId: string) {
     return this.documents.list(entityType, entityId);

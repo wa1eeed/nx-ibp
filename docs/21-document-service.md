@@ -34,12 +34,14 @@ sequenceDiagram
 
 ## 2. خدمة التخزين (حيادية المزوّد)
 
-[`common/storage/storage.service.ts`](../apps/api/src/common/storage/storage.service.ts):
-- يُختار السائق من `STORAGE_DRIVER`: `local` (تطوير — يخزّن تحت `.storage/` ويخدم عبر الـ API)، أو `s3`/`minio`/`alibaba_oss`/`gcs` (إنتاج — رفع مباشر للمزوّد، يُوصَّل في المرحلة 9).
-- التوقيع: JWT قصير العمر (`PRESIGNED_URL_EXPIRY_SECONDS=300`) يحمل `{ storageKey, op, documentId?, max? }`.
+[`common/storage/storage.service.ts`](../apps/api/src/common/storage/storage.service.ts) واجهة (facade) تختار السائق من `STORAGE_DRIVER`:
+- **`local`** (تطوير): يخزّن تحت `.storage/` ويخدم عبر الـ API — الرابط الموقّت JWT يمرّ بـ `/documents/blob/{token}` (`direct:false`).
+- **`s3` / `r2` / `minio` / `alibaba_oss`** (إنتاج — متوافق S3): سائق [`s3-driver.ts`](../apps/api/src/common/storage/s3-driver.ts) **بلا أي تبعية SDK** — توقيع **AWS SigV4** يدويًا (`node:crypto`) + `fetch`. يولّد **روابط موقّتة مباشِرة للدلو** (`direct:true`) فلا تمرّ البايتات بالـ API، ويدعم عمليات الخادم `put/get/head` للمستندات المولّدة خادميًا (فواتير ZATCA).
+- **رحلة الرفع السحابي:** `POST /documents/upload-url` ⇒ رابط PUT مباشر للدلو ⇒ العميل يرفع مباشرةً ⇒ **`POST /documents/:id/confirm`** يتحقّق (HEAD) ويثبّت الحجم/البصمة. (محليًا: الرفع عبر الـ API كما هو، بلا خطوة تأكيد.)
+- التوقيع المحلي: JWT قصير العمر (`PRESIGNED_URL_EXPIRY_SECONDS=300`) يحمل `{ storageKey, op, documentId?, max? }`.
 - مفتاح التخزين المعزول: `tenant_{tenantId}/{entityType}/{uuid}__{name}.{ext}`.
 
-> النقل السحابي (Coolify→AWS/GCP/Alibaba) بتغيير `.env` فقط — انظر [13](./13-local-setup-and-operations.md).
+> النقل السحابي (Coolify→AWS/R2/Alibaba) بتغيير `.env` فقط (`STORAGE_*`) دون تغيير كود — انظر [13](./13-local-setup-and-operations.md) و[14](./14-environment-variables.md). توليد الرابط الموقّت حتميّ ومُختبَر دون شبكة (`storage-s3.e2e`).
 
 ## 3. الضوابط الأمنية
 
