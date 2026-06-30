@@ -485,7 +485,32 @@
       "policies": "policies",
       "suspend": "Suspend",
       "activate": "Activate",
-      "col": { "name": "Tenant", "plan": "Plan", "seats": "Seats", "usage": "Usage", "billing": "Billing model", "status": "Status" }
+      "owner": "Account owner",
+      "view": "View",
+      "col": { "name": "Tenant", "owner": "Account owner", "plan": "Plan", "seats": "Seats", "usage": "Usage", "billing": "Billing model", "status": "Status" }
+    },
+    "tenantDetail": {
+      "title": "Company details",
+      "back": "Back to list",
+      "owner": "Account owner (company super-admin)",
+      "noOwner": "No registered owner",
+      "account": "Account info",
+      "cr": "Commercial reg.",
+      "joined": "Registered on",
+      "billing": "Billing model",
+      "subscription": "Subscription",
+      "plan": "Plan",
+      "renews": "Renews on",
+      "seats": "Seats",
+      "users": "Staff accounts",
+      "role": "Role",
+      "email": "Email",
+      "status": "Status",
+      "usage": "Usage",
+      "clients": "Clients",
+      "policies": "Policies",
+      "requests": "Requests",
+      "claims": "Claims"
     },
     "plans": {
       "title": "Plans & entitlements",

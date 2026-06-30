@@ -31,15 +31,18 @@ export class PlatformService {
     return { accessToken, admin: { id: admin.id, email: admin.email, fullName: admin.fullName } };
   }
 
-  tenants() {
-    return this.prisma.tenant.findMany({
+  async tenants() {
+    const rows = await this.prisma.tenant.findMany({
       orderBy: { createdAt: "asc" },
       select: {
         id: true, name: true, nameEn: true, status: true, billingModel: true, crNumber: true, createdAt: true,
         subscription: { select: { seatsUsed: true, cycle: true, plan: { select: { code: true, name: true, seatLimit: true } } } },
+        // مالك الحساب (سوبر أدمن الشركة) = أوّل مستخدم أُنشئ للمستأجر
+        users: { orderBy: { createdAt: "asc" }, take: 1, select: { fullName: true, email: true } },
         _count: { select: { users: true, clients: true, policies: true } },
       },
     });
+    return rows.map(({ users, ...t }) => ({ ...t, owner: users[0] ?? null }));
   }
 
   async tenant(id: string) {
@@ -48,11 +51,17 @@ export class PlatformService {
       select: {
         id: true, name: true, nameEn: true, status: true, billingModel: true, crNumber: true, createdAt: true,
         subscription: { select: { seatsUsed: true, cycle: true, renewsAt: true, plan: { select: { code: true, name: true, seatLimit: true } } } },
+        // كل حسابات الشركة + أدوارهم (الأوّل = مالك الحساب/سوبر أدمن الشركة)
+        users: {
+          orderBy: { createdAt: "asc" },
+          select: { id: true, fullName: true, email: true, status: true, createdAt: true, role: { select: { name: true } } },
+        },
         _count: { select: { users: true, clients: true, policyRequests: true, policies: true, claims: true } },
       },
     });
     if (!t) throw new NotFoundException("المستأجر غير موجود");
-    return t;
+    const { users, ...rest } = t;
+    return { ...rest, owner: users[0] ?? null, users };
   }
 
   async setStatus(adminId: string, id: string, dto: TenantStatusDto) {

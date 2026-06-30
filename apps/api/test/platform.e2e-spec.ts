@@ -40,6 +40,21 @@ describe("لوحة السوبر أدمن (e2e)", () => {
     expect(res.body.find((t: { id: string }) => t.id === "demo-tenant").subscription.plan.code).toBe("premium");
   });
 
+  it("السوبر أدمن يطّلع على الشركات المسجّلة ذاتيًا ومالكها (سوبر أدمن الشركة)", async () => {
+    const email = `plat-owner-${Date.now()}@brk.sa`;
+    const signup = await request(app.getHttpServer()).post("/signup").send({ companyName: "شركة مرئية للمنصة", adminName: "المالك المرئي", adminEmail: email, password: "Owner1Pass" }).expect(201);
+    const tenantId = signup.body.tenant.id;
+
+    const list = await request(app.getHttpServer()).get("/platform/tenants").set(auth(platform)).expect(200);
+    const row = list.body.find((t: { id: string }) => t.id === tenantId);
+    expect(row.owner.email).toBe(email);
+
+    const detail = await request(app.getHttpServer()).get(`/platform/tenants/${tenantId}`).set(auth(platform)).expect(200);
+    expect(detail.body.owner.email).toBe(email);
+    expect(detail.body.users[0].email).toBe(email);
+    expect(detail.body.users[0].role.name).toBe("مالك الحساب"); // سوبر أدمن الشركة
+  });
+
   it("مستخدم المستأجر ممنوع من لوحة المنصّة ⇒ 403", () =>
     request(app.getHttpServer()).get("/platform/tenants").set(auth(tenantUser)).expect(403));
 

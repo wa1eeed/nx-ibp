@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { papi, ApiError } from "@/lib/api";
+import { Link } from "@/i18n/routing";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Badge, type BadgeTone } from "@/components/ui/Badge";
@@ -10,6 +11,7 @@ import { useConfirm } from "@/components/ui/ConfirmProvider";
 
 interface Tenant {
   id: string; name: string; status: string; billingModel: string;
+  owner: { fullName: string; email: string } | null;
   subscription: { seatsUsed: number; plan: { code: string; name: string; seatLimit: number } } | null;
   _count: { users: number; clients: number; policies: number };
 }
@@ -48,6 +50,7 @@ export default function AdminTenantsPage() {
         <table className="w-full min-w-[760px]">
           <thead><tr className="border-b border-line text-[11px] uppercase tracking-wide text-subtle">
             <th className="px-5 py-3 text-start font-semibold">{t("admin.tenants.col.name")}</th>
+            <th className="px-5 py-3 text-start font-semibold">{t("admin.tenants.col.owner")}</th>
             <th className="px-5 py-3 text-start font-semibold">{t("admin.tenants.col.plan")}</th>
             <th className="px-5 py-3 text-start font-semibold">{t("admin.tenants.col.seats")}</th>
             <th className="px-5 py-3 text-start font-semibold">{t("admin.tenants.col.usage")}</th>
@@ -57,7 +60,12 @@ export default function AdminTenantsPage() {
           <tbody className="divide-y divide-line">
             {rows.map((r) => (
               <tr key={r.id} className="hover:bg-surface-2/60">
-                <td className="px-5 py-3 text-[13.5px] font-medium text-ink">{r.name}</td>
+                <td className="px-5 py-3 text-[13.5px] font-medium">
+                  <Link href={`/admin/tenants/${r.id}`} className="text-ink hover:text-primary hover:underline">{r.name}</Link>
+                </td>
+                <td className="px-5 py-3 text-[12.5px] text-muted">
+                  {r.owner ? <span dir="ltr" className="block">{r.owner.email}</span> : "—"}
+                </td>
                 <td className="px-5 py-3 text-[13px] text-muted">{r.subscription?.plan.name ?? "—"}</td>
                 <td className="px-5 py-3 text-[12.5px] tnum">{r.subscription ? `${r.subscription.seatsUsed}/${r.subscription.plan.seatLimit}` : "—"}</td>
                 <td className="px-5 py-3 text-[12px] text-subtle tnum">{r._count.clients} {t("admin.tenants.clients")} · {r._count.policies} {t("admin.tenants.policies")}</td>
