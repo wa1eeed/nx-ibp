@@ -1,6 +1,6 @@
 # وحدات الـ API (Domain Modules)
 
-معماري وحدات — module لكل مجال (CLAUDE.md §5). كل وحدة تُضاف في مرحلتها بـ `ROADMAP.md`،
+معماري وحدات — module لكل مجال (GUIDELINES.md §5). كل وحدة تُضاف في مرحلتها بـ `ROADMAP.md`،
 ولا يُكتب كود مرحلة قبل اعتمادها.
 
 | الوحدة | المرحلة (ROADMAP) | الحالة |
@@ -22,4 +22,4 @@
 | `compliance` | 1+ — الالتزام/التدقيق | لاحقاً |
 | `hr` | لاحقاً | لاحقاً |
 
-كل endpoint مستقبلاً يُحرس بفحص مزدوج: entitlement الباقة + صلاحية RBAC (CLAUDE.md §3).
+كل endpoint مستقبلاً يُحرس بفحص مزدوج: entitlement الباقة + صلاحية RBAC (GUIDELINES.md §3).

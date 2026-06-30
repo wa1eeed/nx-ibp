@@ -1,6 +1,6 @@
 # 05 — الصلاحيات و Entitlements (RBAC & Entitlements)
 
-> الصلاحيات في IBP **ببُعدين منفصلين** ([CLAUDE.md](../CLAUDE.md) §3): (أ) **Entitlements الباقة** تحدّد الموديولز المتاحة للمستأجر بحسب اشتراكه؛ (ب) **RBAC الدور** يحدّد ما يفعله الموظف داخل الموديولز المتاحة. كل endpoint محمي بـ **فحص مزدوج**: هل الموديول مفعّل في الباقة؟ وهل للدور صلاحية الفعل؟ كل ما هنا مستخرج من الكود — المسارات مذكورة.
+> الصلاحيات في IBP **ببُعدين منفصلين** ([GUIDELINES.md](../GUIDELINES.md) §3): (أ) **Entitlements الباقة** تحدّد الموديولز المتاحة للمستأجر بحسب اشتراكه؛ (ب) **RBAC الدور** يحدّد ما يفعله الموظف داخل الموديولز المتاحة. كل endpoint محمي بـ **فحص مزدوج**: هل الموديول مفعّل في الباقة؟ وهل للدور صلاحية الفعل؟ كل ما هنا مستخرج من الكود — المسارات مذكورة.
 
 ## جدول المحتويات
 - [1. البُعدان: لماذا منفصلان؟](#1-البعدان-لماذا-منفصلان)
@@ -280,5 +280,5 @@ flowchart LR
 - [04 — الأمان وعزل المستأجرين](./04-security-and-multitenancy.md) — `JwtAuthGuard` والعزل الذي يحمي قراءة الأدوار
 - [06 — مرجع الـ API](./06-api-reference.md) — `@Authorize` لكل endpoint
 - [BLUEPRINT.md](../BLUEPRINT.md) §4 — مصدر مصفوفة الأدوار
-- [CLAUDE.md](../CLAUDE.md) §3 — قاعدة البُعدين المنفصلين
+- [GUIDELINES.md](../GUIDELINES.md) §3 — قاعدة البُعدين المنفصلين
 - الكود: [`entitlement.service.ts`](../apps/api/src/modules/rbac/entitlement.service.ts) · [`permission.service.ts`](../apps/api/src/modules/rbac/permission.service.ts) · [`authorization.guard.ts`](../apps/api/src/modules/rbac/authorization.guard.ts) · [`authorize.decorator.ts`](../apps/api/src/modules/rbac/authorize.decorator.ts) · [`rbac.constants.ts`](../apps/api/src/modules/rbac/rbac.constants.ts) · [`packages/shared/src/rbac.ts`](../packages/shared/src/rbac.ts)

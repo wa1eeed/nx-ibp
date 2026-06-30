@@ -47,7 +47,7 @@
 
 ## 3. تعريف «تمّ» (Definition of Done)
 
-لكل ميزة (CLAUDE.md §7):
+لكل ميزة (GUIDELINES.md §7):
 1. تعمل وظيفياً ومربوطة بقاعدة البيانات.
 2. مفلترة بالمستأجر + محمية بـ RBAC والـ entitlement.
 3. مُتحقَّق من مدخلاتها + معالجة أخطائها.
@@ -63,6 +63,6 @@
 - لا بيانات حقيقية في أي اختبار؛ بيانات وهمية فقط.
 
 ## انظر أيضاً
-- [`ROADMAP.md`](../ROADMAP.md) · [`CLAUDE.md`](../CLAUDE.md) §6–7
+- [`ROADMAP.md`](../ROADMAP.md) · [`GUIDELINES.md`](../GUIDELINES.md) §6–7
 - [16 — الاختبارات](./16-testing.md) · [01 — نظرة عامة](./01-overview.md)
 - [`CHANGELOG.md`](../CHANGELOG.md)

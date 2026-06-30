@@ -1,7 +1,7 @@
 # ROADMAP.md — خطة تنفيذ منصة IBP
 
-> ينفّذها Claude Code مرحلةً مرحلة. لا تنتقل لمرحلة قبل اكتمال السابقة واجتيازها معيار التحقق.
-> راجع `CLAUDE.md` و`BLUEPRINT.md` و`docs/OASIS-IBS-REQUIREMENTS.md` قبل كل مرحلة. كل ميزة تخضع لـ "تعريف تمّ" في `CLAUDE.md`.
+> تُنفَّذ مرحلةً مرحلة. لا تنتقل لمرحلة قبل اكتمال السابقة واجتيازها معيار التحقق.
+> راجع `GUIDELINES.md` و`BLUEPRINT.md` و`docs/OASIS-IBS-REQUIREMENTS.md` قبل كل مرحلة. كل ميزة تخضع لـ "تعريف تمّ" في `GUIDELINES.md`.
 
 ---
 

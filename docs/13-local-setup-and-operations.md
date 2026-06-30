@@ -75,7 +75,7 @@ open http://localhost:3000                  # يحوّل إلى /ar/tenant/dashb
 
 ## 6. النقل وحياد السحابة
 
-المعمار **حيادي سحابياً** (CLAUDE.md §2): Docker على Coolify (VPS) أولاً، ثم AWS/GCP/Alibaba بتغيير `.env` فقط:
+المعمار **حيادي سحابياً** (GUIDELINES.md §2): Docker على Coolify (VPS) أولاً، ثم AWS/GCP/Alibaba بتغيير `.env` فقط:
 - قاعدة البيانات: `DATABASE_URL`.
 - التخزين: `STORAGE_DRIVER` (`s3`/`alibaba_oss`/`google_cloud_storage`/`minio`) + `STORAGE_*` — لا تغيير في الكود عند الانتقال من MinIO المحلي إلى S3.
 - توطين الإنتاج (داخل المملكة) يشمل القاعدة **والنسخ الاحتياطية والسجلات والمرفقات** — انظر [17 — الامتثال](./17-compliance-and-regulatory.md).

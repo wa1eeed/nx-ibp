@@ -13,7 +13,7 @@ export interface AuthorizeMeta {
 }
 
 /**
- * يحرس endpoint بفحص مزدوج (CLAUDE.md §3): entitlement الباقة + صلاحية الدور.
+ * يحرس endpoint بفحص مزدوج (GUIDELINES.md §3): entitlement الباقة + صلاحية الدور.
  * يقرؤه AuthorizationGuard العالمي.
  */
 export const Authorize = (meta: AuthorizeMeta) => SetMetadata(AUTHORIZE_KEY, meta);

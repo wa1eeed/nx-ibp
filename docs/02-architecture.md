@@ -106,7 +106,7 @@ NX-IBP/
 ├── docs/           هذا التوثيق
 ├── docker-compose.yml
 ├── pnpm-workspace.yaml
-└── CLAUDE.md · BLUEPRINT.md · ROADMAP.md · DESIGN.md · README.md
+└── GUIDELINES.md · BLUEPRINT.md · ROADMAP.md · DESIGN.md · README.md
 ```
 
 | المجلد | الدور | محتوى بارز |
@@ -172,7 +172,7 @@ sequenceDiagram
 | 9 | **PrismaService (`$use`)** | middleware يشتق آلياً من DMMF الموديلز الحاملة لـ `tenantId`، ويحقن الفلترة على القراءة/الكتابة. `findUnique` يُعاد توجيهه إلى `findFirst` لإضافة `tenantId` ⇒ معرّف مستأجر آخر = «غير موجود». بلا سياق (إقلاع/تسجيل دخول) ⇒ لا فرض. | [`prisma/prisma.service.ts`](../apps/api/src/prisma/prisma.service.ts) |
 | 10 | **PostgreSQL** | يستقبل استعلامات مفلترة بالمستأجر دوماً؛ علاقات FK على `tenantId` تعزّز التكامل المرجعي. | `packages/db/prisma/schema.prisma` |
 
-> طبقة العزل الحاسمة هي **المحطّة 9**: العزل يُفرض في طبقة التفويض/البيانات تلقائياً، لا بخفاء المسارات (CLAUDE.md §3). راجع نمط الحقن لكل عملية (`create`, `update`, `delete`, `upsert`, `findUnique`…) في `installTenantGuard()`.
+> طبقة العزل الحاسمة هي **المحطّة 9**: العزل يُفرض في طبقة التفويض/البيانات تلقائياً، لا بخفاء المسارات (GUIDELINES.md §3). راجع نمط الحقن لكل عملية (`create`, `update`, `delete`, `upsert`, `findUnique`…) في `installTenantGuard()`.
 
 ### مثال عملي على الحُرّاس
 نقطة `GET /clients` معلَّمة بـ `@Authorize({ module: "clients", action: "read", entitlement: "module.clients" })` — فتُفحَص الباقة (هل `module.clients` مفعّل؟) ثم RBAC (هل للدور صلاحية `read` على `clients`؟) قبل تنفيذ المعالج (`apps/api/src/modules/clients/clients.controller.ts`).
@@ -250,4 +250,4 @@ flowchart LR
 - [`docs/03-data-model.md`](./03-data-model.md) — نموذج البيانات الكامل وعزل المستأجرين على مستوى الجداول.
 - [`DESIGN.md`](../DESIGN.md) — رموز التصميم والتخطيط للواجهة.
 - [`docs/OASIS-IBS-REQUIREMENTS.md`](./OASIS-IBS-REQUIREMENTS.md) — المتطلبات الفنية والأمنية المتتبَّعة.
-- [`CLAUDE.md`](../CLAUDE.md) — القواعد غير القابلة للتفاوض (العزل، الأمان، الصلاحيات).
+- [`GUIDELINES.md`](../GUIDELINES.md) — القواعد غير القابلة للتفاوض (العزل، الأمان، الصلاحيات).

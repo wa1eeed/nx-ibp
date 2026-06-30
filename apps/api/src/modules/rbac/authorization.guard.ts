@@ -6,7 +6,7 @@ import { PermissionService } from "./permission.service";
 import type { AuthUser } from "../auth/current-user.decorator";
 
 /**
- * الحارس الموحّد (CLAUDE.md §3): لكل endpoint معلَّم بـ @Authorize يفحص:
+ * الحارس الموحّد (GUIDELINES.md §3): لكل endpoint معلَّم بـ @Authorize يفحص:
  *  1) entitlement: هل الموديول مفعّل في باقة المستأجر؟ وإلا 403.
  *  2) RBAC: هل لدور المستخدم صلاحية الفعل؟ وإلا 403.
  * المسارات بلا @Authorize تمرّ (يحرسها JwtAuthGuard للمصادقة فقط).

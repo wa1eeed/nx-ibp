@@ -3,7 +3,7 @@ import { PrismaService } from "../../prisma/prisma.service";
 import { AuditService } from "../../common/audit/audit.service";
 
 /**
- * طبقة موفّري التحقّق (المرحلة 7) — تعمل عبر Sandbox تجريبي أولاً (CLAUDE.md/BLUEPRINT).
+ * طبقة موفّري التحقّق (المرحلة 7) — تعمل عبر Sandbox تجريبي أولاً (GUIDELINES.md/BLUEPRINT).
  * تربط التحقّق بالعميل/الطلب، تخصم العمليات من المحفظة (نموذج Reseller) وتسجّلها،
  * وتُعيد البيانات لتعبئة النموذج ذكياً. الأرقام تقديرية وقابلة للتهيئة (لا تُكتب نهائياً).
  */

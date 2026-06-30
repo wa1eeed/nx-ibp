@@ -213,7 +213,7 @@ model RequestBlockRow {
 
 - **التنوّع غير المحدود:** لو خصّصنا جدولاً لكل كتلة (members, vehicles, locations, shipments…) لاحتجنا migration وجدولاً جديداً مع كل منتج جديد. الجدول العام يستوعب أي كتلة جديدة بمجرد إضافة مفتاحها للمخطط — بلا migration.
 - **مدفوع بمخطط لا بكود:** شكل `data` يحدّده `BlockDef.fields`، فالقاعدة لا تعرف «مركبة» من «تابع»؛ تعرف فقط «صف ينتمي لكتلة باسم `blockKey`». المعنى يأتي من المخطط.
-- **اتساق العزل والتدقيق:** كل صف يحمل `tenantId` ومُفهرس به ([CLAUDE.md §3](../CLAUDE.md))، وحذفه يتتالى تلقائياً مع حذف الطلب (`onDelete: Cascade`). فهرس `[requestId, blockKey]` يجعل جلب «كل مركبات الطلب» استعلاماً واحداً سريعاً.
+- **اتساق العزل والتدقيق:** كل صف يحمل `tenantId` ومُفهرس به ([GUIDELINES.md §3](../GUIDELINES.md))، وحذفه يتتالى تلقائياً مع حذف الطلب (`onDelete: Cascade`). فهرس `[requestId, blockKey]` يجعل جلب «كل مركبات الطلب» استعلاماً واحداً سريعاً.
 - **استعلام موحّد:** عرض الطلب يجلب كل الكتل دفعة واحدة مرتّبةً بـ `[blockKey, rowIndex]` ([`requests.service.ts`](../apps/api/src/modules/requests/requests.service.ts) سطر 56–59).
 
 التعليق في المخطط نفسه يلخّص النية: *«مخزن عام موحّد لصفوف الكتل المتكررة لأي منتج… مدفوع بمخطط FormSchema بدل جداول ثابتة — يستوعب تنوّع منتجات التأمين.»*
@@ -272,7 +272,7 @@ interface FormPayload {
 6. **الكتابة الذرّية (`$transaction`):**
    - `policyRequest` بحقول `base` (و`details` الاختياري) كـ JSON، الحالة `DRAFT`.
    - **تفكيك الكتل إلى صفوف:** لكل كتلة في المخطط، يُمرّ على `dto.blocks[b.key]` ويُنشئ صفّ `RequestBlockRow` لكل عنصر `{ tenantId, requestId, blockKey, rowIndex: idx, data }` عبر `createMany`.
-7. **تدقيق:** `audit.log({ action: "create", entity: "policy_request", … })` ([CLAUDE.md §7](../CLAUDE.md) يفرض تسجيل العمليات الحسّاسة).
+7. **تدقيق:** `audit.log({ action: "create", entity: "policy_request", … })` ([GUIDELINES.md §7](../GUIDELINES.md) يفرض تسجيل العمليات الحسّاسة).
 
 النتيجة: الحقول الأساسية تعيش في `PolicyRequest.base` (JSON)، والصفوف المتكررة في جدول `RequestBlockRow` العام — **حمولة واحدة ⇒ مخزنان مكمّلان**، يُعاد تجميعهما عند القراءة.
 
@@ -317,7 +317,7 @@ flowchart TD
 
 3. **الزرع** — شغّل seed: `seedCatalog()` يمرّ على `PRODUCT_CATALOG` ويُنشئ `ProductClass`/`ProductLine`، ثم يقرأ `FORM_SCHEMAS[line.code]` ويكتب `FormSchema` (`baseFields = sections`، `blocks = blocks`) عبر `upsert` ([`seed.ts`](../packages/db/prisma/seed.ts) سطر 138–162).
 
-بمجرّد ذلك: الكتالوج يعرض الفرع، الواجهة تبني نموذجه تلقائياً، والـ API يتحقّق ويخزّن — **بلا سطر كود إضافي**. هذا تطبيق مباشر لمبدأ «مدفوع بمخطط» في [CLAUDE.md](../CLAUDE.md) والملحق 6.A من [BLUEPRINT.md](../BLUEPRINT.md).
+بمجرّد ذلك: الكتالوج يعرض الفرع، الواجهة تبني نموذجه تلقائياً، والـ API يتحقّق ويخزّن — **بلا سطر كود إضافي**. هذا تطبيق مباشر لمبدأ «مدفوع بمخطط» في [GUIDELINES.md](../GUIDELINES.md) والملحق 6.A من [BLUEPRINT.md](../BLUEPRINT.md).
 
 > **ملاحظة الإصدارات (Versioning):** `FormSchemaDef.version` و`FormSchema.version` يسمحان بترقية مخطط فرع مع الحفاظ على الطلبات القديمة المحقّقة ضد إصدارها. تغيير `required`/`min`/`options` ينبغي أن يرفع رقم الإصدار.
 
@@ -396,4 +396,4 @@ flowchart TD
 - [07 — وحدات الـ Backend](./07-backend-modules.md) — وحدتا `requests` و`catalog`.
 - [06 — مرجع الـ API](./06-api-reference.md) — `GET /catalog/lines/:code`, `POST /requests`.
 - [05 — الصلاحيات و Entitlements](./05-rbac-and-entitlements.md) — `module.sales` للطلبات.
-- [BLUEPRINT.md](../BLUEPRINT.md) §الملحق 6.A — كتالوج المنتجات المرجعي · [CLAUDE.md](../CLAUDE.md) §3 — قواعد العزل والمخطط.
+- [BLUEPRINT.md](../BLUEPRINT.md) §الملحق 6.A — كتالوج المنتجات المرجعي · [GUIDELINES.md](../GUIDELINES.md) §3 — قواعد العزل والمخطط.

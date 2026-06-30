@@ -50,7 +50,7 @@
 
 ## 5. النشر داخل المملكة
 
-بنية تحتية تفرض القواعد غير القابلة للتفاوض (CLAUDE.md §3):
+بنية تحتية تفرض القواعد غير القابلة للتفاوض (GUIDELINES.md §3):
 
 - **[`infra/k8s/`](../infra/k8s)**: `namespace` (موسومة in-kingdom)، `api.yaml` (3 نسخ + HPA 3→10 + فحوص `/health` + تقوية: non-root/readOnlyRootFS/إسقاط capabilities)، `web.yaml`، `ingress` (TLS عبر cert-manager)، `configmap` + `secrets.example` (قالب فقط)، `kustomization`.
 - **[`infra/terraform/`](../infra/terraform)**: هيكل حياديّ سحابياً (AWS/GCP/Alibaba) + **حارس توطين** (`precondition` يفشل إن كانت منطقة الإنتاج خارج المملكة) + خريطة وحدات (شبكة/عنقود/قاعدة/كاش/تخزين/أسرار/سجلّات) — كلها تفرض التشفير at-rest/in-transit والنسخ الاحتياطية الموطّنة.

@@ -1,6 +1,6 @@
 # 04 — الأمان وعزل المستأجرين (Security & Multi-tenancy)
 
-> يصف هذا المستند كيف تفرض منصة IBP **عزل المستأجرين** و**المصادقة** و**سجل التدقيق** و**الامتثال** (PDPL/NCA). جوهر النظام عزلٌ بثلاث طبقات: مفاتيح أجنبية على `tenantId` في قاعدة البيانات، سياق طلب عبر `AsyncLocalStorage`، و**Prisma middleware** يحقن `tenantId` في كل استعلام تلقائياً. كل ما هنا مستخرج من الكود الفعلي — المسارات مذكورة بجانب كل ادّعاء. يلتزم هذا المستند بـ [CLAUDE.md](../CLAUDE.md) §3 (العزل، الأمان، الامتثال).
+> يصف هذا المستند كيف تفرض منصة IBP **عزل المستأجرين** و**المصادقة** و**سجل التدقيق** و**الامتثال** (PDPL/NCA). جوهر النظام عزلٌ بثلاث طبقات: مفاتيح أجنبية على `tenantId` في قاعدة البيانات، سياق طلب عبر `AsyncLocalStorage`، و**Prisma middleware** يحقن `tenantId` في كل استعلام تلقائياً. كل ما هنا مستخرج من الكود الفعلي — المسارات مذكورة بجانب كل ادّعاء. يلتزم هذا المستند بـ [GUIDELINES.md](../GUIDELINES.md) §3 (العزل، الأمان، الامتثال).
 
 ## جدول المحتويات
 - [1. نظرة عامة على نموذج التهديد](#1-نظرة-عامة-على-نموذج-التهديد)
@@ -22,7 +22,7 @@
 
 ## 1. نظرة عامة على نموذج التهديد
 
-المنصة **SaaS متعددة المستأجرين** — تتعايش بيانات شركات وساطة متعددة في قاعدة بيانات واحدة. التهديد الأخطر هو **التسرّب العابر للمستأجرين** (Cross-tenant leakage): أن يرى مستخدمٌ من مستأجر بيانات مستأجر آخر، أو يعدّلها. قاعدة [CLAUDE.md](../CLAUDE.md) §3 صريحة:
+المنصة **SaaS متعددة المستأجرين** — تتعايش بيانات شركات وساطة متعددة في قاعدة بيانات واحدة. التهديد الأخطر هو **التسرّب العابر للمستأجرين** (Cross-tenant leakage): أن يرى مستخدمٌ من مستأجر بيانات مستأجر آخر، أو يعدّلها. قاعدة [GUIDELINES.md](../GUIDELINES.md) §3 صريحة:
 
 > «**كل** استعلام يُفلتر بـ `tenantId` من سياق الطلب (Prisma middleware يفرضه تلقائياً). ممنوع استعلام بلا نطاق مستأجر. العزل يُفرض في طبقة التفويض، لا بخفاء المسارات.»
 
@@ -249,7 +249,7 @@ sequenceDiagram
 
 ## 5. سجل التدقيق (Audit Log)
 
-مطلب تنظيمي ([CLAUDE.md](../CLAUDE.md) §3 و§7 #5): تُسجَّل كل عملية حسّاسة (إنشاء/تعديل/حذف، توليد رابط ملف، تحقق، اعتماد). المصدر: [`audit.service.ts`](../apps/api/src/common/audit/audit.service.ts).
+مطلب تنظيمي ([GUIDELINES.md](../GUIDELINES.md) §3 و§7 #5): تُسجَّل كل عملية حسّاسة (إنشاء/تعديل/حذف، توليد رابط ملف، تحقق، اعتماد). المصدر: [`audit.service.ts`](../apps/api/src/common/audit/audit.service.ts).
 
 ```ts
 export interface AuditParams {
@@ -287,16 +287,16 @@ export interface AuditParams {
 
 ## 6. الامتثال (PDPL / NCA)
 
-تلتزم المنصة بنظام حماية البيانات الشخصية (PDPL) وضوابط الهيئة الوطنية للأمن السيبراني (NCA)، وفق [CLAUDE.md](../CLAUDE.md) §3:
+تلتزم المنصة بنظام حماية البيانات الشخصية (PDPL) وضوابط الهيئة الوطنية للأمن السيبراني (NCA)، وفق [GUIDELINES.md](../GUIDELINES.md) §3:
 
 | المتطلّب | الحالة | المرجع |
 |---|---|---|
-| **توطين البيانات داخل المملكة** | بيانات الإنتاج (والنسخ الاحتياطية والـ logs والمرفقات) داخل المملكة فقط. التطوير ببيانات وهمية فقط؛ التكامل الحكومي عبر Sandbox | [CLAUDE.md](../CLAUDE.md) §3 — `STORAGE_REGION=me-central-1` في [.env.example](../.env.example) |
+| **توطين البيانات داخل المملكة** | بيانات الإنتاج (والنسخ الاحتياطية والـ logs والمرفقات) داخل المملكة فقط. التطوير ببيانات وهمية فقط؛ التكامل الحكومي عبر Sandbox | [GUIDELINES.md](../GUIDELINES.md) §3 — `STORAGE_REGION=me-central-1` في [.env.example](../.env.example) |
 | **التشفير in-transit** | HTTPS + `helmet()` لترويسات HTTP آمنة | [`main.ts`](../apps/api/src/main.ts) |
 | **التشفير at-rest** | تشفير قرص قاعدة البيانات/التخزين على مستوى البنية التحتية (k8s/Terraform) | [02-architecture.md](./02-architecture.md) |
 | **روابط مؤقّتة للملفات** | **Presigned URLs** بصلاحية **5 دقائق** (`PRESIGNED_URL_EXPIRY_SECONDS=300`) — تخزين S3-متوافق، لا وصول مباشر للـ bucket | [.env.example](../.env.example) (مخطّط للمرحلة 5) |
 | **سجل التدقيق** | كل عملية حسّاسة في `auditLog` (بما فيها `file_url` لتوليد الروابط) | [§5](#5-سجل-التدقيق-audit-log) |
-| **لا أسرار في الكود** | كل الأسرار من `.env`؛ يُوفَّر [.env.example](../.env.example) بقيم وهمية | [CLAUDE.md](../CLAUDE.md) §3 |
+| **لا أسرار في الكود** | كل الأسرار من `.env`؛ يُوفَّر [.env.example](../.env.example) بقيم وهمية | [GUIDELINES.md](../GUIDELINES.md) §3 |
 
 > الوصول إلى الملفات لا يكون أبداً عبر رابط دائم؛ كل تنزيل/رفع عبر **Presigned URL** قصير الأجل (5 دقائق)، وتوليد الرابط نفسه عملية حسّاسة تُسجَّل في التدقيق. هذه طبقة المرحلة 5 (التخزين) في [ROADMAP.md](../ROADMAP.md).
 
@@ -343,5 +343,5 @@ export interface AuditParams {
 - [03 — نموذج البيانات (Data Model)](./03-data-model.md) — أعمدة `tenantId` وجدول `AuditLog`
 - [05 — الصلاحيات و Entitlements](./05-rbac-and-entitlements.md) — الفحص المزدوج في `AuthorizationGuard`
 - [06 — مرجع الـ API](./06-api-reference.md) — الحماية لكل endpoint
-- [CLAUDE.md](../CLAUDE.md) §3 — القواعد غير القابلة للتفاوض
+- [GUIDELINES.md](../GUIDELINES.md) §3 — القواعد غير القابلة للتفاوض
 - الكود: [`prisma.service.ts`](../apps/api/src/prisma/prisma.service.ts) · [`tenant-context.middleware.ts`](../apps/api/src/common/middleware/tenant-context.middleware.ts) · [`request-context.service.ts`](../apps/api/src/common/request-context/request-context.service.ts) · [`audit.service.ts`](../apps/api/src/common/audit/audit.service.ts)

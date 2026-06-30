@@ -39,7 +39,7 @@ async function bootstrap() {
     .filter(Boolean);
   app.enableCors({ origin: origins, credentials: true });
 
-  // التحقق من المدخلات على حدود الـ API (CLAUDE.md §4)
+  // التحقق من المدخلات على حدود الـ API (GUIDELINES.md §4)
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,

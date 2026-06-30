@@ -1,6 +1,6 @@
 # 07 — وحدات الـ Backend (NestJS Modules)
 
-> مرجع كل وحدة (module) في خدمة الـ API (NestJS 10، Prisma 5، PostgreSQL، Redis). معماري وحدات — module لكل مجال ([CLAUDE.md](../CLAUDE.md) §5). كل وحدة تُضاف في مرحلتها بـ [ROADMAP.md](../ROADMAP.md)، ولا يُكتب كود مرحلة قبل اعتمادها (راجع [`src/modules/README.md`](../apps/api/src/modules/README.md)). كل ما هنا مستخرَج من الكود الفعلي — الملفات مذكورة بروابط نسبية.
+> مرجع كل وحدة (module) في خدمة الـ API (NestJS 10، Prisma 5، PostgreSQL، Redis). معماري وحدات — module لكل مجال ([GUIDELINES.md](../GUIDELINES.md) §5). كل وحدة تُضاف في مرحلتها بـ [ROADMAP.md](../ROADMAP.md)، ولا يُكتب كود مرحلة قبل اعتمادها (راجع [`src/modules/README.md`](../apps/api/src/modules/README.md)). كل ما هنا مستخرَج من الكود الفعلي — الملفات مذكورة بروابط نسبية.
 
 ## جدول المحتويات
 - [1. خريطة الوحدات](#1-خريطة-الوحدات)
@@ -137,7 +137,7 @@ flowchart TB
 
 **الملفات:** [`audit.service.ts`](../apps/api/src/common/audit/audit.service.ts) · [`audit.module.ts`](../apps/api/src/common/audit/audit.module.ts)
 
-**الغرض:** سجل التدقيق (Audit Trail) — مطلب تنظيمي (هيئة التأمين/PDPL، [CLAUDE.md](../CLAUDE.md) §7 #5). يكتب صفّاً في `AuditLog` لكل عملية حسّاسة.
+**الغرض:** سجل التدقيق (Audit Trail) — مطلب تنظيمي (هيئة التأمين/PDPL، [GUIDELINES.md](../GUIDELINES.md) §7 #5). يكتب صفّاً في `AuditLog` لكل عملية حسّاسة.
 
 **الخدمة `AuditService.log(params)`:**
 
@@ -176,7 +176,7 @@ flowchart TB
 
 **الملفات:** [`prisma.service.ts`](../apps/api/src/prisma/prisma.service.ts) · [`prisma.module.ts`](../apps/api/src/prisma/prisma.module.ts)
 
-**الغرض:** عميل Prisma كخدمة Nest، يحمل **middleware عزل المستأجرين** عبر `$use` — جوهر العزل ([CLAUDE.md](../CLAUDE.md) §3). يُصدَّر من حزمة `@ibp/db`.
+**الغرض:** عميل Prisma كخدمة Nest، يحمل **middleware عزل المستأجرين** عبر `$use` — جوهر العزل ([GUIDELINES.md](../GUIDELINES.md) §3). يُصدَّر من حزمة `@ibp/db`.
 
 **آلية الحارس (`installTenantGuard`):**
 
@@ -204,7 +204,7 @@ flowchart TB
 
 **الملفات:** [`redis.service.ts`](../apps/api/src/redis/redis.service.ts) · [`redis.module.ts`](../apps/api/src/redis/redis.module.ts)
 
-**الغرض:** عميل Redis (ioredis) للكاش والطوابير — يُستخدم لاحقاً مع BullMQ للتذكيرات والمهام ([CLAUDE.md](../CLAUDE.md) §2).
+**الغرض:** عميل Redis (ioredis) للكاش والطوابير — يُستخدم لاحقاً مع BullMQ للتذكيرات والمهام ([GUIDELINES.md](../GUIDELINES.md) §2).
 
 | البند | التفصيل |
 |---|---|
@@ -249,7 +249,7 @@ flowchart TB
 
 **المرحلة:** 2 · **الملفات:** [`rbac.module.ts`](../apps/api/src/modules/rbac/rbac.module.ts) · [`entitlement.service.ts`](../apps/api/src/modules/rbac/entitlement.service.ts) · [`permission.service.ts`](../apps/api/src/modules/rbac/permission.service.ts) · [`authorization.guard.ts`](../apps/api/src/modules/rbac/authorization.guard.ts) · [`authorize.decorator.ts`](../apps/api/src/modules/rbac/authorize.decorator.ts) · [`rbac.constants.ts`](../apps/api/src/modules/rbac/rbac.constants.ts)
 
-**الغرض:** محرّك الصلاحيات ببُعدين منفصلين ([CLAUDE.md](../CLAUDE.md) §3): entitlement الباقة + RBAC الدور. وحدة `@Global()` تُركّب `AuthorizationGuard` كحارس عالمي.
+**الغرض:** محرّك الصلاحيات ببُعدين منفصلين ([GUIDELINES.md](../GUIDELINES.md) §3): entitlement الباقة + RBAC الدور. وحدة `@Global()` تُركّب `AuthorizationGuard` كحارس عالمي.
 
 **الخدمات ومسؤولياتها:**
 
@@ -480,4 +480,4 @@ flowchart TB
 - [06 — مرجع الـ API](./06-api-reference.md) — كل endpoint بمدخلاته ومخرجاته.
 - [08 — دورة حياة الصفقة (Workflows)](./08-deal-lifecycle-workflows.md) — تسلسل العمليات وآلات الحالات.
 - [`src/modules/README.md`](../apps/api/src/modules/README.md) — حالة الوحدات حسب المرحلة.
-- [CLAUDE.md](../CLAUDE.md) · [ROADMAP.md](../ROADMAP.md) · [BLUEPRINT.md](../BLUEPRINT.md)
+- [GUIDELINES.md](../GUIDELINES.md) · [ROADMAP.md](../ROADMAP.md) · [BLUEPRINT.md](../BLUEPRINT.md)

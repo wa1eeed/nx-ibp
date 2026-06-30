@@ -22,7 +22,7 @@ const READ_INJECT = new Set([
 
 /**
  * عميل Prisma كخدمة Nest، مع middleware يفرض فلترة tenantId تلقائياً على كل
- * استعلام لموديل يحمل tenantId — جوهر عزل المستأجرين (CLAUDE.md §3).
+ * استعلام لموديل يحمل tenantId — جوهر عزل المستأجرين (GUIDELINES.md §3).
  * عند غياب سياق المستأجر (مثل تسجيل الدخول) يُتخطّى الفرض.
  */
 @Injectable()

@@ -15,7 +15,7 @@ export interface AuditParams {
 
 /**
  * سجل التدقيق (Audit Trail) — مطلب تنظيمي (هيئة التأمين/PDPL).
- * يُسجَّل كل عملية حسّاسة (CLAUDE.md §7 #5). فشل التدقيق لا يُفشل العملية الأصلية.
+ * يُسجَّل كل عملية حسّاسة (GUIDELINES.md §7 #5). فشل التدقيق لا يُفشل العملية الأصلية.
  */
 @Injectable()
 export class AuditService {

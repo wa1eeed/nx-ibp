@@ -724,4 +724,4 @@ erDiagram
 - [`packages/db/prisma/schema.prisma`](../packages/db/prisma/schema.prisma) — المصدر الوحيد للبنية.
 - [`packages/shared/src/rbac.ts`](../packages/shared/src/rbac.ts) — قوالب الأدوار الـ12.
 - [`BLUEPRINT.md` §8](../BLUEPRINT.md) — نظرة الكيانات الأساسية.
-- [`CLAUDE.md` §3](../CLAUDE.md) — قواعد العزل والصلاحيات.
+- [`GUIDELINES.md` §3](../GUIDELINES.md) — قواعد العزل والصلاحيات.

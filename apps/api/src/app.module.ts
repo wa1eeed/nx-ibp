@@ -38,7 +38,7 @@ import { BillingModule } from "./modules/billing/billing.module";
 import { OrgModule } from "./modules/org/org.module";
 
 /**
- * الوحدة الجذرية. معماري وحدات — module لكل مجال (CLAUDE.md §5).
+ * الوحدة الجذرية. معماري وحدات — module لكل مجال (GUIDELINES.md §5).
  * المرحلة 1: المصادقة + سياق المستأجر (ALS) + فرض tenantId عبر Prisma middleware.
  * - TenantContextMiddleware: يفكّ JWT ويضبط سياق المستأجر لكل طلب.
  * - JwtAuthGuard عالمي: يحمي كل المسارات إلا @Public.

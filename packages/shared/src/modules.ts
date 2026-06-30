@@ -47,7 +47,7 @@ export interface NavGroup {
 
 /**
  * تنقّل لوحة موظف/أدمن شركة الوساطة — مُجمَّع حسب دورة عمل الوساطة
- * (CLAUDE.md §1: مبيعات ← تسعير ← إنتاج ← خدمة ← مطالبات ← مالية) لتحسين تجربة المستخدم.
+ * (GUIDELINES.md §1: مبيعات ← تسعير ← إنتاج ← خدمة ← مطالبات ← مالية) لتحسين تجربة المستخدم.
  */
 export const TENANT_NAV: NavGroup[] = [
   // مثبَّت أعلى القائمة بلا عنوان
@@ -112,7 +112,7 @@ export const TENANT_NAV: NavGroup[] = [
   },
 ];
 
-/** وحدات الـ API (NestJS) — module لكل مجال، حسب CLAUDE.md §5. */
+/** وحدات الـ API (NestJS) — module لكل مجال، حسب GUIDELINES.md §5. */
 export const API_MODULES = [
   "auth",
   "tenants",
