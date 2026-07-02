@@ -714,7 +714,7 @@ erDiagram
 - **`isOnBalance`:** **الفصل الرقابي (On/Off-Balance)** — عزل أقساط العملاء (On-Balance) عن عمولات الوسيط (Off-Balance)، وهي الطريقة القانونية لفصل أموال العملاء (Fiduciary) المطلوبة من هيئة التأمين.
 - **`clientId`:** يُفتح حساب تحليلي للعميل في الشجرة عند الاعتماد المالي.
 
-التفصيل في [`ROADMAP.md` المرحلة 4ب](../ROADMAP.md) و [`docs/OASIS-IBS-REQUIREMENTS.md` §3](./OASIS-IBS-REQUIREMENTS.md).
+التفصيل في [`ROADMAP.md` المرحلة 4ب](../ROADMAP.md) و [`docs/broker-requirements-coverage.md` §3](./broker-requirements-coverage.md).
 
 ---
 

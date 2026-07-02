@@ -61,6 +61,14 @@ export default function ClientsPage() {
   const [nationalId, setNationalId] = useState("");
   const [email, setEmail] = useState("");
   const [city, setCity] = useState("");
+  // حقول معيارية إضافية
+  const [nationalAddress, setNationalAddress] = useState("");
+  const [vatNumber, setVatNumber] = useState("");
+  const [relationStatus, setRelationStatus] = useState("");
+  const [legalForm, setLegalForm] = useState("");
+  const [source, setSource] = useState("");
+  const [producerName, setProducerName] = useState("");
+  const [businessActivity, setBusinessActivity] = useState("");
 
   const load = useCallback(async () => {
     const cs = await api<ClientRow[]>("/clients");
@@ -89,10 +97,18 @@ export default function ClientsPage() {
           nationalId: type === "INDIVIDUAL" ? nationalId : undefined,
           email: email || undefined,
           city: city || undefined,
+          nationalAddress: nationalAddress || undefined,
+          vatNumber: vatNumber || undefined,
+          relationStatus: relationStatus || undefined,
+          legalForm: legalForm || undefined,
+          source: source || undefined,
+          producerName: source === "producer" ? (producerName || undefined) : undefined,
+          businessActivity: businessActivity || undefined,
         }),
       });
       setShowForm(false);
       setName(""); setCrNumber(""); setNationalId(""); setEmail(""); setCity("");
+      setNationalAddress(""); setVatNumber(""); setRelationStatus(""); setLegalForm(""); setSource(""); setProducerName(""); setBusinessActivity("");
       await load();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "خطأ");
@@ -179,6 +195,41 @@ export default function ClientsPage() {
           )}
           <Field label={t("clients.email")} value={email} onChange={setEmail} type="email" />
           <Field label={t("clients.table.city")} value={city} onChange={setCity} />
+          {/* حقول معيارية لوساطة التأمين */}
+          {type === "CORPORATE" ? <Field label="الرقم الضريبي (VAT)" value={vatNumber} onChange={setVatNumber} /> : null}
+          <label className="block">
+            <span className="mb-1 block text-[12px] font-medium text-muted">العلاقة</span>
+            <select value={relationStatus} onChange={(e) => setRelationStatus(e.target.value)} className="h-9 w-full rounded-lg border border-line bg-card px-2 text-[13px]">
+              <option value="">—</option>
+              <option value="captive">أسير (Captive)</option>
+              <option value="non_captive">غير أسير</option>
+            </select>
+          </label>
+          {type === "CORPORATE" ? (
+            <label className="block">
+              <span className="mb-1 block text-[12px] font-medium text-muted">الشكل القانوني</span>
+              <select value={legalForm} onChange={(e) => setLegalForm(e.target.value)} className="h-9 w-full rounded-lg border border-line bg-card px-2 text-[13px]">
+                <option value="">—</option>
+                <option value="llc">ذات مسؤولية محدودة</option>
+                <option value="joint_stock">مساهمة</option>
+                <option value="partnership">تضامن/توصية</option>
+                <option value="jv">مشروع مشترك</option>
+                <option value="joint_liability">تضامنية</option>
+                <option value="sole_proprietor">مؤسسة فردية</option>
+              </select>
+            </label>
+          ) : null}
+          <label className="block">
+            <span className="mb-1 block text-[12px] font-medium text-muted">المصدر</span>
+            <select value={source} onChange={(e) => setSource(e.target.value)} className="h-9 w-full rounded-lg border border-line bg-card px-2 text-[13px]">
+              <option value="">—</option>
+              <option value="direct">مباشر</option>
+              <option value="producer">منتِج/وسيط فرعي</option>
+            </select>
+          </label>
+          {source === "producer" ? <Field label="اسم المنتِج" value={producerName} onChange={setProducerName} /> : null}
+          <Field label="النشاط التجاري" value={businessActivity} onChange={setBusinessActivity} />
+          <Field label="العنوان الوطني" value={nationalAddress} onChange={setNationalAddress} />
           <div className="flex items-end">
             <button type="submit" disabled={saving} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary-strong px-4 text-[13px] font-semibold text-primary-fg hover:bg-primary disabled:opacity-60">
               {saving ? "…" : t("clients.create")}

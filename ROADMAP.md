@@ -1,7 +1,7 @@
 # ROADMAP.md — خطة تنفيذ منصة IBP
 
 > تُنفَّذ مرحلةً مرحلة. لا تنتقل لمرحلة قبل اكتمال السابقة واجتيازها معيار التحقق.
-> راجع `GUIDELINES.md` و`BLUEPRINT.md` و`docs/OASIS-IBS-REQUIREMENTS.md` قبل كل مرحلة. كل ميزة تخضع لـ "تعريف تمّ" في `GUIDELINES.md`.
+> راجع `GUIDELINES.md` و`BLUEPRINT.md` و`docs/broker-requirements-coverage.md` قبل كل مرحلة. كل ميزة تخضع لـ "تعريف تمّ" في `GUIDELINES.md`.
 
 ---
 

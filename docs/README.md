@@ -71,7 +71,7 @@
 | 19 | [المسرد](./19-glossary.md) | المصطلحات التأمينية والتقنية والتنظيمية |
 
 ### 📎 مراجع إضافية
-- [OASIS-IBS-REQUIREMENTS.md](./OASIS-IBS-REQUIREMENTS.md) — مصفوفة متطلّبات Oasis‑IBS (الأدوار السبعة + الامتثال)
+- [broker-requirements-coverage.md](./broker-requirements-coverage.md) — مصفوفة متطلّبات وساطة التأمين (الأدوار السبعة + الامتثال)
 
 ## الوثائق المرجعية في الجذر
 - [`GUIDELINES.md`](../GUIDELINES.md) — دستور المشروع (القواعد غير القابلة للتفاوض)

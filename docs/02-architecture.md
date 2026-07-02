@@ -249,5 +249,5 @@ flowchart LR
 - [`docs/01-overview.md`](./01-overview.md) — الرؤية ونموذج العمل واللوحات وحالة المراحل.
 - [`docs/03-data-model.md`](./03-data-model.md) — نموذج البيانات الكامل وعزل المستأجرين على مستوى الجداول.
 - [`DESIGN.md`](../DESIGN.md) — رموز التصميم والتخطيط للواجهة.
-- [`docs/OASIS-IBS-REQUIREMENTS.md`](./OASIS-IBS-REQUIREMENTS.md) — المتطلبات الفنية والأمنية المتتبَّعة.
+- [`docs/broker-requirements-coverage.md`](./broker-requirements-coverage.md) — المتطلبات الفنية والأمنية المتتبَّعة.
 - [`GUIDELINES.md`](../GUIDELINES.md) — القواعد غير القابلة للتفاوض (العزل، الأمان، الصلاحيات).

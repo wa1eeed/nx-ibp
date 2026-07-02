@@ -63,11 +63,19 @@ describe("الإصدار والاعتماد المالي (e2e)", () => {
   it("الشلال الكامل: إصدار ← فني ← مالي ⇒ قيد متوازن + إشعار + فاتورة", async () => {
     const requestId = await createAwardedRequest();
 
-    // 1) الإصدار (المكتتب)
-    const policy = (await request(app.getHttpServer()).post("/policies/issue").set(auth(underwriter)).send({ requestId, branchCode: "RUH" }).expect(201)).body;
+    // 1) الإصدار (المكتتب) — مع الحقول المعيارية للوثيقة
+    const policy = (await request(app.getHttpServer()).post("/policies/issue").set(auth(underwriter))
+      .send({ requestId, branchCode: "RUH", insurerPolicyNo: "POL-INS-2026-99", issuanceType: "POLICY", sumInsured: 500000, policyFees: 250, paymentTerms: "دفعة واحدة خلال 7 أيام", producerName: "وسيط فرعي", producerCommission: 500 })
+      .expect(201)).body;
     expect(policy.sequenceNo).toMatch(/^POL-RUH-MED-/);
     expect(policy.status).toBe("TECHNICAL_REVIEW");
     expect(Number(policy.commissionAmount)).toBe(7500); // 60000 × 12.5%
+    // الحقول المعيارية محفوظة
+    expect(policy.insurerPolicyNo).toBe("POL-INS-2026-99");
+    expect(Number(policy.sumInsured)).toBe(500000);
+    expect(policy.issuanceType).toBe("POLICY");
+    expect(policy.issueDate).toBeTruthy();
+    expect(policy.paymentTerms).toBe("دفعة واحدة خلال 7 أيام");
 
     // 2) المحاسب لا يستطيع الاعتماد قبل الموافقة الفنية المنطقية، لكنه ممنوع أصلاً من الإصدار/الفني (production)
     await request(app.getHttpServer()).post(`/policies/${policy.id}/approve-technical`).set(auth(accountant)).expect(403);

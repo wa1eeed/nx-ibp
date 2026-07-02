@@ -79,6 +79,7 @@
 - [x] **D1** حصص تخزين لكل مستأجر + حجز ذرّي + تلميتري: `TenantStorage` (عدّاد usedBytes/fileCount، migration `tenant_storage`) + entitlement `storage.quotaMb` (1/10/100GB) + **حجز ذرّي** (UPDATE بحارس WHERE يمنع التجاوز تحت التزامن) + مطابقة بعد الرفع + `GET /documents/usage` + شريط استهلاك في صفحة الفوترة. مُتحقَّق حيًّا (`storage-quota.e2e` 5/5)
 - [~] **D2** ضغط Sharp (WebP/80%/≤1200px): ✅ المسار المحلي — `StorageService.maybeCompress` عبر `sharp` في `receiveBlob` (يحترم EXIF، لا يكبّر الحجم، الحصّة تُطابَق بالحجم المضغوط)، `image-compression.e2e` 2/2 · [ ] **D2-later** ضغط الرفع السحابي المباشر (worker خلفي: ينزّل/يضغط/يرفع)
 - [ ] **D3** CDN/Zero-Egress + خيار سيادة البيانات لكل مستأجر
+- [x] **E0** إثراء حقول المؤمن له/الوثيقة (وفق مواصفة متطلبات الوساطة): العميل (+relationStatus/legalForm/source/producerName/businessActivity/vatNumber/iban/contacts) والوثيقة (+insurerPolicyNo/issuanceType/issueDate/policyFees/sumInsured/paymentTerms/producer*). API+DTO+UI نموذج العميل. مُتحقَّق حيًّا (`broker-fields.e2e` + `finance.e2e`)
 - [ ] **E1** ضريبة حسب فرع التأمين (إعفاء الحياة)
 - [ ] **E2** سلاسل اعتماد قابلة للتهيئة
 - [ ] **E3** تنبيهات انتقالات الحالة

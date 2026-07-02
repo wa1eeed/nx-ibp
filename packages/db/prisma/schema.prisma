@@ -321,6 +321,15 @@ model Client {
   phone            String?
   city             String?
   nationalAddress  String?
+  // حقول معيارية لوساطة التأمين (إثراء سجل المؤمن له)
+  vatNumber        String? // الرقم الضريبي (15 رقماً للمنشآت)
+  relationStatus   String? // captive | non_captive (أسير/غير أسير)
+  legalForm        String? // llc | joint_stock | partnership | jv | joint_liability | sole_proprietor | individual
+  source           String? // direct | producer (مصدر العميل)
+  producerName     String? // اسم المنتِج/الوسيط الفرعي عند source=producer
+  businessActivity String? // النشاط التجاري
+  iban             String? // للاسترداد/الدفعات
+  contacts         Json? // قائمة جهات الاتصال: [{ name, title, phone, email }]
   status           String?          @default("active")
   complianceStatus ComplianceStatus @default(PENDING)
   complianceNote   String?
@@ -506,6 +515,15 @@ model Policy {
   totalPremium     Decimal?      @db.Decimal(14, 2)
   commissionRate   Decimal?      @db.Decimal(6, 3)
   commissionAmount Decimal?      @db.Decimal(14, 2)
+  // حقول معيارية للوثيقة (إثراء سجل الوثيقة)
+  insurerPolicyNo    String? // رقم الوثيقة الرسمي الصادر من المؤمِّن
+  issuanceType       String        @default("POLICY") // POLICY | RENEWAL | ENDORSEMENT
+  issueDate          DateTime? // تاريخ الإصدار (يختلف عن بدء التغطية)
+  policyFees         Decimal?      @db.Decimal(14, 2) // رسوم إصدار الوثيقة
+  sumInsured         Decimal?      @db.Decimal(16, 2) // مبلغ التأمين الإجمالي
+  paymentTerms       String? // شروط/جدول السداد
+  producerName       String? // المنتِج (الوسيط الفرعي)
+  producerCommission Decimal?      @db.Decimal(14, 2) // عمولة المنتِج (من عمولة الوسيط)
   status           PolicyStatus  @default(TECHNICAL_REVIEW)
   startDate        DateTime?
   endDate          DateTime?

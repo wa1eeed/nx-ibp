@@ -20,7 +20,7 @@
 | **PDPL** | حماية البيانات الشخصية | عزل/تشفير: 1+ · توطين: 9 |
 | **NCA (ECC/CCC/DCC)** | الأمن السيبراني | جارٍ عبر المراحل |
 
-> اعتُمدت تسمية «هيئة التأمين» بدل «ساما» في كل الوثائق (انظر [`docs/OASIS-IBS-REQUIREMENTS.md`](./OASIS-IBS-REQUIREMENTS.md)).
+> اعتُمدت تسمية «هيئة التأمين» بدل «ساما» في كل الوثائق (انظر [`docs/broker-requirements-coverage.md`](./broker-requirements-coverage.md)).
 
 ## 2. فصل أموال العملاء (Fiduciary)
 
@@ -62,6 +62,6 @@
 | KYC/KYB | طبقة التحقّق | المرحلة 7 |
 
 ## انظر أيضاً
-- [`docs/OASIS-IBS-REQUIREMENTS.md`](./OASIS-IBS-REQUIREMENTS.md) — مصفوفة المتطلّبات الكاملة
+- [`docs/broker-requirements-coverage.md`](./broker-requirements-coverage.md) — مصفوفة المتطلّبات الكاملة
 - [04 — الأمان وعزل المستأجرين](./04-security-and-multitenancy.md) · [03 — نموذج البيانات](./03-data-model.md)
 - [`BLUEPRINT.md`](../BLUEPRINT.md) §7 — التكاملات والامتثال

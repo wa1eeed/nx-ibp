@@ -2,7 +2,7 @@
 
 > بعد إنشاء الطلب ([09](./09-dynamic-form-engine.md)) واعتماد العميل من الالتزام، يدخل الوسيط مرحلة **الاكتتاب الفني**: يُعدّ طلب أسعار (Slip/RFQ) ويرسله لعدّة شركات تأمين، يستقبل عروضها، يقارنها آلياً، ثم يُصدر **أمر الإسناد (Firm Order)** على العرض المختار فيصبح الطلب جاهزاً للإصدار (المرحلة 4ب). هذا المستند يوثّق المرحلة 4أ حرفياً من الكود.
 >
-> المصادر الفعلية: المنطق في [`slips.service.ts`](../apps/api/src/modules/underwriting/slips.service.ts)؛ المسارات في [`slips.controller.ts`](../apps/api/src/modules/underwriting/slips.controller.ts)؛ المدخلات في [`dto/`](../apps/api/src/modules/underwriting/dto/)؛ الكيانات في [schema.prisma](../packages/db/prisma/schema.prisma) (سطر 330–406)؛ المنضدة في [`slips/[id]/page.tsx`](../apps/web/src/app/[locale]/tenant/slips/[id]/page.tsx)؛ الاختبار في [`underwriting.e2e-spec.ts`](../apps/api/test/underwriting.e2e-spec.ts). المرجع الوظيفي: [OASIS-IBS-REQUIREMENTS.md](./OASIS-IBS-REQUIREMENTS.md) (الجدول 1 / الدور الرابع Underwriter).
+> المصادر الفعلية: المنطق في [`slips.service.ts`](../apps/api/src/modules/underwriting/slips.service.ts)؛ المسارات في [`slips.controller.ts`](../apps/api/src/modules/underwriting/slips.controller.ts)؛ المدخلات في [`dto/`](../apps/api/src/modules/underwriting/dto/)؛ الكيانات في [schema.prisma](../packages/db/prisma/schema.prisma) (سطر 330–406)؛ المنضدة في [`slips/[id]/page.tsx`](../apps/web/src/app/[locale]/tenant/slips/[id]/page.tsx)؛ الاختبار في [`underwriting.e2e-spec.ts`](../apps/api/test/underwriting.e2e-spec.ts). المرجع الوظيفي: [broker-requirements-coverage.md](./broker-requirements-coverage.md) (الجدول 1 / الدور الرابع Underwriter).
 
 ## جدول المحتويات
 
@@ -119,7 +119,7 @@ stateDiagram-v2
 - **مرونة النص الحر** (`generalRemarks` + `additionalConditions` + `coverFields` كـ JSON) ⇒ يستوعب أي شرط لا يمكن حصره مسبقاً، فلا نُكرِه شركات التأمين على قالب جامد.
 - **ذكاء المقارنة الآلية** (`rate`/`premium`/`vat`/`totalPremium`/`deductible`/`limit` كأعمدة معيارية) ⇒ يتيح جدول مقارنة وترشيح أرخص عرض آلياً بلا قراءة بشرية لكل نص.
 
-> **مطابقة الجدول 6 في وثيقة Oasis:** يقابل هذا الدور الرابع (Underwriter) في [OASIS-IBS-REQUIREMENTS.md](./OASIS-IBS-REQUIREMENTS.md): *«طلبات الأسعار (Slips/RFQ)، جدول المقارنات، إدخال الوثيقة/الملحق، الموافقة الفنية»*. التصميم الهجين هو ما يجعل «جدول المقارنات» ممكناً مع الإبقاء على حرية الشروط — وهو ما تتطلّبه وثيقة Oasis لجدول مقارنة العروض في دورة الاكتتاب.
+> **مطابقة الجدول 6 في المواصفة المرجعية:** يقابل هذا الدور الرابع (Underwriter) في [broker-requirements-coverage.md](./broker-requirements-coverage.md): *«طلبات الأسعار (Slips/RFQ)، جدول المقارنات، إدخال الوثيقة/الملحق، الموافقة الفنية»*. التصميم الهجين هو ما يجعل «جدول المقارنات» ممكناً مع الإبقاء على حرية الشروط — وهو ما تتطلّبه المواصفة المرجعية لجدول مقارنة العروض في دورة الاكتتاب.
 
 لو اعتمدنا نصاً حراً بحتاً لاستحالت المقارنة الآلية؛ ولو اعتمدنا حقولاً معيارية بحتة لما اتّسعت لتنوّع الشروط الواقعية. الهجين يأخذ الأفضل من الاثنين.
 
@@ -177,7 +177,7 @@ if (request.client.complianceStatus !== "APPROVED") {
 }
 ```
 
-⇒ يصل العميل **HTTP 409**. هذا يعكس متطلب وثيقة Oasis: الدور الثالث (Compliance Officer) يملك *«قبول/رفض قانوني قبل طلب الأسعار»* ([OASIS-IBS-REQUIREMENTS.md](./OASIS-IBS-REQUIREMENTS.md) الجدول 1). البوّابة تُفرض في طبقة الخدمة، لا بإخفاء المسار — حتى مكتتب مخوَّل لا يستطيع تجاوزها إن لم يُعتمد العميل. (الاختبار يثبت السيناريو العكسي أيضاً: عميل أُلغي اعتماده ⇒ 409.)
+⇒ يصل العميل **HTTP 409**. هذا يعكس متطلب المواصفة المرجعية: الدور الثالث (Compliance Officer) يملك *«قبول/رفض قانوني قبل طلب الأسعار»* ([broker-requirements-coverage.md](./broker-requirements-coverage.md) الجدول 1). البوّابة تُفرض في طبقة الخدمة، لا بإخفاء المسار — حتى مكتتب مخوَّل لا يستطيع تجاوزها إن لم يُعتمد العميل. (الاختبار يثبت السيناريو العكسي أيضاً: عميل أُلغي اعتماده ⇒ 409.)
 
 ---
 
@@ -279,7 +279,7 @@ sequenceDiagram
 | `details` | Json? | تفاصيل الملحق |
 | `status` | `RequestStatus` | يعيد استخدام آلة حالات الطلب |
 
-يقابل هذا *«إدخال الوثيقة/الملحق»* في دور المكتتب بوثيقة Oasis. الكيان حاضر ليُبنى منطقه فوقه في 4ب دون migration هيكلي جديد — تماشياً مع نهج «التهيئة المبكرة للبنية» في [ROADMAP.md](../ROADMAP.md).
+يقابل هذا *«إدخال الوثيقة/الملحق»* في دور المكتتب بالمواصفة المرجعية. الكيان حاضر ليُبنى منطقه فوقه في 4ب دون migration هيكلي جديد — تماشياً مع نهج «التهيئة المبكرة للبنية» في [ROADMAP.md](../ROADMAP.md).
 
 ---
 
@@ -292,4 +292,4 @@ sequenceDiagram
 - [05 — الصلاحيات و Entitlements](./05-rbac-and-entitlements.md) — الفحص المزدوج على `module.production`.
 - [04 — الأمان وتعدد المستأجرين](./04-security-and-multitenancy.md) — العزل والتدقيق.
 - [03 — نموذج البيانات](./03-data-model.md) — `Slip`, `Quotation`, `Endorsement` و enums حالاتها.
-- [OASIS-IBS-REQUIREMENTS.md](./OASIS-IBS-REQUIREMENTS.md) — الدور الرابع (Underwriter) ومصفوفة دورة العمل · [ROADMAP.md](../ROADMAP.md) §4أ/4ب.
+- [broker-requirements-coverage.md](./broker-requirements-coverage.md) — الدور الرابع (Underwriter) ومصفوفة دورة العمل · [ROADMAP.md](../ROADMAP.md) §4أ/4ب.
