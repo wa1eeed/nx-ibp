@@ -58,7 +58,8 @@
       "branding": "Branding",
       "staff": "Staff",
       "integrations": "Integrations",
-      "notifications": "Notifications"
+      "notifications": "Notifications",
+      "approvalChain": "Approval chain"
     }
   },
   "topbar": {
@@ -350,6 +351,24 @@
     "markAll": "Mark all read",
     "empty": "No notifications yet",
     "viewAll": "View all"
+  },
+  "approvalChain": {
+    "title": "Policy approval chain",
+    "subtitle": "Extra approval steps between technical and finance approval — set by the account owner",
+    "defaultNote": "No extra steps — the policy flows directly: technical approval ⇐ finance approval.",
+    "flowTechnical": "Technical approval",
+    "flowFinance": "Finance approval",
+    "stepName": "Step name",
+    "module": "Authorized module",
+    "action": "Required permission",
+    "add": "Add step",
+    "remove": "Remove",
+    "save": "Save chain",
+    "saved": "Saved ✅",
+    "error": "Could not save",
+    "namePlaceholder": "e.g. Manager approval",
+    "actions": { "read": "View", "create": "Create", "update": "Edit", "delete": "Delete" },
+    "modules": { "dashboard": "Dashboard", "sales": "Sales", "clients": "Clients", "production": "Production", "renewals": "Renewals", "service": "Service", "claims": "Claims", "finance": "Finance", "reports": "Reports", "compliance": "Compliance", "hr": "HR", "settings": "Settings" }
   },
   "staff": {
     "title": "Staff",

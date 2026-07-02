@@ -22,6 +22,7 @@ import {
   Plug,
   CreditCard,
   Network,
+  ListChecks,
   type LucideIcon,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -50,6 +51,7 @@ const ICONS: Record<string, LucideIcon> = {
   Plug,
   CreditCard,
   Network,
+  ListChecks,
 };
 
 export function Sidebar() {
