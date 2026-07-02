@@ -20,11 +20,11 @@
 | **التخزين السحابي** | `STORAGE_DRIVER=s3\|r2` + `STORAGE_ENDPOINT/BUCKET/ACCESS_KEY/SECRET_KEY/REGION` | دلو **داخل المملكة** |
 | **الدفع (Tap)** | `BILLING_GATEWAY=tap` + `TAP_SECRET_KEY=sk_live_…` | حساب Tap إنتاجي |
 | **ZATCA Fatoora** | `ZATCA_DEFAULT_ENV=Production` + إتمام خطّ التهيئة الحقيقي (CSR/CSID) | اعتماد الهيئة + شهادات |
-| **الإشعارات SMS** | `NOTIFY_GATEWAY=<provider>` + مفاتيح | حساب Unifonic/مزوّد سعودي |
-| **الإشعارات Email** | `NOTIFY_GATEWAY=<provider>` + SMTP/SES | مزوّد بريد (SES/SMTP) |
+| **الإشعارات SMS (Taqnyat)** | `NOTIFY_GATEWAY=live` + `TAQNYAT_API_KEY` + `TAQNYAT_SENDER` | حساب Taqnyat + اسم مُرسِل معتمد |
+| **الإشعارات Email (Resend)** | `NOTIFY_GATEWAY=live` + `RESEND_API_KEY` + `NOTIFY_EMAIL_FROM` | حساب Resend + نطاق مُوثَّق |
 | **التحقق (يقين/نفاذ)** | مفاتيح المزوّد | حسابات الربط الحكومي |
 
-> **حاليًا:** كل ما سبق يعمل بـ Sandbox؛ توصيل المزوّد الفعلي يتطلّب حساباته/مفاتيحه (خارجة عن الكود). محوّلات Tap/S3/ZATCA جاهزة؛ محوّلات SMS/Email الفعلية تُضاف كـ adapter بنفس النمط عند اختيار المزوّد.
+> **حاليًا:** كل ما سبق يعمل بـ Sandbox؛ توصيل المزوّد الفعلي يتطلّب حساباته/مفاتيحه (خارجة عن الكود). **محوّلات Tap/S3/ZATCA/Taqnyat/Resend جاهزة في الكود** — الإطلاق = إضافة المفتاح وتبديل `*_GATEWAY=live/tap/s3`.
 
 ### ج) الأمن والامتثال (NCA ECC/CCC + هيئة التأمين — [30 §5.5](./30-security-and-compliance.md))
 - [x] عزل 3 طبقات · RBAC دقيق · **سجل تدقيق ثابت + IP** · **MFA لسوبر أدمن المنصة** · تشفير الأسرار.

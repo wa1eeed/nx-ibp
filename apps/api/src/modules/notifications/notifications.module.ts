@@ -1,18 +1,18 @@
 import { Module } from "@nestjs/common";
 import { NotificationsService } from "./notifications.service";
 import { NotificationsController } from "./notifications.controller";
-import { NOTIFICATION_GATEWAY, SandboxNotificationGateway } from "./notification.gateway";
+import { NOTIFICATION_GATEWAY, SandboxNotificationGateway, LiveNotificationGateway } from "./notification.gateway";
 
 /**
  * نظام الإشعارات (المرحلة H) — إعدادات لكل نوع/قناة (Email/SMS) بمستويين
- * (منصّة/شركة) + بوّابة إرسال قابلة للتبديل. NotificationsService مُصدَّر
- * لتستهلكه لوحة المنصة والموديولز عند الأحداث.
+ * (منصّة/شركة) + بوّابة إرسال قابلة للتبديل: NOTIFY_GATEWAY=live ⇒ Taqnyat(SMS)
+ * + Resend(Email)؛ غير ذلك Sandbox. NotificationsService مُصدَّر للوحة والموديولز.
  */
 @Module({
   controllers: [NotificationsController],
   providers: [
     NotificationsService,
-    { provide: NOTIFICATION_GATEWAY, useClass: SandboxNotificationGateway },
+    { provide: NOTIFICATION_GATEWAY, useFactory: () => (process.env.NOTIFY_GATEWAY === "live" ? new LiveNotificationGateway() : new SandboxNotificationGateway()) },
   ],
   exports: [NotificationsService],
 })

@@ -2,6 +2,10 @@
 
 كل التغييرات الملموسة في منصة IBP، منظّمة حسب المراحل. الصيغة مستلهمة من [Keep a Changelog](https://keepachangelog.com).
 
+## [الإطلاق] — دليل الإطلاق + محوّل إشعارات فعلي (Taqnyat/Resend) ✅
+- **[`docs/33` — دليل الإطلاق](./docs/33-launch-runbook.md)**: قائمة ما قبل الإطلاق (بنية/نشر · توصيل التكاملات Sandbox⇒Production · أمن/امتثال NCA · بيانات) + go-live + التراجع.
+- **محوّل إشعارات فعلي `LiveNotificationGateway`** (بلا تبعية، `fetch`): **SMS عبر Taqnyat** (`POST /v1/messages`) + **Email عبر Resend** (`POST /emails`) — يُفعَّل بـ `NOTIFY_GATEWAY=live` + المفاتيح. بناء الطلب مفصول ومُختبَر دون شبكة (`notification-gateway.e2e` 3). متغيّرات `TAQNYAT_*`/`RESEND_*` في [`.env.example`](./.env.example). الإجمالي **e2e 163/163** (25 ملفًا).
+
 ## [المرحلة H] — نظام الإشعارات والرسائل (Email/SMS) ✅ (النواة)
 - **`NotificationSetting`** بمستويين: **افتراضي المنصة** (يديره سوبر أدمن المنصة، يرثه كل الحسابات) و**تخصيص الشركة** (يديره مالك الحساب فوق الافتراضي). 7 أنواع (ترحيب/إصدار وثيقة/إشعار مدين/فاتورة/استلام طلب/استلام مطالبة/تذكير تجديد) × قناتين (Email/SMS). migration `notification_settings`.
 - **`NotificationsService`**: `list` (دمج التخصيص←الافتراضي←النظام مع مصدر كل إعداد) · `update` (upsert لكل مستوى) · `notify(tenantId, key, to, vars)` يحترم تفعيل القناة ويعبّئ المتغيّرات ويرسل عبر **بوّابة قابلة للتبديل** (`SandboxNotificationGateway` الآن؛ مزوّد فعلي لاحقًا).
