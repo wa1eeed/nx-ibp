@@ -33,7 +33,7 @@ model Tenant {
   nameEn       String?
   crNumber     String? // السجل التجاري لشركة الوساطة
   status       TenantStatus @default(ACTIVE)
-  billingModel BillingModel @default(PASS_THROUGH) // فوترة التحقق: ممر/إعادة بيع
+  billingModel BillingModel @default(PASS_THROUGH) // نموذج التحقق: عبر حسابات الشركة نفسها (PASS_THROUGH) أو عبر المنصة برسوم+هامش (RESELLER)
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
@@ -80,8 +80,8 @@ enum TenantStatus {
 }
 
 enum BillingModel {
-  PASS_THROUGH
-  RESELLER
+  PASS_THROUGH // التحقق عبر حسابات الشركة في يقين/نفاذ (المنصة لا تفوتر التحقق)
+  RESELLER // التحقق عبر المنصة: تُطبَّق الرسوم + هامش المنصة (محفظة مسبقة الشحن)
 }
 
 model Plan {

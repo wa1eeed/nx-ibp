@@ -491,7 +491,7 @@
       "view": "View",
       "col": { "name": "Account", "owner": "Account owner", "plan": "Plan", "seats": "Seats", "usage": "Usage", "billing": "Billing model", "status": "Status" }
     },
-    "billingModel": { "PASS_THROUGH": "Pass-through", "RESELLER": "Reseller" },
+    "billingModel": { "PASS_THROUGH": "Company's own accounts", "RESELLER": "Via platform (fees + margin)" },
     "tenantDetail": {
       "title": "Account details",
       "back": "Back to list",

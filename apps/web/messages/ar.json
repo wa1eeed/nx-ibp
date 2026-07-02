@@ -491,7 +491,7 @@
       "view": "عرض",
       "col": { "name": "الحساب", "owner": "مالك الحساب", "plan": "الباقة", "seats": "المقاعد", "usage": "الاستخدام", "billing": "نموذج الفوترة", "status": "الحالة" }
     },
-    "billingModel": { "PASS_THROUGH": "تمرير بالتكلفة", "RESELLER": "إعادة بيع" },
+    "billingModel": { "PASS_THROUGH": "عبر حسابات الشركة (يقين/نفاذ)", "RESELLER": "عبر المنصة (رسوم + هامش)" },
     "tenantDetail": {
       "title": "تفاصيل الحساب",
       "back": "عودة للقائمة",
