@@ -3,6 +3,7 @@ import { Prisma } from "@ibp/db";
 import { PrismaService } from "../../prisma/prisma.service";
 import { SequenceService } from "../../common/sequence/sequence.service";
 import { AuditService } from "../../common/audit/audit.service";
+import { NotificationsService } from "../notifications/notifications.service";
 import type { CreateClaimDto } from "./dto/claim.dto";
 
 const asJson = (v: unknown) => v as Prisma.InputJsonValue;
@@ -21,6 +22,7 @@ export class ClaimsService {
     private readonly prisma: PrismaService,
     private readonly seq: SequenceService,
     private readonly audit: AuditService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   list() {
@@ -51,6 +53,11 @@ export class ClaimsService {
       select: FIELDS,
     });
     await this.audit.log({ tenantId, userId, action: "create", entity: "claim", entityId: claim.id, meta: { sequenceNo } });
+    // إشعار العميل باستلام مطالبته (لا يُفشل إنشاء المطالبة عند تعذّره)
+    if (claim.clientId) {
+      const client = await this.prisma.client.findFirst({ where: { id: claim.clientId }, select: { email: true, phone: true } });
+      if (client) void this.notifications.notify(tenantId, "claim_ack", { email: client.email ?? undefined, phone: client.phone ?? undefined }, { ref: sequenceNo }).catch(() => undefined);
+    }
     return claim;
   }
 

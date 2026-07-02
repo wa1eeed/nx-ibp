@@ -2,6 +2,16 @@
 
 كل التغييرات الملموسة في منصة IBP، منظّمة حسب المراحل. الصيغة مستلهمة من [Keep a Changelog](https://keepachangelog.com).
 
+## [المرحلة E3] — ربط أحداث الإشعارات التلقائية بدورة العمل ✅
+- **إشعارات مُطلَقة تلقائيًا عند انتقالات الحالة** عبر `NotificationsService.notify` — كلها **fire-and-forget** (`void … .catch()`) فلا تُفشِل العملية الأصل عند تعذّر الإرسال، وتجلب `email/phone` للعميل ثم ترسل حسب القنوات المفعّلة والنص المُهيّأ لكل مستأجر:
+  - **`debit_note`** — عند الاعتماد المالي للوثيقة (`FinanceService.approvePolicy`، **بعد تثبيت المعاملة**) ⇒ إشعار العميل برقم إشعار المدين.
+  - **`request_ack`** — عند إنشاء طلب خدمة (`ServiceService.create`) ⇒ استلام الطلب.
+  - **`claim_ack`** — عند إنشاء مطالبة (`ClaimsService.create`) ⇒ استلام المطالبة.
+  - **`renewal_reminder`** — عند بدء تجديد (`RenewalsService.initiate`) ⇒ تذكير باستحقاق تجديد الوثيقة.
+  - (`policy_issued` كان موصولًا سابقًا عند إصدار الوثيقة.)
+- كل موديول مُطلِق يستورد `NotificationsModule` ويحقن `NotificationsService`. `tax_invoice` للمؤمِّن مؤجّل (لا جهة اتصال للمؤمِّن في النموذج الحالي).
+- الإجمالي **e2e 163/163** (25 ملفًا) دون تراجع — الطبيعة اللاحاجزة للإشعارات تضمن عدم تأثّر المسارات القائمة.
+
 ## [الإطلاق] — دليل الإطلاق + محوّل إشعارات فعلي (Taqnyat/Resend) ✅
 - **[`docs/33` — دليل الإطلاق](./docs/33-launch-runbook.md)**: قائمة ما قبل الإطلاق (بنية/نشر · توصيل التكاملات Sandbox⇒Production · أمن/امتثال NCA · بيانات) + go-live + التراجع.
 - **محوّل إشعارات فعلي `LiveNotificationGateway`** (بلا تبعية، `fetch`): **SMS عبر Taqnyat** (`POST /v1/messages`) + **Email عبر Resend** (`POST /emails`) — يُفعَّل بـ `NOTIFY_GATEWAY=live` + المفاتيح. بناء الطلب مفصول ومُختبَر دون شبكة (`notification-gateway.e2e` 3). متغيّرات `TAQNYAT_*`/`RESEND_*` في [`.env.example`](./.env.example). الإجمالي **e2e 163/163** (25 ملفًا).

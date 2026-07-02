@@ -3,6 +3,7 @@ import { Prisma } from "@ibp/db";
 import { PrismaService } from "../../prisma/prisma.service";
 import { SequenceService } from "../../common/sequence/sequence.service";
 import { AuditService } from "../../common/audit/audit.service";
+import { NotificationsService } from "../notifications/notifications.service";
 import { zatcaPackage } from "../../common/zatca/zatca.util";
 import { ZatcaBillingService } from "./zatca/zatca-billing.service";
 import { ZatcaInvoiceRouter } from "./zatca/zatca-invoice.router";
@@ -29,6 +30,7 @@ export class FinanceService {
     private readonly audit: AuditService,
     private readonly zatcaBilling: ZatcaBillingService,
     private readonly zatcaRouter: ZatcaInvoiceRouter,
+    private readonly notifications: NotificationsService,
   ) {}
 
   listVouchers() {
@@ -256,6 +258,12 @@ export class FinanceService {
     // توجيه مستندات ZATCA بعد تثبيت المعاملة (مقاصة B2B فوراً / إبلاغ B2C خلفياً)
     for (const docId of result.billing) {
       await this.zatcaRouter.route(docId).catch((e) => this.logger.warn(`ZATCA routing failed for ${docId}: ${e?.message}`));
+    }
+
+    // إشعار العميل بإصدار إشعار المدين (لا يُفشل الاعتماد المالي عند تعذّره)
+    if (policy.clientId) {
+      const contact = await this.prisma.client.findFirst({ where: { id: policy.clientId }, select: { email: true, phone: true } });
+      if (contact) void this.notifications.notify(tenantId, "debit_note", { email: contact.email ?? undefined, phone: contact.phone ?? undefined }, { ref: String(result.debitNote) }).catch(() => undefined);
     }
 
     return { policyId, status: "ISSUED", voucher: result.voucher, debitNote: result.debitNote, invoice: result.invoice, billingDocuments: result.billing.length };

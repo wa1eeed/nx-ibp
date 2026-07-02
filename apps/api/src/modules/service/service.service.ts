@@ -3,6 +3,7 @@ import { Prisma } from "@ibp/db";
 import { PrismaService } from "../../prisma/prisma.service";
 import { SequenceService } from "../../common/sequence/sequence.service";
 import { AuditService } from "../../common/audit/audit.service";
+import { NotificationsService } from "../notifications/notifications.service";
 import type { CreateServiceRequestDto } from "./dto/service.dto";
 
 const asJson = (v: unknown) => v as Prisma.InputJsonValue;
@@ -21,6 +22,7 @@ export class ServiceService {
     private readonly prisma: PrismaService,
     private readonly seq: SequenceService,
     private readonly audit: AuditService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   list() {
@@ -43,6 +45,11 @@ export class ServiceService {
       select: FIELDS,
     });
     await this.audit.log({ tenantId, userId, action: "create", entity: "service_request", entityId: sr.id, meta: { type: dto.type, sequenceNo } });
+    // إشعار العميل باستلام طلب الخدمة (لا يُفشل إنشاء الطلب عند تعذّره)
+    if (sr.clientId) {
+      const client = await this.prisma.client.findFirst({ where: { id: sr.clientId }, select: { email: true, phone: true } });
+      if (client) void this.notifications.notify(tenantId, "request_ack", { email: client.email ?? undefined, phone: client.phone ?? undefined }, { ref: sequenceNo }).catch(() => undefined);
+    }
     return sr;
   }
 

@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
 import { SequenceService } from "../../common/sequence/sequence.service";
 import { AuditService } from "../../common/audit/audit.service";
+import { NotificationsService } from "../notifications/notifications.service";
 
 /**
  * التجديدات (المرحلة 6): عرض الوثائق المستحقّة للتجديد ضمن نافذة زمنية،
@@ -13,6 +14,7 @@ export class RenewalsService {
     private readonly prisma: PrismaService,
     private readonly seq: SequenceService,
     private readonly audit: AuditService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   /** الوثائق المُصدَرة المنتهية خلال (days) يوماً. */
@@ -43,6 +45,11 @@ export class RenewalsService {
       select: { id: true, sequenceNo: true, type: true, status: true, policyId: true, tenantId: true },
     });
     await this.audit.log({ tenantId, userId, action: "create", entity: "renewal", entityId: sr.id, meta: { policyId } });
+    // تذكير العميل باستحقاق تجديد وثيقته (لا يُفشل بدء التجديد عند تعذّره)
+    if (policy.clientId) {
+      const client = await this.prisma.client.findFirst({ where: { id: policy.clientId }, select: { email: true, phone: true } });
+      if (client) void this.notifications.notify(tenantId, "renewal_reminder", { email: client.email ?? undefined, phone: client.phone ?? undefined }, { ref: String(policy.sequenceNo ?? sequenceNo) }).catch(() => undefined);
+    }
     return sr;
   }
 }
