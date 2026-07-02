@@ -33,7 +33,9 @@
 | [`regulatory.e2e-spec.ts`](../apps/api/test/regulatory.e2e-spec.ts) | 7 | **ZATCA** (فكّ TLV للحقول الخمسة)، الملخّص المالي/الأمانات، شجرة الحسابات، الذمم، لوحة الالتزام (`module.compliance` ⇒ 403)، حالة التكاملات (Sandbox) |
 | [`zatca.e2e-spec.ts`](../apps/api/test/zatca.e2e-spec.ts) | 8 | **ZATCA المرحلة 2**: عزل التهيئة وسلسلة التجزئة، 422 لرقم ضريبي خاطئ، خطّ التهيئة (CSR⇒OTP⇒Compliance⇒ACTIVE)، توليد المستندات (UUID/عدّاد/تجزئة/QR)، التوجيه B2B/B2C |
 
-**الإجمالي: 103 اختباراً (13 ملفاً).**
+**ملفات ما بعد الاكتمال** (هذه الجلسة): `security` · `mfa` · `signup` · `billing` · `org` · `storage-s3` · `storage-quota` · `image-compression` · `broker-fields` · `audit-immutable` · `notifications` — تغطّي التحصين الأمني (قفل/MFA)، التسجيل الذاتي، الفوترة (Tap seam)، الأقسام، التخزين السحابي/الحصص/الضغط، إثراء الحقول، **سجل التدقيق الثابت + IP**، ونظام الإشعارات.
+
+**الإجمالي: 160 اختباراً (24 ملفاً).**
 
 ### قاعدة اختبار منفصلة (`ibp_test`)
 
