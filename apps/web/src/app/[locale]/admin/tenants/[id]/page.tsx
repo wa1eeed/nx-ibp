@@ -58,7 +58,7 @@ export default function TenantDetailPage({ params }: { params: { id: string } })
               <h3 className="mb-3 flex items-center gap-1.5 text-[13px] font-bold text-ink"><Building2 size={15} /> {t("admin.tenantDetail.account")}</h3>
               <div className="grid grid-cols-2 gap-3">
                 <Cell label={t("admin.tenantDetail.status")} value={<Badge tone={TONE[d.status] ?? "neutral"}>{d.status}</Badge>} />
-                <Cell label={t("admin.tenantDetail.billing")} value={d.billingModel} />
+                <Cell label={t("admin.tenantDetail.billing")} value={t(`admin.billingModel.${d.billingModel}`)} />
                 <Cell label={t("admin.tenantDetail.cr")} value={d.crNumber ?? "—"} />
                 <Cell label={t("admin.tenantDetail.joined")} value={date(d.createdAt)} />
               </div>

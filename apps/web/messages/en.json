@@ -22,8 +22,8 @@
     "approveFinance": { "title": "Financial approval", "desc": "Financial approval auto-generates a journal voucher, debit note and tax invoice, and the policy becomes active.", "action": "Approve" },
     "claimStatus": { "title": "Update claim status", "desc": "The claim status will change to “{status}”.", "action": "Update" },
     "serviceStatus": { "title": "Update request status", "desc": "The service request status will change to “{status}”.", "action": "Update" },
-    "tenantSuspend": { "title": "Suspend company", "desc": "Company “{name}” access to the platform will be suspended immediately.", "action": "Suspend" },
-    "tenantActivate": { "title": "Activate company", "desc": "Company “{name}” access to the platform will be restored.", "action": "Activate" },
+    "tenantSuspend": { "title": "Suspend account", "desc": "Account “{name}” access to the platform will be suspended immediately.", "action": "Suspend" },
+    "tenantActivate": { "title": "Activate account", "desc": "Account “{name}” access to the platform will be restored.", "action": "Activate" },
     "runYaqeen": { "title": "Confirm verification", "desc": "A Yaqeen identity check will run and one paid operation will be deducted from your wallet.", "action": "Verify" }
   },
   "navGroup": {
@@ -463,7 +463,7 @@
     "brand": "IBP Platform",
     "subtitle": "Platform control panel",
     "logout": "Sign out",
-    "nav": { "usage": "Usage", "tenants": "Companies", "plans": "Plans" },
+    "nav": { "usage": "Usage", "tenants": "Accounts", "plans": "Plans" },
     "login": {
       "title": "Super Admin sign-in",
       "submit": "Sign in",
@@ -471,8 +471,8 @@
     },
     "usage": {
       "title": "Platform usage",
-      "subtitle": "Aggregate metrics across all companies",
-      "tenants": "Companies",
+      "subtitle": "Aggregate metrics across all accounts",
+      "tenants": "Accounts",
       "users": "Users",
       "clients": "Clients",
       "policies": "Policies",
@@ -481,18 +481,19 @@
       "checks": "Verification checks"
     },
     "tenants": {
-      "title": "Subscribed companies",
-      "subtitle": "Brokerage companies subscribed to the platform and their subscription status",
+      "title": "Accounts",
+      "subtitle": "Brokerage company accounts subscribed to the platform and their subscription status",
       "clients": "clients",
       "policies": "policies",
       "suspend": "Suspend",
       "activate": "Activate",
       "owner": "Account owner",
       "view": "View",
-      "col": { "name": "Company", "owner": "Account owner", "plan": "Plan", "seats": "Seats", "usage": "Usage", "billing": "Billing model", "status": "Status" }
+      "col": { "name": "Account", "owner": "Account owner", "plan": "Plan", "seats": "Seats", "usage": "Usage", "billing": "Billing model", "status": "Status" }
     },
+    "billingModel": { "PASS_THROUGH": "Pass-through", "RESELLER": "Reseller" },
     "tenantDetail": {
-      "title": "Company details",
+      "title": "Account details",
       "back": "Back to list",
       "owner": "Account owner (company super-admin)",
       "noOwner": "No registered owner",

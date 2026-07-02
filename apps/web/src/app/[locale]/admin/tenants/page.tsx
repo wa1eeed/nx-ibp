@@ -69,7 +69,7 @@ export default function AdminTenantsPage() {
                 <td className="px-5 py-3 text-[13px] text-muted">{r.subscription?.plan.name ?? "—"}</td>
                 <td className="px-5 py-3 text-[12.5px] tnum">{r.subscription ? `${r.subscription.seatsUsed}/${r.subscription.plan.seatLimit}` : "—"}</td>
                 <td className="px-5 py-3 text-[12px] text-subtle tnum">{r._count.clients} {t("admin.tenants.clients")} · {r._count.policies} {t("admin.tenants.policies")}</td>
-                <td className="px-5 py-3 text-[12px] text-muted">{r.billingModel}</td>
+                <td className="px-5 py-3 text-[12px] text-muted">{t(`admin.billingModel.${r.billingModel}`)}</td>
                 <td className="px-5 py-3"><Badge tone={TONE[r.status] ?? "neutral"}>{r.status}</Badge></td>
                 <td className="px-5 py-3 text-end">
                   <button onClick={() => toggle(r.id, r.status, r.name)} className="rounded-lg border border-line bg-card px-2.5 py-1.5 text-[12px] font-medium text-muted hover:bg-surface-2 hover:text-ink">
