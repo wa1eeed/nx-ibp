@@ -73,7 +73,9 @@ export class DocumentsService {
     if (payload.max != null && data.length > payload.max) {
       throw new ForbiddenException("حجم الملف الفعلي يتجاوز الحد");
     }
-    const { hash, size } = await this.storage.put(payload.sk, data);
+    // ضغط الصور القابلة للضغط قبل التخزين (WebP/80%/≤1200px) — المسار المحلي
+    const bytes = await this.storage.maybeCompress(payload.sk, data);
+    const { hash, size } = await this.storage.put(payload.sk, bytes);
     if (payload.did) {
       // سياق غير مصادَق ⇒ التحديث بالمعرّف الموثّق من التوكن (وثيقة أصدرناها)
       const prev = await this.prisma.document.findFirst({ where: { id: payload.did }, select: { tenantId: true, sizeBytes: true } });

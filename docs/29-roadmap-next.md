@@ -77,7 +77,7 @@
 - [x] **B2** فوترة الاشتراكات (بوّابة دفع): ✅ خلفية — `SubscriptionInvoice` + تجريد `PaymentGateway` (محوّل **Tap.company** + Sandbox) + checkout/confirm/webhook(hashstring)/invoices/subscription/plans + تفعيل TRIAL→ACTIVE ذرّي (`billing.e2e` 7/7) · ✅ صفحة `/tenant/settings/billing` + صفحة العودة `/billing/return` + عنصر تنقّل — **مُتحقَّقة حيًّا**: اشتراك premium ⇒ دفع Sandbox ⇒ تفعيل ACTIVE + فاتورة PAID
 - [x] **C1** الهيكل الإداري والأقسام: ✅ `Department` هرمي (parentId) + دور افتراضي يُورَّث عند الإسناد + منع الدورات + عزل (migration `departments`) · `/org/departments` (tree/create/update/delete/assign/roles/members) · صفحة `/tenant/settings/org` (مخطط شجري + إضافة) + عنصر تنقّل — **مُتحقَّقة حيًّا** (`org.e2e` 6/6)
 - [x] **D1** حصص تخزين لكل مستأجر + حجز ذرّي + تلميتري: `TenantStorage` (عدّاد usedBytes/fileCount، migration `tenant_storage`) + entitlement `storage.quotaMb` (1/10/100GB) + **حجز ذرّي** (UPDATE بحارس WHERE يمنع التجاوز تحت التزامن) + مطابقة بعد الرفع + `GET /documents/usage` + شريط استهلاك في صفحة الفوترة. مُتحقَّق حيًّا (`storage-quota.e2e` 5/5)
-- [ ] **D2** ضغط Sharp (WebP/80%/≤1200px)
+- [~] **D2** ضغط Sharp (WebP/80%/≤1200px): ✅ المسار المحلي — `StorageService.maybeCompress` عبر `sharp` في `receiveBlob` (يحترم EXIF، لا يكبّر الحجم، الحصّة تُطابَق بالحجم المضغوط)، `image-compression.e2e` 2/2 · [ ] **D2-later** ضغط الرفع السحابي المباشر (worker خلفي: ينزّل/يضغط/يرفع)
 - [ ] **D3** CDN/Zero-Egress + خيار سيادة البيانات لكل مستأجر
 - [ ] **E1** ضريبة حسب فرع التأمين (إعفاء الحياة)
 - [ ] **E2** سلاسل اعتماد قابلة للتهيئة

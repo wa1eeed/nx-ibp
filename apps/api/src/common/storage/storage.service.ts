@@ -3,7 +3,11 @@ import { JwtService } from "@nestjs/jwt";
 import { randomUUID, createHash } from "node:crypto";
 import { mkdir, writeFile, readFile, stat } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
+import sharp from "sharp";
 import { S3StorageDriver, type S3Config } from "./s3-driver";
+
+const MAX_IMAGE_DIM = 1200; // أقصى بُعد للصور المضغوطة
+const WEBP_QUALITY = 80;
 
 export interface PresignedTokenPayload {
   sk: string; // storageKey
@@ -118,6 +122,26 @@ export class StorageService {
     }
     if (payload.op !== op) throw new ForbiddenException("نوع العملية غير مطابق للرابط");
     return payload;
+  }
+
+  /**
+   * ضغط الصور القابلة للضغط (المرحلة D2): إن كان المفتاح يستهدف WebP، تُعاد
+   * الصورة WebP (جودة 80، أقصى بُعد 1200px). غير الصور/الفشل ⇒ الأصل كما هو.
+   * يُطبَّق في مسار الرفع المحلي فقط (السحابي المباشر يحتاج worker — مؤجَّل).
+   */
+  async maybeCompress(storageKey: string, data: Buffer): Promise<Buffer> {
+    if (!storageKey.endsWith(".webp")) return data;
+    try {
+      const out = await sharp(data)
+        .rotate() // احترام اتجاه EXIF
+        .resize({ width: MAX_IMAGE_DIM, height: MAX_IMAGE_DIM, fit: "inside", withoutEnlargement: true })
+        .webp({ quality: WEBP_QUALITY })
+        .toBuffer();
+      return out.length < data.length ? out : data; // لا تكبّر الحجم
+    } catch {
+      this.logger.warn("تعذّر ضغط الصورة — حُفظ الأصل");
+      return data;
+    }
   }
 
   /** كتابة الكائن خادميًا (مستندات مولّدة كفواتير ZATCA). سحابي ⇒ S3؛ محلي ⇒ نظام الملفات. */
