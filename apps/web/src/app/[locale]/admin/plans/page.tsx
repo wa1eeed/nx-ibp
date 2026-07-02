@@ -15,31 +15,36 @@ interface Plan {
 }
 
 const UPLOAD_KEY = "upload.maxFileMb";
+const STORAGE_KEY = "storage.quotaMb";
 
 export default function AdminPlansPage() {
   const t = useTranslations();
   const [plans, setPlans] = useState<Plan[]>([]);
-  const [drafts, setDrafts] = useState<Record<string, string>>({});
-  const [savedCode, setSavedCode] = useState("");
+  const [drafts, setDrafts] = useState<Record<string, string>>({});      // حد الرفع (MB)
+  const [storageGb, setStorageGb] = useState<Record<string, string>>({}); // حصّة التخزين (GB)
+  const [saved, setSaved] = useState("");   // "<code>:<featureKey>"
   const [error, setError] = useState("");
 
   const load = useCallback(async () => {
     const data = await papi<Plan[]>("/platform/plans");
     setPlans(data);
-    setDrafts(Object.fromEntries(data.map((p) => [p.code, String(p.entitlements.find((e) => e.featureKey === UPLOAD_KEY)?.numericValue ?? 10)])));
+    const num = (p: Plan, key: string, fallback: number) => p.entitlements.find((e) => e.featureKey === key)?.numericValue ?? fallback;
+    setDrafts(Object.fromEntries(data.map((p) => [p.code, String(num(p, UPLOAD_KEY, 10))])));
+    setStorageGb(Object.fromEntries(data.map((p) => [p.code, String(Math.round((num(p, STORAGE_KEY, 1024) / 1024) * 10) / 10)])));
   }, []);
   useEffect(() => { void load().catch(() => undefined); }, [load]);
 
-  async function saveUpload(code: string) {
-    setError(""); setSavedCode("");
-    const numericValue = Number(drafts[code]);
+  async function saveEnt(code: string, featureKey: string, numericValue: number) {
+    setError(""); setSaved("");
     if (!Number.isFinite(numericValue) || numericValue <= 0) { setError(t("admin.login.error")); return; }
     try {
-      await papi(`/platform/plans/${code}/entitlements`, { method: "POST", body: JSON.stringify({ featureKey: UPLOAD_KEY, mode: "QUOTA", numericValue }) });
-      setSavedCode(code);
+      await papi(`/platform/plans/${code}/entitlements`, { method: "POST", body: JSON.stringify({ featureKey, mode: "QUOTA", numericValue }) });
+      setSaved(`${code}:${featureKey}`);
       await load();
     } catch (e) { setError(e instanceof ApiError ? e.message : "خطأ"); }
   }
+  const saveUpload = (code: string) => saveEnt(code, UPLOAD_KEY, Number(drafts[code]));
+  const saveStorage = (code: string) => saveEnt(code, STORAGE_KEY, Math.round(Number(storageGb[code]) * 1024)); // GB ⇒ MB
 
   return (
     <AdminShell>
@@ -78,13 +83,24 @@ export default function AdminPlansPage() {
                 </div>
               </div>
 
-              <div className="mt-auto border-t border-line pt-3">
-                <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-subtle">{t("admin.plans.uploadLimit")}</label>
-                <div className="flex items-center gap-2">
-                  <input type="number" min={1} value={drafts[p.code] ?? ""} onChange={(e) => setDrafts((d) => ({ ...d, [p.code]: e.target.value }))} className="h-9 w-24 rounded-lg border border-line bg-card px-3 text-[13px] tnum" />
-                  <button onClick={() => saveUpload(p.code)} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-ink px-3 text-[12.5px] font-semibold text-white hover:opacity-90">
-                    {savedCode === p.code ? <Check size={15} /> : <Save size={15} />} {savedCode === p.code ? t("admin.plans.saved") : t("admin.plans.save")}
-                  </button>
+              <div className="mt-auto space-y-3 border-t border-line pt-3">
+                <div>
+                  <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-subtle">{t("admin.plans.uploadLimit")}</label>
+                  <div className="flex items-center gap-2">
+                    <input type="number" min={1} value={drafts[p.code] ?? ""} onChange={(e) => setDrafts((d) => ({ ...d, [p.code]: e.target.value }))} className="h-9 w-24 rounded-lg border border-line bg-card px-3 text-[13px] tnum" />
+                    <button onClick={() => saveUpload(p.code)} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-ink px-3 text-[12.5px] font-semibold text-white hover:opacity-90">
+                      {saved === `${p.code}:${UPLOAD_KEY}` ? <Check size={15} /> : <Save size={15} />} {saved === `${p.code}:${UPLOAD_KEY}` ? t("admin.plans.saved") : t("admin.plans.save")}
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-subtle">{t("admin.plans.storageLimit")}</label>
+                  <div className="flex items-center gap-2">
+                    <input type="number" min={1} step="0.5" value={storageGb[p.code] ?? ""} onChange={(e) => setStorageGb((d) => ({ ...d, [p.code]: e.target.value }))} className="h-9 w-24 rounded-lg border border-line bg-card px-3 text-[13px] tnum" />
+                    <button onClick={() => saveStorage(p.code)} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-ink px-3 text-[12.5px] font-semibold text-white hover:opacity-90">
+                      {saved === `${p.code}:${STORAGE_KEY}` ? <Check size={15} /> : <Save size={15} />} {saved === `${p.code}:${STORAGE_KEY}` ? t("admin.plans.saved") : t("admin.plans.save")}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

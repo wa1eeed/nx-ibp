@@ -519,6 +519,7 @@
       "subtitle": "Control the modules and limits available per plan",
       "seatLimit": "Seat limit",
       "uploadLimit": "Upload limit (MB)",
+      "storageLimit": "Storage quota (GB)",
       "modules": "Enabled modules",
       "save": "Save",
       "saved": "Changes saved",
