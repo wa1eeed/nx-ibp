@@ -1,7 +1,7 @@
 import { Body, Controller, Get, HttpCode, Param, Post, UseGuards } from "@nestjs/common";
 import { PlatformService } from "./platform.service";
 import { PlatformGuard } from "./platform.guard";
-import { PlatformLoginDto, TenantStatusDto, UpdateEntitlementDto } from "./dto/platform.dto";
+import { MfaCodeDto, PlatformLoginDto, TenantStatusDto, UpdateEntitlementDto } from "./dto/platform.dto";
 import { Public } from "../auth/public.decorator";
 import { CurrentUser } from "../auth/current-user.decorator";
 
@@ -16,7 +16,31 @@ export class PlatformController {
   @Public()
   @Post("login")
   login(@Body() dto: PlatformLoginDto) {
-    return this.platform.login(dto.email, dto.password);
+    return this.platform.login(dto.email, dto.password, dto.mfaCode);
+  }
+
+  // ----- المصادقة الثنائية (MFA) — مطلب SLA/NCA -----
+  @Get("mfa/status")
+  mfaStatus(@CurrentUser("userId") adminId: string) {
+    return this.platform.mfaStatus(adminId);
+  }
+
+  @HttpCode(200)
+  @Post("mfa/setup")
+  setupMfa(@CurrentUser("userId") adminId: string) {
+    return this.platform.setupMfa(adminId);
+  }
+
+  @HttpCode(200)
+  @Post("mfa/enable")
+  enableMfa(@CurrentUser("userId") adminId: string, @Body() dto: MfaCodeDto) {
+    return this.platform.enableMfa(adminId, dto.code);
+  }
+
+  @HttpCode(200)
+  @Post("mfa/disable")
+  disableMfa(@CurrentUser("userId") adminId: string, @Body() dto: MfaCodeDto) {
+    return this.platform.disableMfa(adminId, dto.code);
   }
 
   @Get("tenants")

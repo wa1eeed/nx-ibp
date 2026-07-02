@@ -1,4 +1,5 @@
-import { Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
+import { BadRequestException, Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
+import { generateTotpSecret, otpauthUri, verifyTotp } from "../../common/security/totp";
 import { JwtService } from "@nestjs/jwt";
 import * as bcrypt from "bcryptjs";
 import { PrismaService } from "../../prisma/prisma.service";
@@ -19,16 +20,60 @@ export class PlatformService {
     private readonly rateLimit: RateLimitService,
   ) {}
 
-  async login(email: string, password: string) {
+  async login(email: string, password: string, mfaCode?: string) {
     await this.rateLimit.assertNotLocked("login", email);
     const admin = await this.prisma.platformAdmin.findFirst({ where: { email } });
     if (!admin?.passwordHash || !(await bcrypt.compare(password, admin.passwordHash))) {
       await this.rateLimit.recordFailure("login", email);
       throw new UnauthorizedException("بيانات الدخول غير صحيحة");
     }
+    // المصادقة الثنائية (إن كانت مفعّلة)
+    if (admin.mfaEnabled) {
+      if (!mfaCode) throw new UnauthorizedException("MFA_REQUIRED"); // الواجهة تكشفها فتطلب الرمز
+      if (!admin.mfaSecret || !verifyTotp(admin.mfaSecret, mfaCode)) {
+        await this.rateLimit.recordFailure("login", email);
+        throw new UnauthorizedException("رمز المصادقة الثنائية غير صحيح");
+      }
+    }
     await this.rateLimit.clear("login", email);
     const accessToken = await this.jwt.signAsync({ sub: admin.id, scope: "platform", email: admin.email });
-    return { accessToken, admin: { id: admin.id, email: admin.email, fullName: admin.fullName } };
+    return { accessToken, admin: { id: admin.id, email: admin.email, fullName: admin.fullName, mfaEnabled: admin.mfaEnabled } };
+  }
+
+  /** حالة المصادقة الثنائية للأدمن الحالي. */
+  async mfaStatus(adminId: string) {
+    const admin = await this.prisma.platformAdmin.findFirst({ where: { id: adminId }, select: { mfaEnabled: true } });
+    return { enabled: admin?.mfaEnabled ?? false };
+  }
+
+  /** بدء إعداد MFA: يولّد سرًّا (غير مفعّل بعد) ويعيد رابط otpauth للتطبيق. */
+  async setupMfa(adminId: string) {
+    const admin = await this.prisma.platformAdmin.findFirst({ where: { id: adminId }, select: { email: true, mfaEnabled: true } });
+    if (!admin) throw new NotFoundException("الأدمن غير موجود");
+    if (admin.mfaEnabled) throw new BadRequestException("المصادقة الثنائية مفعّلة مسبقاً");
+    const secret = generateTotpSecret();
+    await this.prisma.platformAdmin.update({ where: { id: adminId }, data: { mfaSecret: secret } });
+    return { secret, otpauthUri: otpauthUri(secret, admin.email) };
+  }
+
+  /** تفعيل MFA بعد التحقّق من رمز من التطبيق. */
+  async enableMfa(adminId: string, code: string) {
+    const admin = await this.prisma.platformAdmin.findFirst({ where: { id: adminId }, select: { mfaSecret: true } });
+    if (!admin?.mfaSecret) throw new BadRequestException("ابدأ الإعداد أولاً");
+    if (!verifyTotp(admin.mfaSecret, code)) throw new UnauthorizedException("رمز غير صحيح");
+    await this.prisma.platformAdmin.update({ where: { id: adminId }, data: { mfaEnabled: true } });
+    await this.audit.log({ tenantId: "platform", userId: adminId, action: "update", entity: "platform_mfa", entityId: adminId, meta: { enabled: true } });
+    return { enabled: true };
+  }
+
+  /** تعطيل MFA (يتطلّب رمزاً صحيحاً حالياً). */
+  async disableMfa(adminId: string, code: string) {
+    const admin = await this.prisma.platformAdmin.findFirst({ where: { id: adminId }, select: { mfaSecret: true, mfaEnabled: true } });
+    if (!admin?.mfaEnabled || !admin.mfaSecret) throw new BadRequestException("غير مفعّلة");
+    if (!verifyTotp(admin.mfaSecret, code)) throw new UnauthorizedException("رمز غير صحيح");
+    await this.prisma.platformAdmin.update({ where: { id: adminId }, data: { mfaEnabled: false, mfaSecret: null } });
+    await this.audit.log({ tenantId: "platform", userId: adminId, action: "update", entity: "platform_mfa", entityId: adminId, meta: { enabled: false } });
+    return { enabled: false };
   }
 
   async tenants() {

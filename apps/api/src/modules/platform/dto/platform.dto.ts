@@ -3,6 +3,11 @@ import { IsEmail, IsIn, IsNumber, IsOptional, IsString } from "class-validator";
 export class PlatformLoginDto {
   @IsEmail() email!: string;
   @IsString() password!: string;
+  @IsOptional() @IsString() mfaCode?: string; // مطلوب إن كانت المصادقة الثنائية مفعّلة
+}
+
+export class MfaCodeDto {
+  @IsString() code!: string; // رمز TOTP المكوّن من 6 أرقام
 }
 
 export class TenantStatusDto {

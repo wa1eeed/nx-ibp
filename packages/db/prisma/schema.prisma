@@ -24,6 +24,8 @@ model PlatformAdmin {
   email        String   @unique
   fullName     String
   passwordHash String?
+  mfaSecret    String? // سرّ TOTP (Base32) — يُضبط عند الإعداد
+  mfaEnabled   Boolean  @default(false) // المصادقة الثنائية مفعّلة
   createdAt    DateTime @default(now())
 }
 

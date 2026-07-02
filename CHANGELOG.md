@@ -2,6 +2,12 @@
 
 كل التغييرات الملموسة في منصة IBP، منظّمة حسب المراحل. الصيغة مستلهمة من [Keep a Changelog](https://keepachangelog.com).
 
+## [المرحلة G/P0] — المصادقة الثنائية (MFA) لسوبر أدمن المنصة ✅
+- **TOTP يدوي** (`common/security/totp.ts`) عبر `node:crypto` — **بلا تبعية** (RFC 6238، SHA-1/6/30، متوافق Google Authenticator/Authy، مُتحقَّق ضد متجه RFC القياسي).
+- **`PlatformAdmin`**: `mfaSecret` + `mfaEnabled` (migration `platform_mfa`). مسارات: `POST /platform/mfa/{setup,enable,disable}` + `GET /platform/mfa/status`. **الدخول يفرض الرمز** عند التفعيل (بدونه `401 MFA_REQUIRED`، خاطئ ⇒ 401).
+- **الواجهة**: صفحة `/admin/security` (تفعيل: عرض السرّ/otpauth ⇒ تأكيد برمز ⇒ تعطيل) + حقل رمز في صفحة دخول الأدمن يظهر عند الحاجة + عنصر تنقّل «الأمان».
+- **مُتحقَّق حيًّا**: تدفّق كامل برمز مُولَّد في المتصفح (setup→enable→الدخول يُحظر بلا رمز→ينجح بالرمز→تعطيل). اختبار `mfa.e2e` (5). الإجمالي **e2e 150/150** (22 ملفًا). يُكمل بند G/P0 (مطلب SLA/NCA §5.5).
+
 ## [المرحلة E0] — إثراء حقول المؤمن له والوثيقة (معايير وساطة التأمين) ✅
 - بعد تدقيق فجوة مقابل **مواصفة متطلبات الوساطة** (المرجع الوظيفي)، أُضيفت الحقول المعيارية الناقصة:
   - **العميل (`Client`)**: `relationStatus` (أسير/غير أسير)، `legalForm` (الشكل القانوني)، `source` (مباشر/منتِج) + `producerName`، `businessActivity`، `vatNumber`، `iban`، `contacts[]`.

@@ -463,11 +463,28 @@
     "brand": "IBP Platform",
     "subtitle": "Platform control panel",
     "logout": "Sign out",
-    "nav": { "usage": "Usage", "tenants": "Accounts", "plans": "Plans" },
+    "nav": { "usage": "Usage", "tenants": "Accounts", "plans": "Plans", "security": "Security" },
     "login": {
       "title": "Super Admin sign-in",
       "submit": "Sign in",
       "error": "Invalid credentials"
+    },
+    "mfa": {
+      "title": "Two-factor authentication (2FA)",
+      "subtitle": "Extra protection for the platform account (security requirement)",
+      "status": "Status",
+      "on": "Enabled",
+      "off": "Disabled",
+      "setup": "Enable two-factor auth",
+      "scan": "Scan the code in your authenticator app (Google Authenticator/Authy), or enter the secret manually:",
+      "codeLabel": "Verification code (6 digits)",
+      "enable": "Confirm & enable",
+      "disable": "Disable",
+      "wrong": "Invalid code",
+      "enabled": "Two-factor authentication enabled ✅",
+      "disabled": "Two-factor authentication disabled",
+      "loginCode": "2FA code",
+      "loginHint": "Enter the code from your authenticator app"
     },
     "usage": {
       "title": "Platform usage",

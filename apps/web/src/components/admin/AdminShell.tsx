@@ -10,6 +10,7 @@ const NAV = [
   { key: "usage", href: "/admin/usage", icon: BarChart3 },
   { key: "tenants", href: "/admin/tenants", icon: Building2 },
   { key: "plans", href: "/admin/plans", icon: Package },
+  { key: "security", href: "/admin/security", icon: ShieldCheck },
 ];
 
 export function AdminShell({ children }: { children: ReactNode }) {
