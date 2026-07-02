@@ -2,6 +2,13 @@
 
 كل التغييرات الملموسة في منصة IBP، منظّمة حسب المراحل. الصيغة مستلهمة من [Keep a Changelog](https://keepachangelog.com).
 
+## [المرحلة G/SLA] — سجل تدقيق ثابت (Immutable) + التقاط IP (NCA ECC) ✅
+- **`AuditLog` غير قابل للتعديل أو الحذف**: يُرفض `update/delete/upsert` في **طبقة Prisma** (`$use`) — حتى من كود المنصّة نفسها (دفاع متعمّق).
+- **كل حدث يلتقط الآن**: المستخدم + **عنوان IP** (يراعي `X-Forwarded-For` خلف العاكس) + **الجهاز (User-Agent)** + الإجراء + الكيان + الوقت. (أعمدة `ipAddress`/`userAgent`، تُملأ من سياق الطلب عبر الـ middleware.) migration `immutable_audit_ip`.
+- **مراجعة/تصدير للمفتّشين**: `GET /platform/audit` (سوبر أدمن المنصة، عابر للمستأجرين، فلترة اختيارية بالمستأجر).
+- **توثيق RBAC (لا صلاحيات مطلقة)** + مصفوفة الإسناد في [`docs/30` §5.5](./docs/30-security-and-compliance.md): الأدوار قابلة للتخصيص (module×CRUD) فيمكن حصر «مسؤول النظام» على الإعدادات دون البيانات الحسّاسة.
+- اختبار `audit-immutable.e2e` (4: رفض التعديل/الحذف + التقاط IP + التفتيش/المنع). الإجمالي **e2e 154/154** (23 ملفًا).
+
 ## [المرحلة G/P0] — المصادقة الثنائية (MFA) لسوبر أدمن المنصة ✅
 - **TOTP يدوي** (`common/security/totp.ts`) عبر `node:crypto` — **بلا تبعية** (RFC 6238، SHA-1/6/30، متوافق Google Authenticator/Authy، مُتحقَّق ضد متجه RFC القياسي).
 - **`PlatformAdmin`**: `mfaSecret` + `mfaEnabled` (migration `platform_mfa`). مسارات: `POST /platform/mfa/{setup,enable,disable}` + `GET /platform/mfa/status`. **الدخول يفرض الرمز** عند التفعيل (بدونه `401 MFA_REQUIRED`، خاطئ ⇒ 401).

@@ -36,6 +36,11 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
 
   private installTenantGuard(): void {
     this.$use(async (params, next) => {
+      // سجل التدقيق غير قابل للتعديل أو الحذف (immutable) — يُرفض حتى من الكود (مطلب NCA ECC)
+      if (params.model === "AuditLog" && ["update", "updateMany", "delete", "deleteMany", "upsert"].includes(params.action)) {
+        throw new Error("AuditLog سجلّ ثابت (immutable): لا يُسمح بالتعديل أو الحذف");
+      }
+
       const tenantId = this.ctx.tenantId;
 
       // بلا سياق مستأجر (إقلاع/مصادقة/سوبر أدمن لاحقاً) ⇒ لا فرض.

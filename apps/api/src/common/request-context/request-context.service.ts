@@ -8,6 +8,8 @@ export interface RequestStore {
   email?: string;
   clientId?: string; // نطاق بوّابة العميل
   scope?: string; // "platform" | "client" | undefined (موظف مستأجر)
+  ip?: string; // عنوان IP للطلب (للتدقيق)
+  userAgent?: string; // بصمة الجهاز/المتصفح (للتدقيق)
 }
 
 /**
@@ -33,5 +35,13 @@ export class RequestContextService {
 
   get userId(): string | undefined {
     return this.als.getStore()?.userId;
+  }
+
+  get ip(): string | undefined {
+    return this.als.getStore()?.ip;
+  }
+
+  get userAgent(): string | undefined {
+    return this.als.getStore()?.userAgent;
   }
 }

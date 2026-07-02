@@ -929,14 +929,18 @@ enum DocType {
   OFFICIAL
 }
 
+// سجل التدقيق — غير قابل للتعديل أو الحذف (immutable) يُفرض في طبقة Prisma.
+// يلتقط: المستخدم، الإجراء، الكيان، عنوان IP، الجهاز، والوقت (مطلب NCA ECC).
 model AuditLog {
   id        String   @id @default(cuid())
   tenantId  String
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
   userId    String?
-  action    String // create | update | delete | file_url | verify | approve
+  action    String // login | create | update | delete | file_url | verify | approve
   entity    String
   entityId  String?
+  ipAddress String? // عنوان IP للطلب (يراعي X-Forwarded-For خلف العاكس)
+  userAgent String? // بصمة الجهاز/المتصفح
   meta      Json?
   createdAt DateTime @default(now())
 

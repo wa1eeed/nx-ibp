@@ -37,6 +37,8 @@ export class AuditService {
           action: p.action,
           entity: p.entity,
           entityId: p.entityId ?? null,
+          ipAddress: this.ctx.ip ?? null, // مَن/من أي جهاز (مطلب NCA ECC)
+          userAgent: this.ctx.userAgent ?? null,
           ...(p.meta !== undefined ? { meta: p.meta } : {}),
         },
       });

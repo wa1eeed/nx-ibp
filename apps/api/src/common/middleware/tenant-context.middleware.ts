@@ -29,6 +29,10 @@ export class TenantContextMiddleware implements NestMiddleware {
 
   use(req: Request, _res: Response, next: NextFunction): void {
     const store: RequestStore = {};
+    // التقاط IP/الجهاز لكل طلب (للتدقيق) — يراعي X-Forwarded-For خلف العاكس
+    const fwd = req.headers["x-forwarded-for"];
+    store.ip = (Array.isArray(fwd) ? fwd[0] : fwd)?.split(",")[0]?.trim() || req.ip || req.socket?.remoteAddress || undefined;
+    store.userAgent = req.headers["user-agent"]?.toString().slice(0, 400);
     const header = req.headers.authorization;
 
     if (header?.startsWith("Bearer ")) {

@@ -139,6 +139,19 @@ export class PlatformService {
     });
   }
 
+  /**
+   * مراجعة/تصدير سجل التدقيق (لمفتّشي الهيئة) — نطاق المنصّة عابر للمستأجرين.
+   * السجلّ غير قابل للتعديل/الحذف (يُفرض في Prisma). فلترة اختيارية بالمستأجر.
+   */
+  auditLogs(tenantId?: string, limit = 200) {
+    return this.prisma.auditLog.findMany({
+      where: tenantId ? { tenantId } : {},
+      orderBy: { createdAt: "desc" },
+      take: Math.min(Math.max(1, limit), 1000),
+      select: { id: true, tenantId: true, userId: true, action: true, entity: true, entityId: true, ipAddress: true, userAgent: true, createdAt: true },
+    });
+  }
+
   /** استخدام المنصّة (عبر كل المستأجرين — استعلامات غير مفلترة). */
   async usage() {
     const [tenants, users, clients, policies, requests, claims, verificationChecks] = await Promise.all([

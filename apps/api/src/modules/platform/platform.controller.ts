@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, Param, Post, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, Param, Post, Query, UseGuards } from "@nestjs/common";
 import { PlatformService } from "./platform.service";
 import { PlatformGuard } from "./platform.guard";
 import { MfaCodeDto, PlatformLoginDto, TenantStatusDto, UpdateEntitlementDto } from "./dto/platform.dto";
@@ -73,5 +73,11 @@ export class PlatformController {
   @Get("usage")
   usage() {
     return this.platform.usage();
+  }
+
+  /** مراجعة/تصدير سجل التدقيق (لمفتّشي الهيئة). */
+  @Get("audit")
+  audit(@Query("tenantId") tenantId?: string, @Query("limit") limit?: string) {
+    return this.platform.auditLogs(tenantId, limit ? Number(limit) : undefined);
   }
 }
