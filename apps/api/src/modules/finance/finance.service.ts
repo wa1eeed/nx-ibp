@@ -4,6 +4,7 @@ import { PrismaService } from "../../prisma/prisma.service";
 import { SequenceService } from "../../common/sequence/sequence.service";
 import { AuditService } from "../../common/audit/audit.service";
 import { NotificationsService } from "../notifications/notifications.service";
+import { vatTreatmentForClass } from "../../common/tax/vat";
 import { zatcaPackage } from "../../common/zatca/zatca.util";
 import { ZatcaBillingService } from "./zatca/zatca-billing.service";
 import { ZatcaInvoiceRouter } from "./zatca/zatca-invoice.router";
@@ -143,9 +144,14 @@ export class FinanceService {
       throw new ConflictException("الوثيقة ليست بانتظار الاعتماد المالي (يلزم الموافقة الفنية أولاً)");
     }
 
+    // E1 — الضريبة حسب فرع التأمين: قسط تأمين الحياة معفى (فئة "E"، 0%)؛ البقية قياسية 15% (فئة "S")
+    const line = policy.productLineCode
+      ? await this.prisma.productLine.findFirst({ where: { code: policy.productLineCode }, include: { class: true } })
+      : null;
+    const treatment = vatTreatmentForClass(line?.class.code);
     const premium = Number(policy.premium ?? 0);
-    const vat = Number(policy.vat ?? 0);
-    const total = Number(policy.totalPremium ?? premium + vat);
+    const vat = treatment.rate === 0 ? 0 : Number(policy.vat ?? 0);
+    const total = r2(premium + vat);
     const commission = Number(policy.commissionAmount ?? 0);
     const commVat = r2(commission * 0.15); // ضريبة القيمة المضافة على عمولة الوساطة (مخرجات الوسيط)
     // الوسيط يحتفظ بعمولته + ضريبتها، ويحوّل الباقي (القسط + ضريبته − العمولة − ضريبتها) أمانةً للمؤمِّن.
@@ -234,13 +240,14 @@ export class FinanceService {
         const dn = await this.zatcaBilling.createInTx(tx, tenantId, {
           documentType: "DEBIT_NOTE", subtype, clientId: policy.clientId, policyId: policy.id,
           customer: { name: client?.name, crOrId: client?.crNumber ?? client?.nationalId, address: client?.city },
-          lines: [{ description: policy.productLineCode ?? "قسط تأمين", quantity: 1, unitPrice: premium, vatRate: 15, vatAmount: vat, net: premium }],
+          lines: [{ description: policy.productLineCode ?? "قسط تأمين", quantity: 1, unitPrice: premium, vatRate: treatment.rate, vatAmount: vat, net: premium, taxCategory: treatment.category, exemptionReasonCode: treatment.exemptionReasonCode, exemptionReason: treatment.exemptionReason }],
           supplyDate,
         });
         const inv = await this.zatcaBilling.createInTx(tx, tenantId, {
           documentType: "TAX_INVOICE", subtype: "STANDARD_B2B", clientId: policy.clientId, policyId: policy.id,
           customer: { name: policy.insurerName },
-          lines: [{ description: "عمولة وساطة", quantity: 1, unitPrice: commission, vatRate: 15, vatAmount: commVat, net: commission }],
+          // عمولة الوساطة رسم خدمة خاضع دائماً للضريبة القياسية 15% (فئة "S") بصرف النظر عن فرع الوثيقة
+          lines: [{ description: "عمولة وساطة", quantity: 1, unitPrice: commission, vatRate: 15, vatAmount: commVat, net: commission, taxCategory: "S" }],
           supplyDate,
         });
         billing.push(dn.id, inv.id);

@@ -19,6 +19,12 @@ export interface UblLineItem {
   vatRate: number;
   vatAmount: number;
   net: number;
+  /** فئة الضريبة وفق ZATCA: S=قياسي · E=معفى · Z=صفري · O=خارج النطاق (افتراضي S). */
+  taxCategory?: "S" | "E" | "Z" | "O";
+  /** رمز سبب الإعفاء (VATEX-SA-*) — للفئة المعفاة "E". */
+  exemptionReasonCode?: string;
+  /** نص سبب الإعفاء — للفئة المعفاة "E". */
+  exemptionReason?: string;
 }
 
 export interface UblInput {
@@ -147,7 +153,17 @@ export class ZatcaCryptoService {
         "cbc:LineExtensionAmount": l.net,
         "cac:Item": { "cbc:Name": l.description },
         "cac:Price": { "cbc:PriceAmount": l.unitPrice },
-        "cac:TaxTotal": { "cbc:TaxAmount": l.vatAmount, "cbc:Percent": l.vatRate },
+        "cac:TaxTotal": {
+          "cbc:TaxAmount": l.vatAmount,
+          "cbc:Percent": l.vatRate,
+          "cac:TaxCategory": {
+            "cbc:ID": l.taxCategory ?? "S",
+            "cbc:Percent": l.vatRate,
+            ...(l.taxCategory === "E" && l.exemptionReasonCode
+              ? { "cbc:TaxExemptionReasonCode": l.exemptionReasonCode, "cbc:TaxExemptionReason": l.exemptionReason ?? "" }
+              : {}),
+          },
+        },
         ...(l.discount ? { "cac:AllowanceCharge": { "cbc:Amount": l.discount } } : {}),
       })),
       "cac:TaxTotal": { "cbc:TaxAmount": u.totalVat },

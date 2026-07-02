@@ -22,6 +22,8 @@ export interface CatalogClass {
   nameAr: string;
   nameEn: string;
   lines: CatalogLine[];
+  /** فئة معفاة من ضريبة القيمة المضافة (خدمة مالية — المادة 29). أقساطها 0% وفئة ZATCA "E". */
+  vatExempt?: boolean;
 }
 
 export const PRODUCT_CATALOG: CatalogClass[] = [
@@ -68,7 +70,7 @@ export const PRODUCT_CATALOG: CatalogClass[] = [
     ],
   },
   {
-    code: "LIF", nameAr: "الحياة", nameEn: "Life",
+    code: "LIF", nameAr: "الحياة", nameEn: "Life", vatExempt: true,
     lines: [
       { code: "TRM", nameAr: "تأمين حياة لأجل", nameEn: "Term Life", blocks: ["lives"] },
       { code: "GLI", nameAr: "تأمين حياة جماعي", nameEn: "Group Life", blocks: ["lives"] },
@@ -78,3 +80,14 @@ export const PRODUCT_CATALOG: CatalogClass[] = [
 
 /** كل أكواد الفروع (للتهيئة والزرع). */
 export const ALL_LINE_CODES: string[] = PRODUCT_CATALOG.flatMap((c) => c.lines.map((l) => l.code));
+
+/** كود فئة المنتج لفرع مُعطى (line code). */
+export function classCodeOfLine(lineCode: string): string | undefined {
+  return PRODUCT_CATALOG.find((c) => c.lines.some((l) => l.code === lineCode))?.code;
+}
+
+/** هل قسط هذا الفرع معفى من ضريبة القيمة المضافة؟ (تأمين الحياة/فئة LIF). */
+export function isVatExemptLine(lineCode: string): boolean {
+  const cls = PRODUCT_CATALOG.find((c) => c.lines.some((l) => l.code === lineCode));
+  return !!cls?.vatExempt;
+}

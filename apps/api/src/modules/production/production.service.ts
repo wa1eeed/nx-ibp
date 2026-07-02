@@ -3,6 +3,7 @@ import { PrismaService } from "../../prisma/prisma.service";
 import { SequenceService } from "../../common/sequence/sequence.service";
 import { AuditService } from "../../common/audit/audit.service";
 import { NotificationsService } from "../notifications/notifications.service";
+import { vatTreatmentForClass } from "../../common/tax/vat";
 import type { IssuePolicyDto } from "./dto/issue-policy.dto";
 
 const POLICY_FIELDS = {
@@ -72,8 +73,10 @@ export class ProductionService {
     const sequenceNo = await this.seq.nextPolicySeq(branchCode, line?.class.code ?? "GEN");
 
     const premium = Number(quotation.premium ?? 0);
-    const vat = Number(quotation.vat ?? +(premium * 0.15).toFixed(2));
-    const total = Number(quotation.totalPremium ?? premium + vat);
+    // E1 — الضريبة حسب فرع التأمين: الحياة معفاة (0%)، البقية 15%
+    const treatment = vatTreatmentForClass(line?.class.code);
+    const vat = treatment.rate === 0 ? 0 : Number(quotation.vat ?? +((premium * treatment.rate) / 100).toFixed(2));
+    const total = Number(treatment.rate === 0 ? premium : (quotation.totalPremium ?? premium + vat));
     const rate = dto.commissionRate ?? 12.5;
     const commission = +((premium * rate) / 100).toFixed(2);
 
