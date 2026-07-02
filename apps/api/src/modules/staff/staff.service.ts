@@ -2,6 +2,7 @@ import { ConflictException, Injectable } from "@nestjs/common";
 import * as bcrypt from "bcryptjs";
 import { PrismaService } from "../../prisma/prisma.service";
 import { AuditService } from "../../common/audit/audit.service";
+import { NotificationsService } from "../notifications/notifications.service";
 import type { CreateStaffDto } from "./dto/create-staff.dto";
 
 /**
@@ -12,6 +13,7 @@ export class StaffService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   list() {
@@ -91,6 +93,9 @@ export class StaffService {
       entityId: user.id,
       meta: { email: user.email, roleName: dto.roleName },
     });
+
+    // إشعار إداري بإضافة مستخدم جديد للحساب
+    void this.notifications.notifyStaff(tenantId, "staff_member_added", { name: dto.fullName, role: dto.roleName }).catch(() => undefined);
 
     return user;
   }

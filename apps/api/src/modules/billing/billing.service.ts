@@ -3,6 +3,7 @@ import { PrismaService } from "../../prisma/prisma.service";
 import { AuditService } from "../../common/audit/audit.service";
 import { RequestContextService } from "../../common/request-context/request-context.service";
 import { PAYMENT_GATEWAY, type PaymentGateway } from "./gateway/gateway.types";
+import { NotificationsService } from "../notifications/notifications.service";
 import type { CheckoutDto } from "./dto/checkout.dto";
 
 @Injectable()
@@ -15,6 +16,7 @@ export class BillingService {
     private readonly audit: AuditService,
     private readonly ctx: RequestContextService,
     @Inject(PAYMENT_GATEWAY) private readonly gateway: PaymentGateway,
+    private readonly notifications: NotificationsService,
   ) {}
 
   private get apiBase(): string {
@@ -104,6 +106,8 @@ export class BillingService {
       await tx.tenant.update({ where: { id: tenantId }, data: { status: "ACTIVE" } });
     });
     this.logger.log(`تفعيل اشتراك المستأجر ${tenantId} (${planCode}/${cycle})`);
+    // إشعار إداري بتفعيل/تحديث الاشتراك
+    void this.notifications.notifyStaff(tenantId, "staff_subscription_status", { status: `مُفعّل — ${planCode}/${cycle}` }).catch(() => undefined);
   }
 
   /** كتالوج الباقات للعرض في صفحة الفوترة (Plan جدول عام غير معزول). */

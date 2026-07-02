@@ -58,6 +58,8 @@ export class ClaimsService {
       const client = await this.prisma.client.findFirst({ where: { id: claim.clientId }, select: { email: true, phone: true } });
       if (client) void this.notifications.notify(tenantId, "claim_ack", { email: client.email ?? undefined, phone: client.phone ?? undefined }, { ref: sequenceNo }).catch(() => undefined);
     }
+    // إشعار فريق المطالبات بمطالبة جديدة
+    void this.notifications.notifyStaff(tenantId, "staff_claim_created", { ref: sequenceNo }).catch(() => undefined);
     return claim;
   }
 

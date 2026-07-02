@@ -3,6 +3,7 @@ import { Prisma } from "@ibp/db";
 import { PrismaService } from "../../prisma/prisma.service";
 import { SequenceService } from "../../common/sequence/sequence.service";
 import { AuditService } from "../../common/audit/audit.service";
+import { NotificationsService } from "../notifications/notifications.service";
 import type { CreateSlipDto } from "./dto/create-slip.dto";
 import type { CreateQuotationDto } from "./dto/create-quotation.dto";
 
@@ -19,6 +20,7 @@ export class SlipsService {
     private readonly prisma: PrismaService,
     private readonly seq: SequenceService,
     private readonly audit: AuditService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   listSlips() {
@@ -125,6 +127,8 @@ export class SlipsService {
     });
 
     await this.audit.log({ tenantId, userId, action: "create", entity: "quotation", entityId: quotation.id, meta: { slipId, insurer: dto.insurerName } });
+    // إشعار فريق التسعير بعرض سعر جديد على طلب الأسعار
+    void this.notifications.notifyStaff(tenantId, "staff_quotation_added", { insurer: dto.insurerName, ref: slip.sequenceNo ?? slipId }).catch(() => undefined);
     return quotation;
   }
 

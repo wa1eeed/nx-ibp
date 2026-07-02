@@ -337,7 +337,13 @@
     "sourceCustom": "Custom",
     "sourceInherited": "Inherited from platform",
     "sourceDefault": "System default",
-    "vars": "Available variables: sequenceNo · ref"
+    "vars": "Available variables: sequenceNo · ref",
+    "audienceClient": "Client notifications",
+    "audienceStaff": "Staff notifications",
+    "audienceClientHint": "Sent to the company's clients via email/SMS",
+    "audienceStaffHint": "Sent to relevant staff + the account owner (email)",
+    "subtitleTenantAll": "Customize the texts and channels of all notifications (clients & staff)",
+    "emailOnly": "Email only"
   },
   "staff": {
     "title": "Staff",

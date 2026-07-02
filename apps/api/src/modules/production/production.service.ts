@@ -118,6 +118,8 @@ export class ProductionService {
       const client = await this.prisma.client.findFirst({ where: { id: request.clientId }, select: { email: true, phone: true } });
       if (client) void this.notifications.notify(tenantId, "policy_issued", { email: client.email ?? undefined, phone: client.phone ?? undefined }, { sequenceNo }).catch(() => undefined);
     }
+    // إشعار فريق التسعير بوجود وثيقة تنتظر الموافقة الفنية
+    void this.notifications.notifyStaff(tenantId, "staff_policy_technical_review", { sequenceNo }).catch(() => undefined);
     return policy;
   }
 
@@ -135,6 +137,8 @@ export class ProductionService {
     });
 
     await this.audit.log({ tenantId, userId, action: "approve", entity: "policy_technical", entityId: policyId });
+    // إشعار المالية بوثيقة تنتظر الاعتماد المالي
+    void this.notifications.notifyStaff(tenantId, "staff_policy_finance_review", { sequenceNo: policy.sequenceNo ?? policyId }).catch(() => undefined);
     return { policyId, status: "FINANCE_REVIEW" };
   }
 }

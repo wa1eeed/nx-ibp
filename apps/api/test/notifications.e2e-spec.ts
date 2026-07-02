@@ -27,12 +27,16 @@ describe("نظام الإشعارات (e2e)", () => {
   });
   afterAll(async () => { await app?.close(); });
 
-  it("الشركة: قائمة كل الأنواع بقنواتها ونصوصها", async () => {
+  it("الشركة: قائمة كل الأنواع (عملاء + موظفين) بقنواتها ونصوصها", async () => {
     const t = await owner();
     const list = (await request(srv()).get("/notifications").set(auth(t)).expect(200)).body;
-    expect(list.length).toBe(7);
+    expect(list.length).toBe(18); // 7 عملاء + 11 موظفين
     expect(find(list, "policy_issued").channelEmail).toBe(true);
+    expect(find(list, "policy_issued").audience).toBe("client");
     expect(find(list, "tax_invoice").source).toBe("default"); // نوع لا يُخصَّص في هذا الملف ⇒ افتراضي النظام
+    // إشعارات الموظفين حاضرة بجمهورها
+    expect(find(list, "staff_claim_created").audience).toBe("staff");
+    expect(find(list, "staff_policy_finance_review").audience).toBe("staff");
   });
 
   it("الشركة: تخصيص نوع (تعطيل SMS + تعديل النص)", async () => {

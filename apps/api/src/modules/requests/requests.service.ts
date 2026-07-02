@@ -9,6 +9,7 @@ import { PrismaService } from "../../prisma/prisma.service";
 import { SequenceService } from "../../common/sequence/sequence.service";
 import { AuditService } from "../../common/audit/audit.service";
 import { FormValidationService, type SectionDef, type BlockDef } from "./form-validation.service";
+import { NotificationsService } from "../notifications/notifications.service";
 import type { CreateRequestDto } from "./dto/create-request.dto";
 
 const asJson = (v: unknown) => v as Prisma.InputJsonValue;
@@ -24,6 +25,7 @@ export class RequestsService {
     private readonly seq: SequenceService,
     private readonly audit: AuditService,
     private readonly validator: FormValidationService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   list() {
@@ -126,6 +128,9 @@ export class RequestsService {
       entityId: request.id,
       meta: { line: dto.productLineCode, sequenceNo },
     });
+
+    // إشعار فريق التسعير بطلب تأمين جديد
+    void this.notifications.notifyStaff(tenantId, "staff_request_created", { ref: sequenceNo }).catch(() => undefined);
 
     return request;
   }

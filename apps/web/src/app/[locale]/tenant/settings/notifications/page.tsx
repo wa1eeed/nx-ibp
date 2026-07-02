@@ -9,7 +9,7 @@ export default function TenantNotificationsPage() {
   const t = useTranslations("notif");
   return (
     <NotificationManager
-      subtitle={t("subtitleTenant")}
+      subtitle={t("subtitleTenantAll")}
       load={() => api<NotifSetting[]>("/notifications")}
       save={(key, dto) => api(`/notifications/${key}`, { method: "PUT", body: JSON.stringify(dto) }).then(() => undefined)}
     />

@@ -1,6 +1,7 @@
 import { HttpException, HttpStatus, Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
 import { AuditService } from "../../common/audit/audit.service";
+import { NotificationsService } from "../notifications/notifications.service";
 
 /**
  * طبقة موفّري التحقّق (المرحلة 7) — تعمل عبر Sandbox تجريبي أولاً (GUIDELINES.md/BLUEPRINT).
@@ -21,11 +22,15 @@ const CONFIG: Record<string, CheckConfig> = {
   screening: { providerKey: "screening", checkType: "pep_sanctions", cost: 0 },
 };
 
+/** حدّ التنبيه لرصيد محفظة التحقّق (عمليات متبقّية). */
+const WALLET_LOW_THRESHOLD = 10;
+
 @Injectable()
 export class VerificationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   // ----- بيانات Sandbox تجريبية (تُستبدل بالـ APIs الحقيقية في المرحلة 9) -----
@@ -85,6 +90,11 @@ export class VerificationService {
         this.prisma.wallet.update({ where: { id: wallet.id }, data: { balance: { decrement: 1 } } }),
         this.prisma.transactionLedger.create({ data: { walletId: wallet.id, delta: -1, reason: `${cfg.providerKey}:${cfg.checkType}` } }),
       ]);
+      // تنبيه المالية عند انخفاض رصيد محفظة التحقّق تحت الحدّ
+      const remaining = wallet.balance - 1;
+      if (remaining <= WALLET_LOW_THRESHOLD) {
+        void this.notifications.notifyStaff(tenantId, "staff_wallet_low", { balance: String(remaining) }).catch(() => undefined);
+      }
     }
 
     const check = await this.prisma.verificationCheck.create({
@@ -101,6 +111,8 @@ export class VerificationService {
       select: { id: true },
     });
     await this.audit.log({ tenantId, userId, action: "verify", entity: "verification_check", entityId: check.id, meta: { provider: cfg.providerKey, type: cfg.checkType } });
+    // إشعار الامتثال بنتيجة عملية تحقّق
+    void this.notifications.notifyStaff(tenantId, "staff_verification_result", { subject: cfg.checkType, result: riskLevel ?? "success" }).catch(() => undefined);
 
     return { checkId: check.id, provider: cfg.providerKey, cost: cfg.cost, riskLevel: riskLevel ?? null, data: result };
   }

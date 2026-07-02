@@ -337,7 +337,13 @@
     "sourceCustom": "مخصّص",
     "sourceInherited": "موروث من المنصة",
     "sourceDefault": "افتراضي النظام",
-    "vars": "المتغيّرات المتاحة: sequenceNo · ref"
+    "vars": "المتغيّرات المتاحة: sequenceNo · ref",
+    "audienceClient": "إشعارات العملاء",
+    "audienceStaff": "إشعارات الموظفين",
+    "audienceClientHint": "تُرسَل لعملاء الشركة عبر البريد/الرسائل النصية",
+    "audienceStaffHint": "تُرسَل لموظفي الشركة المعنيّين + مالك الحساب (بريد)",
+    "subtitleTenantAll": "خصّص نصوص وقنوات كل الإشعارات (عملاء وموظفين)",
+    "emailOnly": "بريد فقط"
   },
   "staff": {
     "title": "الموظفون",
