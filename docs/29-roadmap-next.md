@@ -82,7 +82,7 @@
 - [x] **E0** إثراء حقول المؤمن له/الوثيقة (وفق مواصفة متطلبات الوساطة): العميل (+relationStatus/legalForm/source/producerName/businessActivity/vatNumber/iban/contacts) والوثيقة (+insurerPolicyNo/issuanceType/issueDate/policyFees/sumInsured/paymentTerms/producer*). API+DTO+UI نموذج العميل. مُتحقَّق حيًّا (`broker-fields.e2e` + `finance.e2e`)
 - [ ] **E1** ضريبة حسب فرع التأمين (إعفاء الحياة)
 - [ ] **E2** سلاسل اعتماد قابلة للتهيئة
-- [ ] **E3** تنبيهات انتقالات الحالة
+- [~] **E3** تنبيهات انتقالات الحالة: ✅ **إصدار الوثيقة ⇒ إشعار العميل** (`policy_issued`، عبر `NotificationsService`، fire-and-forget). [ ] بقية الأحداث (إشعار مدين/فاتورة/طلب/مطالبة/تجديد)
 - [ ] **F1** ZATCA إنتاجي حقيقي + PDF/A-3 بالختم
 - [ ] **F2** BullMQ worker للإبلاغ B2C
 - [ ] **F3** نشر داخل المملكة (تجسيد Terraform) + تدقيق

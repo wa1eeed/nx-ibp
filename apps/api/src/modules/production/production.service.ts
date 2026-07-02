@@ -2,6 +2,7 @@ import { ConflictException, Injectable, NotFoundException } from "@nestjs/common
 import { PrismaService } from "../../prisma/prisma.service";
 import { SequenceService } from "../../common/sequence/sequence.service";
 import { AuditService } from "../../common/audit/audit.service";
+import { NotificationsService } from "../notifications/notifications.service";
 import type { IssuePolicyDto } from "./dto/issue-policy.dto";
 
 const POLICY_FIELDS = {
@@ -38,6 +39,7 @@ export class ProductionService {
     private readonly prisma: PrismaService,
     private readonly seq: SequenceService,
     private readonly audit: AuditService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   list() {
@@ -107,6 +109,12 @@ export class ProductionService {
     });
 
     await this.audit.log({ tenantId, userId, action: "create", entity: "policy", entityId: policy.id, meta: { sequenceNo, insurer: quotation.insurerName } });
+
+    // إشعار العميل بإصدار الوثيقة (لا يُفشل الإصدار عند تعذّره)
+    if (request.clientId) {
+      const client = await this.prisma.client.findFirst({ where: { id: request.clientId }, select: { email: true, phone: true } });
+      if (client) void this.notifications.notify(tenantId, "policy_issued", { email: client.email ?? undefined, phone: client.phone ?? undefined }, { sequenceNo }).catch(() => undefined);
+    }
     return policy;
   }
 
