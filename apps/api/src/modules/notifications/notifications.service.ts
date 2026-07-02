@@ -79,10 +79,10 @@ export class NotificationsService {
   }
 
   /**
-   * إرسال إشعار **لعميل** — يحترم تفعيل القناة ويعبّئ المتغيّرات ثم يرسل عبر البوّابة.
-   * (يُستدعى من الموديولز عند الأحداث؛ fire-and-forget عادةً كي لا تُفشِل العملية الأصل.)
+   * إرسال إشعار **لعميل** — يحترم تفعيل القناة، يعبّئ المتغيّرات، يرسل عبر البوّابة (Email/SMS)
+   * **ويسجّل نسخة داخل المنصة (in-app)** للعميل ليراها في بوّابته. fire-and-forget عادةً.
    */
-  async notify(tenantId: string, eventKey: string, to: { email?: string; phone?: string }, vars: Record<string, string> = {}) {
+  async notify(tenantId: string, eventKey: string, to: { email?: string; phone?: string; clientId?: string }, vars: Record<string, string> = {}) {
     const s = await this.resolve(tenantId, eventKey);
     if (!s) return { sent: 0 };
     const body = this.render(s.body, vars);
@@ -90,24 +90,29 @@ export class NotificationsService {
     const jobs: OutboundMessage[] = [];
     if (s.channelEmail && to.email) jobs.push({ channel: "email", to: to.email, subject, body });
     if (s.channelSms && to.phone) jobs.push({ channel: "sms", to: to.phone, body });
+    // نسخة داخل المنصة للعميل (ما دام النوع مُفعَّلًا على أيّ قناة)
+    if (to.clientId && (s.channelEmail || s.channelSms)) {
+      await this.persistInApp(tenantId, "client", eventKey, subject ?? s.name, body, [{ clientId: to.clientId }]);
+    }
     return { sent: await this.dispatch(jobs), channels: jobs.map((j) => j.channel) };
   }
 
   /**
-   * إرسال إشعار **لموظفي الشركة** — يوجَّه لأصحاب صلاحية وحدة الحدث + مالك الحساب (بريد فقط،
-   * إذ لا هاتف للمستخدمين). يحترم تفعيل الإعداد على مستوى الشركة/المنصة. fire-and-forget.
+   * إرسال إشعار **لموظفي الشركة** — يوجَّه لأصحاب صلاحية وحدة الحدث + مالك الحساب. يرسل بريدًا
+   * (لا هاتف للمستخدمين) **ويسجّل نسخة داخل المنصة (in-app)** لكل مستقبِل. fire-and-forget.
    */
   async notifyStaff(tenantId: string, eventKey: string, vars: Record<string, string> = {}) {
     const def = notificationDef(eventKey);
     if (!def || def.audience !== "staff") return { sent: 0 };
     const s = await this.resolve(tenantId, eventKey);
     if (!s || !s.channelEmail) return { sent: 0 }; // إشعارات الموظفين عبر البريد
-    const emails = await this.staffRecipients(tenantId, def.module);
-    if (!emails.length) return { sent: 0 };
+    const recipients = await this.staffRecipients(tenantId, def.module);
+    if (!recipients.length) return { sent: 0 };
     const body = this.render(s.body, vars);
     const subject = s.subject ? this.render(s.subject, vars) : undefined;
-    const jobs: OutboundMessage[] = emails.map((to) => ({ channel: "email" as const, to, subject, body }));
-    return { sent: await this.dispatch(jobs), recipients: emails.length };
+    await this.persistInApp(tenantId, "staff", eventKey, subject ?? s.name, body, recipients.map((r) => ({ userId: r.userId })));
+    const jobs: OutboundMessage[] = recipients.map((r) => ({ channel: "email" as const, to: r.email, subject, body }));
+    return { sent: await this.dispatch(jobs), recipients: recipients.length };
   }
 
   /** يعبّئ متغيّرات النص {var}؛ يترك المتغيّر كما هو إن لم تُمرَّر قيمته. */
@@ -115,21 +120,97 @@ export class NotificationsService {
     return t.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? `{${k}}`);
   }
 
+  /** يُنشئ صفوف الإشعارات داخل المنصة (in-app) لكل مستقبِل. لا يرمي. */
+  private async persistInApp(
+    tenantId: string,
+    audience: "client" | "staff",
+    eventKey: string,
+    title: string,
+    body: string,
+    recipients: { userId?: string; clientId?: string }[],
+  ): Promise<void> {
+    if (!recipients.length) return;
+    try {
+      await this.ctx.run({}, async () =>
+        await this.prisma.notification.createMany({
+          data: recipients.map((r) => ({ tenantId, userId: r.userId ?? null, clientId: r.clientId ?? null, eventKey, audience, title, body })),
+        }),
+      );
+    } catch (e) {
+      this.logger.warn(`تعذّر حفظ إشعار داخل المنصة: ${(e as Error).message}`);
+    }
+  }
+
   /**
    * مستقبِلو إشعار موظفين لوحدة معيّنة: كل مستخدم نشط له صلاحية الوصول لتلك الوحدة،
-   * **بالإضافة إلى مالك الحساب** (أوّل مستخدم أُنشئ) دائمًا. مُزال التكرار بالبريد.
+   * **بالإضافة إلى مالك الحساب** (أوّل مستخدم أُنشئ) دائمًا. مُزال التكرار بالمعرّف.
    * يُنفَّذ داخل سياق فارغ ويفلتر بالمستأجر صراحةً (لا يعتمد على سياق الطلب).
    */
-  private async staffRecipients(tenantId: string, mod: string | null): Promise<string[]> {
+  private async staffRecipients(tenantId: string, mod: string | null): Promise<{ userId: string; email: string }[]> {
     const users = await this.ctx.run({}, async () =>
       await this.prisma.user.findMany({
         where: { tenantId, status: "ACTIVE" },
         orderBy: { createdAt: "asc" },
-        select: { email: true, role: { select: { permissions: { where: { module: mod ?? "__none__", canAccess: true }, select: { id: true } } } } },
+        select: { id: true, email: true, role: { select: { permissions: { where: { module: mod ?? "__none__", canAccess: true }, select: { id: true } } } } },
       }),
     );
     // مالك الحساب (أوّل مستخدم) دائمًا + كل من له صلاحية الوصول للوحدة
     const chosen = users.filter((u, i) => i === 0 || (u.role?.permissions.length ?? 0) > 0);
-    return [...new Set(chosen.map((u) => u.email).filter((e): e is string => !!e))];
+    const seen = new Set<string>();
+    const out: { userId: string; email: string }[] = [];
+    for (const u of chosen) {
+      if (!u.email || seen.has(u.id)) continue;
+      seen.add(u.id);
+      out.push({ userId: u.id, email: u.email });
+    }
+    return out;
+  }
+
+  // ————————————————— مركز الإشعارات داخل المنصة (in-app) —————————————————
+
+  /** صندوق إشعارات الموظف الحالي (أحدث أولًا). معزول بالمستأجر (middleware) + المستخدم. */
+  inboxStaff(userId: string, limit = 30) {
+    return this.prisma.notification.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+      take: limit,
+      select: { id: true, eventKey: true, title: true, body: true, readAt: true, createdAt: true },
+    });
+  }
+
+  /** عدد غير المقروء للموظف الحالي. */
+  async unreadStaff(userId: string) {
+    return { count: await this.prisma.notification.count({ where: { userId, readAt: null } }) };
+  }
+
+  /** تعليم إشعار كمقروء (يجب أن يخصّ المستخدم نفسه). */
+  async markReadStaff(userId: string, id: string) {
+    await this.prisma.notification.updateMany({ where: { id, userId, readAt: null }, data: { readAt: new Date() } });
+    return { ok: true };
+  }
+
+  /** تعليم كل إشعارات الموظف كمقروءة. */
+  async markAllReadStaff(userId: string) {
+    const r = await this.prisma.notification.updateMany({ where: { userId, readAt: null }, data: { readAt: new Date() } });
+    return { ok: true, updated: r.count };
+  }
+
+  /** صندوق إشعارات عميل بوّابة معيّن (أحدث أولًا). */
+  inboxClient(clientId: string, limit = 30) {
+    return this.prisma.notification.findMany({
+      where: { clientId },
+      orderBy: { createdAt: "desc" },
+      take: limit,
+      select: { id: true, eventKey: true, title: true, body: true, readAt: true, createdAt: true },
+    });
+  }
+
+  async unreadClient(clientId: string) {
+    return { count: await this.prisma.notification.count({ where: { clientId, readAt: null } }) };
+  }
+
+  async markReadClient(clientId: string, id: string) {
+    await this.prisma.notification.updateMany({ where: { id, clientId, readAt: null }, data: { readAt: new Date() } });
+    return { ok: true };
   }
 }

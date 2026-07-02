@@ -270,7 +270,7 @@ export class FinanceService {
     // إشعار العميل بإصدار إشعار المدين (لا يُفشل الاعتماد المالي عند تعذّره)
     if (policy.clientId) {
       const contact = await this.prisma.client.findFirst({ where: { id: policy.clientId }, select: { email: true, phone: true } });
-      if (contact) void this.notifications.notify(tenantId, "debit_note", { email: contact.email ?? undefined, phone: contact.phone ?? undefined }, { ref: String(result.debitNote) }).catch(() => undefined);
+      if (contact) void this.notifications.notify(tenantId, "debit_note", { email: contact.email ?? undefined, phone: contact.phone ?? undefined, clientId: policy.clientId }, { ref: String(result.debitNote) }).catch(() => undefined);
     }
     // إشعار داخلي باكتمال إصدار الوثيقة
     void this.notifications.notifyStaff(tenantId, "staff_policy_issued", { sequenceNo: policy.sequenceNo ?? policyId }).catch(() => undefined);

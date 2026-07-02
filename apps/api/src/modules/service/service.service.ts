@@ -48,7 +48,7 @@ export class ServiceService {
     // إشعار العميل باستلام طلب الخدمة (لا يُفشل إنشاء الطلب عند تعذّره)
     if (sr.clientId) {
       const client = await this.prisma.client.findFirst({ where: { id: sr.clientId }, select: { email: true, phone: true } });
-      if (client) void this.notifications.notify(tenantId, "request_ack", { email: client.email ?? undefined, phone: client.phone ?? undefined }, { ref: sequenceNo }).catch(() => undefined);
+      if (client) void this.notifications.notify(tenantId, "request_ack", { email: client.email ?? undefined, phone: client.phone ?? undefined, clientId: sr.clientId ?? undefined }, { ref: sequenceNo }).catch(() => undefined);
     }
     return sr;
   }

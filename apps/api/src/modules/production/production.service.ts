@@ -116,7 +116,7 @@ export class ProductionService {
     // إشعار العميل بإصدار الوثيقة (لا يُفشل الإصدار عند تعذّره)
     if (request.clientId) {
       const client = await this.prisma.client.findFirst({ where: { id: request.clientId }, select: { email: true, phone: true } });
-      if (client) void this.notifications.notify(tenantId, "policy_issued", { email: client.email ?? undefined, phone: client.phone ?? undefined }, { sequenceNo }).catch(() => undefined);
+      if (client) void this.notifications.notify(tenantId, "policy_issued", { email: client.email ?? undefined, phone: client.phone ?? undefined, clientId: request.clientId }, { sequenceNo }).catch(() => undefined);
     }
     // إشعار فريق التسعير بوجود وثيقة تنتظر الموافقة الفنية
     void this.notifications.notifyStaff(tenantId, "staff_policy_technical_review", { sequenceNo }).catch(() => undefined);

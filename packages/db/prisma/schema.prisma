@@ -73,6 +73,7 @@ model Tenant {
   departments        Department[]
   storage            TenantStorage?
   notificationSettings NotificationSetting[]
+  notifications      Notification[]
 }
 
 // إعداد إشعار — NULL tenantId = افتراضي المنصة (يديره سوبر أدمن المنصة)؛
@@ -89,6 +90,25 @@ model NotificationSetting {
   updatedAt    DateTime @updatedAt
 
   @@index([tenantId])
+}
+
+/// إشعار داخل المنصة (in-app) لمستقبِل واحد: موظف (userId) أو عميل بوّابة (clientId).
+/// معزول بالمستأجر. يُنشأ تلقائيًا عند إطلاق حدث مُفعَّل، ويُعرَض في جرس الإشعارات.
+model Notification {
+  id        String    @id @default(cuid())
+  tenantId  String
+  tenant    Tenant    @relation(fields: [tenantId], references: [id])
+  userId    String? // مستقبِل موظف (staff)
+  clientId  String? // مستقبِل عميل (client — بوّابة العميل)
+  eventKey  String
+  audience  String // client | staff
+  title     String
+  body      String    @db.Text
+  readAt    DateTime? // NULL ⇒ غير مقروء
+  createdAt DateTime  @default(now())
+
+  @@index([tenantId, userId, readAt])
+  @@index([tenantId, clientId, readAt])
 }
 
 enum TenantStatus {

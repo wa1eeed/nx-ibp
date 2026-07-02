@@ -345,6 +345,12 @@
     "subtitleTenantAll": "Customize the texts and channels of all notifications (clients & staff)",
     "emailOnly": "Email only"
   },
+  "notifCenter": {
+    "title": "Notifications",
+    "markAll": "Mark all read",
+    "empty": "No notifications yet",
+    "viewAll": "View all"
+  },
   "staff": {
     "title": "Staff",
     "subtitle": "Manage employees and their permission matrix",

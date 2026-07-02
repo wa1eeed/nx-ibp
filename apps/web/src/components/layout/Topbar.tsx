@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Search, Bell, LogOut, ChevronDown } from "lucide-react";
+import { Search, LogOut, ChevronDown } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { LocaleSwitcher } from "./LocaleSwitcher";
+import { NotificationBell } from "./NotificationBell";
 import { api, clearToken, getToken } from "@/lib/api";
 import { useRouter } from "@/i18n/routing";
 
@@ -54,14 +55,7 @@ export function Topbar() {
       <div className="flex flex-1 items-center justify-end gap-2 sm:flex-none">
         <LocaleSwitcher />
 
-        <button
-          type="button"
-          className="relative grid h-9 w-9 place-items-center rounded-lg border border-line bg-card text-muted transition-colors hover:bg-surface-2 hover:text-ink"
-          aria-label="Notifications"
-        >
-          <Bell size={17} />
-          <span className="absolute end-2 top-2 h-1.5 w-1.5 rounded-full bg-danger ring-2 ring-card" />
-        </button>
+        <NotificationBell apiFn={api} hasToken={() => !!getToken()} basePath="/notifications/inbox" />
 
         {/* قائمة المستخدم + تسجيل الخروج */}
         <div ref={ref} className="relative">

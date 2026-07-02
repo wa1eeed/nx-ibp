@@ -4,7 +4,8 @@ import { useEffect, useState, type ReactNode } from "react";
 import { ShieldCheck, LayoutDashboard, FileCheck2, FileText, ClipboardList, Receipt, FolderOpen, LogOut } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link, usePathname, useRouter } from "@/i18n/routing";
-import { getPortalToken, clearPortalToken } from "@/lib/api";
+import { getPortalToken, clearPortalToken, cpapi } from "@/lib/api";
+import { NotificationBell } from "@/components/layout/NotificationBell";
 
 const NAV = [
   { key: "dashboard", href: "/portal/dashboard", icon: LayoutDashboard },
@@ -60,6 +61,9 @@ export function PortalShell({ children }: { children: ReactNode }) {
         <header className="sticky top-0 z-10 flex h-16 items-center gap-3 border-b border-line bg-topbar/95 px-5 backdrop-blur sm:px-7">
           <span className="rounded-md bg-primary px-2 py-1 text-[11px] font-semibold text-white">{t("portal.badge")}</span>
           <span className="text-[13px] text-muted">{t("portal.subtitle")}</span>
+          <div className="ms-auto">
+            <NotificationBell apiFn={cpapi} hasToken={() => !!getPortalToken()} basePath="/portal/notifications" allowMarkAll={false} />
+          </div>
         </header>
         <main className="flex-1 px-5 py-6 sm:px-7">{children}</main>
       </div>

@@ -5,11 +5,12 @@ import { PrismaService } from "../../prisma/prisma.service";
 import { StorageService } from "../../common/storage/storage.service";
 import { AuditService } from "../../common/audit/audit.service";
 import { RateLimitService } from "../../common/security/rate-limit.service";
+import { NotificationsService } from "../notifications/notifications.service";
 
 /**
  * بوّابة العميل (المرحلة 8ب) — نطاق `client`.
  * كل الاستعلامات تخضع لعزل المستأجر تلقائياً (tenantId في ALS) + تُفلتر صراحةً بـ clientId
- * (العميل يرى بياناته هو فقط). لا كتابة — البوّابة للعرض والمتابعة فقط.
+ * (العميل يرى بياناته هو فقط). لا كتابة — البوّابة للعرض والمتابعة فقط (عدا تعليم إشعاراته كمقروءة).
  */
 @Injectable()
 export class PortalService {
@@ -19,7 +20,13 @@ export class PortalService {
     private readonly storage: StorageService,
     private readonly audit: AuditService,
     private readonly rateLimit: RateLimitService,
+    private readonly notifications: NotificationsService,
   ) {}
+
+  /** إشعارات العميل داخل البوّابة (in-app). */
+  notifications_list(clientId: string) { return this.notifications.inboxClient(clientId); }
+  notificationsUnread(clientId: string) { return this.notifications.unreadClient(clientId); }
+  notificationRead(clientId: string, id: string) { return this.notifications.markReadClient(clientId, id); }
 
   async login(email: string, password: string) {
     await this.rateLimit.assertNotLocked("login", email);

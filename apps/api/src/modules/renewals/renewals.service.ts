@@ -48,7 +48,7 @@ export class RenewalsService {
     // تذكير العميل باستحقاق تجديد وثيقته (لا يُفشل بدء التجديد عند تعذّره)
     if (policy.clientId) {
       const client = await this.prisma.client.findFirst({ where: { id: policy.clientId }, select: { email: true, phone: true } });
-      if (client) void this.notifications.notify(tenantId, "renewal_reminder", { email: client.email ?? undefined, phone: client.phone ?? undefined }, { ref: String(policy.sequenceNo ?? sequenceNo) }).catch(() => undefined);
+      if (client) void this.notifications.notify(tenantId, "renewal_reminder", { email: client.email ?? undefined, phone: client.phone ?? undefined, clientId: policy.clientId ?? undefined }, { ref: String(policy.sequenceNo ?? sequenceNo) }).catch(() => undefined);
     }
     // إشعار فريق التجديدات ببدء إجراء تجديد
     void this.notifications.notifyStaff(tenantId, "staff_renewal_due", { ref: String(policy.sequenceNo ?? sequenceNo) }).catch(() => undefined);

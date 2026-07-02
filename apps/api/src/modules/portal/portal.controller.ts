@@ -43,6 +43,22 @@ export class PortalController {
     return this.portal.statement(user.clientId!);
   }
 
+  @Get("notifications")
+  notifications(@CurrentUser() user: AuthUser) {
+    return this.portal.notifications_list(user.clientId!);
+  }
+
+  @Get("notifications/unread-count")
+  notificationsUnread(@CurrentUser() user: AuthUser) {
+    return this.portal.notificationsUnread(user.clientId!);
+  }
+
+  @Post("notifications/:id/read")
+  @HttpCode(200)
+  notificationRead(@CurrentUser() user: AuthUser, @Param("id") id: string) {
+    return this.portal.notificationRead(user.clientId!, id);
+  }
+
   @Get("documents")
   documents(@CurrentUser() user: AuthUser) {
     return this.portal.documents(user.clientId!);

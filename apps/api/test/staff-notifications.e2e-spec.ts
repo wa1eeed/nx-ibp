@@ -25,9 +25,10 @@ describe("توجيه إشعارات الموظفين — الوحدة + الما
   let app: INestApplication;
   const gateway = new CapturingGateway();
   let gm: string; // مالك حساب gulf (أوّل مستخدم)
+  let withClaimsEmail = ""; // موظف له صلاحية المطالبات (يُنشأ في الاختبار الأول)
 
-  const login = async (email: string) =>
-    (await request(app.getHttpServer()).post("/auth/login").send({ email, password: "Passw0rd!" })).body.accessToken as string;
+  const login = async (email: string, password = "Passw0rd!") =>
+    (await request(app.getHttpServer()).post("/auth/login").send({ email, password })).body.accessToken as string;
   const auth = (t: string) => ({ Authorization: `Bearer ${t}` });
   const perm = (module: string, canAccess: boolean) => ({ module, canAccess, canCreate: false, canEdit: false, canDelete: false });
   const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -55,6 +56,7 @@ describe("توجيه إشعارات الموظفين — الوحدة + الما
   it("staff_claim_created ⇒ يصل للمالك + صاحب صلاحية المطالبات، لا لمن بلا صلاحية", async () => {
     const uniq = String(Date.now()).slice(-8);
     const withClaims = `claims-${uniq}@gulf-demo.sa`;
+    withClaimsEmail = withClaims;
     const noClaims = `noclaims-${uniq}@gulf-demo.sa`;
 
     await request(app.getHttpServer()).post("/staff").set(auth(gm)).send({
@@ -76,5 +78,33 @@ describe("توجيه إشعارات الموظفين — الوحدة + الما
     expect(emails).toContain("waleed@gulf-demo.sa"); // مالك الحساب دائمًا
     expect(emails).toContain(withClaims);            // صاحب صلاحية المطالبات
     expect(emails).not.toContain(noClaims);          // بلا صلاحية ⇒ لا يصله
+  });
+
+  it("الإشعار يُحفظ داخل المنصة ويظهر في صندوق الموظف ثم يُعلَّم مقروءًا", async () => {
+    const staff = await login(withClaimsEmail, "Passw0rd1");
+    const before = (await request(app.getHttpServer()).get("/notifications/inbox/unread-count").set(auth(staff)).expect(200)).body;
+    expect(before.count).toBeGreaterThanOrEqual(1);
+
+    const inbox = (await request(app.getHttpServer()).get("/notifications/inbox").set(auth(staff)).expect(200)).body as Array<{ id: string; eventKey: string; readAt: string | null }>;
+    const claimNotif = inbox.find((n) => n.eventKey === "staff_claim_created");
+    expect(claimNotif).toBeTruthy();
+    expect(claimNotif!.readAt).toBeNull();
+
+    await request(app.getHttpServer()).post(`/notifications/inbox/${claimNotif!.id}/read`).set(auth(staff)).expect(201);
+    const after = (await request(app.getHttpServer()).get("/notifications/inbox/unread-count").set(auth(staff)).expect(200)).body;
+    expect(after.count).toBe(before.count - 1);
+  });
+
+  it("عزل: موظف لا يرى إشعارات موظف آخر", async () => {
+    // موظف جديد بلا أي أحداث سابقة ⇒ صندوقه لا يحوي إشعار المطالبة أعلاه
+    const uniq = String(Date.now()).slice(-7);
+    const fresh = `fresh-${uniq}@gulf-demo.sa`;
+    await request(app.getHttpServer()).post("/staff").set(auth(gm)).send({
+      fullName: "موظف جديد", email: fresh, password: "Passw0rd1", roleName: `جديد-${uniq}`,
+      permissions: [perm("dashboard", true)],
+    }).expect(201);
+    const freshTok = await login(fresh, "Passw0rd1");
+    const inbox = (await request(app.getHttpServer()).get("/notifications/inbox").set(auth(freshTok)).expect(200)).body as Array<{ eventKey: string }>;
+    expect(inbox.every((n) => n.eventKey !== "staff_claim_created")).toBe(true);
   });
 });

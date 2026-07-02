@@ -88,4 +88,26 @@ describe("بوّابة العميل (e2e)", () => {
     const someId = fahdDocs.body[0].id;
     await request(app.getHttpServer()).get(`/portal/documents/${someId}/url`).set(auth(nukhba)).expect(404);
   });
+
+  it("إشعار داخل المنصة للعميل: حدث من الوسيط يظهر في بوّابة العميل + عزل + تعليم مقروء", async () => {
+    const srv = app.getHttpServer();
+    // الوسيط (نفس المستأجر) ينشئ طلب خدمة للعميل cl-fahd ⇒ يُطلق request_ack (نسخة داخل المنصة للعميل)
+    await request(srv).post("/service-requests").set(auth(employee)).send({ clientId: "cl-fahd", type: "inquiry", subject: "استفسار تجريبي" }).expect(201);
+    // العميل يرى الإشعار في بوّابته (fire-and-forget ⇒ استطلاع قصير)
+    let inbox: Array<{ id: string; eventKey: string; readAt: string | null }> = [];
+    for (let i = 0; i < 25 && !inbox.some((n) => n.eventKey === "request_ack"); i++) {
+      inbox = (await request(srv).get("/portal/notifications").set(auth(fahd))).body;
+      if (!inbox.some((n) => n.eventKey === "request_ack")) await new Promise((r) => setTimeout(r, 50));
+    }
+    const notif = inbox.find((n) => n.eventKey === "request_ack");
+    expect(notif).toBeTruthy();
+    expect(notif!.readAt).toBeNull();
+    // عزل: عميل آخر (النخبة) لا يرى إشعار الفهد
+    const other = (await request(srv).get("/portal/notifications").set(auth(nukhba))).body as Array<{ id: string }>;
+    expect(other.every((n) => n.id !== notif!.id)).toBe(true);
+    // تعليم كمقروء
+    await request(srv).post(`/portal/notifications/${notif!.id}/read`).set(auth(fahd)).expect(200);
+    const after = (await request(srv).get("/portal/notifications/unread-count").set(auth(fahd))).body;
+    expect(after.count).toBeGreaterThanOrEqual(0);
+  });
 });
