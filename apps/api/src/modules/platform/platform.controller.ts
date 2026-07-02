@@ -1,6 +1,8 @@
-import { Body, Controller, Get, HttpCode, Param, Post, Query, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, Param, Post, Put, Query, UseGuards } from "@nestjs/common";
 import { PlatformService } from "./platform.service";
 import { PlatformGuard } from "./platform.guard";
+import { NotificationsService } from "../notifications/notifications.service";
+import { UpdateNotificationDto } from "../notifications/dto/notification.dto";
 import { MfaCodeDto, PlatformLoginDto, TenantStatusDto, UpdateEntitlementDto } from "./dto/platform.dto";
 import { Public } from "../auth/public.decorator";
 import { CurrentUser } from "../auth/current-user.decorator";
@@ -11,7 +13,10 @@ import { CurrentUser } from "../auth/current-user.decorator";
 @UseGuards(PlatformGuard)
 @Controller("platform")
 export class PlatformController {
-  constructor(private readonly platform: PlatformService) {}
+  constructor(
+    private readonly platform: PlatformService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   @Public()
   @Post("login")
@@ -79,5 +84,18 @@ export class PlatformController {
   @Get("audit")
   audit(@Query("tenantId") tenantId?: string, @Query("limit") limit?: string) {
     return this.platform.auditLogs(tenantId, limit ? Number(limit) : undefined);
+  }
+
+  // ----- إشعارات المنصة الافتراضية (يرثها كل الحسابات ما لم تُخصَّص) -----
+  @Get("notifications")
+  notifications_(@CurrentUser("userId") adminId: string) {
+    void adminId;
+    return this.notifications.list(null);
+  }
+
+  @HttpCode(200)
+  @Put("notifications/:key")
+  updateNotification(@CurrentUser("userId") adminId: string, @Param("key") key: string, @Body() dto: UpdateNotificationDto) {
+    return this.notifications.update(null, adminId, key, dto);
   }
 }

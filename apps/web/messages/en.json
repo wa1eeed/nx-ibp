@@ -323,6 +323,22 @@
     "error": "Operation failed",
     "deleteConfirm": "Delete this department? Its members and sub-departments will be detached."
   },
+  "notif": {
+    "title": "Notifications & messages",
+    "subtitlePlatform": "Default texts and channels for all accounts (companies can customize)",
+    "subtitleTenant": "Customize the notification texts and channels sent to your clients",
+    "email": "Email",
+    "sms": "SMS",
+    "subject": "Subject",
+    "text": "Message text",
+    "save": "Save",
+    "saved": "Saved ✅",
+    "error": "Could not save",
+    "sourceCustom": "Custom",
+    "sourceInherited": "Inherited from platform",
+    "sourceDefault": "System default",
+    "vars": "Available variables: sequenceNo · ref"
+  },
   "staff": {
     "title": "Staff",
     "subtitle": "Manage employees and their permission matrix",
@@ -463,7 +479,7 @@
     "brand": "IBP Platform",
     "subtitle": "Platform control panel",
     "logout": "Sign out",
-    "nav": { "usage": "Usage", "tenants": "Accounts", "plans": "Plans", "security": "Security" },
+    "nav": { "usage": "Usage", "tenants": "Accounts", "plans": "Plans", "notifications": "Notifications", "security": "Security" },
     "login": {
       "title": "Super Admin sign-in",
       "submit": "Sign in",

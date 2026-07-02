@@ -72,6 +72,23 @@ model Tenant {
   subscriptionInvoices SubscriptionInvoice[]
   departments        Department[]
   storage            TenantStorage?
+  notificationSettings NotificationSetting[]
+}
+
+// إعداد إشعار — NULL tenantId = افتراضي المنصة (يديره سوبر أدمن المنصة)؛
+// قيمة tenantId = تخصيص شركة (يديره مالك الحساب). القناة تُفعَّل/تُعطَّل والنص قابل للتعديل.
+model NotificationSetting {
+  id           String   @id @default(cuid())
+  tenantId     String? // NULL ⇒ افتراضي المنصة
+  tenant       Tenant?  @relation(fields: [tenantId], references: [id])
+  eventKey     String // welcome | policy_issued | debit_note | tax_invoice | request_ack | claim_ack | renewal_reminder
+  channelEmail Boolean  @default(true)
+  channelSms   Boolean  @default(false)
+  subject      String?
+  body         String   @db.Text
+  updatedAt    DateTime @updatedAt
+
+  @@index([tenantId])
 }
 
 enum TenantStatus {

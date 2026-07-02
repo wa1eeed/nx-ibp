@@ -107,7 +107,7 @@ export const TENANT_NAV: NavGroup[] = [
       { key: "settings.branding", href: "/tenant/settings/branding", icon: "Palette", comingSoon: true },
       { key: "settings.staff", href: "/tenant/settings/staff", icon: "UserCog" },
       { key: "settings.integrations", href: "/tenant/settings/integrations", icon: "Plug" },
-      { key: "settings.notifications", href: "/tenant/settings/notifications", icon: "Bell", comingSoon: true },
+      { key: "settings.notifications", href: "/tenant/settings/notifications", icon: "Bell" },
     ],
   },
 ];
