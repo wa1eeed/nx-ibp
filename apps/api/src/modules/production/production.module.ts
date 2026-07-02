@@ -2,9 +2,10 @@ import { Module } from "@nestjs/common";
 import { ProductionController } from "./production.controller";
 import { ProductionService } from "./production.service";
 import { NotificationsModule } from "../notifications/notifications.module";
+import { ConfigModule } from "../config/config.module";
 
 @Module({
-  imports: [NotificationsModule], // إشعار العميل عند إصدار الوثيقة
+  imports: [NotificationsModule, ConfigModule], // إشعار العميل + سلسلة الاعتماد (E2). PermissionService عالمي.
   controllers: [ProductionController],
   providers: [ProductionService],
 })

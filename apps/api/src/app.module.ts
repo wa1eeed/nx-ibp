@@ -37,6 +37,7 @@ import { SignupModule } from "./modules/signup/signup.module";
 import { BillingModule } from "./modules/billing/billing.module";
 import { OrgModule } from "./modules/org/org.module";
 import { NotificationsModule } from "./modules/notifications/notifications.module";
+import { ConfigModule as TenantConfigModule } from "./modules/config/config.module";
 
 /**
  * الوحدة الجذرية. معماري وحدات — module لكل مجال (GUIDELINES.md §5).
@@ -80,6 +81,7 @@ import { NotificationsModule } from "./modules/notifications/notifications.modul
     BillingModule,
     OrgModule,
     NotificationsModule,
+    TenantConfigModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

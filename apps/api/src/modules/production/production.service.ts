@@ -1,9 +1,13 @@
-import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
+import { ConflictException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
 import { SequenceService } from "../../common/sequence/sequence.service";
 import { AuditService } from "../../common/audit/audit.service";
 import { NotificationsService } from "../notifications/notifications.service";
+import { ConfigService } from "../config/config.service";
+import { PermissionService } from "../rbac/permission.service";
 import { vatTreatmentForClass } from "../../common/tax/vat";
+import type { RbacAction } from "../rbac/rbac.constants";
+import type { AuthUser } from "../auth/current-user.decorator";
 import type { IssuePolicyDto } from "./dto/issue-policy.dto";
 
 const POLICY_FIELDS = {
@@ -41,6 +45,8 @@ export class ProductionService {
     private readonly seq: SequenceService,
     private readonly audit: AuditService,
     private readonly notifications: NotificationsService,
+    private readonly config: ConfigService,
+    private readonly permissions: PermissionService,
   ) {}
 
   list() {
@@ -131,14 +137,46 @@ export class ProductionService {
       throw new ConflictException("الوثيقة ليست بانتظار الموافقة الفنية");
     }
 
+    // E2 — سلسلة الاعتماد: خطوات إضافية مُهيّأة (بين الفني والمالي) تُحجز الآن على الوثيقة
+    const extraSteps = await this.config.getPolicyApprovalSteps(tenantId);
+    const pending = extraSteps.map((s) => s.key);
+
     await this.prisma.$transaction(async (tx) => {
-      await tx.policy.update({ where: { id: policyId }, data: { status: "FINANCE_REVIEW" } });
+      await tx.policy.update({ where: { id: policyId }, data: { status: "FINANCE_REVIEW", pendingApprovals: pending } });
       if (policy.requestId) await tx.policyRequest.update({ where: { id: policy.requestId }, data: { status: "FINANCE_REVIEW" } });
     });
 
-    await this.audit.log({ tenantId, userId, action: "approve", entity: "policy_technical", entityId: policyId });
-    // إشعار المالية بوثيقة تنتظر الاعتماد المالي
-    void this.notifications.notifyStaff(tenantId, "staff_policy_finance_review", { sequenceNo: policy.sequenceNo ?? policyId }).catch(() => undefined);
-    return { policyId, status: "FINANCE_REVIEW" };
+    await this.audit.log({ tenantId, userId, action: "approve", entity: "policy_technical", entityId: policyId, meta: { pendingApprovals: pending.length } });
+    // إشعار المعنيّين: إن بقيت خطوات ⇒ المعتمِدون؛ وإلا ⇒ المالية
+    if (pending.length === 0) {
+      void this.notifications.notifyStaff(tenantId, "staff_policy_finance_review", { sequenceNo: policy.sequenceNo ?? policyId }).catch(() => undefined);
+    }
+    return { policyId, status: "FINANCE_REVIEW", pendingApprovals: pending };
+  }
+
+  /**
+   * E2 — الموافقة على خطوة اعتماد إضافية مُهيّأة. تتحقّق ديناميكيًا من صلاحية المستخدم
+   * (وحدة/فعل الخطوة) عبر PermissionService، ثم تُفرِّغ الخطوة. لا تُصدِر الوثيقة (المالية هي الأخيرة).
+   */
+  async approveStep(tenantId: string, user: AuthUser, policyId: string, stepKey: string) {
+    const policy = await this.prisma.policy.findFirst({ where: { id: policyId }, select: { id: true, sequenceNo: true, status: true, pendingApprovals: true, requestId: true } });
+    if (!policy) throw new NotFoundException("الوثيقة غير موجودة");
+    if (policy.status !== "FINANCE_REVIEW" || !policy.pendingApprovals.includes(stepKey)) {
+      throw new ConflictException("لا توجد خطوة اعتماد بهذا المفتاح بانتظار الموافقة على هذه الوثيقة");
+    }
+    const step = (await this.config.getPolicyApprovalSteps(tenantId)).find((s) => s.key === stepKey);
+    if (!step) throw new ConflictException("خطوة الاعتماد لم تعد مُهيّأة");
+
+    const allowed = await this.permissions.can(user.roleId, step.module, (step.action ?? "update") as RbacAction);
+    if (!allowed) throw new ForbiddenException(`لا تملك صلاحية الموافقة على خطوة «${step.name}»`);
+
+    const remaining = policy.pendingApprovals.filter((k) => k !== stepKey);
+    await this.prisma.policy.update({ where: { id: policyId }, data: { pendingApprovals: remaining } });
+    await this.audit.log({ tenantId, userId: user.userId, action: "approve", entity: "policy_approval_step", entityId: policyId, meta: { step: stepKey, remaining: remaining.length } });
+    // اكتملت الخطوات الإضافية ⇒ أبلغ المالية
+    if (remaining.length === 0) {
+      void this.notifications.notifyStaff(tenantId, "staff_policy_finance_review", { sequenceNo: policy.sequenceNo ?? policyId }).catch(() => undefined);
+    }
+    return { policyId, step: stepKey, pendingApprovals: remaining };
   }
 }

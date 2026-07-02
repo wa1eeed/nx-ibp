@@ -564,6 +564,10 @@ model Policy {
   producerName       String? // المنتِج (الوسيط الفرعي)
   producerCommission Decimal?      @db.Decimal(14, 2) // عمولة المنتِج (من عمولة الوسيط)
   status           PolicyStatus  @default(TECHNICAL_REVIEW)
+  // E2 — سلاسل الاعتماد: مفاتيح خطوات الاعتماد الإضافية المتبقّية (بين الفني والمالي).
+  // فارغ = السلسلة الافتراضية (فني ⇒ مالي)؛ يُملأ من TenantConfig.approvalChains عند الموافقة الفنية،
+  // ويُفرَّغ خطوةً خطوة؛ الاعتماد المالي محجوب حتى تُفرَّغ (وثيقة معزولة بالمستأجر).
+  pendingApprovals String[]      @default([])
   startDate        DateTime?
   endDate          DateTime?
   createdAt        DateTime      @default(now())

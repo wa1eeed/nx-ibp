@@ -143,6 +143,10 @@ export class FinanceService {
     if (policy.status !== "FINANCE_REVIEW") {
       throw new ConflictException("الوثيقة ليست بانتظار الاعتماد المالي (يلزم الموافقة الفنية أولاً)");
     }
+    // E2 — الاعتماد المالي هو الخطوة الأخيرة: محجوب حتى تُستوفى خطوات الاعتماد الإضافية المُهيّأة
+    if (policy.pendingApprovals.length > 0) {
+      throw new ConflictException(`الوثيقة بانتظار موافقات إضافية قبل الاعتماد المالي (${policy.pendingApprovals.length} متبقّية)`);
+    }
 
     // E1 — الضريبة حسب فرع التأمين: قسط تأمين الحياة معفى (فئة "E"، 0%)؛ البقية قياسية 15% (فئة "S")
     const line = policy.productLineCode
