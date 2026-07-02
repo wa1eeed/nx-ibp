@@ -1,13 +1,23 @@
 import { Body, Controller, Get, Param, Post, Put, Query, Req, Res } from "@nestjs/common";
 import type { Request, Response } from "express";
 import { DocumentsService } from "./documents.service";
+import { StorageUsageService } from "./storage-usage.service";
 import { UploadUrlDto } from "./dto/upload-url.dto";
 import { Public } from "../auth/public.decorator";
 import { CurrentUser } from "../auth/current-user.decorator";
 
 @Controller("documents")
 export class DocumentsController {
-  constructor(private readonly documents: DocumentsService) {}
+  constructor(
+    private readonly documents: DocumentsService,
+    private readonly storageUsage: StorageUsageService,
+  ) {}
+
+  /** تلميتري استهلاك التخزين للمستأجر (المستخدَم/الحصّة/النسبة). */
+  @Get("usage")
+  usage(@CurrentUser("tenantId") tenantId: string) {
+    return this.storageUsage.usage(tenantId);
+  }
 
   // الرفع/الخدمة عبر الرابط الموقّت — عام (التوكن قصير العمر هو التفويض، لا روابط عامة دائمة)
   @Public()

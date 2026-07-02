@@ -3,6 +3,7 @@ import { PrismaService } from "../../prisma/prisma.service";
 import { StorageService } from "../../common/storage/storage.service";
 import { EntitlementService } from "../rbac/entitlement.service";
 import { AuditService } from "../../common/audit/audit.service";
+import { StorageUsageService } from "./storage-usage.service";
 import type { UploadUrlDto } from "./dto/upload-url.dto";
 
 const DEFAULT_MAX_MB = 10;
@@ -10,7 +11,7 @@ const DEFAULT_MAX_MB = 10;
 /**
  * وحدة المستندات الموحّدة (polymorphic) — تخدم كل الموديولز.
  * رفع/عرض عبر روابط موقّتة فقط (لا روابط عامة)، عزل بالمسار + بطبقة التفويض،
- * حد الرفع كـ entitlement، تمييز الرسمي عن المرفق، وتسجيل كل رابط في التدقيق.
+ * حد الرفع كـ entitlement، **حصّة تخزين ذرّية** لكل مستأجر، تمييز الرسمي، وتسجيل التدقيق.
  */
 @Injectable()
 export class DocumentsService {
@@ -19,6 +20,7 @@ export class DocumentsService {
     private readonly storage: StorageService,
     private readonly entitlements: EntitlementService,
     private readonly audit: AuditService,
+    private readonly storageUsage: StorageUsageService,
   ) {}
 
   /** الخطوة 1: طلب رابط رفع موقّت (بعد التحقّق من النوع والحد). */
@@ -37,21 +39,29 @@ export class DocumentsService {
     const isOfficial = dto.docType === "OFFICIAL";
     const storageKey = this.storage.buildKey(tenantId, dto.entityType, dto.fileName, dto.mime, isOfficial);
 
-    const doc = await this.prisma.document.create({
-      data: {
-        tenantId,
-        storageKey,
-        fileName: dto.fileName,
-        mime: dto.mime,
-        sizeBytes: dto.sizeBytes,
-        hash: "pending",
-        docType: isOfficial ? "OFFICIAL" : "ATTACHMENT",
-        entityType: dto.entityType,
-        entityId: dto.entityId,
-        rowId: dto.rowId ?? null,
-      },
-      select: { id: true, storageKey: true, docType: true },
-    });
+    // حجز ذرّي لحصّة التخزين (يفشل بـ 403 إن تجاوز حصّة المستأجر)
+    await this.storageUsage.reserve(tenantId, dto.sizeBytes);
+
+    const doc = await this.prisma.document
+      .create({
+        data: {
+          tenantId,
+          storageKey,
+          fileName: dto.fileName,
+          mime: dto.mime,
+          sizeBytes: dto.sizeBytes,
+          hash: "pending",
+          docType: isOfficial ? "OFFICIAL" : "ATTACHMENT",
+          entityType: dto.entityType,
+          entityId: dto.entityId,
+          rowId: dto.rowId ?? null,
+        },
+        select: { id: true, storageKey: true, docType: true },
+      })
+      .catch(async (e) => {
+        await this.storageUsage.release(tenantId, dto.sizeBytes); // تحرير الحجز عند فشل الإنشاء
+        throw e;
+      });
 
     await this.audit.log({ tenantId, userId, action: "create", entity: "document", entityId: doc.id, meta: { storageKey } });
     return { documentId: doc.id, docType: doc.docType, upload: this.storage.presignUpload(storageKey, doc.id, maxBytes) };
@@ -66,7 +76,10 @@ export class DocumentsService {
     const { hash, size } = await this.storage.put(payload.sk, data);
     if (payload.did) {
       // سياق غير مصادَق ⇒ التحديث بالمعرّف الموثّق من التوكن (وثيقة أصدرناها)
+      const prev = await this.prisma.document.findFirst({ where: { id: payload.did }, select: { tenantId: true, sizeBytes: true } });
       await this.prisma.document.update({ where: { id: payload.did }, data: { hash, sizeBytes: size } });
+      // مطابقة الحصّة بالفرق بين المحجوز (المعلَن) والفعلي
+      if (prev) await this.storageUsage.reconcile(prev.tenantId, size - prev.sizeBytes);
     }
     return { ok: true, size };
   }
@@ -84,7 +97,7 @@ export class DocumentsService {
   async confirmUpload(tenantId: string, userId: string, documentId: string) {
     const doc = await this.prisma.document.findFirst({
       where: { id: documentId },
-      select: { id: true, tenantId: true, storageKey: true },
+      select: { id: true, tenantId: true, storageKey: true, sizeBytes: true },
     });
     if (!doc) throw new NotFoundException("المستند غير موجود");
 
@@ -97,6 +110,8 @@ export class DocumentsService {
       where: { id: doc.id },
       data: { sizeBytes: head.size, hash: head.etag ? `etag:${head.etag}` : "uploaded" },
     });
+    // مطابقة الحصّة بالفرق بين المحجوز والفعلي
+    await this.storageUsage.reconcile(tenantId, head.size - doc.sizeBytes);
     await this.audit.log({ tenantId, userId, action: "update", entity: "document", entityId: doc.id, meta: { confirmed: true, size: head.size } });
     return { ok: true, size: head.size };
   }

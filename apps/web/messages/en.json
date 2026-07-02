@@ -270,6 +270,8 @@
     "title": "Subscription & Billing",
     "subtitle": "Manage your plan and payments",
     "current": "Your current subscription",
+    "storage": "Storage used",
+    "storageOf": "of",
     "status": "Status",
     "statusTRIAL": "Trial",
     "statusACTIVE": "Active",

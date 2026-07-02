@@ -69,6 +69,7 @@ model Tenant {
   billingDocuments   BillingDocument[]
   subscriptionInvoices SubscriptionInvoice[]
   departments        Department[]
+  storage            TenantStorage?
 }
 
 enum TenantStatus {
@@ -874,6 +875,16 @@ model TransactionLedger {
 // ============================================================
 // المستندات والتدقيق
 // ============================================================
+
+/// عدّاد استهلاك التخزين لكل مستأجر (المرحلة D1) — أساس الحجز الذرّي والتلميتري.
+/// `usedBytes` يُزاد ذرّياً عند الحجز ويُطابَق عند التأكيد؛ الحدّ من entitlement `storage.quotaMb`.
+model TenantStorage {
+  tenantId  String   @unique
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  usedBytes BigInt   @default(0)
+  fileCount Int      @default(0)
+  updatedAt DateTime @updatedAt
+}
 
 model Document {
   id         String   @id @default(cuid())

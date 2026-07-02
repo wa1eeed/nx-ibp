@@ -27,14 +27,19 @@ const PLAN_MODULES: Record<string, Record<string, EntMode>> = {
 
 // ميزات غير الموديولز لكل باقة
 const PLAN_FEATURES: Record<string, Array<{ key: string; mode: EntMode; numericValue?: number; unitFee?: number }>> = {
-  basic: [{ key: "upload.maxFileMb", mode: "QUOTA", numericValue: 10 }],
+  basic: [
+    { key: "upload.maxFileMb", mode: "QUOTA", numericValue: 10 },
+    { key: "storage.quotaMb", mode: "QUOTA", numericValue: 1024 }, // 1GB
+  ],
   premium: [
     { key: "upload.maxFileMb", mode: "QUOTA", numericValue: 25 },
+    { key: "storage.quotaMb", mode: "QUOTA", numericValue: 10240 }, // 10GB
     { key: "dynamic_form", mode: "METERED", unitFee: 1.5 },
     { key: "verification.yaqeen", mode: "METERED", unitFee: 3.0 },
   ],
   enterprise: [
     { key: "upload.maxFileMb", mode: "QUOTA", numericValue: 100 },
+    { key: "storage.quotaMb", mode: "QUOTA", numericValue: 102400 }, // 100GB
     { key: "dynamic_form", mode: "INCLUDED" },
     { key: "verification.yaqeen", mode: "INCLUDED" },
   ],

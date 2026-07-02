@@ -9,6 +9,7 @@ type Cycle = "MONTHLY" | "YEARLY";
 interface Plan { code: string; name: string; seatLimit: number; priceMonthly: string; priceYearly: string }
 interface Invoice { id: string; planCode: string; cycle: Cycle; amount: string; currency: string; status: string; paidAt: string | null; createdAt: string }
 interface SubInfo { status?: string; subscription?: { cycle: Cycle; seatsUsed: number; renewsAt: string | null; plan: { code: string; name: string; seatLimit: number } } | null }
+interface StorageUsage { usedBytes: number; quotaBytes: number; quotaMb: number; percentUsed: number }
 
 const STATUS_TONE: Record<string, string> = {
   ACTIVE: "bg-success/10 text-success", PAID: "bg-success/10 text-success",
@@ -21,17 +22,19 @@ export default function BillingPage() {
   const [sub, setSub] = useState<SubInfo | null>(null);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [storage, setStorage] = useState<StorageUsage | null>(null);
   const [cycle, setCycle] = useState<Cycle>("MONTHLY");
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
 
   async function load() {
-    const [s, p, inv] = await Promise.all([
+    const [s, p, inv, st] = await Promise.all([
       api<SubInfo>("/billing/subscription"),
       api<Plan[]>("/billing/plans"),
       api<Invoice[]>("/billing/invoices"),
+      api<StorageUsage>("/documents/usage"),
     ]);
-    setSub(s); setPlans(p); setInvoices(inv);
+    setSub(s); setPlans(p); setInvoices(inv); setStorage(st);
   }
   useEffect(() => { load().catch(() => setError(t("error"))); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -77,6 +80,17 @@ export default function BillingPage() {
           <div><div className="text-[11.5px] text-subtle">{t("seats")}</div><div className="mt-1 font-semibold text-ink">{sub?.subscription?.seatsUsed ?? 0} / {sub?.subscription?.plan.seatLimit ?? "—"}</div></div>
           <div><div className="text-[11.5px] text-subtle">{t("renewsAt")}</div><div className="mt-1 font-semibold text-ink">{date(sub?.subscription?.renewsAt ?? null)}</div></div>
         </div>
+        {storage ? (
+          <div className="mt-4 border-t border-line pt-4">
+            <div className="mb-1.5 flex items-center justify-between text-[12.5px]">
+              <span className="text-subtle">{t("storage")}</span>
+              <span className="font-semibold text-ink tnum">{(storage.usedBytes / 1048576).toFixed(1)} {t("storageOf")} {storage.quotaMb} MB</span>
+            </div>
+            <div className="h-2 w-full overflow-hidden rounded-full bg-surface-2">
+              <div className={["h-full rounded-full", storage.percentUsed >= 90 ? "bg-danger" : storage.percentUsed >= 70 ? "bg-warning" : "bg-primary"].join(" ")} style={{ width: `${Math.min(100, storage.percentUsed)}%` }} />
+            </div>
+          </div>
+        ) : null}
       </section>
 
       {/* اختيار باقة */}

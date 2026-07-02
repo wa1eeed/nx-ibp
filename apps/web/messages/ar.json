@@ -270,6 +270,8 @@
     "title": "الاشتراك والفوترة",
     "subtitle": "إدارة باقتك ومدفوعاتك",
     "current": "اشتراكك الحالي",
+    "storage": "التخزين المستخدم",
+    "storageOf": "من",
     "status": "الحالة",
     "statusTRIAL": "تجريبي",
     "statusACTIVE": "نشط",
