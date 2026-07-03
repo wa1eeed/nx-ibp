@@ -1,7 +1,9 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
 import { AuditService } from "../../common/audit/audit.service";
 import { NotificationsService } from "../notifications/notifications.service";
+import { PermissionService } from "../rbac/permission.service";
+import type { AuthUser } from "../auth/current-user.decorator";
 import type { CreateDealDto, UpdateDealDto, CreateTaskDto, AddActivityDto } from "./dto/crm.dto";
 
 /** مراحل خط أنابيب الصفقات (Pipeline). */
@@ -17,11 +19,27 @@ export class CrmService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly notifications: NotificationsService,
+    private readonly permissions: PermissionService,
   ) {}
 
+  /**
+   * رؤية CRM حسب الدور (أفضل معيار وساطة): **المدير** (صلاحية حذف على المبيعات — GM/مدير مبيعات)
+   * يرى كل الصفقات/المهام؛ **المندوب** (مبيعات بلا حذف) يرى ما أُسنِد إليه أو أنشأه فقط.
+   */
+  private isManager(user: AuthUser) {
+    return this.permissions.can(user.roleId, "sales", "delete");
+  }
+  private ownScope(userId: string) {
+    return { OR: [{ assigneeId: userId }, { createdById: userId }] };
+  }
+
   // ————————————————— الصفقات (Pipeline) —————————————————
-  async listDeals() {
-    const deals = await this.prisma.deal.findMany({ where: { status: "open" }, orderBy: { updatedAt: "desc" } });
+  async listDeals(user: AuthUser) {
+    const manager = await this.isManager(user);
+    const deals = await this.prisma.deal.findMany({
+      where: { status: "open", ...(manager ? {} : this.ownScope(user.userId)) },
+      orderBy: { updatedAt: "desc" },
+    });
     return this.enrich(deals);
   }
 
@@ -35,9 +53,14 @@ export class CrmService {
     return deal;
   }
 
-  async updateDeal(tenantId: string, userId: string, id: string, dto: UpdateDealDto) {
+  async updateDeal(user: AuthUser, id: string, dto: UpdateDealDto) {
+    const tenantId = user.tenantId, userId = user.userId;
     const before = await this.prisma.deal.findFirst({ where: { id } });
     if (!before) throw new NotFoundException("الصفقة غير موجودة");
+    // فصل المهام: المندوب لا يعدّل إلا صفقاته (المُسنَدة إليه أو التي أنشأها)؛ المدير يعدّل الكل
+    if (!(await this.isManager(user)) && before.assigneeId !== userId && before.createdById !== userId) {
+      throw new ForbiddenException("لا تملك صلاحية تعديل صفقة مُسنَدة لموظف آخر");
+    }
     const deal = await this.prisma.deal.update({
       where: { id },
       data: {
@@ -57,9 +80,12 @@ export class CrmService {
   }
 
   // ————————————————— المهام/التذكيرات —————————————————
-  listTasks(mineUserId?: string) {
+  async listTasks(user: AuthUser, mine: boolean) {
+    const manager = await this.isManager(user);
+    // المدير: يرى الكل (أو مهامّه عند mine)؛ المندوب: مهامّه فقط دائمًا
+    const scoped = !manager || mine;
     return this.prisma.crmTask.findMany({
-      where: { status: "open", ...(mineUserId ? { assigneeId: mineUserId } : {}) },
+      where: { status: "open", ...(scoped ? this.ownScope(user.userId) : {}) },
       orderBy: [{ dueDate: "asc" }, { createdAt: "desc" }],
     });
   }
@@ -73,11 +99,14 @@ export class CrmService {
     return task;
   }
 
-  async completeTask(tenantId: string, userId: string, id: string) {
+  async completeTask(user: AuthUser, id: string) {
     const task = await this.prisma.crmTask.findFirst({ where: { id } });
     if (!task) throw new NotFoundException("المهمة غير موجودة");
+    if (!(await this.isManager(user)) && task.assigneeId !== user.userId && task.createdById !== user.userId) {
+      throw new ForbiddenException("لا تملك صلاحية إنجاز مهمة مُسنَدة لموظف آخر");
+    }
     await this.prisma.crmTask.update({ where: { id }, data: { status: "done", completedAt: new Date() } });
-    await this.audit.log({ tenantId, userId, action: "update", entity: "crm_task", entityId: id, meta: { done: true } });
+    await this.audit.log({ tenantId: user.tenantId, userId: user.userId, action: "update", entity: "crm_task", entityId: id, meta: { done: true } });
     return { ok: true };
   }
 

@@ -2,7 +2,7 @@ import { Body, Controller, Get, Param, Patch, Post, Query } from "@nestjs/common
 import { CrmService } from "./crm.service";
 import { CreateDealDto, UpdateDealDto, CreateTaskDto, AddActivityDto } from "./dto/crm.dto";
 import { Authorize } from "../rbac/authorize.decorator";
-import { CurrentUser } from "../auth/current-user.decorator";
+import { CurrentUser, type AuthUser } from "../auth/current-user.decorator";
 
 /** إدارة علاقات العملاء (CRM) — تحت وحدة المبيعات. */
 @Controller("crm")
@@ -12,8 +12,8 @@ export class CrmController {
   // ——— الصفقات (Pipeline) ———
   @Authorize({ module: "sales", action: "read", entitlement: "module.sales" })
   @Get("deals")
-  deals() {
-    return this.crm.listDeals();
+  deals(@CurrentUser() user: AuthUser) {
+    return this.crm.listDeals(user);
   }
 
   @Authorize({ module: "sales", action: "create", entitlement: "module.sales" })
@@ -24,15 +24,15 @@ export class CrmController {
 
   @Authorize({ module: "sales", action: "update", entitlement: "module.sales" })
   @Patch("deals/:id")
-  updateDeal(@CurrentUser("tenantId") tenantId: string, @CurrentUser("userId") userId: string, @Param("id") id: string, @Body() dto: UpdateDealDto) {
-    return this.crm.updateDeal(tenantId, userId, id, dto);
+  updateDeal(@CurrentUser() user: AuthUser, @Param("id") id: string, @Body() dto: UpdateDealDto) {
+    return this.crm.updateDeal(user, id, dto);
   }
 
   // ——— المهام/التذكيرات ———
   @Authorize({ module: "sales", action: "read", entitlement: "module.sales" })
   @Get("tasks")
-  tasks(@CurrentUser("userId") userId: string, @Query("mine") mine?: string) {
-    return this.crm.listTasks(mine ? userId : undefined);
+  tasks(@CurrentUser() user: AuthUser, @Query("mine") mine?: string) {
+    return this.crm.listTasks(user, !!mine);
   }
 
   @Authorize({ module: "sales", action: "create", entitlement: "module.sales" })
@@ -43,8 +43,8 @@ export class CrmController {
 
   @Authorize({ module: "sales", action: "update", entitlement: "module.sales" })
   @Post("tasks/:id/complete")
-  completeTask(@CurrentUser("tenantId") tenantId: string, @CurrentUser("userId") userId: string, @Param("id") id: string) {
-    return this.crm.completeTask(tenantId, userId, id);
+  completeTask(@CurrentUser() user: AuthUser, @Param("id") id: string) {
+    return this.crm.completeTask(user, id);
   }
 
   // ——— النشاط/الملاحظات (Timeline) ———

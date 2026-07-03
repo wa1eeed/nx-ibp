@@ -21,6 +21,7 @@ export default function CrmPage() {
   const [clients, setClients] = useState<Client[]>([]);
   const [staff, setStaff] = useState<Staff[]>([]);
   const [mineOnly, setMineOnly] = useState(false);
+  const [isManager, setIsManager] = useState(false);
   const [dealForm, setDealForm] = useState<{ title: string; clientId: string; value: string; assigneeId: string } | null>(null);
   const [taskForm, setTaskForm] = useState<{ title: string; assigneeId: string; dueDate: string; priority: string } | null>(null);
   const [error, setError] = useState("");
@@ -37,6 +38,14 @@ export default function CrmPage() {
     } catch { setError(t("error")); }
   }, [mineOnly, t]);
   useEffect(() => { if (getToken()) void load(); }, [load]);
+
+  // المدير (صلاحية حذف على المبيعات) يرى الكل ويملك مبدّل «مهامّي/الكل»؛ المندوب يرى ما أُسنِد إليه
+  useEffect(() => {
+    if (!getToken()) return;
+    void api<{ permissions?: Record<string, { delete?: boolean }> }>("/auth/me")
+      .then((me) => setIsManager(me.permissions?.sales?.delete === true))
+      .catch(() => undefined);
+  }, []);
 
   const run = async (p: Promise<unknown>) => { setError(""); try { await p; await load(); } catch { setError(t("error")); } };
   const moveDeal = (id: string, stage: string) => run(api(`/crm/deals/${id}`, { method: "PATCH", body: JSON.stringify({ stage }) }));
@@ -132,7 +141,9 @@ export default function CrmPage() {
           <div className="mb-2.5 flex items-center justify-between">
             <h2 className="text-[13.5px] font-bold text-ink">{t("tasks")}</h2>
             <div className="flex items-center gap-1.5">
-              <button onClick={() => setMineOnly((v) => !v)} className={["h-8 rounded-lg border px-2.5 text-[11.5px] font-medium", mineOnly ? "border-primary bg-primary/10 text-primary" : "border-line text-muted hover:bg-surface-2"].join(" ")}>{mineOnly ? t("myTasks") : t("allTasks")}</button>
+              {isManager ? (
+                <button onClick={() => setMineOnly((v) => !v)} className={["h-8 rounded-lg border px-2.5 text-[11.5px] font-medium", mineOnly ? "border-primary bg-primary/10 text-primary" : "border-line text-muted hover:bg-surface-2"].join(" ")}>{mineOnly ? t("myTasks") : t("allTasks")}</button>
+              ) : null}
               <button onClick={() => setTaskForm({ title: "", assigneeId: "", dueDate: "", priority: "normal" })} className="grid h-8 w-8 place-items-center rounded-lg bg-ink text-white hover:opacity-90"><Plus size={14} /></button>
             </div>
           </div>

@@ -75,6 +75,22 @@ describe("CRM — E5 (e2e)", () => {
     expect(acts.some((a) => a.body.includes("اتصلت بالعميل"))).toBe(true);
   });
 
+  it("رؤية حسب الدور: المندوب يرى صفقاته فقط لا صفقات غيره، ولا يعدّلها", async () => {
+    // assigneeToken = مندوب مبيعات (sales بلا حذف) ⇒ ليس مديرًا
+    const mine = (await request(app.getHttpServer()).post("/crm/deals").set(auth(gm)).send({ title: "صفقة المندوب", assigneeId }).expect(201)).body;
+    const other = (await request(app.getHttpServer()).post("/crm/deals").set(auth(gm)).send({ title: "صفقة غير مُسنَدة" }).expect(201)).body; // أنشأها المدير، بلا إسناد
+
+    const repDeals = (await request(app.getHttpServer()).get("/crm/deals").set(auth(assigneeToken)).expect(200)).body as Array<{ id: string }>;
+    expect(repDeals.some((d) => d.id === mine.id)).toBe(true);   // يرى المُسنَدة إليه
+    expect(repDeals.some((d) => d.id === other.id)).toBe(false); // لا يرى صفقة غيره
+
+    const gmDeals = (await request(app.getHttpServer()).get("/crm/deals").set(auth(gm)).expect(200)).body as Array<{ id: string }>;
+    expect(gmDeals.some((d) => d.id === other.id)).toBe(true);   // المدير يرى الكل
+
+    // المندوب لا يعدّل صفقة غيره ⇒ 403
+    await request(app.getHttpServer()).patch(`/crm/deals/${other.id}`).set(auth(assigneeToken)).send({ stage: "quoting" }).expect(403);
+  });
+
   it("عزل صلاحية: بلا وحدة المبيعات ⇒ 403", () =>
     request(app.getHttpServer()).get("/crm/deals").set(auth(noSales)).expect(403));
 });
