@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { CheckCircle2, Landmark, FileCheck2 } from "lucide-react";
+import { CheckCircle2, Landmark, FileCheck2, Undo2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/routing";
 import { api, getToken, ApiError } from "@/lib/api";
@@ -35,6 +35,7 @@ export default function PoliciesPage() {
   const router = useRouter();
   const [rows, setRows] = useState<Policy[]>([]);
   const [stepNames, setStepNames] = useState<Record<string, string>>({});
+  const [canRevert, setCanRevert] = useState(false);
   const [error, setError] = useState("");
 
   const load = useCallback(async () => {
@@ -44,6 +45,11 @@ export default function PoliciesPage() {
     try {
       const c = await api<{ steps: { key: string; name: string }[] }>("/config/approval-chain");
       setStepNames(Object.fromEntries(c.steps.map((s) => [s.key, s.name])));
+    } catch { /* تجاهل */ }
+    // صلاحية التراجع (E4) على وحدة الإنتاج — لإظهار زر «تراجع خطوة»
+    try {
+      const me = await api<{ permissions?: Record<string, { revert?: boolean }> }>("/auth/me");
+      setCanRevert(me.permissions?.production?.revert === true);
     } catch { /* تجاهل */ }
   }, []);
 
@@ -65,6 +71,23 @@ export default function PoliciesPage() {
     setError("");
     try {
       await api(path, { method: "POST" });
+      await load();
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "خطأ");
+    }
+  }
+
+  async function revert(policyId: string) {
+    const ok = await confirm({
+      title: t("confirm.revert.title"),
+      description: t("confirm.revert.desc"),
+      confirmLabel: t("confirm.revert.action"),
+      tone: "danger",
+    });
+    if (!ok) return;
+    setError("");
+    try {
+      await api(`/revert/policy/${policyId}`, { method: "POST" });
       await load();
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "خطأ");
@@ -124,19 +147,26 @@ export default function PoliciesPage() {
                     <td className="px-5 py-3 text-[12.5px] text-muted tnum">{fmt(p.commissionAmount)}</td>
                     <td className="px-5 py-3"><Badge tone={STATUS_TONE[p.status] ?? "neutral"}>{p.status}</Badge></td>
                     <td className="px-5 py-3 text-end">
-                      {p.status === "TECHNICAL_REVIEW" ? (
-                        <button onClick={() => act(`/policies/${p.id}/approve-technical`, "approveTechnical")} className="inline-flex items-center gap-1 rounded-lg border border-line bg-card px-2.5 py-1.5 text-[12px] font-medium text-primary hover:bg-surface-2">
-                          <CheckCircle2 size={13} /> {t("policies.approveTechnical")}
-                        </button>
-                      ) : p.status === "FINANCE_REVIEW" && (p.pendingApprovals?.length ?? 0) > 0 ? (
-                        <button onClick={() => approveStep(p.id, p.pendingApprovals![0])} className="inline-flex items-center gap-1 rounded-lg border border-warning/40 bg-warning/10 px-2.5 py-1.5 text-[12px] font-semibold text-warning hover:bg-warning/20">
-                          <CheckCircle2 size={13} /> {t("policies.approveStep")}: {stepNames[p.pendingApprovals![0]] ?? p.pendingApprovals![0]}
-                        </button>
-                      ) : p.status === "FINANCE_REVIEW" ? (
-                        <button onClick={() => act(`/finance/policies/${p.id}/approve`, "approveFinance")} className="inline-flex items-center gap-1 rounded-lg bg-primary-strong px-2.5 py-1.5 text-[12px] font-semibold text-primary-fg hover:bg-primary">
-                          <Landmark size={13} /> {t("policies.approveFinance")}
-                        </button>
-                      ) : null}
+                      <div className="inline-flex items-center gap-2">
+                        {p.status === "TECHNICAL_REVIEW" ? (
+                          <button onClick={() => act(`/policies/${p.id}/approve-technical`, "approveTechnical")} className="inline-flex items-center gap-1 rounded-lg border border-line bg-card px-2.5 py-1.5 text-[12px] font-medium text-primary hover:bg-surface-2">
+                            <CheckCircle2 size={13} /> {t("policies.approveTechnical")}
+                          </button>
+                        ) : p.status === "FINANCE_REVIEW" && (p.pendingApprovals?.length ?? 0) > 0 ? (
+                          <button onClick={() => approveStep(p.id, p.pendingApprovals![0])} className="inline-flex items-center gap-1 rounded-lg border border-warning/40 bg-warning/10 px-2.5 py-1.5 text-[12px] font-semibold text-warning hover:bg-warning/20">
+                            <CheckCircle2 size={13} /> {t("policies.approveStep")}: {stepNames[p.pendingApprovals![0]] ?? p.pendingApprovals![0]}
+                          </button>
+                        ) : p.status === "FINANCE_REVIEW" ? (
+                          <button onClick={() => act(`/finance/policies/${p.id}/approve`, "approveFinance")} className="inline-flex items-center gap-1 rounded-lg bg-primary-strong px-2.5 py-1.5 text-[12px] font-semibold text-primary-fg hover:bg-primary">
+                            <Landmark size={13} /> {t("policies.approveFinance")}
+                          </button>
+                        ) : null}
+                        {canRevert && (p.status === "TECHNICAL_REVIEW" || p.status === "FINANCE_REVIEW") ? (
+                          <button onClick={() => revert(p.id)} title={t("policies.revert")} className="inline-flex items-center gap-1 rounded-lg border border-line px-2.5 py-1.5 text-[12px] font-medium text-muted transition-colors hover:bg-danger/10 hover:text-danger">
+                            <Undo2 size={13} /> {t("policies.revert")}
+                          </button>
+                        ) : null}
+                      </div>
                     </td>
                   </tr>
                 ))}

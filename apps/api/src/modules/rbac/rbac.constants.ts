@@ -17,12 +17,13 @@ export const RBAC_MODULES = [
 ] as const;
 export type RbacModule = (typeof RBAC_MODULES)[number];
 
-export type RbacAction = "read" | "create" | "update" | "delete";
+export type RbacAction = "read" | "create" | "update" | "delete" | "revert";
 
 /** يربط الفعل بعمود الصلاحية في جدول Permission. */
-export const ACTION_FLAG: Record<RbacAction, "canAccess" | "canCreate" | "canEdit" | "canDelete"> = {
+export const ACTION_FLAG: Record<RbacAction, "canAccess" | "canCreate" | "canEdit" | "canDelete" | "canRevert"> = {
   read: "canAccess",
   create: "canCreate",
   update: "canEdit",
   delete: "canDelete",
+  revert: "canRevert",
 };

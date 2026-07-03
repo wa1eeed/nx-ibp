@@ -284,6 +284,7 @@ model Permission {
   canCreate Boolean @default(false)
   canEdit   Boolean @default(false)
   canDelete Boolean @default(false)
+  canRevert Boolean @default(false) // E4 — صلاحية التراجع خطوة للوراء عن إجراءات الوحدة (للمشرف)
 
   @@unique([roleId, module])
 }

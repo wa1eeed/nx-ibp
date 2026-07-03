@@ -58,9 +58,20 @@ export class AuthService {
 
   /** بيانات المستخدم الحالي — ضمن سياق المستأجر فتُفلتر تلقائياً. */
   async me(userId: string) {
-    return this.prisma.user.findFirst({
+    const user = await this.prisma.user.findFirst({
       where: { id: userId },
-      select: { id: true, email: true, fullName: true, tenantId: true, roleId: true, status: true },
+      select: {
+        id: true, email: true, fullName: true, tenantId: true, roleId: true, status: true,
+        role: { select: { name: true, permissions: { select: { module: true, canAccess: true, canCreate: true, canEdit: true, canDelete: true, canRevert: true } } } },
+      },
     });
+    if (!user) return null;
+    // خريطة صلاحيات مبسّطة للواجهة: module ⇒ {access,create,edit,delete,revert}
+    const permissions: Record<string, { access: boolean; create: boolean; edit: boolean; delete: boolean; revert: boolean }> = {};
+    for (const p of user.role?.permissions ?? []) {
+      permissions[p.module] = { access: p.canAccess, create: p.canCreate, edit: p.canEdit, delete: p.canDelete, revert: p.canRevert };
+    }
+    const { role, ...rest } = user;
+    return { ...rest, roleName: role?.name ?? null, permissions };
   }
 }

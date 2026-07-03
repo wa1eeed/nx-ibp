@@ -21,6 +21,7 @@
     "approveTechnical": { "title": "Technical approval", "desc": "The policy will be technically approved and move to financial approval.", "action": "Approve" },
     "approveFinance": { "title": "Financial approval", "desc": "Financial approval auto-generates a journal voucher, debit note and tax invoice, and the policy becomes active.", "action": "Approve" },
     "approveStep": { "title": "Approve step", "desc": "You will approve the configured extra approval step for this policy (per the approval chain).", "action": "Approve step" },
+    "revert": { "title": "Revert one step", "desc": "The policy will be moved one step back to its previous state (the action is audited). Issued policies cannot be reverted directly.", "action": "Revert" },
     "claimStatus": { "title": "Update claim status", "desc": "The claim status will change to “{status}”.", "action": "Update" },
     "serviceStatus": { "title": "Update request status", "desc": "The service request status will change to “{status}”.", "action": "Update" },
     "tenantSuspend": { "title": "Suspend account", "desc": "Account “{name}” access to the platform will be suspended immediately.", "action": "Suspend" },
@@ -429,6 +430,7 @@
     "approveTechnical": "Technical approval",
     "approveFinance": "Finance approval",
     "approveStep": "Approve",
+    "revert": "Revert",
     "col": { "seq": "Policy #", "insurer": "Insurer", "premium": "Total", "commission": "Commission", "status": "Status" }
   },
   "verification": {

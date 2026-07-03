@@ -23,9 +23,10 @@ export interface PermissionSet {
   canCreate: boolean;
   canEdit: boolean;
   canDelete: boolean;
+  canRevert: boolean; // E4 — التراجع خطوة للوراء (رمز "R")
 }
 
-/** يحوّل رمزاً مثل "ACED" أو "AE" أو "—" إلى مجموعة صلاحيات. */
+/** يحوّل رمزاً مثل "ACEDR" أو "AE" أو "—" إلى مجموعة صلاحيات. R = التراجع خطوة. */
 export function parsePerm(code: string): PermissionSet {
   const c = code.toUpperCase();
   return {
@@ -33,6 +34,7 @@ export function parsePerm(code: string): PermissionSet {
     canCreate: c.includes("C"),
     canEdit: c.includes("E"),
     canDelete: c.includes("D"),
+    canRevert: c.includes("R"),
   };
 }
 
@@ -54,7 +56,7 @@ function row(...codes: string[]): Record<RbacModule, string> {
 
 export const PRESET_ROLES: PresetRole[] = [
   { code: "general_manager", nameAr: "المدير العام", nameEn: "General Manager",
-    matrix: row("A", "ACED", "ACED", "ACED", "ACED", "ACED", "ACED", "ACED", "ACED", "ACED", "ACED", "ACED") },
+    matrix: row("A", "ACED", "ACED", "ACEDR", "ACEDR", "ACEDR", "ACEDR", "ACED", "ACED", "ACED", "ACED", "ACED") },
   { code: "sales_manager", nameAr: "مدير المبيعات", nameEn: "Sales Manager",
     matrix: row("A", "ACED", "ACE", "—", "ACE", "—", "—", "—", "A", "—", "—", "—") },
   { code: "sales_rep", nameAr: "ممثل مبيعات", nameEn: "Sales Representative",

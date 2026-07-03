@@ -105,7 +105,7 @@ export class SignupService {
       // دور المالك: وصول كامل لكل الموديولز (المدير ينشئ بقية الأدوار/الأقسام لاحقاً)
       const role = await tx.role.create({ data: { tenantId, name: "مالك الحساب", isPreset: true }, select: { id: true } });
       await tx.permission.createMany({
-        data: RBAC_MODULES.map((m) => ({ roleId: role.id, module: m, canAccess: true, canCreate: true, canEdit: true, canDelete: true })),
+        data: RBAC_MODULES.map((m) => ({ roleId: role.id, module: m, canAccess: true, canCreate: true, canEdit: true, canDelete: true, canRevert: true })),
       });
 
       const user = await tx.user.create({

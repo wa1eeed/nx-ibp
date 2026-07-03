@@ -38,6 +38,7 @@ import { BillingModule } from "./modules/billing/billing.module";
 import { OrgModule } from "./modules/org/org.module";
 import { NotificationsModule } from "./modules/notifications/notifications.module";
 import { ConfigModule as TenantConfigModule } from "./modules/config/config.module";
+import { RevertModule } from "./modules/revert/revert.module";
 
 /**
  * الوحدة الجذرية. معماري وحدات — module لكل مجال (GUIDELINES.md §5).
@@ -82,6 +83,7 @@ import { ConfigModule as TenantConfigModule } from "./modules/config/config.modu
     OrgModule,
     NotificationsModule,
     TenantConfigModule,
+    RevertModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

@@ -39,7 +39,7 @@ export class StaffService {
         id: true,
         name: true,
         permissions: {
-          select: { module: true, canAccess: true, canCreate: true, canEdit: true, canDelete: true },
+          select: { module: true, canAccess: true, canCreate: true, canEdit: true, canDelete: true, canRevert: true },
         },
       },
     });
@@ -68,6 +68,7 @@ export class StaffService {
               canCreate: p.canCreate,
               canEdit: p.canEdit,
               canDelete: p.canDelete,
+              canRevert: p.canRevert ?? false,
             })),
           },
         },

@@ -1,4 +1,4 @@
-import { IsArray, IsBoolean, IsEmail, IsIn, IsString, Matches, MinLength, ValidateNested } from "class-validator";
+import { IsArray, IsBoolean, IsEmail, IsIn, IsOptional, IsString, Matches, MinLength, ValidateNested } from "class-validator";
 import { Type } from "class-transformer";
 import { RBAC_MODULES } from "../../rbac/rbac.constants";
 
@@ -10,6 +10,7 @@ export class PermissionRowDto {
   @IsBoolean() canCreate!: boolean;
   @IsBoolean() canEdit!: boolean;
   @IsBoolean() canDelete!: boolean;
+  @IsOptional() @IsBoolean() canRevert?: boolean; // E4 — صلاحية التراجع (اختياري، افتراضي false)
 }
 
 export class CreateStaffDto {
