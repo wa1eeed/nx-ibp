@@ -53,6 +53,31 @@ export class ClientsService {
     return this.prisma.client.findUnique({ where: { id }, select: CLIENT_FIELDS });
   }
 
+  /** نظرة 360° مجمّعة للعميل — كل ما يخصّه (معزول بالمستأجر تلقائيًا). */
+  async overview(id: string) {
+    const client = await this.prisma.client.findUnique({ where: { id }, select: CLIENT_FIELDS });
+    if (!client) throw new NotFoundException("العميل غير موجود");
+    const [policies, claims, requests, verifications, debitNotes, activities] = await Promise.all([
+      this.prisma.policy.findMany({ where: { clientId: id }, orderBy: { createdAt: "desc" }, select: { id: true, sequenceNo: true, productLineCode: true, insurerName: true, premium: true, totalPremium: true, status: true, startDate: true, endDate: true, createdAt: true } }),
+      this.prisma.claim.findMany({ where: { clientId: id }, orderBy: { createdAt: "desc" }, select: { id: true, sequenceNo: true, insurerName: true, claimedAmount: true, settledAmount: true, status: true, incidentDate: true, createdAt: true } }),
+      this.prisma.policyRequest.findMany({ where: { clientId: id }, orderBy: { createdAt: "desc" }, select: { id: true, sequenceNo: true, productLineCode: true, status: true, createdAt: true } }),
+      this.prisma.verificationCheck.findMany({ where: { clientId: id }, orderBy: { createdAt: "desc" }, select: { id: true, checkType: true, status: true, riskLevel: true, createdAt: true } }),
+      this.prisma.debitNote.findMany({ where: { clientId: id }, orderBy: { createdAt: "desc" }, select: { id: true, sequenceNo: true, netAmount: true, vatAmount: true, createdAt: true } }),
+      this.prisma.crmActivity.findMany({ where: { entityType: "client", entityId: id }, orderBy: { createdAt: "desc" }, take: 50 }),
+    ]);
+    const policyIds = policies.map((p) => p.id);
+    const documents = await this.prisma.document.findMany({
+      where: { OR: [{ entityType: "client", entityId: id }, ...(policyIds.length ? [{ entityId: { in: policyIds } }] : [])] },
+      orderBy: { createdAt: "desc" }, select: { id: true, fileName: true, docType: true, entityType: true, createdAt: true },
+    });
+    const num = (d: Prisma.Decimal | null) => (d == null ? 0 : Number(d));
+    const totalDue = debitNotes.reduce((s, d) => s + num(d.netAmount) + num(d.vatAmount), 0);
+    return {
+      client, policies, claims, requests, verifications, debitNotes, documents, activities,
+      summary: { policies: policies.length, claims: claims.length, requests: requests.length, documents: documents.length, totalDue: +totalDue.toFixed(2) },
+    };
+  }
+
   async create(tenantId: string, userId: string, dto: CreateClientDto) {
     const code = await this.seq.nextClientCode();
     try {

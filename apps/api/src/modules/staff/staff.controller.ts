@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post } from "@nestjs/common";
+import { Body, Controller, Get, Param, Post } from "@nestjs/common";
 import { StaffService } from "./staff.service";
 import { CreateStaffDto } from "./dto/create-staff.dto";
 import { Authorize } from "../rbac/authorize.decorator";
@@ -21,6 +21,13 @@ export class StaffController {
   @Get("roles")
   roles() {
     return this.staff.roleTemplates();
+  }
+
+  // تفاصيل موظف 360° (بياناته/دوره/قسمه + نشاطه ومؤشراته)
+  @Authorize({ module: "settings", action: "read" })
+  @Get(":id")
+  detail(@Param("id") id: string) {
+    return this.staff.detail(id);
   }
 
   @Authorize({ module: "settings", action: "create" })

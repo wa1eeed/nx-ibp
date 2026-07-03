@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { Plus, Building2, User, X, Check, Ban, Search, BadgeCheck } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useRouter } from "@/i18n/routing";
+import { Link, useRouter } from "@/i18n/routing";
 import { api, getToken, ApiError } from "@/lib/api";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Badge, type BadgeTone } from "@/components/ui/Badge";
@@ -287,7 +287,7 @@ export default function ClientsPage() {
                         {c.type === "CORPORATE" ? <Building2 size={16} /> : <User size={16} />}
                       </span>
                       <div>
-                        <div className="text-[13.5px] font-medium text-ink">{c.name}</div>
+                        <Link href={`/tenant/clients/${c.id}`} className="text-[13.5px] font-medium text-ink hover:text-primary hover:underline">{c.name}</Link>
                         <div className="text-[11px] text-subtle">{t(`clients.tabs.${c.type.toLowerCase()}`)}</div>
                       </div>
                     </div>

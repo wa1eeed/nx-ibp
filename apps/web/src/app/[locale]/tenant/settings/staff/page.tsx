@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { Plus, UserPlus, ShieldCheck, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { RBAC_MODULES, type RbacModule } from "@ibp/shared";
-import { useRouter } from "@/i18n/routing";
+import { Link, useRouter } from "@/i18n/routing";
 import { api, getToken, ApiError } from "@/lib/api";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Badge } from "@/components/ui/Badge";
@@ -225,7 +225,7 @@ export default function StaffPage() {
           <tbody className="divide-y divide-line">
             {staff.map((u) => (
               <tr key={u.id} className="hover:bg-surface-2/60">
-                <td className="px-5 py-3 text-[13.5px] font-medium text-ink">{u.fullName}</td>
+                <td className="px-5 py-3 text-[13.5px] font-medium"><Link href={`/tenant/settings/staff/${u.id}`} className="text-ink hover:text-primary hover:underline">{u.fullName}</Link></td>
                 <td className="px-5 py-3 text-[12.5px] text-muted">{u.email}</td>
                 <td className="px-5 py-3 text-[13px] text-muted">{u.role?.name ?? "—"}</td>
                 <td className="px-5 py-3">

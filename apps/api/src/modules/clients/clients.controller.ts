@@ -45,4 +45,11 @@ export class ClientsController {
     if (!client) throw new NotFoundException("العميل غير موجود");
     return client;
   }
+
+  // نظرة 360° مجمّعة (وثائق/مطالبات/طلبات/تحقّق/مالية/نشاط)
+  @Authorize({ module: "clients", action: "read", entitlement: "module.clients" })
+  @Get(":id/overview")
+  overview(@Param("id") id: string) {
+    return this.clients.overview(id);
+  }
 }

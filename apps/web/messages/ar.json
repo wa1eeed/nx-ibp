@@ -384,6 +384,23 @@
     "stages": { "new": "جديدة", "contacted": "تواصل", "quoting": "تسعير", "proposal": "عرض", "negotiation": "تفاوض" },
     "priorities": { "low": "منخفضة", "normal": "عادية", "high": "عالية" }
   },
+  "client360": {
+    "back": "رجوع للعملاء",
+    "tabs": { "overview": "نظرة عامة", "policies": "الوثائق", "claims": "المطالبات", "requests": "الطلبات", "documents": "المستندات", "statement": "كشف الحساب", "timeline": "الخط الزمني" },
+    "kpi": { "policies": "الوثائق", "claims": "المطالبات", "requests": "الطلبات", "due": "مستحق (ريال)" },
+    "info": "بيانات العميل",
+    "cr": "السجل التجاري", "nid": "الهوية", "phone": "الهاتف", "email": "البريد", "city": "المدينة", "activity": "النشاط", "vat": "الرقم الضريبي", "iban": "الآيبان", "producer": "المنتِج",
+    "compliance": "حالة الالتزام", "verification": "التحقّق الحكومي",
+    "addNote": "أضف ملاحظة…", "add": "إضافة", "emptyTab": "لا بيانات في هذا القسم",
+    "risk": "المخاطر", "insurer": "المؤمِّن", "premium": "القسط", "status": "الحالة", "amount": "المبلغ", "date": "التاريخ",
+    "empty": "لا نشاط بعد"
+  },
+  "staffDetail": {
+    "back": "رجوع للموظفين",
+    "role": "الدور", "department": "القسم", "email": "البريد", "status": "الحالة", "joined": "تاريخ الانضمام", "noDept": "بلا قسم",
+    "stats": { "total": "إجمالي العمليات", "issued": "وثائق أصدرها", "approvals": "اعتمادات" },
+    "activity": "سجلّ نشاط الموظف", "empty": "لا نشاط مُسجَّل"
+  },
   "notifCenter": {
     "title": "الإشعارات",
     "markAll": "تعليم الكل كمقروء",

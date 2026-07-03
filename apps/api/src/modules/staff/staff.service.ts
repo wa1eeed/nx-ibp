@@ -1,4 +1,4 @@
-import { ConflictException, Injectable } from "@nestjs/common";
+import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import * as bcrypt from "bcryptjs";
 import { PrismaService } from "../../prisma/prisma.service";
 import { AuditService } from "../../common/audit/audit.service";
@@ -28,6 +28,22 @@ export class StaffService {
         role: { select: { id: true, name: true, isPreset: true } },
       },
     });
+  }
+
+  /** تفاصيل موظف 360° — بياناته + دوره + قسمه + نشاطه (من سجل التدقيق) + مؤشرات. */
+  async detail(id: string) {
+    const user = await this.prisma.user.findFirst({
+      where: { id },
+      select: { id: true, fullName: true, email: true, status: true, createdAt: true, role: { select: { name: true, isPreset: true } }, department: { select: { name: true } } },
+    });
+    if (!user) throw new NotFoundException("المستخدم غير موجود");
+    const [activity, totalActions, policiesCreated, approvals] = await Promise.all([
+      this.prisma.auditLog.findMany({ where: { userId: id }, orderBy: { createdAt: "desc" }, take: 60, select: { action: true, entity: true, entityId: true, meta: true, createdAt: true } }),
+      this.prisma.auditLog.count({ where: { userId: id } }),
+      this.prisma.auditLog.count({ where: { userId: id, entity: "policy", action: "create" } }),
+      this.prisma.auditLog.count({ where: { userId: id, action: "approve" } }),
+    ]);
+    return { user, activity, stats: { totalActions, policiesCreated, approvals } };
   }
 
   /** قوالب الأدوار الجاهزة لتعبئة مصفوفة الصلاحيات في الشاشة. */
