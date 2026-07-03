@@ -20,9 +20,10 @@ interface Overview {
   summary: { policies: number; claims: number; requests: number; documents: number; totalDue: number };
 }
 
-const TABS = ["overview", "policies", "claims", "requests", "documents", "statement", "timeline"] as const;
+const TABS = ["overview", "policies", "renewals", "claims", "requests", "documents", "statement", "timeline"] as const;
 const fmt = (n: string | null | number) => (n == null ? "—" : Number(n).toLocaleString("en-US"));
 const dt = (s: string | null) => (s ? new Date(s).toLocaleDateString("en-GB") : "—");
+const daysLeft = (end: string | null) => (end == null ? null : Math.ceil((new Date(end).getTime() - Date.now()) / 86400000));
 
 export default function ClientDetailPage() {
   const t = useTranslations("client360");
@@ -120,6 +121,13 @@ export default function ClientDetailPage() {
         ) : null}
 
         {tab === "policies" ? (ov.policies.length ? table([t("status"), t("insurer"), t("premium"), "#"], ov.policies.map((p) => row([<Badge key="s" tone={p.status === "ISSUED" ? "success" : "warning"}>{p.status}</Badge>, p.insurerName ?? "—", fmt(p.totalPremium), p.sequenceNo]))) : empty) : null}
+        {tab === "renewals" ? (() => {
+          const soon = ov.policies.filter((p) => p.status === "ISSUED" && (daysLeft(p.endDate) ?? 999) <= 90).sort((a, b) => new Date(a.endDate ?? 0).getTime() - new Date(b.endDate ?? 0).getTime());
+          return soon.length ? table([t("endDate"), t("daysLeft"), t("insurer"), "#"], soon.map((p) => {
+            const dl = daysLeft(p.endDate) ?? 0;
+            return row([dt(p.endDate), <Badge key="d" tone={dl < 0 ? "danger" : dl <= 30 ? "danger" : "warning"}>{dl < 0 ? t("expired") : `${dl} ${t("days")}`}</Badge>, p.insurerName ?? "—", p.sequenceNo]);
+          })) : <p className="rounded-card border border-dashed border-line px-3 py-8 text-center text-[12.5px] text-subtle">{t("noRenewals")}</p>;
+        })() : null}
         {tab === "claims" ? (ov.claims.length ? table([t("status"), t("insurer"), t("amount"), "#"], ov.claims.map((c2) => row([<Badge key="s" tone={c2.status === "SETTLED" ? "success" : c2.status === "REJECTED" ? "danger" : "info"}>{c2.status}</Badge>, c2.insurerName ?? "—", fmt(c2.claimedAmount), c2.sequenceNo]))) : empty) : null}
         {tab === "requests" ? (ov.requests.length ? table([t("status"), t("date"), "#"], ov.requests.map((r) => row([<Badge key="s" tone="neutral">{r.status}</Badge>, dt(r.createdAt), r.sequenceNo]))) : empty) : null}
         {tab === "documents" ? (ov.documents.length ? table([t("date"), "—"], ov.documents.map((d) => row([dt(d.createdAt), <span key="f" className="inline-flex items-center gap-1.5"><FolderOpen size={13} className="text-subtle" /> {d.fileName}</span>]))) : empty) : null}

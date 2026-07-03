@@ -38,12 +38,19 @@ describe("صفحات 360° (e2e)", () => {
   it("عزل: مستأجر آخر لا يقرأ نظرة عميل ليس له ⇒ 404", () =>
     request(app.getHttpServer()).get("/clients/cl-naseej/overview").set(auth(omar)).expect(404));
 
-  it("تفاصيل الموظف تحوي دوره ونشاطه ومؤشراته", async () => {
-    const staff = (await request(app.getHttpServer()).get("/staff").set(auth(gm)).expect(200)).body as Array<{ id: string }>;
-    const res = await request(app.getHttpServer()).get(`/staff/${staff[0].id}`).set(auth(gm)).expect(200);
-    expect(res.body.user.fullName).toBeTruthy();
+  it("تفاصيل الموظف تحوي دوره ونشاطه ومؤشراته + ما تحت مسؤوليته (وثائق/صفقات/مهام)", async () => {
+    // موظف مبيعات + صفقة ومهمة مُسنَدتان إليه ⇒ تظهران في صفحته
+    const uniq = String(Date.now()).slice(-8);
+    const staff = (await request(app.getHttpServer()).post("/staff").set(auth(gm)).send({ fullName: "موظف 360", email: `s360-${uniq}@gulf-demo.sa`, password: "Passw0rd1", roleName: `دور-${uniq}`, permissions: [{ module: "sales", canAccess: true, canCreate: true, canEdit: true, canDelete: false, canRevert: false }] }).expect(201)).body;
+    await request(app.getHttpServer()).post("/crm/deals").set(auth(gm)).send({ title: "صفقة الموظف 360", assigneeId: staff.id }).expect(201);
+    await request(app.getHttpServer()).post("/crm/tasks").set(auth(gm)).send({ title: "مهمة الموظف 360", assigneeId: staff.id }).expect(201);
+
+    const res = await request(app.getHttpServer()).get(`/staff/${staff.id}`).set(auth(gm)).expect(200);
+    expect(res.body.user.fullName).toBe("موظف 360");
     expect(res.body.user.role?.name).toBeTruthy();
     expect(Array.isArray(res.body.activity)).toBe(true);
-    expect(res.body.stats.totalActions).toBeGreaterThanOrEqual(0);
+    expect(Array.isArray(res.body.policies)).toBe(true);
+    expect(res.body.deals.some((d: { title: string }) => d.title === "صفقة الموظف 360")).toBe(true);
+    expect(res.body.tasks.some((x: { title: string }) => x.title === "مهمة الموظف 360")).toBe(true);
   });
 });

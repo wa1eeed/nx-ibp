@@ -386,7 +386,8 @@
   },
   "client360": {
     "back": "رجوع للعملاء",
-    "tabs": { "overview": "نظرة عامة", "policies": "الوثائق", "claims": "المطالبات", "requests": "الطلبات", "documents": "المستندات", "statement": "كشف الحساب", "timeline": "الخط الزمني" },
+    "tabs": { "overview": "نظرة عامة", "policies": "الوثائق المُصدَرة", "renewals": "التجديدات", "claims": "المطالبات", "requests": "الطلبات", "documents": "المستندات", "statement": "كشف الحساب", "timeline": "الخط الزمني" },
+    "endDate": "تنتهي", "daysLeft": "متبقٍّ", "days": "يوم", "expired": "منتهية", "noRenewals": "لا وثائق قاربت على الانتهاء",
     "kpi": { "policies": "الوثائق", "claims": "المطالبات", "requests": "الطلبات", "due": "مستحق (ريال)" },
     "info": "بيانات العميل",
     "cr": "السجل التجاري", "nid": "الهوية", "phone": "الهاتف", "email": "البريد", "city": "المدينة", "activity": "النشاط", "vat": "الرقم الضريبي", "iban": "الآيبان", "producer": "المنتِج",
@@ -399,6 +400,9 @@
     "back": "رجوع للموظفين",
     "role": "الدور", "department": "القسم", "email": "البريد", "status": "الحالة", "joined": "تاريخ الانضمام", "noDept": "بلا قسم",
     "stats": { "total": "إجمالي العمليات", "issued": "وثائق أصدرها", "approvals": "اعتمادات" },
+    "tabs": { "overview": "نظرة عامة", "policies": "وثائق تحت مسؤوليته", "deals": "صفقاته", "tasks": "مهامه", "activity": "النشاط" },
+    "insurer": "المؤمِّن", "premium": "القسط", "statusCol": "الحالة", "client": "العميل", "stage": "المرحلة", "value": "القيمة", "due": "الاستحقاق", "priority": "الأولوية",
+    "noPolicies": "لا وثائق تحت مسؤوليته", "noDeals": "لا صفقات مُسنَدة إليه", "noTasks": "لا مهام مفتوحة",
     "activity": "سجلّ نشاط الموظف", "empty": "لا نشاط مُسجَّل"
   },
   "notifCenter": {

@@ -386,7 +386,8 @@
   },
   "client360": {
     "back": "Back to clients",
-    "tabs": { "overview": "Overview", "policies": "Policies", "claims": "Claims", "requests": "Requests", "documents": "Documents", "statement": "Statement", "timeline": "Timeline" },
+    "tabs": { "overview": "Overview", "policies": "Issued policies", "renewals": "Renewals", "claims": "Claims", "requests": "Requests", "documents": "Documents", "statement": "Statement", "timeline": "Timeline" },
+    "endDate": "Ends", "daysLeft": "left", "days": "days", "expired": "Expired", "noRenewals": "No policies nearing expiry",
     "kpi": { "policies": "Policies", "claims": "Claims", "requests": "Requests", "due": "Due (SAR)" },
     "info": "Client info",
     "cr": "CR", "nid": "ID", "phone": "Phone", "email": "Email", "city": "City", "activity": "Activity", "vat": "VAT no.", "iban": "IBAN", "producer": "Producer",
@@ -399,6 +400,9 @@
     "back": "Back to staff",
     "role": "Role", "department": "Department", "email": "Email", "status": "Status", "joined": "Joined", "noDept": "No department",
     "stats": { "total": "Total actions", "issued": "Policies issued", "approvals": "Approvals" },
+    "tabs": { "overview": "Overview", "policies": "Policies (responsibility)", "deals": "Deals", "tasks": "Tasks", "activity": "Activity" },
+    "insurer": "Insurer", "premium": "Premium", "statusCol": "Status", "client": "Client", "stage": "Stage", "value": "Value", "due": "Due", "priority": "Priority",
+    "noPolicies": "No policies under responsibility", "noDeals": "No deals assigned", "noTasks": "No open tasks",
     "activity": "Employee activity log", "empty": "No activity recorded"
   },
   "notifCenter": {
