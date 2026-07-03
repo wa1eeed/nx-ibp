@@ -13,13 +13,17 @@ const ACTIONS = ["read", "create", "update", "delete"] as const;
 export default function ApprovalChainPage() {
   const t = useTranslations("approvalChain");
   const [steps, setSteps] = useState<Step[]>([]);
+  const [technicalGate, setTechnicalGate] = useState(true);
+  const [segregation, setSegregation] = useState(true);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
 
   const load = useCallback(async () => {
     try {
-      const r = await api<{ steps: Step[] }>("/config/approval-chain");
+      const r = await api<{ steps: Step[]; technicalGate?: boolean; segregationOfDuties?: boolean }>("/config/approval-chain");
       setSteps(r.steps.map((s) => ({ ...s, action: s.action ?? "update" })));
+      setTechnicalGate(r.technicalGate !== false);
+      setSegregation(r.segregationOfDuties !== false);
     } catch { setError(t("error")); }
   }, [t]);
   useEffect(() => { void load(); }, [load]);
@@ -32,7 +36,7 @@ export default function ApprovalChainPage() {
     setError(""); setSaved(false);
     try {
       const payload = steps.map((s) => ({ key: s.key, name: s.name.trim() || t("namePlaceholder"), module: s.module, action: s.action }));
-      await api("/config/approval-chain", { method: "PUT", body: JSON.stringify({ steps: payload }) });
+      await api("/config/approval-chain", { method: "PUT", body: JSON.stringify({ steps: payload, technicalGate, segregationOfDuties: segregation }) });
       setSaved(true);
       await load();
     } catch (e) { setError((e as Error).message || t("error")); }
@@ -40,6 +44,22 @@ export default function ApprovalChainPage() {
 
   const chip = (label: string, tone = "bg-surface-2 text-subtle") => (
     <span className={["whitespace-nowrap rounded-full px-2.5 py-1 text-[11.5px] font-semibold", tone].join(" ")}>{label}</span>
+  );
+
+  const toggleRow = (label: string, hint: string, on: boolean, onToggle: () => void, tag?: string) => (
+    <div className="flex items-center justify-between gap-3">
+      <div className="min-w-0">
+        <div className="flex items-center gap-2">
+          <span className="text-[13px] font-semibold text-ink">{label}</span>
+          {tag ? <span className="rounded-full bg-warning/10 px-2 py-0.5 text-[10.5px] font-medium text-warning">{tag}</span> : null}
+        </div>
+        <p className="text-[11.5px] text-subtle">{hint}</p>
+      </div>
+      <button type="button" role="switch" aria-checked={on} onClick={onToggle}
+        className={["relative h-6 w-11 shrink-0 rounded-full transition-colors", on ? "bg-primary" : "bg-surface-2"].join(" ")}>
+        <span className={["absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all", on ? "ltr:left-[22px] rtl:right-[22px]" : "ltr:left-0.5 rtl:right-0.5"].join(" ")} />
+      </button>
+    </div>
   );
 
   return (
@@ -60,6 +80,14 @@ export default function ApprovalChainPage() {
         ))}
         <ChevronLeft size={14} className="text-subtle rtl:rotate-180" />
         {chip(t("flowFinance"), "bg-success/10 text-success")}
+      </div>
+
+      {/* سياسات الاعتماد */}
+      <div className="rounded-card border border-line bg-card p-3">
+        <p className="mb-2.5 text-[11px] font-bold uppercase tracking-wide text-subtle">{t("policies")}</p>
+        {toggleRow(t("technicalGate"), t("technicalGateHint"), technicalGate, () => { setSaved(false); setTechnicalGate((v) => !v); })}
+        <div className="my-2.5 border-t border-line" />
+        {toggleRow(t("segregation"), t("segregationHint"), segregation, () => { setSaved(false); setSegregation((v) => !v); }, t("complianceTag"))}
       </div>
 
       {error ? <p className="rounded-lg bg-danger/10 px-3 py-2 text-[12.5px] font-medium text-danger">{error}</p> : null}

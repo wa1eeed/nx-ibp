@@ -15,6 +15,13 @@ export interface ApprovalStep {
 const ACTIONS: RbacAction[] = ["read", "create", "update", "delete"];
 const asJson = (v: unknown) => v as Prisma.InputJsonValue;
 
+/** إعداد سلسلة اعتماد الوثيقة: بوّابة الموافقة الفنية + فصل المهام + خطوات إضافية. */
+export interface PolicyApprovalConfig {
+  technicalGate: boolean; // هل الموافقة الفنية مطلوبة؟ (افتراضي true)
+  segregationOfDuties: boolean; // فصل المهام: المعتمِد المالي ≠ المُصدِر (افتراضي true — توصية رقابية)
+  extraSteps: ApprovalStep[];
+}
+
 /**
  * إعدادات المستأجر القابلة للتهيئة (E2 وما بعده). حاليًا: **سلاسل اعتماد الوثيقة** —
  * خطوات موافقة إضافية (بين الفني والمالي) يعرّفها مالك الحساب، لكل خطوة وحدتها/فعلها المطلوب.
@@ -27,22 +34,33 @@ export class ConfigService {
     private readonly audit: AuditService,
   ) {}
 
-  /** خطوات الاعتماد الإضافية للوثيقة (مرتّبة). فارغة إن لم تُهيَّأ. */
-  async getPolicyApprovalSteps(tenantId: string): Promise<ApprovalStep[]> {
+  /** إعداد سلسلة اعتماد الوثيقة: بوّابة فنية (افتراضي مفعّلة) + خطوات إضافية. */
+  async getPolicyApprovalConfig(tenantId: string): Promise<PolicyApprovalConfig> {
     const cfg = await this.prisma.tenantConfig.findFirst({ where: { tenantId }, select: { approvalChains: true } });
-    const chains = (cfg?.approvalChains ?? {}) as { policy?: { extraSteps?: ApprovalStep[] } };
-    return Array.isArray(chains.policy?.extraSteps) ? chains.policy!.extraSteps! : [];
+    const policy = ((cfg?.approvalChains ?? {}) as { policy?: { technicalGate?: boolean; segregationOfDuties?: boolean; extraSteps?: ApprovalStep[] } }).policy ?? {};
+    return {
+      technicalGate: policy.technicalGate !== false, // افتراضيًا مفعّلة
+      segregationOfDuties: policy.segregationOfDuties !== false, // افتراضيًا مفعّل
+      extraSteps: Array.isArray(policy.extraSteps) ? policy.extraSteps : [],
+    };
   }
 
-  /** يحفظ خطوات الاعتماد الإضافية للوثيقة بعد التحقّق. */
-  async setPolicyApprovalSteps(tenantId: string, userId: string, steps: ApprovalStep[]): Promise<{ ok: true; steps: ApprovalStep[] }> {
-    const clean = this.validate(steps);
+  /** خطوات الاعتماد الإضافية فقط (مرتّبة). */
+  async getPolicyApprovalSteps(tenantId: string): Promise<ApprovalStep[]> {
+    return (await this.getPolicyApprovalConfig(tenantId)).extraSteps;
+  }
+
+  /** يحفظ إعداد سلسلة اعتماد الوثيقة (البوّابة الفنية + الخطوات) بعد التحقّق. */
+  async setPolicyApprovalConfig(tenantId: string, userId: string, input: { technicalGate?: boolean; segregationOfDuties?: boolean; steps: ApprovalStep[] }): Promise<{ ok: true } & PolicyApprovalConfig> {
+    const extraSteps = this.validate(input.steps);
+    const technicalGate = input.technicalGate !== false;
+    const segregationOfDuties = input.segregationOfDuties !== false;
     const cfg = await this.prisma.tenantConfig.findFirst({ where: { tenantId }, select: { id: true, approvalChains: true } });
-    const chains = { ...((cfg?.approvalChains ?? {}) as Record<string, unknown>), policy: { extraSteps: clean } };
+    const chains = { ...((cfg?.approvalChains ?? {}) as Record<string, unknown>), policy: { technicalGate, segregationOfDuties, extraSteps } };
     if (cfg) await this.prisma.tenantConfig.update({ where: { tenantId }, data: { approvalChains: asJson(chains) } });
     else await this.prisma.tenantConfig.create({ data: { tenantId, enabledProducts: [], approvalChains: asJson(chains) } });
-    await this.audit.log({ tenantId, userId, action: "update", entity: "approval_chain", entityId: "policy", meta: { steps: clean.length } });
-    return { ok: true, steps: clean };
+    await this.audit.log({ tenantId, userId, action: "update", entity: "approval_chain", entityId: "policy", meta: { technicalGate, segregationOfDuties, steps: extraSteps.length } });
+    return { ok: true, technicalGate, segregationOfDuties, extraSteps };
   }
 
   /** يتحقّق من صحّة الخطوات (مفاتيح فريدة غير فارغة، وحدة/فعل صالحان). */

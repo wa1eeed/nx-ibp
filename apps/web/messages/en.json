@@ -367,6 +367,12 @@
     "saved": "Saved ✅",
     "error": "Could not save",
     "namePlaceholder": "e.g. Manager approval",
+    "policies": "Approval policies",
+    "technicalGate": "Technical approval (underwriter)",
+    "technicalGateHint": "A technical review layer before finance approval — can be disabled",
+    "segregation": "Segregation of duties",
+    "segregationHint": "The policy issuer cannot approve it financially — regulatory recommendation (SAMA/NCA)",
+    "complianceTag": "Regulatory",
     "actions": { "read": "View", "create": "Create", "update": "Edit", "delete": "Delete" },
     "modules": { "dashboard": "Dashboard", "sales": "Sales", "clients": "Clients", "production": "Production", "renewals": "Renewals", "service": "Service", "claims": "Claims", "finance": "Finance", "reports": "Reports", "compliance": "Compliance", "hr": "HR", "settings": "Settings" }
   },

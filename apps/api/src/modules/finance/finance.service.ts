@@ -1,9 +1,10 @@
-import { ConflictException, Injectable, Logger, NotFoundException } from "@nestjs/common";
+import { ConflictException, ForbiddenException, Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { Prisma } from "@ibp/db";
 import { PrismaService } from "../../prisma/prisma.service";
 import { SequenceService } from "../../common/sequence/sequence.service";
 import { AuditService } from "../../common/audit/audit.service";
 import { NotificationsService } from "../notifications/notifications.service";
+import { ConfigService } from "../config/config.service";
 import { vatTreatmentForClass } from "../../common/tax/vat";
 import { zatcaPackage } from "../../common/zatca/zatca.util";
 import { ZatcaBillingService } from "./zatca/zatca-billing.service";
@@ -32,6 +33,7 @@ export class FinanceService {
     private readonly zatcaBilling: ZatcaBillingService,
     private readonly zatcaRouter: ZatcaInvoiceRouter,
     private readonly notifications: NotificationsService,
+    private readonly config: ConfigService,
   ) {}
 
   listVouchers() {
@@ -146,6 +148,14 @@ export class FinanceService {
     // E2 — الاعتماد المالي هو الخطوة الأخيرة: محجوب حتى تُستوفى خطوات الاعتماد الإضافية المُهيّأة
     if (policy.pendingApprovals.length > 0) {
       throw new ConflictException(`الوثيقة بانتظار موافقات إضافية قبل الاعتماد المالي (${policy.pendingApprovals.length} متبقّية)`);
+    }
+    // حارس امتثالي — فصل المهام: المعتمِد المالي ≠ مُصدِر الوثيقة (هيئة التأمين/NCA ECC). مُفعَّل افتراضيًا.
+    const approvalCfg = await this.config.getPolicyApprovalConfig(tenantId);
+    if (approvalCfg.segregationOfDuties) {
+      const issued = await this.prisma.auditLog.findFirst({ where: { entity: "policy", entityId: policyId, action: "create" }, orderBy: { createdAt: "asc" }, select: { userId: true } });
+      if (issued?.userId && issued.userId === userId) {
+        throw new ForbiddenException("فصل المهام: لا يجوز أن يعتمد مُصدِر الوثيقة نفسه ماليًا (متطلّب رقابي)");
+      }
     }
 
     // E1 — الضريبة حسب فرع التأمين: قسط تأمين الحياة معفى (فئة "E"، 0%)؛ البقية قياسية 15% (فئة "S")

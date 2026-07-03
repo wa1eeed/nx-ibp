@@ -1,4 +1,4 @@
-import { IsArray, IsIn, IsOptional, IsString, MinLength, ValidateNested } from "class-validator";
+import { IsArray, IsBoolean, IsIn, IsOptional, IsString, MinLength, ValidateNested } from "class-validator";
 import { Type } from "class-transformer";
 import { RBAC_MODULES } from "../../rbac/rbac.constants";
 
@@ -17,6 +17,14 @@ export class ApprovalStepDto {
 }
 
 export class SetApprovalChainDto {
+  /** بوّابة الموافقة الفنية — قابلة للتعطيل (افتراضي مفعّلة). */
+  @IsOptional() @IsBoolean()
+  technicalGate?: boolean;
+
+  /** فصل المهام (المعتمِد المالي ≠ المُصدِر) — توصية رقابية، افتراضي مفعّل. */
+  @IsOptional() @IsBoolean()
+  segregationOfDuties?: boolean;
+
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => ApprovalStepDto)

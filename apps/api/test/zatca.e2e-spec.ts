@@ -15,13 +15,15 @@ const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f
 
 describe("ZATCA Fatoora المرحلة 2 (e2e)", () => {
   let app: INestApplication;
-  let gm: string; // الخليج (demo-tenant)
+  let gm: string; // الخليج (demo-tenant) — إدارة/إصدار
+  let accountant: string; // محاسب الخليج — الاعتماد المالي (فصل المهام)
   let omar: string; // الأمان (demo-tenant-2)
   const auth = (t: string) => ({ Authorization: `Bearer ${t}` });
   let srv: ReturnType<INestApplication["getHttpServer"]>;
 
   // سلسلة صفقة كاملة حتى الاعتماد المالي ⇒ تُولّد مستندَي فوترة (إشعار مدين + فاتورة عمولة)
-  async function approveDeal(token: string, type: "CORPORATE" | "INDIVIDUAL") {
+  // الاعتماد المالي بمستخدم مختلف عن المُصدِر (فصل المهام — مُفعَّل افتراضيًا).
+  async function approveDeal(token: string, financeToken: string, type: "CORPORATE" | "INDIVIDUAL") {
     const ts = Date.now() + Math.floor(Math.random() * 1e6);
     const id = type === "CORPORATE" ? { crNumber: `40${ts}`.slice(0, 10) } : { nationalId: `10${ts}`.slice(0, 10) };
     const c = await request(srv).post("/clients").set(auth(token)).send({ type, name: `زبون ${ts}`, city: "الرياض", ...id });
@@ -32,7 +34,7 @@ describe("ZATCA Fatoora المرحلة 2 (e2e)", () => {
     await request(srv).post(`/slips/${s.body.id}/select`).set(auth(token)).send({ quotationId: q.body.id });
     const p = await request(srv).post("/policies/issue").set(auth(token)).send({ requestId: r.body.id });
     await request(srv).post(`/policies/${p.body.id}/approve-technical`).set(auth(token));
-    return request(srv).post(`/finance/policies/${p.body.id}/approve`).set(auth(token));
+    return request(srv).post(`/finance/policies/${p.body.id}/approve`).set(auth(financeToken));
   }
 
   beforeAll(async () => {
@@ -42,6 +44,7 @@ describe("ZATCA Fatoora المرحلة 2 (e2e)", () => {
     await app.init();
     srv = app.getHttpServer();
     gm = (await request(srv).post("/auth/login").send({ email: "waleed@gulf-demo.sa", password: "Passw0rd!" })).body.accessToken;
+    accountant = (await request(srv).post("/auth/login").send({ email: "laila@gulf-demo.sa", password: "Passw0rd!" })).body.accessToken;
     omar = (await request(srv).post("/auth/login").send({ email: "omar@aman-demo.sa", password: "Passw0rd!" })).body.accessToken;
   });
   afterAll(async () => { await app?.close(); });
@@ -73,7 +76,7 @@ describe("ZATCA Fatoora المرحلة 2 (e2e)", () => {
     request(srv).post("/zatca/onboard/exchange-otp").set(auth(gm)).send({ otp: "12" }).expect(400));
 
   it("الاعتماد المالي يولّد مستندات فوترة متوافقة (UUID + عدّاد + سلسلة تجزئة + QR)", async () => {
-    const res = await approveDeal(gm, "CORPORATE");
+    const res = await approveDeal(gm, accountant, "CORPORATE");
     expect(res.body.status).toBe("ISSUED");
     expect(res.body.billingDocuments).toBe(2); // إشعار مدين + فاتورة عمولة
 
@@ -94,7 +97,7 @@ describe("ZATCA Fatoora المرحلة 2 (e2e)", () => {
   });
 
   it("التوجيه B2B (منشأة) ⇒ مقاصة فورية CLEARED", async () => {
-    await approveDeal(gm, "CORPORATE");
+    await approveDeal(gm, accountant, "CORPORATE");
     const list = (await request(srv).get("/zatca/billing-documents").set(auth(gm))).body as Array<Record<string, unknown>>;
     const b2b = list.find((d) => d.invoiceSubtype === "STANDARD_B2B");
     expect(b2b?.zatcaFlow).toBe("CLEARANCE");
@@ -102,7 +105,7 @@ describe("ZATCA Fatoora المرحلة 2 (e2e)", () => {
   });
 
   it("التوجيه B2C (فرد) ⇒ إبلاغ خلفي يُصبح REPORTED بعد التصريف", async () => {
-    await approveDeal(gm, "INDIVIDUAL");
+    await approveDeal(gm, accountant, "INDIVIDUAL");
     await request(srv).post("/zatca/reporting/drain").set(auth(gm)).expect(200);
     const list = (await request(srv).get("/zatca/billing-documents").set(auth(gm))).body as Array<Record<string, unknown>>;
     const b2c = list.find((d) => d.invoiceSubtype === "SIMPLIFIED_B2C");

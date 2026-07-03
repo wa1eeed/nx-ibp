@@ -367,6 +367,12 @@
     "saved": "حُفظت ✅",
     "error": "تعذّر الحفظ",
     "namePlaceholder": "مثال: موافقة المدير",
+    "policies": "سياسات الاعتماد",
+    "technicalGate": "الموافقة الفنية (المكتتب)",
+    "technicalGateHint": "طبقة تدقيق فنية قبل الاعتماد المالي — يمكن تعطيلها",
+    "segregation": "فصل المهام",
+    "segregationHint": "لا يعتمد مُصدِر الوثيقة نفسه ماليًا — توصية رقابية (هيئة التأمين/NCA)",
+    "complianceTag": "توصية رقابية",
     "actions": { "read": "اطّلاع", "create": "إضافة", "update": "تعديل", "delete": "حذف" },
     "modules": { "dashboard": "لوحة المعلومات", "sales": "المبيعات", "clients": "العملاء", "production": "الإنتاج/الإصدار", "renewals": "التجديدات", "service": "خدمة العملاء", "claims": "المطالبات", "finance": "المالية", "reports": "التقارير", "compliance": "الامتثال", "hr": "الموارد البشرية", "settings": "الإعدادات" }
   },

@@ -32,6 +32,7 @@ const POLICY_FIELDS = {
   clientId: true,
   requestId: true,
   tenantId: true,
+  pendingApprovals: true,
 } as const;
 
 /**
@@ -86,6 +87,12 @@ export class ProductionService {
     const rate = dto.commissionRate ?? 12.5;
     const commission = +((premium * rate) / 100).toFixed(2);
 
+    // E2 — سلسلة الاعتماد: البوّابة الفنية قابلة للتعطيل من الشركة (المالية تبقى إلزامية)
+    const approvalCfg = await this.config.getPolicyApprovalConfig(tenantId);
+    const skipTechnical = !approvalCfg.technicalGate;
+    const initialStatus = skipTechnical ? "FINANCE_REVIEW" : "TECHNICAL_REVIEW";
+    const initialPending = skipTechnical ? approvalCfg.extraSteps.map((s) => s.key) : [];
+
     const policy = await this.prisma.$transaction(async (tx) => {
       const created = await tx.policy.create({
         data: {
@@ -109,11 +116,12 @@ export class ProductionService {
           paymentTerms: dto.paymentTerms ?? null,
           producerName: dto.producerName ?? null,
           producerCommission: dto.producerCommission ?? null,
-          status: "TECHNICAL_REVIEW",
+          status: initialStatus,
+          pendingApprovals: initialPending,
         },
         select: POLICY_FIELDS,
       });
-      await tx.policyRequest.update({ where: { id: request.id }, data: { status: "UNDER_REVIEW" } });
+      await tx.policyRequest.update({ where: { id: request.id }, data: { status: skipTechnical ? "FINANCE_REVIEW" : "UNDER_REVIEW" } });
       return created;
     });
 
@@ -124,8 +132,12 @@ export class ProductionService {
       const client = await this.prisma.client.findFirst({ where: { id: request.clientId }, select: { email: true, phone: true } });
       if (client) void this.notifications.notify(tenantId, "policy_issued", { email: client.email ?? undefined, phone: client.phone ?? undefined, clientId: request.clientId }, { sequenceNo }).catch(() => undefined);
     }
-    // إشعار فريق التسعير بوجود وثيقة تنتظر الموافقة الفنية
-    void this.notifications.notifyStaff(tenantId, "staff_policy_technical_review", { sequenceNo }).catch(() => undefined);
+    // إشعار المعنيّين حسب السلسلة المُهيّأة
+    if (!skipTechnical) {
+      void this.notifications.notifyStaff(tenantId, "staff_policy_technical_review", { sequenceNo }).catch(() => undefined);
+    } else if (initialPending.length === 0) {
+      void this.notifications.notifyStaff(tenantId, "staff_policy_finance_review", { sequenceNo }).catch(() => undefined);
+    }
     return policy;
   }
 
