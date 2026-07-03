@@ -673,6 +673,190 @@ async function seedRichData(passwordHash: string) {
   }
 }
 
+// ============================================================
+// حساب العرض للعميل الأول: Gulf Insurance Brokers Co. (بيانات ديمو محاكية للواقع)
+// معرّفات مستقلّة (gib-*) لا تمسّ كيانات الاختبارات. يُبذر في التطوير فقط (لا في ibp_test).
+// ============================================================
+const GIB_DEF: TenantDef = {
+  id: "gib-demo",
+  name: "شركة الخليج لوساطة التأمين",
+  nameEn: "Gulf Insurance Brokers Co.",
+  cr: "1010209134", // مشتق من ترخيص هيئة التأمين IA-20091/34/وسط/ش
+  plan: "enterprise",
+  billing: "RESELLER",
+  seatsUsed: 6,
+  branches: [{ code: "RUH", name: "الرياض — المركز الرئيسي" }, { code: "JED", name: "جدة" }],
+  users: [
+    { email: "AAlanazi@gib-sa.com", name: "عبدالحميد العنزي", role: "general_manager" }, // مالك الحساب (أوّل مستخدم)
+    { email: "pricing@gib-sa.com", name: "خالد المطيري", role: "pricing_officer" },
+    { email: "finance@gib-sa.com", name: "منى الدوسري", role: "accountant" },
+    { email: "claims@gib-sa.com", name: "سعود الحربي", role: "claims_officer" },
+    { email: "compliance@gib-sa.com", name: "ريم الغامدي", role: "compliance_manager" },
+    { email: "care@gib-sa.com", name: "نوف السبيعي", role: "customer_care_manager" },
+  ],
+  clients: [],
+  wallets: [{ service: "yaqeen", balance: 120 }, { service: "wathiq", balance: 85 }, { service: "screening", balance: 200 }],
+};
+
+async function seedGibDemo(passwordHash: string) {
+  const T = GIB_DEF.id;
+  await seedTenant(GIB_DEF, passwordHash);
+
+  // ---- عملاء واقعيون ----
+  const clients: Array<{ id: string; name: string; id2: string; type: "CORPORATE" | "INDIVIDUAL"; city: string; email: string; phone: string; compliance: "APPROVED" | "PENDING" | "REJECTED" }> = [
+    { id: "gib-cl-maaden", name: "شركة معادن الخليج للتعدين", id2: "1010445501", type: "CORPORATE", city: "الرياض", email: "insurance@gulf-maaden.sa", phone: "0114567001", compliance: "APPROVED" },
+    { id: "gib-cl-noor", name: "مجموعة النور الطبية", id2: "4030556602", type: "CORPORATE", city: "جدة", email: "admin@alnoor-medical.sa", phone: "0126678002", compliance: "APPROVED" },
+    { id: "gib-cl-bina", name: "شركة البناء المتكامل للمقاولات", id2: "1010667703", type: "CORPORATE", city: "الرياض", email: "pm@integrated-const.sa", phone: "0114550003", compliance: "APPROVED" },
+    { id: "gib-cl-shael", name: "أسطول الشعّال للنقل البري", id2: "2050778804", type: "CORPORATE", city: "الدمام", email: "fleet@alshaal-transport.sa", phone: "0138990004", compliance: "APPROVED" },
+    { id: "gib-cl-yaqut", name: "مصنع الياقوت للأغذية", id2: "1010889905", type: "CORPORATE", city: "الرياض", email: "ops@yaqut-foods.sa", phone: "0112330005", compliance: "PENDING" },
+    { id: "gib-cl-durra", name: "شركة درّة البحر للشحن", id2: "3040991106", type: "CORPORATE", city: "جدة", email: "cargo@durrah-shipping.sa", phone: "0126710006", compliance: "APPROVED" },
+    { id: "gib-cl-safwa", name: "مجمّع الصفوة التجاري", id2: "1010112207", type: "CORPORATE", city: "الرياض", email: "mall@alsafwa-mall.sa", phone: "0114780007", compliance: "APPROVED" },
+    { id: "gib-cl-turki", name: "تركي فهد العتيبي", id2: "1076543201", type: "INDIVIDUAL", city: "الرياض", email: "t.alotaibi@email.sa", phone: "0551200008", compliance: "APPROVED" },
+    { id: "gib-cl-hessa", name: "حصة عبدالعزيز الرشيد", id2: "1065432109", type: "INDIVIDUAL", city: "الرياض", email: "h.alrashid@email.sa", phone: "0567800009", compliance: "APPROVED" },
+    { id: "gib-cl-manar", name: "شركة المنار للطاقة", id2: "1010334410", type: "CORPORATE", city: "الرياض", email: "hse@almanar-energy.sa", phone: "0114990010", compliance: "REJECTED" },
+  ];
+  const nameOf: Record<string, string> = {};
+  let ci = 6000;
+  for (const c of clients) {
+    ci++;
+    nameOf[c.id] = c.name;
+    await prisma.client.upsert({
+      where: { id: c.id }, update: { name: c.name, city: c.city, email: c.email, complianceStatus: c.compliance },
+      create: { id: c.id, tenantId: T, type: c.type, name: c.name, crNumber: c.type === "CORPORATE" ? c.id2 : null, nationalId: c.type === "INDIVIDUAL" ? c.id2 : null, email: c.email, phone: c.phone, city: c.city, code: `CLI-2026-${ci}`, status: "active", complianceStatus: c.compliance },
+    });
+  }
+
+  // ---- وثائق سارية + إشعار مدين + فاتورة + عمولة لكل وثيقة سارية (عبر فروع وحالات متنوّعة) ----
+  const policies: Array<{ id: string; clientId: string; line: string; ins: number; net: number; comm: number; start: string; end: string; status: string }> = [
+    { id: "gib-p-maaden-pro", clientId: "gib-cl-maaden", line: "PAR", ins: 0, net: 480000, comm: 15, start: "2026-01-05", end: "2027-01-04", status: "ISSUED" },
+    { id: "gib-p-maaden-eng", clientId: "gib-cl-maaden", line: "CAR", ins: 5, net: 620000, comm: 16, start: "2026-02-10", end: "2027-08-09", status: "ISSUED" },
+    { id: "gib-p-noor-med", clientId: "gib-cl-noor", line: "GMI", ins: 1, net: 890000, comm: 12, start: "2026-01-01", end: "2026-12-31", status: "ISSUED" },
+    { id: "gib-p-noor-pli", clientId: "gib-cl-noor", line: "PLI", ins: 11, net: 120000, comm: 15, start: "2026-03-01", end: "2027-02-28", status: "ISSUED" },
+    { id: "gib-p-bina-eng", clientId: "gib-cl-bina", line: "EAR", ins: 5, net: 540000, comm: 16, start: "2026-02-20", end: "2027-08-19", status: "ISSUED" },
+    { id: "gib-p-bina-gpa", clientId: "gib-cl-bina", line: "GPA", ins: 9, net: 68000, comm: 10, start: "2026-04-01", end: "2027-03-31", status: "ISSUED" },
+    { id: "gib-p-shael-mot", clientId: "gib-cl-shael", line: "MCI", ins: 3, net: 340000, comm: 10, start: "2026-03-15", end: "2027-03-14", status: "ISSUED" },
+    { id: "gib-p-durra-mar", clientId: "gib-cl-durra", line: "MCG", ins: 7, net: 260000, comm: 13, start: "2026-04-10", end: "2027-04-09", status: "ISSUED" },
+    { id: "gib-p-safwa-fire", clientId: "gib-cl-safwa", line: "FIR", ins: 2, net: 195000, comm: 12.5, start: "2026-05-01", end: "2027-04-30", status: "ISSUED" },
+    { id: "gib-p-noor-life", clientId: "gib-cl-noor", line: "GLI", ins: 10, net: 210000, comm: 9, start: "2026-05-15", end: "2027-05-14", status: "ISSUED" }, // حياة — معفى ض.ق.م
+    { id: "gib-p-turki-mot", clientId: "gib-cl-turki", line: "MCI", ins: 0, net: 11500, comm: 10, start: "2026-06-01", end: "2027-05-31", status: "ISSUED" },
+    { id: "gib-p-hessa-trv", clientId: "gib-cl-hessa", line: "TRV", ins: 13, net: 2200, comm: 20, start: "2026-06-20", end: "2026-12-20", status: "ISSUED" },
+    { id: "gib-p-yaqut-pro", clientId: "gib-cl-yaqut", line: "PAR", ins: 0, net: 175000, comm: 13, start: "2026-06-25", end: "2027-06-24", status: "TECHNICAL_REVIEW" },
+    { id: "gib-p-safwa-mot", clientId: "gib-cl-safwa", line: "MTP", ins: 11, net: 145000, comm: 10, start: "2026-06-22", end: "2027-06-21", status: "FINANCE_REVIEW" },
+  ];
+  const vat15 = (cr: string) => `3${cr.replace(/\D/g, "").padEnd(13, "0").slice(0, 13)}3`.slice(0, 15);
+  let sp = 6100;
+  for (const p of policies) {
+    sp++;
+    // E1 — تأمين الحياة معفى
+    const exempt = p.line === "GLI" || p.line === "TRM";
+    const vat = exempt ? 0 : round2(p.net * 0.15), total = round2(p.net + vat), comm = round2((p.net * p.comm) / 100);
+    await prisma.policy.upsert({
+      where: { id: p.id }, update: { status: p.status as never },
+      create: { id: p.id, tenantId: T, clientId: p.clientId, productLineCode: p.line, insurerName: INSURERS[p.ins], sequenceNo: `POL-RUH-${p.line}-2026-${sp}`, premium: p.net, vat, totalPremium: total, commissionRate: p.comm, commissionAmount: comm, status: p.status as never, startDate: D(p.start), endDate: D(p.end) },
+    });
+    if (p.status !== "ISSUED") continue;
+    await prisma.debitNote.upsert({ where: { id: `gib-dn-${p.id}` }, update: {}, create: { id: `gib-dn-${p.id}`, tenantId: T, clientId: p.clientId, policyId: p.id, sequenceNo: `DN-2026-${sp}`, netAmount: p.net, vatAmount: vat } });
+    const commVat = round2(comm * 0.15);
+    await prisma.invoice.upsert({ where: { id: `gib-inv-${p.id}` }, update: {}, create: { id: `gib-inv-${p.id}`, tenantId: T, policyId: p.id, insurerName: INSURERS[p.ins], sequenceNo: `INV-2026-${sp}`, netAmount: comm, vatAmount: commVat, totalAmount: round2(comm + commVat), status: "issued", zatcaUuid: `zatca-${p.id}`, zatcaHash: "demo-hash", qrPayload: "demo-qr" } });
+    const st = ["received", "accrued", "variance"][sp % 3];
+    const recv = st === "received" ? comm : st === "variance" ? round2(comm * 0.9) : null;
+    await prisma.commission.upsert({ where: { id: `gib-com-${p.id}` }, update: {}, create: { id: `gib-com-${p.id}`, tenantId: T, policyId: p.id, insurerName: INSURERS[p.ins], clientName: nameOf[p.clientId] ?? "—", productLine: p.line, rate: p.comm, amount: comm, receivedAmount: recv, status: st, periodMonth: p.start.slice(0, 7) } });
+  }
+
+  // ---- طلبات في مراحل مختلفة + عروض أسعار ----
+  const reqs: Array<{ id: string; clientId: string; line: string; status: string; seq: string; quote?: number[] }> = [
+    { id: "gib-r-maaden-mot", clientId: "gib-cl-maaden", line: "MCI", status: "QUOTING", seq: "SL-RUH-MCI-2026-7001", quote: [0, 3, 11] },
+    { id: "gib-r-safwa-eng", clientId: "gib-cl-safwa", line: "CAR", status: "QUOTING", seq: "SL-RUH-CAR-2026-7002", quote: [5, 2, 13] },
+    { id: "gib-r-durra-mar", clientId: "gib-cl-durra", line: "MCG", status: "AWARDED", seq: "SL-JED-MCG-2026-7003" },
+    { id: "gib-r-noor-med", clientId: "gib-cl-noor", line: "GMI", status: "UNDER_REVIEW", seq: "SL-RUH-GMI-2026-7004" },
+    { id: "gib-r-bina-pro", clientId: "gib-cl-bina", line: "PAR", status: "DRAFT", seq: "SL-RUH-PAR-2026-7005" },
+    { id: "gib-r-manar-eng", clientId: "gib-cl-manar", line: "EAR", status: "REJECTED", seq: "SL-RUH-EAR-2026-7006" },
+  ];
+  let sq = 7100;
+  for (const r of reqs) {
+    await prisma.policyRequest.upsert({ where: { id: r.id }, update: { status: r.status as never }, create: { id: r.id, tenantId: T, clientId: r.clientId, productLineCode: r.line, status: r.status as never, sequenceNo: r.seq, base: {} } });
+    if (!r.quote) continue;
+    const slipId = `gib-slip-${r.id}`;
+    await prisma.slip.upsert({ where: { id: slipId }, update: {}, create: { id: slipId, tenantId: T, requestId: r.id, sequenceNo: `RFQ-${r.line}-2026-${sq}`, insurers: r.quote.map((i) => INSURERS[i]), notes: "طلب عروض أسعار — مقارنة فنية وسعرية" } });
+    let qi = 0;
+    for (const ins of r.quote) {
+      qi++; sq++;
+      const net = 45000 + ins * 8000 + qi * 6000, vat = round2(net * 0.15);
+      await prisma.quotation.upsert({ where: { id: `gib-q-${r.id}-${qi}` }, update: {}, create: { id: `gib-q-${r.id}-${qi}`, tenantId: T, slipId, insurerName: INSURERS[ins], rate: 2 + qi * 0.5, premium: net, vat, totalPremium: round2(net + vat), deductible: 1000 * qi, limit: 1000000 * qi, validUntil: D("2026-09-30"), generalRemarks: "شامل التغطيات الأساسية", additionalConditions: qi === 2 ? "خصم عدم مطالبات 10%" : null } });
+    }
+  }
+
+  // ---- طلبات خدمة ----
+  const svcs = [
+    { id: "gib-s-noor-add", clientId: "gib-cl-noor", policyId: "gib-p-noor-med", type: "addition", subject: "إضافة 20 موظفاً للوثيقة الطبية", status: "IN_PROGRESS", seq: "RQ-2026-8001" },
+    { id: "gib-s-maaden-amd", clientId: "gib-cl-maaden", policyId: "gib-p-maaden-pro", type: "amendment", subject: "رفع مبلغ التأمين على الأصول", status: "SENT_TO_INSURER", seq: "RQ-2026-8002" },
+    { id: "gib-s-bina-del", clientId: "gib-cl-bina", policyId: "gib-p-bina-eng", type: "deletion", subject: "حذف معدّة من وثيقة التركيب", status: "CLOSED", seq: "RQ-2026-8003" },
+    { id: "gib-s-safwa-inq", clientId: "gib-cl-safwa", policyId: "gib-p-safwa-fire", type: "inquiry", subject: "استفسار عن تغطية انقطاع الأعمال", status: "OPEN", seq: "RQ-2026-8004" },
+    { id: "gib-s-durra-ren", clientId: "gib-cl-durra", policyId: "gib-p-durra-mar", type: "renewal", subject: "طلب تجديد وثيقة الشحن البحري", status: "OPEN", seq: "RQ-2026-8005" },
+  ];
+  for (const s of svcs) {
+    await prisma.serviceRequest.upsert({ where: { id: s.id }, update: {}, create: { id: s.id, tenantId: T, clientId: s.clientId, policyId: s.policyId, type: s.type, subject: s.subject, status: s.status as never, sequenceNo: s.seq } });
+  }
+
+  // ---- مطالبات متنوّعة الحالات ----
+  const claims = [
+    { id: "gib-c-noor-med", clientId: "gib-cl-noor", policyId: "gib-p-noor-med", ins: 1, incident: "2026-03-18", claimed: 42000, deduct: 3000, settled: 35000, status: "SETTLED", seq: "CL-RUH-2026-9001" },
+    { id: "gib-c-maaden-eng", clientId: "gib-cl-maaden", policyId: "gib-p-maaden-eng", ins: 5, incident: "2026-04-25", claimed: 310000, deduct: 30000, settled: null, status: "UNDER_REVIEW", seq: "CL-RUH-2026-9002" },
+    { id: "gib-c-safwa-fire", clientId: "gib-cl-safwa", policyId: "gib-p-safwa-fire", ins: 2, incident: "2026-05-14", claimed: 88000, deduct: 8000, settled: null, status: "SUBMITTED", seq: "CL-RUH-2026-9003" },
+    { id: "gib-c-shael-mot", clientId: "gib-cl-shael", policyId: "gib-p-shael-mot", ins: 3, incident: "2026-05-30", claimed: 26000, deduct: 2000, settled: null, status: "RECEIVED", seq: "CL-RUH-2026-9004" },
+    { id: "gib-c-turki-mot", clientId: "gib-cl-turki", policyId: "gib-p-turki-mot", ins: 0, incident: "2026-06-05", claimed: 8600, deduct: 500, settled: 8100, status: "SETTLED", seq: "CL-RUH-2026-9005" },
+  ];
+  for (const c of claims) {
+    await prisma.claim.upsert({ where: { id: c.id }, update: {}, create: { id: c.id, tenantId: T, clientId: c.clientId, policyId: c.policyId, insurerName: INSURERS[c.ins], claimedAmount: c.claimed, deductible: c.deduct, settledAmount: c.settled ?? null, status: c.status as never, incidentDate: D(c.incident), sequenceNo: c.seq } });
+  }
+
+  // ---- عمليات تحقّق KYC/KYB + PEP ----
+  const provs = Object.fromEntries((await prisma.verificationProvider.findMany({ select: { id: true, key: true } })).map((p) => [p.key, p.id]));
+  const vchecks = [
+    { id: "gib-k-maaden-cr", clientId: "gib-cl-maaden", key: "wathiq", checkType: "cr", risk: null },
+    { id: "gib-k-noor-cr", clientId: "gib-cl-noor", key: "wathiq", checkType: "cr", risk: null },
+    { id: "gib-k-noor-pep", clientId: "gib-cl-noor", key: "screening", checkType: "pep_sanctions", risk: "low" },
+    { id: "gib-k-manar-pep", clientId: "gib-cl-manar", key: "screening", checkType: "pep_sanctions", risk: "high" },
+    { id: "gib-k-durra-pep", clientId: "gib-cl-durra", key: "screening", checkType: "pep_sanctions", risk: "medium" },
+    { id: "gib-k-turki-id", clientId: "gib-cl-turki", key: "yaqeen", checkType: "identity", risk: null },
+    { id: "gib-k-hessa-id", clientId: "gib-cl-hessa", key: "yaqeen", checkType: "identity", risk: null },
+    { id: "gib-k-bina-addr", clientId: "gib-cl-bina", key: "spl", checkType: "address", risk: null },
+  ];
+  for (const c of vchecks) {
+    if (!provs[c.key]) continue;
+    await prisma.verificationCheck.upsert({ where: { id: c.id }, update: {}, create: { id: c.id, tenantId: T, providerId: provs[c.key], checkType: c.checkType, status: "success", clientId: c.clientId, riskLevel: c.risk, cost: c.key === "spl" ? 0 : 3 } });
+  }
+
+  // ---- مستندات ----
+  const docs = [
+    { id: "gib-d-noor-sched", entityType: "policy", entityId: "gib-p-noor-med", fileName: "جدول الوثيقة الطبية — النور.pdf", docType: "OFFICIAL" },
+    { id: "gib-d-maaden-cert", entityType: "policy", entityId: "gib-p-maaden-pro", fileName: "شهادة تأمين ممتلكات معادن.pdf", docType: "OFFICIAL" },
+    { id: "gib-d-durra-mar", entityType: "policy", entityId: "gib-p-durra-mar", fileName: "بوليصة الشحن البحري — درّة.pdf", docType: "OFFICIAL" },
+    { id: "gib-d-safwa-claim", entityType: "claim", entityId: "gib-c-safwa-fire", fileName: "تقرير معاينة حريق الصفوة.pdf", docType: "ATTACHMENT" },
+    { id: "gib-d-maaden-cr", entityType: "client", entityId: "gib-cl-maaden", fileName: "السجل التجاري — معادن الخليج.pdf", docType: "ATTACHMENT" },
+  ];
+  for (const d of docs) {
+    await prisma.document.upsert({ where: { id: d.id }, update: {}, create: { id: d.id, tenantId: T, storageKey: `${T}/seed/${d.id}.pdf`, fileName: d.fileName, mime: "application/pdf", sizeBytes: 142000, hash: "seed", docType: d.docType as never, entityType: d.entityType, entityId: d.entityId } });
+  }
+
+  // ---- مستخدمو بوّابة العميل ----
+  const portalUsers = [
+    { id: "gib-cu-noor", clientId: "gib-cl-noor", email: "portal@alnoor-medical.sa", name: "إدارة مجموعة النور الطبية" },
+    { id: "gib-cu-maaden", clientId: "gib-cl-maaden", email: "portal@gulf-maaden.sa", name: "إدارة معادن الخليج" },
+    { id: "gib-cu-safwa", clientId: "gib-cl-safwa", email: "portal@alsafwa-mall.sa", name: "إدارة مجمّع الصفوة" },
+  ];
+  for (const u of portalUsers) {
+    await prisma.clientUser.upsert({ where: { email: u.email }, update: { fullName: u.name, passwordHash }, create: { id: u.id, tenantId: T, clientId: u.clientId, email: u.email, fullName: u.name, passwordHash } });
+  }
+
+  // ---- تهيئة ZATCA (Sandbox، مُفعّلة) + قيد تدقيق البذر ----
+  await prisma.tenantZatcaConfig.upsert({
+    where: { tenantId: T }, update: { vatNumber: vat15(GIB_DEF.cr), businessNameAr: GIB_DEF.name, businessNameEn: GIB_DEF.nameEn },
+    create: { tenantId: T, vatNumber: vat15(GIB_DEF.cr), businessNameAr: GIB_DEF.name, businessNameEn: GIB_DEF.nameEn, environment: "SANDBOX", egsSerialNumber: `EGS-${T}-001`, onboardingStatus: "ACTIVE", lastActivatedAt: new Date() },
+  });
+  await prisma.auditLog.create({ data: { tenantId: T, action: "seed", entity: "system", meta: { note: "GIB demo (mock data only)" } } });
+}
+
 async function main() {
   console.log("🌱 IBP seed — بيانات وهمية فقط");
   const passwordHash = await bcrypt.hash(DEV_PASSWORD, 10);
@@ -690,6 +874,10 @@ async function main() {
 
   await seedOperations(passwordHash);
   await seedRichData(passwordHash);
+
+  // حساب العرض للعميل الأول (Gulf Insurance Brokers Co.) — في التطوير فقط (لا يُلوّث قاعدة الاختبار)
+  const isTestDb = (process.env.DATABASE_URL ?? "").includes("ibp_test");
+  if (!isTestDb) await seedGibDemo(passwordHash);
 
   // تهيئة ZATCA لكل مستأجر (Sandbox، مُفعّلة للعرض) — رقم ضريبي صالح 15 رقماً
   const vat15 = (cr: string) => `3${cr.replace(/\D/g, "").padEnd(13, "0").slice(0, 13)}3`.slice(0, 15);
@@ -716,6 +904,7 @@ async function main() {
   console.log(`   البيانات: ${nc} عميل · ${np} وثيقة · ${ncl} مطالبة + طلبات/عروض/عمولات/تحقّق/مستندات`);
   console.log("   الخليج (premium+مطالبات): waleed/sara/fahad/laila@gulf-demo.sa");
   console.log("   الأمان (basic): omar@aman-demo.sa");
+  if (!isTestDb) console.log("   🏢 Gulf Insurance Brokers Co. (enterprise، ديمو واقعي): AAlanazi@gib-sa.com + pricing/finance/claims/compliance/care@gib-sa.com");
   console.log("   سوبر أدمن: admin@ibp-platform.sa");
   console.log("   بوّابة العميل: portal@alfahd.sa · portal@naseej.sa · portal@nukhba.sa");
 }
