@@ -352,6 +352,8 @@
   "crm": {
     "title": "CRM",
     "subtitle": "Deals pipeline + tasks & reminders + activity log",
+    "followUp": "Needs follow-up",
+    "fu": { "expiring": "Policies expiring", "requests": "Open requests", "claims": "Active claims", "commissions": "Unpaid commissions", "overdue": "Overdue tasks" },
     "pipeline": "Pipeline",
     "tasks": "Tasks & reminders",
     "myTasks": "My tasks",

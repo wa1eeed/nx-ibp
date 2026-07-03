@@ -871,7 +871,7 @@ async function seedCrm(tenantId: string, ownerEmail: string, clientIds: string[]
   for (const d of deals) {
     i++;
     const id = `${prefix}-deal-${i}`;
-    await prisma.deal.upsert({ where: { id }, update: { stage: d.stage }, create: { id, tenantId, title: d.t, stage: d.stage, value: d.value, productLineCode: d.line, clientId: clientIds[d.c] ?? null, assigneeId: i <= 2 ? owner?.id ?? null : null, createdById: owner?.id ?? null } });
+    await prisma.deal.upsert({ where: { id }, update: { stage: d.stage, status: "open" }, create: { id, tenantId, title: d.t, stage: d.stage, value: d.value, productLineCode: d.line, clientId: clientIds[d.c] ?? null, assigneeId: i <= 2 ? owner?.id ?? null : null, createdById: owner?.id ?? null } });
     await prisma.crmActivity.upsert({ where: { id: `${id}-a` }, update: {}, create: { id: `${id}-a`, tenantId, entityType: "deal", entityId: id, type: "note", body: "بدأ التواصل مع العميل بخصوص العرض", authorId: owner?.id ?? null } });
   }
   const tasks = [

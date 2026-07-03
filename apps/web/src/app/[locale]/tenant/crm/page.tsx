@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { KanbanSquare, Plus, Check, Trophy, X, CalendarClock } from "lucide-react";
+import { KanbanSquare, Plus, Check, Trophy, X, CalendarClock, RefreshCw, FileText, ClipboardList, Percent, AlarmClock } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { api, getToken } from "@/lib/api";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -10,6 +10,7 @@ interface Deal { id: string; title: string; stage: string; status: string; value
 interface Task { id: string; title: string; dueDate: string | null; priority: string; assigneeId: string | null }
 interface Client { id: string; name: string }
 interface Staff { id: string; fullName: string }
+interface FollowUp { expiringPolicies: { count: number }; openRequests: number; activeClaims: number | null; unpaidCommissions: { count: number; total: number } | null; overdueTasks: number }
 
 const STAGES = ["new", "contacted", "quoting", "proposal", "negotiation"] as const;
 const PRIO_TONE: Record<string, string> = { high: "bg-danger/10 text-danger", normal: "bg-surface-2 text-subtle", low: "bg-surface-2 text-subtle" };
@@ -22,6 +23,7 @@ export default function CrmPage() {
   const [staff, setStaff] = useState<Staff[]>([]);
   const [mineOnly, setMineOnly] = useState(false);
   const [isManager, setIsManager] = useState(false);
+  const [fu, setFu] = useState<FollowUp | null>(null);
   const [dealForm, setDealForm] = useState<{ title: string; clientId: string; value: string; assigneeId: string } | null>(null);
   const [taskForm, setTaskForm] = useState<{ title: string; assigneeId: string; dueDate: string; priority: string } | null>(null);
   const [error, setError] = useState("");
@@ -36,6 +38,7 @@ export default function CrmPage() {
       ]);
       setDeals(d); setTasks(tk); setClients(c); setStaff(s);
     } catch { setError(t("error")); }
+    try { setFu(await api<FollowUp>("/crm/follow-up")); } catch { /* تجاهل */ }
   }, [mineOnly, t]);
   useEffect(() => { if (getToken()) void load(); }, [load]);
 
@@ -69,6 +72,30 @@ export default function CrmPage() {
     <div>
       <PageHeader title={t("title")} subtitle={t("subtitle")} />
       {error ? <p className="mb-3 rounded-lg bg-danger/10 px-3 py-2 text-[12.5px] font-medium text-danger">{error}</p> : null}
+
+      {/* يحتاج متابعة — عابر للوحدات، يحترم الصلاحيات */}
+      {fu ? (
+        <div className="mb-4">
+          <h2 className="mb-2 text-[12px] font-bold uppercase tracking-wide text-subtle">{t("followUp")}</h2>
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5">
+            {([
+              { k: "expiring", v: fu.expiringPolicies.count, Icon: RefreshCw, tone: "text-warning" },
+              { k: "requests", v: fu.openRequests, Icon: FileText, tone: "text-primary" },
+              ...(fu.activeClaims != null ? [{ k: "claims", v: fu.activeClaims, Icon: ClipboardList, tone: "text-info" }] : []),
+              ...(fu.unpaidCommissions != null ? [{ k: "commissions", v: fu.unpaidCommissions.count, Icon: Percent, tone: "text-danger" }] : []),
+              { k: "overdue", v: fu.overdueTasks, Icon: AlarmClock, tone: fu.overdueTasks > 0 ? "text-danger" : "text-subtle" },
+            ] as const).map((card) => (
+              <div key={card.k} className="rounded-card border border-line bg-card p-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-subtle">{t(`fu.${card.k}`)}</span>
+                  <card.Icon size={14} className={card.tone} />
+                </div>
+                <div className="mt-1 text-[19px] font-bold text-ink tnum">{card.v}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_320px]">
         {/* خطّ الأنابيب */}

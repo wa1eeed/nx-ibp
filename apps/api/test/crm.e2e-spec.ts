@@ -91,6 +91,18 @@ describe("CRM — E5 (e2e)", () => {
     await request(app.getHttpServer()).patch(`/crm/deals/${other.id}`).set(auth(assigneeToken)).send({ stage: "quoting" }).expect(403);
   });
 
+  it("لوحة المتابعة تحترم الصلاحيات: المدير يرى المطالبات/العمولات، والمندوب لا", async () => {
+    const gmFu = (await request(app.getHttpServer()).get("/crm/follow-up").set(auth(gm)).expect(200)).body;
+    expect(typeof gmFu.expiringPolicies.count).toBe("number");
+    expect(typeof gmFu.openRequests).toBe("number");
+    expect(gmFu.activeClaims).not.toBeNull();      // GM له صلاحية المطالبات
+    expect(gmFu.unpaidCommissions).not.toBeNull(); // GM له صلاحية المالية
+
+    const repFu = (await request(app.getHttpServer()).get("/crm/follow-up").set(auth(assigneeToken)).expect(200)).body;
+    expect(repFu.activeClaims).toBeNull();          // مندوب مبيعات بلا claims
+    expect(repFu.unpaidCommissions).toBeNull();     // بلا finance
+  });
+
   it("عزل صلاحية: بلا وحدة المبيعات ⇒ 403", () =>
     request(app.getHttpServer()).get("/crm/deals").set(auth(noSales)).expect(403));
 });

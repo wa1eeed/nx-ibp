@@ -33,6 +33,31 @@ export class CrmService {
     return { OR: [{ assigneeId: userId }, { createdById: userId }] };
   }
 
+  /**
+   * لوحة المتابعة — «كل المعاملات التي تحتاج متابعة» عابرة للوحدات، **تحترم صلاحيات المستخدم**:
+   * وثائق قاربت على الانتهاء + طلبات مفتوحة + مطالبات نشطة (إن كان له claims) +
+   * عمولات غير محصّلة (إن كان له finance) + مهام متأخّرة (المدير: الكل / المندوب: مهامّه).
+   */
+  async followUp(user: AuthUser) {
+    const manager = await this.isManager(user);
+    const [canClaims, canFinance] = await Promise.all([
+      this.permissions.can(user.roleId, "claims", "read"),
+      this.permissions.can(user.roleId, "finance", "read"),
+    ]);
+    const soon = new Date(Date.now() + 60 * 86_400_000);
+    const now = new Date();
+    const [expiringCount, expiringItems, openRequests, activeClaims, unpaidComm, overdueTasks] = await Promise.all([
+      this.prisma.policy.count({ where: { status: "ISSUED", endDate: { lte: soon } } }),
+      this.prisma.policy.findMany({ where: { status: "ISSUED", endDate: { lte: soon } }, orderBy: { endDate: "asc" }, take: 6, select: { id: true, sequenceNo: true, insurerName: true, endDate: true } }),
+      this.prisma.policyRequest.count({ where: { status: { in: ["QUOTING", "UNDER_REVIEW"] } } }),
+      canClaims ? this.prisma.claim.count({ where: { status: { in: ["RECEIVED", "UNDER_REVIEW", "SUBMITTED"] } } }) : Promise.resolve(null),
+      canFinance ? this.prisma.commission.findMany({ where: { status: { in: ["accrued", "variance"] } }, select: { amount: true, receivedAmount: true } }) : Promise.resolve(null),
+      this.prisma.crmTask.count({ where: { status: "open", dueDate: { lt: now }, ...(manager ? {} : this.ownScope(user.userId)) } }),
+    ]);
+    const unpaidCommissions = unpaidComm ? { count: unpaidComm.length, total: +unpaidComm.reduce((s, c) => s + (Number(c.amount) - Number(c.receivedAmount ?? 0)), 0).toFixed(2) } : null;
+    return { expiringPolicies: { count: expiringCount, items: expiringItems }, openRequests, activeClaims, unpaidCommissions, overdueTasks };
+  }
+
   // ————————————————— الصفقات (Pipeline) —————————————————
   async listDeals(user: AuthUser) {
     const manager = await this.isManager(user);

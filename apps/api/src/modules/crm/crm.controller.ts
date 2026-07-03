@@ -9,6 +9,13 @@ import { CurrentUser, type AuthUser } from "../auth/current-user.decorator";
 export class CrmController {
   constructor(private readonly crm: CrmService) {}
 
+  // ——— لوحة المتابعة (عابرة للوحدات، تحترم الصلاحيات) ———
+  @Authorize({ module: "sales", action: "read", entitlement: "module.sales" })
+  @Get("follow-up")
+  followUp(@CurrentUser() user: AuthUser) {
+    return this.crm.followUp(user);
+  }
+
   // ——— الصفقات (Pipeline) ———
   @Authorize({ module: "sales", action: "read", entitlement: "module.sales" })
   @Get("deals")
