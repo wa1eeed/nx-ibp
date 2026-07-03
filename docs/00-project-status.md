@@ -39,9 +39,9 @@
 | الواجهة | المسار | حسابات |
 |---|---|---|
 | اللاندينق | `/` | عامّة (تسويقية) — CTA يقود إلى `/signup` |
-| الموظف/الشركة | `/login` | `waleed@gulf-demo.sa` (مدير عام) · sara/fahad/laila/huda/majed/nora@gulf-demo.sa · omar@aman-demo.sa · **أو تسجيل ذاتي عبر `/signup`** |
+| الموظف/الشركة | `/login` | **🏢 حساب العرض للعميل الأول — Gulf Insurance Brokers Co.:** `AAlanazi@gib-sa.com` (المالك عبدالحميد العنزي) + `pricing/finance/claims/compliance/care@gib-sa.com` — ببيانات محاكية للواقع (10 عملاء · 14 وثيقة · مطالبات/تحقّق/عمولات) · حسابات أخرى: `waleed@gulf-demo.sa` · omar@aman-demo.sa · **أو تسجيل ذاتي عبر `/signup`** |
 | السوبر أدمن (المنصة) | `/admin/login` | `admin@ibp-platform.sa` (يدعم MFA من `/admin/security`) |
-| بوّابة العميل | `/portal/login` | `portal@alfahd.sa` · `portal@naseej.sa` · `portal@nukhba.sa` |
+| بوّابة العميل | `/portal/login` | **GIB:** `portal@alnoor-medical.sa` · `portal@gulf-maaden.sa` · `portal@alsafwa-mall.sa` · أخرى: `portal@alfahd.sa` |
 
 ## 5. التشغيل السريع (Resume)
 ```bash
