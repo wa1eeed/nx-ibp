@@ -104,7 +104,7 @@ async can(roleId: string | null, module: RbacModule, action: RbacAction): Promis
 
 `dashboard` · `sales` · `clients` · `production` · `renewals` · `service` · `claims` · `finance` · `reports` · `compliance` · `hr` · `settings`
 
-**الأفعال الأربعة** (`RbacAction`): `read` · `create` · `update` · `delete`.
+**الأفعال** (`RbacAction`): `read` · `create` · `update` · `delete` · **`revert`** (التراجع خطوة للوراء — E4).
 
 ### 3.2 ربط الفعل بعمود الصلاحية
 
@@ -116,12 +116,15 @@ async can(roleId: string | null, module: RbacModule, action: RbacAction): Promis
 | `create` | `canCreate` | **C** (إضافة) |
 | `update` | `canEdit` | **E** (تعديل) |
 | `delete` | `canDelete` | **D** (حذف) |
+| `revert` | `canRevert` | **R** (تراجع خطوة — إشرافي) |
 
 ```ts
-export const ACTION_FLAG: Record<RbacAction, "canAccess" | "canCreate" | "canEdit" | "canDelete"> = {
-  read: "canAccess", create: "canCreate", update: "canEdit", delete: "canDelete",
+export const ACTION_FLAG: Record<RbacAction, "canAccess" | "canCreate" | "canEdit" | "canDelete" | "canRevert"> = {
+  read: "canAccess", create: "canCreate", update: "canEdit", delete: "canDelete", revert: "canRevert",
 };
 ```
+
+> **فلترة العرض حسب الصلاحية:** إضافةً للفرض في الـbackend، **القائمة الجانبية مُفلترة** — كل موظف لا يرى إلا الأقسام التي يملك `canAccess` على وحدتها (عبر `/auth/me` الذي يُرجِع خريطة الصلاحيات). دفاع مزدوج (عرض + backend).
 
 ---
 

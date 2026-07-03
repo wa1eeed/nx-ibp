@@ -554,6 +554,37 @@ curl -X POST http://localhost:4000/staff \
 
 ---
 
+## 10ب. مسارات ما بعد الاكتمال (الإشعارات · CRM · التهيئة · التراجع · 360°)
+
+### الإشعارات
+| الطريقة | المسار | الحماية | الوصف |
+|---|---|---|---|
+| GET/PUT | `/notifications` · `/notifications/:key` | settings | إعدادات الشركة (تفعيل/تعطيل القناة + تعديل النص) |
+| GET/PUT | `/platform/notifications` · `/platform/notifications/:key` | سوبر أدمن | الافتراضي المُورَّث |
+| GET | `/notifications/inbox` · `/notifications/inbox/unread-count` | مصادقة | مركز الإشعارات (جرس الموظف) |
+| POST | `/notifications/inbox/:id/read` · `/notifications/inbox/read-all` | مصادقة | تعليم كمقروء |
+| GET/POST | `/portal/notifications` (+`/unread-count`, `/:id/read`) | بوّابة العميل | إشعارات العميل داخل بوّابته |
+
+### CRM
+| الطريقة | المسار | الحماية | الوصف |
+|---|---|---|---|
+| GET | `/crm/follow-up` | sales:read | لوحة «يحتاج متابعة» (عابرة للوحدات، تحترم الصلاحيات) |
+| GET/POST | `/crm/deals` · PATCH `/crm/deals/:id` | sales | خطّ الأنابيب (رؤية حسب الدور: مدير=الكل، مندوب=المُسنَد إليه) |
+| GET/POST | `/crm/tasks` (`?mine=1`) · POST `/crm/tasks/:id/complete` | sales | المهام/التذكيرات |
+| GET/POST | `/crm/activities/:entityType/:entityId` · `/crm/activities` | sales | النشاط/الملاحظات (الخط الزمني) |
+
+### سلسلة الاعتماد (E2) · التراجع (E4) · 360°
+| الطريقة | المسار | الحماية | الوصف |
+|---|---|---|---|
+| GET/PUT | `/config/approval-chain` | settings | البوّابة الفنية + فصل المهام + الخطوات الإضافية |
+| POST | `/policies/:id/approve-step` | ديناميكي (وحدة الخطوة) | اعتماد خطوة إضافية مُهيّأة |
+| POST | `/revert/:entityType/:id` | `canRevert` للوحدة | التراجع خطوة للوراء (policy/claim/service_request/request) |
+| GET | `/clients/:id/overview` | clients:read | نظرة العميل 360° المجمّعة |
+| GET | `/staff/:id` | settings:read | تفاصيل الموظف 360° (بياناته + ما تحت مسؤوليته + نشاطه) |
+| GET | `/auth/me` | مصادقة | يُرجِع الآن **خريطة صلاحيات المستخدم** (module ⇒ access/create/edit/delete/revert) |
+
+---
+
 ## 11. ملخّص كل المسارات
 
 | الطريقة | المسار | الحماية | رمز النجاح |

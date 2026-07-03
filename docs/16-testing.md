@@ -35,7 +35,9 @@
 
 **ملفات ما بعد الاكتمال** (هذه الجلسة): `security` · `mfa` · `signup` · `billing` · `org` · `storage-s3` · `storage-quota` · `image-compression` · `broker-fields` · `audit-immutable` · `notifications` — تغطّي التحصين الأمني (قفل/MFA)، التسجيل الذاتي، الفوترة (Tap seam)، الأقسام، التخزين السحابي/الحصص/الضغط، إثراء الحقول، **سجل التدقيق الثابت + IP**، ونظام الإشعارات.
 
-**الإجمالي: 160 اختباراً (24 ملفاً).**
+**+ ملفات ما بعد الاكتمال:** `security` · `mfa` · `audit-immutable` · `signup` · `billing` · `org` · `storage-quota` · `storage-s3` · `image-compression` · `broker-fields` · `notifications` · `notification-gateway` · `staff-notifications` (توجيه + in-app) · `vat-branch` (E1) · `approval-chain` (E2 + فصل مهام) · `revert` (E4) · `crm` (5: أنابيب/مهام/نشاط/رؤية حسب الدور/لوحة متابعة) · `detail-360` (نظرة العميل/الموظف + عزل).
+
+**الإجمالي: 188 اختباراً (31 ملفاً).**
 
 ### قاعدة اختبار منفصلة (`ibp_test`)
 

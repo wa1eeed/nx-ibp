@@ -694,6 +694,28 @@ erDiagram
 
 ---
 
+## نماذج ما بعد الاكتمال (الإشعارات · CRM · التهيئة · صلاحيات)
+
+> أُضيفت في مسار ما بعد الاكتمال. كلها معزولة بالمستأجر (FK `tenantId` + Prisma `$use`).
+
+### الإشعارات
+- **`NotificationSetting`** — إعداد نوع إشعار بمستويين: `tenantId = NULL` ⇒ **افتراضي المنصة** (يديره سوبر أدمن المنصة، يرثه الجميع)؛ قيمة ⇒ **تخصيص شركة**. حقول: `eventKey` · `channelEmail`/`channelSms` · `subject`/`body`. (18 نوعًا مُعرّفة في `notifications.constants.ts`: 7 عملاء + 11 موظفين.)
+- **`Notification`** — إشعار داخل المنصة (in-app) لمستقبِل واحد: `userId` (موظف) أو `clientId` (عميل بوّابة) · `eventKey` · `audience` (client/staff) · `title`/`body` · `readAt` (NULL = غير مقروء). فهارس `[tenantId, userId, readAt]` و`[tenantId, clientId, readAt]`.
+
+### CRM (إدارة العلاقات)
+- **`Deal`** — صفقة/فرصة في خطّ الأنابيب: `title` · `stage` (new/contacted/quoting/proposal/negotiation) · `status` (open/won/lost) · `value` · `clientId` · **`assigneeId`** (الموظف المُسنَد) · `createdById` · `requestId` (عند التحويل). فهارس `[tenantId, stage]` و`[tenantId, assigneeId]`.
+- **`CrmActivity`** — نشاط/ملاحظة **polymorphic**: `entityType` (deal/client/policy/claim/request) · `entityId` · `type` (note/call/email/meeting/stage_change) · `body` · `authorId`. يخدم الخط الزمني في صفحات 360°.
+- **`CrmTask`** — مهمة/تذكير: `title` · `assigneeId` · `dueDate` · `priority` (low/normal/high) · `status` (open/done) · ربط اختياري `entityType/entityId`. إسنادها يُطلق إشعار `notifyUser`.
+
+### إضافات على نماذج قائمة
+- **`Permission.canRevert`** (Boolean، E4) — صلاحية **التراجع خطوة للوراء** للوحدة (فعل RBAC "revert"، رمز مصفوفة "R"). تُمنح للمدير العام/المالك وأي دور مخصّص.
+- **`Policy.pendingApprovals`** (`String[]`، E2) — مفاتيح خطوات الاعتماد الإضافية المتبقّية بين الفني والمالي؛ فارغ = السلسلة الافتراضية.
+- **`TenantConfig.approvalChains`** (Json، E2) — `policy: { technicalGate, segregationOfDuties, extraSteps[] }` (سلسلة اعتماد الوثيقة القابلة للتهيئة + حارس فصل المهام).
+
+**الهجرات:** `notification_settings` · `notifications_inbox` · `crm_core` · `permission_can_revert` · `approval_chains`.
+
+---
+
 ## ملاحق
 
 ### نمط RequestBlockRow العام
