@@ -2,6 +2,8 @@
 
 > الرحلة الكاملة للصفقة في IBP من تسجيل العميل حتى أمر الإسناد (وما بعده في المرحلة 4ب)، مع **نقاط الحوكمة** والأدوار المسؤولة وآلات الحالات الفعلية. كل ما هنا مستخرَج من الخدمات الفعلية ([`clients.service.ts`](../apps/api/src/modules/clients/clients.service.ts)، [`requests.service.ts`](../apps/api/src/modules/requests/requests.service.ts)، [`slips.service.ts`](../apps/api/src/modules/underwriting/slips.service.ts)) ومن enums [schema.prisma](../packages/db/prisma/schema.prisma). يقابل هذا المستند رحلة الصفقة في [BLUEPRINT.md](../BLUEPRINT.md) §5.
 
+> **تحديث ما بعد الاكتمال:** أُضيفت طبقات تُثري الرحلة — **CRM** (خطّ أنابيب الصفقات قبل الطلب) · **سلسلة اعتماد ديناميكية + فصل مهام** (E2) على شلال الإصدار · **التراجع خطوة للوراء** (E4) · **إشعارات** تلقائية على انتقالات الحالة (E3). التفصيل في [34 — طبقة ما بعد الاكتمال](./34-post-completion-features.md).
+
 ## جدول المحتويات
 - [1. نظرة عامة على الرحلة](#1-نظرة-عامة-على-الرحلة)
 - [2. مخطط الرحلة الكاملة (Flowchart)](#2-مخطط-الرحلة-الكاملة-flowchart)

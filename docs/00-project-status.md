@@ -75,6 +75,7 @@ pnpm --filter @ibp/api test:e2e            # 188/188
 - البيانات: [03](./03-data-model.md) · API: [06](./06-api-reference.md) · الوحدات: [07](./07-backend-modules.md)
 - دورة الصفقة: [08](./08-deal-lifecycle-workflows.md) · المالية: [20](./20-issuance-and-finance-core.md) · المستندات: [21](./21-document-service.md) · ZATCA P2: [28](./28-zatca-phase2-fatoora.md)
 - التشغيل: [13](./13-local-setup-and-operations.md) · الاختبارات: [16](./16-testing.md) · **البيئات الثلاث: [32](./32-environments.md)** · **دليل الإطلاق: [33](./33-launch-runbook.md)** · متطلبات الوساطة: [broker-requirements-coverage](./broker-requirements-coverage.md)
+- **طبقة ما بعد الاكتمال (الإشعارات/E1–E5/CRM/360°): [34](./34-post-completion-features.md)** · كتالوج المزايا: [31](./31-feature-catalog.md)
 - الفهرس الكامل: [README](./README.md) · سجل التغييرات: [CHANGELOG](../CHANGELOG.md) · خطّة العمل: [29](./29-roadmap-next.md)
 
 ## 8. ملاحظات تشغيلية مهمّة
