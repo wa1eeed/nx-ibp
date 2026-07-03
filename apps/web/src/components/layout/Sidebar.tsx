@@ -25,9 +25,11 @@ import {
   ListChecks,
   type LucideIcon,
 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { TENANT_NAV } from "@ibp/shared";
+import { TENANT_NAV, type NavItem } from "@ibp/shared";
 import { Link, usePathname } from "@/i18n/routing";
+import { api, getToken } from "@/lib/api";
 
 const ICONS: Record<string, LucideIcon> = {
   LayoutDashboard,
@@ -54,9 +56,33 @@ const ICONS: Record<string, LucideIcon> = {
   ListChecks,
 };
 
+type Perms = Record<string, { access?: boolean }>;
+
+/** الوحدة المطلوبة صلاحيتها لإظهار عنصر التنقّل. */
+function requiredModule(item: NavItem): string {
+  if (item.entitlement) return item.entitlement.replace("module.", "");
+  if (item.key === "dashboard") return "dashboard";
+  if (item.key === "verification") return "clients";
+  if (item.key === "addons" || item.key.startsWith("settings")) return "settings";
+  return item.key;
+}
+
 export function Sidebar() {
   const t = useTranslations();
   const pathname = usePathname();
+  const [perms, setPerms] = useState<Perms | null>(null);
+
+  useEffect(() => {
+    if (!getToken()) return;
+    void api<{ permissions?: Perms }>("/auth/me")
+      .then((me) => setPerms(me.permissions ?? {}))
+      .catch(() => setPerms({}));
+  }, []);
+
+  // القائمة مُفلترة بصلاحيات المستخدم — لا يرى إلا الأقسام المخوّل عليها (الـbackend يفرضها أيضًا).
+  // قبل تحميل الصلاحيات لا نُظهر شيئًا (تفاديًا لوميض أقسام غير مخوّلة).
+  const canSee = (item: NavItem) => perms !== null && perms[requiredModule(item)]?.access === true;
+  const groups = TENANT_NAV.map((g) => ({ ...g, items: g.items.filter(canSee) })).filter((g) => g.items.length > 0);
 
   return (
     <aside className="sticky top-0 hidden h-screen w-[248px] shrink-0 flex-col border-e border-line bg-card lg:flex">
@@ -72,7 +98,7 @@ export function Sidebar() {
       </div>
 
       <nav className="flex-1 overflow-y-auto px-3 pb-4">
-        {TENANT_NAV.map((group) => (
+        {groups.map((group) => (
           <div key={group.key} className="mt-4 first:mt-2">
             {group.hideLabel ? null : (
               <div className="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-subtle">
