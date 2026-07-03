@@ -115,6 +115,21 @@ export class NotificationsService {
     return { sent: await this.dispatch(jobs), recipients: recipients.length };
   }
 
+  /**
+   * إرسال إشعار **لمستخدم بعينه** (المُسنَد إليه) — يسجّل نسخة داخل المنصة (in-app) ويرسل بريدًا.
+   * يُستخدم لإشعارات الإسناد (مهمة/صفقة CRM). fire-and-forget.
+   */
+  async notifyUser(tenantId: string, userId: string, eventKey: string, vars: Record<string, string> = {}) {
+    const s = await this.resolve(tenantId, eventKey);
+    if (!s || !s.channelEmail) return { sent: 0 };
+    const body = this.render(s.body, vars);
+    const subject = s.subject ? this.render(s.subject, vars) : undefined;
+    await this.persistInApp(tenantId, "staff", eventKey, subject ?? s.name, body, [{ userId }]);
+    const user = await this.ctx.run({}, async () => await this.prisma.user.findFirst({ where: { id: userId, tenantId, status: "ACTIVE" }, select: { email: true } }));
+    if (!user?.email) return { sent: 0 };
+    return { sent: await this.dispatch([{ channel: "email", to: user.email, subject, body }]) };
+  }
+
   /** يعبّئ متغيّرات النص {var}؛ يترك المتغيّر كما هو إن لم تُمرَّر قيمته. */
   private render(t: string, vars: Record<string, string>): string {
     return t.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? `{${k}}`);

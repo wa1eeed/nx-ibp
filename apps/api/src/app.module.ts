@@ -39,6 +39,7 @@ import { OrgModule } from "./modules/org/org.module";
 import { NotificationsModule } from "./modules/notifications/notifications.module";
 import { ConfigModule as TenantConfigModule } from "./modules/config/config.module";
 import { RevertModule } from "./modules/revert/revert.module";
+import { CrmModule } from "./modules/crm/crm.module";
 
 /**
  * الوحدة الجذرية. معماري وحدات — module لكل مجال (GUIDELINES.md §5).
@@ -84,6 +85,7 @@ import { RevertModule } from "./modules/revert/revert.module";
     NotificationsModule,
     TenantConfigModule,
     RevertModule,
+    CrmModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

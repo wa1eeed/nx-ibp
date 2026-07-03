@@ -43,6 +43,8 @@ export const NOTIFICATION_TYPES: readonly NotificationTypeDef[] = [
   { key: "staff_wallet_low", audience: "staff", module: "finance", name: "رصيد محفظة التحقق منخفض", subject: "تنبيه رصيد المحفظة", body: "رصيد محفظة التحقق منخفض ({balance}). يُرجى إعادة الشحن لتفادي توقّف عمليات التحقق.", email: true, sms: false },
   { key: "staff_member_added", audience: "staff", module: "settings", name: "إضافة مستخدم جديد", subject: "مستخدم جديد", body: "أُضيف مستخدم جديد للحساب: {name} ({role}).", email: true, sms: false },
   { key: "staff_subscription_status", audience: "staff", module: "settings", name: "تحديث حالة الاشتراك", subject: "تحديث الاشتراك", body: "تحديث حالة اشتراك الحساب: {status}.", email: true, sms: false },
+  { key: "staff_task_assigned", audience: "staff", module: "sales", name: "إسناد مهمة", subject: "مهمة جديدة مُسنَدة إليك", body: "أُسنِدت إليك مهمة: {title}.", email: true, sms: false },
+  { key: "staff_deal_assigned", audience: "staff", module: "sales", name: "إسناد صفقة (CRM)", subject: "صفقة مُسنَدة إليك", body: "أُسنِدت إليك صفقة: {title}.", email: true, sms: false },
 ] as const;
 
 export const NOTIFICATION_KEYS = NOTIFICATION_TYPES.map((t) => t.key);

@@ -74,6 +74,9 @@ model Tenant {
   storage            TenantStorage?
   notificationSettings NotificationSetting[]
   notifications      Notification[]
+  deals              Deal[]
+  crmActivities      CrmActivity[]
+  crmTasks           CrmTask[]
 }
 
 // إعداد إشعار — NULL tenantId = افتراضي المنصة (يديره سوبر أدمن المنصة)؛
@@ -109,6 +112,64 @@ model Notification {
 
   @@index([tenantId, userId, readAt])
   @@index([tenantId, clientId, readAt])
+}
+
+/// صفقة/فرصة CRM — تمرّ بمراحل (Pipeline)، قابلة للإسناد لموظف، ومرتبطة بعميل. معزولة بالمستأجر.
+model Deal {
+  id              String    @id @default(cuid())
+  tenantId        String
+  tenant          Tenant    @relation(fields: [tenantId], references: [id])
+  clientId        String? // العميل المرتبط
+  title           String
+  stage           String    @default("new") // new | contacted | quoting | proposal | negotiation
+  status          String    @default("open") // open | won | lost
+  value           Decimal?  @db.Decimal(14, 2) // القسط المتوقّع
+  productLineCode String?
+  assigneeId      String? // الموظف المُسنَد إليه
+  lostReason      String?
+  requestId       String? // ربط بطلب تأمين عند التحويل (won)
+  createdById     String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([tenantId, stage])
+  @@index([tenantId, assigneeId])
+}
+
+/// نشاط/ملاحظة CRM polymorphic — سجلّ تفاعلات وملاحظات على أي كيان (صفقة/عميل/وثيقة/مطالبة).
+/// يخدم أيضًا الخط الزمني في صفحة العميل والموظف.
+model CrmActivity {
+  id         String   @id @default(cuid())
+  tenantId   String
+  tenant     Tenant   @relation(fields: [tenantId], references: [id])
+  entityType String // deal | client | policy | claim | request
+  entityId   String
+  type       String   @default("note") // note | call | email | meeting | stage_change | task
+  body       String   @db.Text
+  authorId   String?
+  createdAt  DateTime @default(now())
+
+  @@index([tenantId, entityType, entityId])
+}
+
+/// مهمة/تذكير CRM — قابلة للإسناد + تاريخ استحقاق + أولوية. تُطلق إشعارًا عند الإسناد.
+model CrmTask {
+  id          String    @id @default(cuid())
+  tenantId    String
+  tenant      Tenant    @relation(fields: [tenantId], references: [id])
+  title       String
+  entityType  String? // مرتبطة بكيان اختياريًا
+  entityId    String?
+  assigneeId  String?
+  dueDate     DateTime?
+  priority    String    @default("normal") // low | normal | high
+  status      String    @default("open") // open | done
+  createdById String?
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  @@index([tenantId, assigneeId, status])
+  @@index([tenantId, dueDate])
 }
 
 enum TenantStatus {
