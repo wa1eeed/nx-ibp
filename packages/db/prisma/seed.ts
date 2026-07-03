@@ -857,6 +857,35 @@ async function seedGibDemo(passwordHash: string) {
   await prisma.auditLog.create({ data: { tenantId: T, action: "seed", entity: "system", meta: { note: "GIB demo (mock data only)" } } });
 }
 
+// بيانات CRM ديمو (صفقات/مهام/نشاط) — تطوير فقط. clientIds من نفس المستأجر.
+async function seedCrm(tenantId: string, ownerEmail: string, clientIds: string[], prefix: string) {
+  const owner = await prisma.user.findFirst({ where: { tenantId, email: ownerEmail }, select: { id: true } });
+  const deals = [
+    { t: "تأمين طبي جماعي — 120 موظفًا", stage: "quoting", value: 320000, line: "GMI", c: 0 },
+    { t: "تأمين أسطول مركبات", stage: "negotiation", value: 180000, line: "MCI", c: 1 },
+    { t: "تأمين ممتلكات مستودع", stage: "new", value: 95000, line: "PAR", c: 2 },
+    { t: "تأمين مسؤولية مهنية", stage: "contacted", value: 60000, line: "PLI", c: 3 },
+    { t: "تأمين حياة جماعي", stage: "proposal", value: 140000, line: "GLI", c: 0 },
+  ];
+  let i = 0;
+  for (const d of deals) {
+    i++;
+    const id = `${prefix}-deal-${i}`;
+    await prisma.deal.upsert({ where: { id }, update: { stage: d.stage }, create: { id, tenantId, title: d.t, stage: d.stage, value: d.value, productLineCode: d.line, clientId: clientIds[d.c] ?? null, assigneeId: i <= 2 ? owner?.id ?? null : null, createdById: owner?.id ?? null } });
+    await prisma.crmActivity.upsert({ where: { id: `${id}-a` }, update: {}, create: { id: `${id}-a`, tenantId, entityType: "deal", entityId: id, type: "note", body: "بدأ التواصل مع العميل بخصوص العرض", authorId: owner?.id ?? null } });
+  }
+  const tasks = [
+    { t: "متابعة عرض التأمين الطبي مع العميل", prio: "high", due: "2026-07-10" },
+    { t: "إرسال المقارنة السعرية للعميل", prio: "normal", due: "2026-07-08" },
+    { t: "تجديد وثيقة الممتلكات المستحقّة", prio: "high", due: "2026-07-15" },
+  ];
+  let j = 0;
+  for (const tk of tasks) {
+    j++;
+    await prisma.crmTask.upsert({ where: { id: `${prefix}-task-${j}` }, update: {}, create: { id: `${prefix}-task-${j}`, tenantId, title: tk.t, priority: tk.prio, dueDate: D(tk.due), assigneeId: owner?.id ?? null, createdById: owner?.id ?? null } });
+  }
+}
+
 async function main() {
   console.log("🌱 IBP seed — بيانات وهمية فقط");
   const passwordHash = await bcrypt.hash(DEV_PASSWORD, 10);
@@ -877,7 +906,11 @@ async function main() {
 
   // حساب العرض للعميل الأول (Gulf Insurance Brokers Co.) — في التطوير فقط (لا يُلوّث قاعدة الاختبار)
   const isTestDb = (process.env.DATABASE_URL ?? "").includes("ibp_test");
-  if (!isTestDb) await seedGibDemo(passwordHash);
+  if (!isTestDb) {
+    await seedGibDemo(passwordHash);
+    await seedCrm("demo-tenant", "waleed@gulf-demo.sa", ["cl-naseej", "cl-redsea", "cl-salamah", "cl-emaar"], "rd");
+    await seedCrm("gib-demo", "AAlanazi@gib-sa.com", ["gib-cl-noor", "gib-cl-maaden", "gib-cl-safwa", "gib-cl-bina"], "gib");
+  }
 
   // تهيئة ZATCA لكل مستأجر (Sandbox، مُفعّلة للعرض) — رقم ضريبي صالح 15 رقماً
   const vat15 = (cr: string) => `3${cr.replace(/\D/g, "").padEnd(13, "0").slice(0, 13)}3`.slice(0, 15);

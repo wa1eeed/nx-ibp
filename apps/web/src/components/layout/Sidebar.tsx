@@ -23,6 +23,7 @@ import {
   CreditCard,
   Network,
   ListChecks,
+  KanbanSquare,
   type LucideIcon,
 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -54,6 +55,7 @@ const ICONS: Record<string, LucideIcon> = {
   CreditCard,
   Network,
   ListChecks,
+  KanbanSquare,
 };
 
 type Perms = Record<string, { access?: boolean }>;

@@ -3,6 +3,7 @@
 
 export type ModuleKey =
   | "dashboard"
+  | "crm"
   | "clients"
   | "verification"
   | "requests"
@@ -61,6 +62,7 @@ export const TENANT_NAV: NavGroup[] = [
   {
     key: "clients",
     items: [
+      { key: "crm", href: "/tenant/crm", icon: "KanbanSquare", entitlement: "module.sales" },
       { key: "clients", href: "/tenant/clients", icon: "Users", entitlement: "module.clients" },
       { key: "verification", href: "/tenant/verification", icon: "BadgeCheck" },
       { key: "compliance", href: "/tenant/compliance", icon: "ShieldCheck", entitlement: "module.compliance" },
