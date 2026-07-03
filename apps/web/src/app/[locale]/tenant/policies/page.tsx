@@ -18,6 +18,7 @@ interface Policy {
   totalPremium: string | null;
   commissionAmount: string | null;
   productLineCode: string | null;
+  pendingApprovals?: string[];
 }
 
 const STATUS_TONE: Record<string, BadgeTone> = {
@@ -33,11 +34,17 @@ export default function PoliciesPage() {
   const confirm = useConfirm();
   const router = useRouter();
   const [rows, setRows] = useState<Policy[]>([]);
+  const [stepNames, setStepNames] = useState<Record<string, string>>({});
   const [error, setError] = useState("");
 
   const load = useCallback(async () => {
     const p = await api<Policy[]>("/policies");
     setRows(p);
+    // أسماء خطوات الاعتماد (اختياري — يتطلّب صلاحية الإعدادات؛ نتحمّل تعذّره)
+    try {
+      const c = await api<{ steps: { key: string; name: string }[] }>("/config/approval-chain");
+      setStepNames(Object.fromEntries(c.steps.map((s) => [s.key, s.name])));
+    } catch { /* تجاهل */ }
   }, []);
 
   useEffect(() => {
@@ -58,6 +65,22 @@ export default function PoliciesPage() {
     setError("");
     try {
       await api(path, { method: "POST" });
+      await load();
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "خطأ");
+    }
+  }
+
+  async function approveStep(policyId: string, stepKey: string) {
+    const ok = await confirm({
+      title: t("confirm.approveStep.title"),
+      description: t("confirm.approveStep.desc"),
+      confirmLabel: t("confirm.approveStep.action"),
+    });
+    if (!ok) return;
+    setError("");
+    try {
+      await api(`/policies/${policyId}/approve-step`, { method: "POST", body: JSON.stringify({ stepKey }) });
       await load();
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "خطأ");
@@ -104,6 +127,10 @@ export default function PoliciesPage() {
                       {p.status === "TECHNICAL_REVIEW" ? (
                         <button onClick={() => act(`/policies/${p.id}/approve-technical`, "approveTechnical")} className="inline-flex items-center gap-1 rounded-lg border border-line bg-card px-2.5 py-1.5 text-[12px] font-medium text-primary hover:bg-surface-2">
                           <CheckCircle2 size={13} /> {t("policies.approveTechnical")}
+                        </button>
+                      ) : p.status === "FINANCE_REVIEW" && (p.pendingApprovals?.length ?? 0) > 0 ? (
+                        <button onClick={() => approveStep(p.id, p.pendingApprovals![0])} className="inline-flex items-center gap-1 rounded-lg border border-warning/40 bg-warning/10 px-2.5 py-1.5 text-[12px] font-semibold text-warning hover:bg-warning/20">
+                          <CheckCircle2 size={13} /> {t("policies.approveStep")}: {stepNames[p.pendingApprovals![0]] ?? p.pendingApprovals![0]}
                         </button>
                       ) : p.status === "FINANCE_REVIEW" ? (
                         <button onClick={() => act(`/finance/policies/${p.id}/approve`, "approveFinance")} className="inline-flex items-center gap-1 rounded-lg bg-primary-strong px-2.5 py-1.5 text-[12px] font-semibold text-primary-fg hover:bg-primary">
