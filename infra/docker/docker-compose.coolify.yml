@@ -68,6 +68,16 @@ services:
       STORAGE_ACCESS_KEY: ${STORAGE_ACCESS_KEY:-}
       STORAGE_SECRET_KEY: ${STORAGE_SECRET_KEY:-}
       STORAGE_FORCE_PATH_STYLE: ${STORAGE_FORCE_PATH_STYLE:-true}
+      # التكاملات: sandbox افتراضيًا (بلا مفاتيح) — للإنتاج الحيّ اضبط live + المفاتيح
+      NOTIFY_GATEWAY: ${NOTIFY_GATEWAY:-sandbox}
+      BILLING_GATEWAY: ${BILLING_GATEWAY:-sandbox}
+      APP_PUBLIC_URL: ${APP_PUBLIC_URL:-}
+      API_PUBLIC_URL: ${API_PUBLIC_URL:-}
+      # البذرة + سوبر أدمن الإقلاع (لخطوة seed:prod/seed:demo من طرفية الحاوية)
+      SEED_MODE: ${SEED_MODE:-}
+      PLATFORM_ADMIN_EMAIL: ${PLATFORM_ADMIN_EMAIL:-}
+      PLATFORM_ADMIN_PASSWORD: ${PLATFORM_ADMIN_PASSWORD:-}
+      PLATFORM_ADMIN_NAME: ${PLATFORM_ADMIN_NAME:-}
     volumes:
       - ibp_storage:/data/storage # يستخدم فقط مع STORAGE_DRIVER=local
     expose:
@@ -83,6 +93,9 @@ services:
     build:
       context: ../..
       dockerfile: apps/web/Dockerfile
+      args:
+        # NEXT_PUBLIC_API_URL يُدمَج في حزمة العميل وقت البناء — لا بدّ من تمريره build arg (لا runtime فقط)
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?NEXT_PUBLIC_API_URL مطلوب (دومين الـ API العام)}
     restart: unless-stopped
     depends_on:
       - api

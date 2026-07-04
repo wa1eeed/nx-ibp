@@ -4,6 +4,24 @@
 
 > ⚠️ **سيادة البيانات (PDPL/هيئة التأمين):** بيانات الإنتاج الحقيقية + النسخ الاحتياطية + السجلّات + المرفقات يجب أن تبقى **داخل المملكة**. الاستضافة الحالية خارج المملكة **مؤقتة ومقبولة لبيانات وهمية/ما قبل الإطلاق فقط**. لا تُفعّل أي ربط حكومي حقيقي قبل النقل داخل المملكة — انظر [docs/30 §4](../../docs/30-security-and-compliance.md).
 
+## 0. نشر ديمو سريع (Sandbox — بلا مفاتيح)
+
+بيئة ديمو ليجرّبها العميل: كل التكاملات Sandbox (بلا SMS/دفع/فوترة فعلية)، بيانات GIB شبه واقعية. المتغيّرات الدنيا فقط:
+
+```bash
+POSTGRES_PASSWORD=$(openssl rand -base64 24)
+JWT_SECRET=$(openssl rand -base64 48)
+ZATCA_ENC_KEY=$(openssl rand -base64 32)
+CORS_ORIGINS=https://app.demo.example.sa      # دومين الواجهة
+NEXT_PUBLIC_API_URL=https://api.demo.example.sa  # دومين الـ API (build arg)
+SEED_MODE=demo                                # يسمح ببذرة الديمو على NODE_ENV=production
+```
+
+بعد أوّل نشر ناجح، شغّل البذرة لمرة واحدة من طرفية خدمة `api`:
+`cd /app && pnpm --filter @ibp/db run seed:demo` — ثم ادخل بـ `AAlanazi@gib-sa.com` / `Passw0rd!`.
+
+> **مُتحقَّق محليًّا:** الصورتان تُبنيان، الـ API يُقلع ويطبّق الهجرات تلقائيًا (`/health` = DB+Redis)، وبذرة الديمو + تسجيل الدخول يعملان داخل الحاوية. تفاصيل الإنتاج الحقيقي في القسمين 3 و6.
+
 ## 1. المتطلّبات
 - خادم Coolify عامل (VPS بـ Docker).
 - دومينان (أو دومين + نطاق فرعي): مثل `app.example.com` للواجهة و`api.example.com` للـ API.
@@ -29,7 +47,7 @@
 | `JWT_SECRET` | ✅ | `openssl rand -base64 48` |
 | `ZATCA_ENC_KEY` | ✅ | تشفير الاعتماد at-rest: `openssl rand -base64 32` |
 | `CORS_ORIGINS` | ✅ | دومين الواجهة، مثل `https://app.example.com` |
-| `NEXT_PUBLIC_API_URL` | ✅ | دومين الـ API العام، مثل `https://api.example.com` |
+| `NEXT_PUBLIC_API_URL` | ✅ | دومين الـ API العام، مثل `https://api.example.com`. **يُدمَج وقت البناء** (build arg) في حزمة العميل — عند تغييره **أعد البناء** (لا يكفي إعادة التشغيل). |
 | `JWT_EXPIRES_IN` | — | افتراضي `15m` |
 | `ZATCA_DEFAULT_ENV` | — | `SANDBOX` (الإنتاج الحقيقي بعد النقل داخل المملكة) |
 | `LOGIN_MAX_FAILURES` / `LOGIN_LOCK_WINDOW_SEC` | — | قفل القوّة الغاشمة (8 / 900) |
