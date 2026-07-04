@@ -886,13 +886,51 @@ async function seedCrm(tenantId: string, ownerEmail: string, clientIds: string[]
   }
 }
 
-async function main() {
-  console.log("🌱 IBP seed — بيانات وهمية فقط");
-  const passwordHash = await bcrypt.hash(DEV_PASSWORD, 10);
+/**
+ * بذرة إقلاع الإنتاج — مرجعيات فقط (باقات + كتالوج + مزوّدون) + سوبر أدمن من البيئة.
+ * لا مستأجرين وهميين ولا بيانات تجريبية. حساب GIB الحقيقي يُنشأ لاحقًا عبر التسجيل/التزويد.
+ * كلمة مرور السوبر أدمن إلزامية من البيئة (لا افتراضي في الإنتاج)، ولا تُعاد كتابتها عند إعادة التشغيل.
+ */
+async function seedProductionBootstrap() {
+  const email = process.env.PLATFORM_ADMIN_EMAIL?.trim();
+  const password = process.env.PLATFORM_ADMIN_PASSWORD;
+  if (!email || !password) {
+    throw new Error("SEED_MODE=production يتطلّب PLATFORM_ADMIN_EMAIL و PLATFORM_ADMIN_PASSWORD في البيئة — لا سوبر أدمن بكلمة مرور افتراضية في الإنتاج.");
+  }
+  if (password.length < 12) throw new Error("PLATFORM_ADMIN_PASSWORD يجب ألا يقلّ عن 12 حرفًا.");
+  const passwordHash = await bcrypt.hash(password, 12);
+  await prisma.platformAdmin.upsert({
+    where: { email },
+    update: {}, // موجود مسبقًا ⇒ لا نُعيد ضبط كلمة مروره (بذرة idempotent آمنة)
+    create: { email, fullName: process.env.PLATFORM_ADMIN_NAME?.trim() || "مالك المنصة", passwordHash },
+  });
+  console.log("✅ بذرة إقلاع الإنتاج: الباقات + الكتالوج + المزوّدون + سوبر أدمن (من البيئة). لا بيانات تجريبية/مستأجرين وهميين.");
+  console.log(`   سوبر أدمن المنصة: ${email}`);
+}
 
+async function main() {
+  // المرجعيات تُبذَر في كل الأوضاع (إنتاج/ديمو/اختبار) — آمنة idempotent.
   await seedPlans();
   await seedCatalog();
   await seedProviders();
+
+  // وضع الإقلاع الإنتاجي: مرجعيات + سوبر أدمن فقط، ثم توقّف (لا مستأجرين وهميين).
+  const seedMode = process.env.SEED_MODE;
+  if (seedMode === "production") {
+    await seedProductionBootstrap();
+    return;
+  }
+
+  // حاجز أمان: منع حقن بيانات تجريبية في بيئة منشورة (NODE_ENV=production) دون قصد صريح.
+  if (process.env.NODE_ENV === "production" && seedMode !== "demo") {
+    throw new Error(
+      "رُفض تشغيل بذرة الديمو على NODE_ENV=production. استخدم `SEED_MODE=production` (بذرة إقلاع مرجعية للإنتاج الحقيقي)، " +
+        "أو `SEED_MODE=demo` صراحةً لبيئة ديمو/تجريبية منشورة.",
+    );
+  }
+
+  console.log("🌱 IBP seed — بيانات وهمية فقط (وضع الديمو)");
+  const passwordHash = await bcrypt.hash(DEV_PASSWORD, 10);
 
   for (const def of TENANTS) {
     await seedTenant(def, passwordHash);
