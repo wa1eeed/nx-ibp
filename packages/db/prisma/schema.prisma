@@ -288,6 +288,8 @@ model User {
   email        String
   fullName     String
   passwordHash String? // bcrypt — يُضبط عند الإنشاء/الدعوة (المرحلة 1)
+  mfaSecret    String? // سرّ TOTP (Base32) — يُضبط عند بدء الإعداد
+  mfaEnabled   Boolean    @default(false) // المصادقة الثنائية مفعّلة لهذا المستخدم
   status       UserStatus @default(ACTIVE)
   roleId       String?
   role         Role?      @relation(fields: [roleId], references: [id])
@@ -363,6 +365,7 @@ model TenantConfig {
   sequenceFormats Json? // صيغ أرقام التسلسل
   emailTemplates  Json? // قوالب الإيميلات
   approvalChains  Json? // سلاسل الاعتماد
+  securityPolicy  Json? // سياسة الأمان على مستوى الشركة (إلزام MFA…)
   branding        Json? // الشعار والألوان
 }
 

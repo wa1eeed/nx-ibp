@@ -578,6 +578,9 @@ curl -X POST http://localhost:4000/staff \
 | الطريقة | المسار | الحماية | الوصف |
 |---|---|---|---|
 | GET/PUT | `/config/approval-chain` | settings | البوّابة الفنية + فصل المهام + الخطوات الإضافية |
+| GET/PUT | `/config/security` | settings | سياسة الأمان — إلزام المصادقة الثنائية لكل الموظفين (`{ mfaRequired }`) |
+| GET | `/auth/mfa/status` | مصادقة | حالة MFA للمستخدم + إلزام الشركة |
+| POST | `/auth/mfa/setup` · `/auth/mfa/enable` · `/auth/mfa/disable` | مصادقة | تسجيل/تفعيل/إلغاء MFA (TOTP). `login` بكلمة المرور وحدها ⇒ `401 MFA_REQUIRED`، ومع `mfaCode` ⇒ توكن |
 | POST | `/policies/:id/approve-step` | ديناميكي (وحدة الخطوة) | اعتماد خطوة إضافية مُهيّأة |
 | POST | `/revert/:entityType/:id` | `canRevert` للوحدة | التراجع خطوة للوراء (policy/claim/service_request/request) |
 | GET | `/clients/:id/overview` | clients:read | نظرة العميل 360° المجمّعة |

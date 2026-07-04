@@ -1,16 +1,18 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { ShieldCheck, LogIn } from "lucide-react";
+import { ShieldCheck, LogIn, KeyRound } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/routing";
-import { api, setToken } from "@/lib/api";
+import { api, ApiError, setToken } from "@/lib/api";
 
 export default function LoginPage() {
   const t = useTranslations();
   const router = useRouter();
   const [email, setEmail] = useState("waleed@gulf-demo.sa");
   const [password, setPassword] = useState("Passw0rd!");
+  const [mfaStep, setMfaStep] = useState(false);
+  const [mfaCode, setMfaCode] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -19,14 +21,20 @@ export default function LoginPage() {
     setLoading(true);
     setError("");
     try {
-      const res = await api<{ accessToken: string }>("/auth/login", {
+      const res = await api<{ accessToken: string; mfaEnrollmentRequired?: boolean }>("/auth/login", {
         method: "POST",
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, ...(mfaStep && mfaCode ? { mfaCode } : {}) }),
       });
       setToken(res.accessToken);
-      router.push("/tenant/settings/staff");
-    } catch {
-      setError(t("login.error"));
+      // إلزام الشركة بالـMFA ولم يُفعّلها بعد ⇒ يُوجَّه للتفعيل قبل المتابعة
+      router.push(res.mfaEnrollmentRequired ? "/tenant/settings/security" : "/tenant/settings/staff");
+    } catch (err) {
+      if (err instanceof ApiError && err.message === "MFA_REQUIRED") {
+        setMfaStep(true); // كلمة المرور صحيحة — نطلب رمز المصادقة الثنائية
+        setError("");
+      } else {
+        setError(mfaStep ? t("login.mfaWrong") : t("login.error"));
+      }
     } finally {
       setLoading(false);
     }
@@ -61,19 +69,36 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="h-10 w-full rounded-lg border border-line bg-card px-3 text-[13px] text-ink focus:outline-none focus:ring-2 focus:ring-primary/30"
+              disabled={mfaStep}
+              className="h-10 w-full rounded-lg border border-line bg-card px-3 text-[13px] text-ink focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60"
             />
           </label>
+
+          {mfaStep ? (
+            <label className="block">
+              <span className="mb-1 block text-[12.5px] font-medium text-muted">{t("login.mfaCode")}</span>
+              <input
+                inputMode="numeric"
+                autoFocus
+                value={mfaCode}
+                onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                placeholder="000000"
+                dir="ltr"
+                className="h-10 w-full rounded-lg border border-line bg-card px-3 text-center text-[15px] tracking-widest tnum text-ink focus:outline-none focus:ring-2 focus:ring-primary/30"
+              />
+              <span className="mt-1 block text-[11px] text-subtle">{t("login.mfaHint")}</span>
+            </label>
+          ) : null}
 
           {error ? <p className="text-[12.5px] font-medium text-danger">{error}</p> : null}
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || (mfaStep && mfaCode.length < 6)}
             className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-primary-strong text-[13px] font-semibold text-primary-fg transition-colors hover:bg-primary disabled:opacity-60"
           >
-            <LogIn size={16} />
-            {loading ? "…" : t("login.submit")}
+            {mfaStep ? <KeyRound size={16} /> : <LogIn size={16} />}
+            {loading ? "…" : mfaStep ? t("login.mfaSubmit") : t("login.submit")}
           </button>
           <p className="text-center text-[11px] text-subtle">{t("login.demoHint")}</p>
           <p className="text-center text-[12px] text-subtle">

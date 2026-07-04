@@ -711,9 +711,11 @@ erDiagram
 - **`Permission.canRevert`** (Boolean، E4) — صلاحية **التراجع خطوة للوراء** للوحدة (فعل RBAC "revert"، رمز مصفوفة "R"). تُمنح للمدير العام/المالك وأي دور مخصّص.
 - **`Policy.pendingApprovals`** (`String[]`، E2) — مفاتيح خطوات الاعتماد الإضافية المتبقّية بين الفني والمالي؛ فارغ = السلسلة الافتراضية.
 - **`Policy.renewalRemindedAt`** (DateTime?، المجدول) — وسم إرسال تذكير التجديد (idempotency)؛ فهرس `[tenantId, status, endDate]` لكفاءة مسح الوثائق المقتربة من الانتهاء.
+- **`User.mfaSecret`/`User.mfaEnabled`** (MFA) — سرّ TOTP (Base32) وحالة تفعيل المصادقة الثنائية لموظف الشركة (نفس نمط `PlatformAdmin`).
 - **`TenantConfig.approvalChains`** (Json، E2) — `policy: { technicalGate, segregationOfDuties, extraSteps[] }` (سلسلة اعتماد الوثيقة القابلة للتهيئة + حارس فصل المهام).
+- **`TenantConfig.securityPolicy`** (Json، MFA) — `{ mfaRequired }` سياسة أمان الشركة: إلزام كل الموظفين بالمصادقة الثنائية.
 
-**الهجرات:** `notification_settings` · `notifications_inbox` · `crm_core` · `permission_can_revert` · `approval_chains` · `reminder_fields`.
+**الهجرات:** `notification_settings` · `notifications_inbox` · `crm_core` · `permission_can_revert` · `approval_chains` · `reminder_fields` · `staff_mfa`.
 
 ---
 

@@ -62,7 +62,8 @@
       "staff": "Staff",
       "integrations": "Integrations",
       "notifications": "Notifications",
-      "approvalChain": "Approval chain"
+      "approvalChain": "Approval chain",
+      "security": "Security & 2FA"
     }
   },
   "topbar": {
@@ -249,7 +250,35 @@
     "error": "Invalid credentials",
     "demoHint": "Demo account pre-filled (waleed@gulf-demo.sa)",
     "noAccount": "No account yet?",
-    "signupLink": "Create your company account"
+    "signupLink": "Create your company account",
+    "mfaTitle": "Two-factor authentication",
+    "mfaHint": "Enter the 6-digit code from your authenticator app.",
+    "mfaCode": "Verification code",
+    "mfaSubmit": "Verify & sign in",
+    "mfaWrong": "Invalid code, try again"
+  },
+  "tenantSecurity": {
+    "title": "Security & 2FA",
+    "subtitle": "Add an extra layer of protection to your account via an authenticator app (TOTP).",
+    "status": "Status",
+    "on": "Enabled",
+    "off": "Disabled",
+    "setup": "Enable two-factor authentication",
+    "scan": "Scan the code in your authenticator app (Google Authenticator/Authy) or enter the secret manually, then confirm with a code:",
+    "codeLabel": "Code (6 digits)",
+    "enable": "Confirm & enable",
+    "disable": "Disable",
+    "enabled": "Two-factor authentication enabled.",
+    "disabled": "Two-factor authentication disabled.",
+    "wrong": "Invalid code",
+    "requiredBadge": "Required by company",
+    "requiredNote": "Your company mandates 2FA — it cannot be disabled.",
+    "enrollNow": "Your company requires two-factor authentication. Enable it now to secure your account.",
+    "orgTitle": "Company policy",
+    "orgSubtitle": "Require all staff to enable two-factor authentication.",
+    "orgToggle": "Require 2FA for all staff",
+    "orgSaved": "Security policy saved.",
+    "manageOwn": "Your account's 2FA"
   },
   "signup": {
     "title": "Create your company account",

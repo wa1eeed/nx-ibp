@@ -24,7 +24,8 @@ export type ModuleKey =
   | "settings.staff"
   | "settings.integrations"
   | "settings.notifications"
-  | "settings.approvalChain";
+  | "settings.approvalChain"
+  | "settings.security";
 
 export interface NavItem {
   /** مفتاح الترجمة: nav.<key> في ملفات الرسائل. */
@@ -112,6 +113,7 @@ export const TENANT_NAV: NavGroup[] = [
       { key: "settings.integrations", href: "/tenant/settings/integrations", icon: "Plug" },
       { key: "settings.notifications", href: "/tenant/settings/notifications", icon: "Bell" },
       { key: "settings.approvalChain", href: "/tenant/settings/approval-chain", icon: "ListChecks" },
+      { key: "settings.security", href: "/tenant/settings/security", icon: "ShieldCheck" },
     ],
   },
 ];

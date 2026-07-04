@@ -63,6 +63,26 @@ export class ConfigService {
     return { ok: true, technicalGate, segregationOfDuties, extraSteps };
   }
 
+  // ————————————————— سياسة الأمان (إلزام MFA) —————————————————
+
+  /** سياسة الأمان على مستوى الشركة. حاليًا: إلزام المصادقة الثنائية لكل الموظفين. */
+  async getSecurityConfig(tenantId: string): Promise<{ mfaRequired: boolean }> {
+    const cfg = await this.prisma.tenantConfig.findFirst({ where: { tenantId }, select: { securityPolicy: true } });
+    const sp = (cfg?.securityPolicy ?? {}) as { mfaRequired?: boolean };
+    return { mfaRequired: sp.mfaRequired === true };
+  }
+
+  /** يحفظ سياسة الأمان. تفعيل الإلزام لا يُعطّل دخول من لم يُسجّل بعد، بل تدفعه الواجهة للتسجيل. */
+  async setSecurityConfig(tenantId: string, userId: string, input: { mfaRequired: boolean }): Promise<{ ok: true; mfaRequired: boolean }> {
+    const mfaRequired = input.mfaRequired === true;
+    const cfg = await this.prisma.tenantConfig.findFirst({ where: { tenantId }, select: { id: true, securityPolicy: true } });
+    const policy = { ...((cfg?.securityPolicy ?? {}) as Record<string, unknown>), mfaRequired };
+    if (cfg) await this.prisma.tenantConfig.update({ where: { tenantId }, data: { securityPolicy: asJson(policy) } });
+    else await this.prisma.tenantConfig.create({ data: { tenantId, enabledProducts: [], securityPolicy: asJson(policy) } });
+    await this.audit.log({ tenantId, userId, action: "update", entity: "security_policy", entityId: "mfa", meta: { mfaRequired } });
+    return { ok: true, mfaRequired };
+  }
+
   /** يتحقّق من صحّة الخطوات (مفاتيح فريدة غير فارغة، وحدة/فعل صالحان). */
   private validate(steps: ApprovalStep[]): ApprovalStep[] {
     if (!Array.isArray(steps)) throw new BadRequestException("سلسلة الاعتماد يجب أن تكون قائمة خطوات");
