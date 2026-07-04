@@ -103,6 +103,34 @@ describe("CRM — E5 (e2e)", () => {
     expect(repFu.unpaidCommissions).toBeNull();     // بلا finance
   });
 
-  it("عزل صلاحية: بلا وحدة المبيعات ⇒ 403", () =>
-    request(app.getHttpServer()).get("/crm/deals").set(auth(noSales)).expect(403));
+  it("مجدول التذكيرات: مهمة بلغت الاستحقاق ⇒ تذكير للمُسنَد إليه، بلا تكرار (idempotent)", async () => {
+    // مهمة مستحقّة (تاريخ ماضٍ) مُسنَدة للمُسنَد إليه الفريد لهذا الملف
+    const title = `تذكير-مستحق-${Date.now()}`;
+    await request(app.getHttpServer()).post("/crm/tasks").set(auth(gm)).send({ title, assigneeId, dueDate: "2020-01-01" }).expect(201);
+
+    // تشغيل المسح يدويًا (مقصور على مستأجر المُستدعي) ⇒ يلتقط المهمة المستحقّة
+    const run1 = (await request(app.getHttpServer()).post("/reminders/run").set(auth(gm)).expect(201)).body as { tasks: number; renewals: number };
+    expect(run1.tasks).toBeGreaterThanOrEqual(1);
+
+    // وصل تذكير staff_task_due للمُسنَد إليه
+    let inbox: Array<{ eventKey: string }> = [];
+    for (let i = 0; i < 25 && !inbox.some((n) => n.eventKey === "staff_task_due"); i++) {
+      inbox = (await request(app.getHttpServer()).get("/notifications/inbox").set(auth(assigneeToken))).body;
+      if (!inbox.some((n) => n.eventKey === "staff_task_due")) await new Promise((r) => setTimeout(r, 40));
+    }
+    const dueCount1 = inbox.filter((n) => n.eventKey === "staff_task_due").length;
+    expect(dueCount1).toBeGreaterThanOrEqual(1);
+
+    // تشغيل ثانٍ فورًا ⇒ لا يُعاد تذكير نفس المهمة (وُسِمت reminderSentAt)
+    await request(app.getHttpServer()).post("/reminders/run").set(auth(gm)).expect(201);
+    await new Promise((r) => setTimeout(r, 150));
+    const inbox2 = (await request(app.getHttpServer()).get("/notifications/inbox").set(auth(assigneeToken))).body as Array<{ eventKey: string }>;
+    const dueCount2 = inbox2.filter((n) => n.eventKey === "staff_task_due").length;
+    expect(dueCount2).toBe(dueCount1); // بلا تكرار
+  });
+
+  it("عزل صلاحية: بلا وحدة المبيعات ⇒ 403 (يشمل تشغيل التذكيرات)", async () => {
+    await request(app.getHttpServer()).get("/crm/deals").set(auth(noSales)).expect(403);
+    await request(app.getHttpServer()).post("/reminders/run").set(auth(noSales)).expect(403);
+  });
 });

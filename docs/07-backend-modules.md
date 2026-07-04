@@ -429,8 +429,9 @@ flowchart TB
 
 | الوحدة | الغرض |
 |---|---|
-| `notifications` | نظام الإشعارات لكامل النظام (18 نوعًا، عملاء+موظفون، `notify`/`notifyStaff`/`notifyUser`) + مركز in-app + بوّابة seam (Taqnyat/Resend) |
+| `notifications` | نظام الإشعارات لكامل النظام (21 نوعًا، عملاء+موظفون، `notify`/`notifyStaff`/`notifyUser`) + مركز in-app + بوّابة seam (Taqnyat/Resend) |
 | `crm` | إدارة العلاقات — صفقات (Pipeline) + مهام + نشاط + لوحة متابعة، برؤية حسب الدور |
+| `reminders` | مجدول تذكيرات دوري (`@nestjs/schedule`، cron يومي) — مهام CRM مستحقّة + تجديد الوثائق، بلا تكرار؛ تشغيل يدوي معزول `POST /reminders/run` |
 | `config` | تهيئة المستأجر — سلسلة اعتماد الوثيقة (E2) |
 | `revert` | التراجع خطوة للوراء (E4) بصلاحية `canRevert` وحواجز امتثالية |
 | `signup` · `billing` · `org` | تسجيل ذاتي · فوترة اشتراكات (Tap) · الهيكل الإداري |

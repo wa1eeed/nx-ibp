@@ -572,6 +572,7 @@ curl -X POST http://localhost:4000/staff \
 | GET/POST | `/crm/deals` · PATCH `/crm/deals/:id` | sales | خطّ الأنابيب (رؤية حسب الدور: مدير=الكل، مندوب=المُسنَد إليه) |
 | GET/POST | `/crm/tasks` (`?mine=1`) · POST `/crm/tasks/:id/complete` | sales | المهام/التذكيرات |
 | GET/POST | `/crm/activities/:entityType/:entityId` · `/crm/activities` | sales | النشاط/الملاحظات (الخط الزمني) |
+| POST | `/reminders/run` | sales:update | تشغيل مسح التذكيرات يدويًا (مقصور على مستأجر المُستدعي) — يُطلق تذكير المهام المستحقّة وتجديد الوثائق. يعمل تلقائيًا يوميًا عبر cron (`@nestjs/schedule`، 8ص). |
 
 ### سلسلة الاعتماد (E2) · التراجع (E4) · 360°
 | الطريقة | المسار | الحماية | الوصف |

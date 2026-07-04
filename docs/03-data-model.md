@@ -705,14 +705,15 @@ erDiagram
 ### CRM (إدارة العلاقات)
 - **`Deal`** — صفقة/فرصة في خطّ الأنابيب: `title` · `stage` (new/contacted/quoting/proposal/negotiation) · `status` (open/won/lost) · `value` · `clientId` · **`assigneeId`** (الموظف المُسنَد) · `createdById` · `requestId` (عند التحويل). فهارس `[tenantId, stage]` و`[tenantId, assigneeId]`.
 - **`CrmActivity`** — نشاط/ملاحظة **polymorphic**: `entityType` (deal/client/policy/claim/request) · `entityId` · `type` (note/call/email/meeting/stage_change) · `body` · `authorId`. يخدم الخط الزمني في صفحات 360°.
-- **`CrmTask`** — مهمة/تذكير: `title` · `assigneeId` · `dueDate` · `priority` (low/normal/high) · `status` (open/done) · ربط اختياري `entityType/entityId`. إسنادها يُطلق إشعار `notifyUser`.
+- **`CrmTask`** — مهمة/تذكير: `title` · `assigneeId` · `dueDate` · `priority` (low/normal/high) · `status` (open/done) · ربط اختياري `entityType/entityId` · **`reminderSentAt`** (وسم تذكير الاستحقاق — idempotency للمجدول). إسنادها يُطلق إشعار `notifyUser`.
 
 ### إضافات على نماذج قائمة
 - **`Permission.canRevert`** (Boolean، E4) — صلاحية **التراجع خطوة للوراء** للوحدة (فعل RBAC "revert"، رمز مصفوفة "R"). تُمنح للمدير العام/المالك وأي دور مخصّص.
 - **`Policy.pendingApprovals`** (`String[]`، E2) — مفاتيح خطوات الاعتماد الإضافية المتبقّية بين الفني والمالي؛ فارغ = السلسلة الافتراضية.
+- **`Policy.renewalRemindedAt`** (DateTime?، المجدول) — وسم إرسال تذكير التجديد (idempotency)؛ فهرس `[tenantId, status, endDate]` لكفاءة مسح الوثائق المقتربة من الانتهاء.
 - **`TenantConfig.approvalChains`** (Json، E2) — `policy: { technicalGate, segregationOfDuties, extraSteps[] }` (سلسلة اعتماد الوثيقة القابلة للتهيئة + حارس فصل المهام).
 
-**الهجرات:** `notification_settings` · `notifications_inbox` · `crm_core` · `permission_can_revert` · `approval_chains`.
+**الهجرات:** `notification_settings` · `notifications_inbox` · `crm_core` · `permission_can_revert` · `approval_chains` · `reminder_fields`.
 
 ---
 

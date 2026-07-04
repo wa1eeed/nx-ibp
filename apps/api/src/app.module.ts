@@ -1,5 +1,6 @@
 import { Module, MiddlewareConsumer, NestModule, RequestMethod } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
+import { ScheduleModule } from "@nestjs/schedule";
 import { APP_GUARD } from "@nestjs/core";
 import { raw } from "express";
 import { RequestContextModule } from "./common/request-context/request-context.module";
@@ -40,6 +41,7 @@ import { NotificationsModule } from "./modules/notifications/notifications.modul
 import { ConfigModule as TenantConfigModule } from "./modules/config/config.module";
 import { RevertModule } from "./modules/revert/revert.module";
 import { CrmModule } from "./modules/crm/crm.module";
+import { RemindersModule } from "./modules/reminders/reminders.module";
 
 /**
  * الوحدة الجذرية. معماري وحدات — module لكل مجال (GUIDELINES.md §5).
@@ -50,6 +52,7 @@ import { CrmModule } from "./modules/crm/crm.module";
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    ScheduleModule.forRoot(),
     RequestContextModule,
     AuditModule,
     SequenceModule,
@@ -86,6 +89,7 @@ import { CrmModule } from "./modules/crm/crm.module";
     TenantConfigModule,
     RevertModule,
     CrmModule,
+    RemindersModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

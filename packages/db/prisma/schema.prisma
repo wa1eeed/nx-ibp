@@ -167,6 +167,7 @@ model CrmTask {
   createdById String?
   createdAt   DateTime  @default(now())
   completedAt DateTime?
+  reminderSentAt DateTime? // تذكير الاستحقاق أُرسِل (idempotency للمجدول)
 
   @@index([tenantId, assigneeId, status])
   @@index([tenantId, dueDate])
@@ -632,11 +633,13 @@ model Policy {
   pendingApprovals String[]      @default([])
   startDate        DateTime?
   endDate          DateTime?
+  renewalRemindedAt DateTime? // تذكير التجديد أُرسِل (idempotency للمجدول)
   createdAt        DateTime      @default(now())
   endorsements     Endorsement[]
 
   @@index([tenantId])
   @@index([requestId])
+  @@index([tenantId, status, endDate])
 }
 
 enum PolicyStatus {
