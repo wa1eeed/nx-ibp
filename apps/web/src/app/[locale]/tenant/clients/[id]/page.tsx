@@ -2,14 +2,15 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { ArrowRight, FileCheck2, ClipboardList, FileText, FolderOpen, Receipt, Clock, Send } from "lucide-react";
+import { ArrowRight, FileCheck2, ClipboardList, FileText, FolderOpen, Receipt, Clock, Send, ShieldOff } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
 import { api, getToken } from "@/lib/api";
 import { Badge } from "@/components/ui/Badge";
+import { useConfirm } from "@/components/ui/ConfirmProvider";
 
 interface Overview {
-  client: { id: string; name: string; type: string; code: string | null; crNumber: string | null; nationalId: string | null; email: string | null; phone: string | null; city: string | null; vatNumber: string | null; iban: string | null; producerName: string | null; businessActivity: string | null; complianceStatus: string | null };
+  client: { id: string; name: string; type: string; code: string | null; crNumber: string | null; nationalId: string | null; email: string | null; phone: string | null; city: string | null; vatNumber: string | null; iban: string | null; producerName: string | null; businessActivity: string | null; complianceStatus: string | null; erasedAt: string | null };
   policies: Array<{ id: string; sequenceNo: string | null; productLineCode: string | null; insurerName: string | null; totalPremium: string | null; status: string; endDate: string | null; createdAt: string }>;
   claims: Array<{ id: string; sequenceNo: string | null; insurerName: string | null; claimedAmount: string | null; status: string; createdAt: string }>;
   requests: Array<{ id: string; sequenceNo: string | null; productLineCode: string | null; status: string; createdAt: string }>;
@@ -29,19 +30,34 @@ export default function ClientDetailPage() {
   const t = useTranslations("client360");
   const params = useParams();
   const id = String(params.id);
+  const confirm = useConfirm();
   const [ov, setOv] = useState<Overview | null>(null);
   const [tab, setTab] = useState<(typeof TABS)[number]>("overview");
   const [note, setNote] = useState("");
+  const [canErase, setCanErase] = useState(false);
 
   const load = useCallback(async () => {
     try { setOv(await api<Overview>(`/clients/${id}/overview`)); } catch { /* تجاهل */ }
   }, [id]);
   useEffect(() => { if (getToken()) void load(); }, [load]);
+  useEffect(() => {
+    if (!getToken()) return;
+    void api<{ permissions?: Record<string, { delete?: boolean }> }>("/auth/me")
+      .then((me) => setCanErase(me.permissions?.clients?.delete === true))
+      .catch(() => undefined);
+  }, []);
 
   async function addNote() {
     if (!note.trim()) return;
     await api("/crm/activities", { method: "POST", body: JSON.stringify({ entityType: "client", entityId: id, type: "note", body: note.trim() }) }).catch(() => undefined);
     setNote(""); await load();
+  }
+
+  async function erase() {
+    const ok = await confirm({ title: t("erase.title"), description: t("erase.desc"), tone: "danger", confirmLabel: t("erase.action") });
+    if (!ok) return;
+    await api(`/clients/${id}/erase`, { method: "POST", body: JSON.stringify({}) }).catch(() => undefined);
+    await load();
   }
 
   if (!ov) return <div className="grid min-h-[40vh] place-items-center text-subtle">…</div>;
@@ -82,7 +98,16 @@ export default function ClientDetailPage() {
           <h1 className="text-[22px] font-bold text-ink">{c.name}</h1>
           <p className="text-[12.5px] text-subtle">{c.code} · {c.type === "CORPORATE" ? "منشأة" : "فرد"} {c.city ? `· ${c.city}` : ""}</p>
         </div>
-        {c.complianceStatus ? <Badge tone={c.complianceStatus === "APPROVED" ? "success" : c.complianceStatus === "REJECTED" ? "danger" : "warning"}>{c.complianceStatus}</Badge> : null}
+        <div className="flex items-center gap-2">
+          {c.complianceStatus ? <Badge tone={c.complianceStatus === "APPROVED" ? "success" : c.complianceStatus === "REJECTED" ? "danger" : "warning"}>{c.complianceStatus}</Badge> : null}
+          {c.erasedAt ? (
+            <span className="inline-flex items-center gap-1 rounded-full bg-surface-2 px-2.5 py-1 text-[11px] font-semibold text-subtle"><ShieldOff size={12} /> {t("erase.badge")}</span>
+          ) : canErase ? (
+            <button onClick={erase} className="inline-flex items-center gap-1.5 rounded-lg border border-danger/30 bg-danger/5 px-3 py-1.5 text-[12px] font-semibold text-danger hover:bg-danger/10">
+              <ShieldOff size={14} /> {t("erase.action")}
+            </button>
+          ) : null}
+        </div>
       </header>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">

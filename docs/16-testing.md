@@ -35,9 +35,9 @@
 
 **ملفات ما بعد الاكتمال** (هذه الجلسة): `security` · `mfa` · `signup` · `billing` · `org` · `storage-s3` · `storage-quota` · `image-compression` · `broker-fields` · `audit-immutable` · `notifications` — تغطّي التحصين الأمني (قفل/MFA)، التسجيل الذاتي، الفوترة (Tap seam)، الأقسام، التخزين السحابي/الحصص/الضغط، إثراء الحقول، **سجل التدقيق الثابت + IP**، ونظام الإشعارات.
 
-**+ ملفات ما بعد الاكتمال:** `security` · `mfa` · `audit-immutable` · `signup` · `billing` · `org` · `storage-quota` · `storage-s3` · `image-compression` · `broker-fields` · `notifications` · `notification-gateway` · `staff-notifications` (توجيه + in-app) · `vat-branch` (E1) · `approval-chain` (E2 + فصل مهام) · `revert` (E4) · `crm` (7: أنابيب/مهام/نشاط/رؤية حسب الدور/لوحة متابعة/**مجدول التذكيرات: مهمة مستحقّة ⇒ تذكير بلا تكرار**/عزل التشغيل) · `detail-360` (نظرة العميل/الموظف + عزل) · `mfa-staff` (6: إعداد/تفعيل TOTP · تحدّي الدخول من خطوتين · إلزام الشركة + منع الإلغاء · عزل صلاحية).
+**+ ملفات ما بعد الاكتمال:** `security` · `mfa` · `audit-immutable` · `signup` · `billing` · `org` · `storage-quota` · `storage-s3` · `image-compression` · `broker-fields` · `notifications` · `notification-gateway` · `staff-notifications` (توجيه + in-app) · `vat-branch` (E1) · `approval-chain` (E2 + فصل مهام) · `revert` (E4) · `crm` (7: أنابيب/مهام/نشاط/رؤية حسب الدور/لوحة متابعة/**مجدول التذكيرات: مهمة مستحقّة ⇒ تذكير بلا تكرار**/عزل التشغيل) · `detail-360` (نظرة العميل/الموظف + عزل) · `mfa-staff` (6: إعداد/تفعيل TOTP · تحدّي الدخول من خطوتين · إلزام الشركة + منع الإلغاء · عزل صلاحية) · `retention-dlp` (6: إخفاء الهوية/الآيبان حسب الصلاحية · محو PDPL + عدم تكرار · سجلّ الإتلاف · عزل 403 · حدود مدّة الاحتفاظ · تقرير الاستحقاق).
 
-**الإجمالي: 195 اختباراً (32 ملفاً).**
+**الإجمالي: 201 اختباراً (33 ملفاً).**
 
 ### قاعدة اختبار منفصلة (`ibp_test`)
 

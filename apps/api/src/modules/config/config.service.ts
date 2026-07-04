@@ -83,6 +83,29 @@ export class ConfigService {
     return { ok: true, mfaRequired };
   }
 
+  // ————————————————— سياسة الاحتفاظ (الإتلاف الآمن — PDPL) —————————————————
+
+  /** مدّة الاحتفاظ بالبيانات (سنوات). الافتراضي 10 (سجلّات التأمين — SAMA/هيئة التأمين). */
+  async getRetentionConfig(tenantId: string): Promise<{ retentionYears: number }> {
+    const cfg = await this.prisma.tenantConfig.findFirst({ where: { tenantId }, select: { securityPolicy: true } });
+    const y = ((cfg?.securityPolicy ?? {}) as { retentionYears?: number }).retentionYears;
+    return { retentionYears: typeof y === "number" && y > 0 ? y : 10 };
+  }
+
+  /** يحفظ مدّة الاحتفاظ (1–30 سنة) ضمن سياسة الأمان. */
+  async setRetentionConfig(tenantId: string, userId: string, input: { retentionYears: number }): Promise<{ ok: true; retentionYears: number }> {
+    const retentionYears = Math.round(input.retentionYears);
+    if (!Number.isFinite(retentionYears) || retentionYears < 1 || retentionYears > 30) {
+      throw new BadRequestException("مدّة الاحتفاظ يجب أن تكون بين 1 و30 سنة");
+    }
+    const cfg = await this.prisma.tenantConfig.findFirst({ where: { tenantId }, select: { id: true, securityPolicy: true } });
+    const policy = { ...((cfg?.securityPolicy ?? {}) as Record<string, unknown>), retentionYears };
+    if (cfg) await this.prisma.tenantConfig.update({ where: { tenantId }, data: { securityPolicy: asJson(policy) } });
+    else await this.prisma.tenantConfig.create({ data: { tenantId, enabledProducts: [], securityPolicy: asJson(policy) } });
+    await this.audit.log({ tenantId, userId, action: "update", entity: "retention_policy", entityId: "client", meta: { retentionYears } });
+    return { ok: true, retentionYears };
+  }
+
   /** يتحقّق من صحّة الخطوات (مفاتيح فريدة غير فارغة، وحدة/فعل صالحان). */
   private validate(steps: ApprovalStep[]): ApprovalStep[] {
     if (!Array.isArray(steps)) throw new BadRequestException("سلسلة الاعتماد يجب أن تكون قائمة خطوات");

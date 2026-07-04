@@ -439,6 +439,8 @@ model Client {
   complianceStatus ComplianceStatus @default(PENDING)
   complianceNote   String?
   createdAt        DateTime         @default(now())
+  erasedAt         DateTime? // إتلاف/إخفاء PII (حق المحو — PDPL) — يُبقي الهيكل المالي
+  erasedBy         String? // المستخدم الذي نفّذ المحو (سجلّ الإتلاف)
   policyRequests   PolicyRequest[]
   portalUsers      ClientUser[]
 

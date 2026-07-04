@@ -17,15 +17,20 @@ export default function TenantSecurityPage() {
   // سياسة الشركة (تظهر فقط لمن يملك صلاحية الإعدادات)
   const [canManageOrg, setCanManageOrg] = useState(false);
   const [orgRequired, setOrgRequired] = useState(false);
+  const [retentionYears, setRetentionYears] = useState(10);
 
   const load = useCallback(async () => {
     const s = await api<{ enabled: boolean; required: boolean }>("/auth/mfa/status");
     setEnabled(s.enabled);
     setRequired(s.required);
     try {
-      const org = await api<{ mfaRequired: boolean }>("/config/security");
+      const [org, ret] = await Promise.all([
+        api<{ mfaRequired: boolean }>("/config/security"),
+        api<{ retentionYears: number }>("/config/retention"),
+      ]);
       setCanManageOrg(true);
       setOrgRequired(org.mfaRequired);
+      setRetentionYears(ret.retentionYears);
     } catch {
       setCanManageOrg(false); // بلا صلاحية الإعدادات ⇒ لا نعرض قسم الشركة
     }
@@ -40,6 +45,7 @@ export default function TenantSecurityPage() {
   const enable = () => run(async () => { await api("/auth/mfa/enable", { method: "POST", body: JSON.stringify({ code }) }); setSetup(null); setCode(""); setNotice(t("enabled")); await load(); });
   const disable = () => run(async () => { await api("/auth/mfa/disable", { method: "POST", body: JSON.stringify({ code }) }); setCode(""); setNotice(t("disabled")); await load(); });
   const saveOrg = (val: boolean) => run(async () => { await api("/config/security", { method: "PUT", body: JSON.stringify({ mfaRequired: val }) }); setOrgRequired(val); setRequired(val); setNotice(t("orgSaved")); });
+  const saveRetention = () => run(async () => { const r = await api<{ retentionYears: number }>("/config/retention", { method: "PUT", body: JSON.stringify({ retentionYears }) }); setRetentionYears(r.retentionYears); setNotice(t("retentionSaved")); });
 
   const codeInput = (onDo: () => void, label: string, danger = false) => (
     <div className="flex flex-wrap items-end gap-2">
@@ -115,6 +121,22 @@ export default function TenantSecurityPage() {
             <span className="text-[12.5px] font-medium text-ink">{t("orgToggle")}</span>
             <input type="checkbox" checked={orgRequired} onChange={(e) => saveOrg(e.target.checked)} className="h-4 w-4 accent-primary" />
           </label>
+        </section>
+      ) : null}
+
+      {/* الاحتفاظ بالبيانات والإتلاف الآمن (PDPL) — لأصحاب صلاحية الإعدادات */}
+      {canManageOrg ? (
+        <section className="rounded-card border border-line bg-card p-5 shadow-card">
+          <div className="mb-1 flex items-center gap-2 text-[13px] font-semibold text-ink"><ShieldOff size={15} className="text-primary" /> {t("retentionTitle")}</div>
+          <p className="mb-3 text-[12px] text-subtle">{t("retentionSubtitle")}</p>
+          <div className="flex flex-wrap items-end gap-2">
+            <label className="block">
+              <span className="mb-1 block text-[12px] font-medium text-muted">{t("retentionLabel")}</span>
+              <input type="number" min={1} max={30} value={retentionYears} onChange={(e) => setRetentionYears(Math.max(1, Math.min(30, Number(e.target.value) || 1)))}
+                className="h-10 w-28 rounded-lg border border-line bg-card px-3 text-center text-[15px] tnum text-ink" />
+            </label>
+            <button onClick={saveRetention} className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-ink px-4 text-[13px] font-semibold text-white hover:opacity-90">{t("retentionSave")}</button>
+          </div>
         </section>
       ) : null}
     </div>

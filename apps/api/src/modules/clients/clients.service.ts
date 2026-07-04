@@ -3,7 +3,12 @@ import { Prisma } from "@ibp/db";
 import { PrismaService } from "../../prisma/prisma.service";
 import { SequenceService } from "../../common/sequence/sequence.service";
 import { AuditService } from "../../common/audit/audit.service";
+import { PermissionService } from "../rbac/permission.service";
+import { maskClientSensitive } from "../../common/security/dlp";
+import type { AuthUser } from "../auth/current-user.decorator";
 import type { CreateClientDto } from "./dto/create-client.dto";
+
+const RETENTION_DEFAULT_YEARS = 10; // احتفاظ افتراضي (سجلّات التأمين — SAMA/هيئة التأمين)
 
 const CLIENT_FIELDS = {
   id: true,
@@ -27,6 +32,8 @@ const CLIENT_FIELDS = {
   status: true,
   complianceStatus: true,
   complianceNote: true,
+  erasedAt: true,
+  erasedBy: true,
   tenantId: true,
   createdAt: true,
 } as const;
@@ -40,23 +47,39 @@ export class ClientsService {
     private readonly prisma: PrismaService,
     private readonly seq: SequenceService,
     private readonly audit: AuditService,
+    private readonly permissions: PermissionService,
   ) {}
 
-  list() {
-    return this.prisma.client.findMany({
-      orderBy: { createdAt: "asc" },
-      select: { id: true, code: true, type: true, name: true, crNumber: true, nationalId: true, phone: true, city: true, complianceStatus: true, tenantId: true },
-    });
+  /** هل يرى المستخدم البيانات الحسّاسة كاملةً؟ (الالتزام أو المالية فقط — أقلّ امتياز). */
+  private async canViewSensitive(user: AuthUser): Promise<boolean> {
+    if (!user.roleId) return false;
+    const [compliance, finance] = await Promise.all([
+      this.permissions.can(user.roleId, "compliance", "read"),
+      this.permissions.can(user.roleId, "finance", "read"),
+    ]);
+    return compliance || finance;
   }
 
-  async getOne(id: string) {
-    return this.prisma.client.findUnique({ where: { id }, select: CLIENT_FIELDS });
+  async list(user: AuthUser) {
+    const rows = await this.prisma.client.findMany({
+      orderBy: { createdAt: "asc" },
+      select: { id: true, code: true, type: true, name: true, crNumber: true, nationalId: true, phone: true, city: true, complianceStatus: true, erasedAt: true, tenantId: true },
+    });
+    const canView = await this.canViewSensitive(user);
+    return rows.map((c) => maskClientSensitive(c, canView));
+  }
+
+  async getOne(id: string, user: AuthUser) {
+    const client = await this.prisma.client.findUnique({ where: { id }, select: CLIENT_FIELDS });
+    if (!client) return null;
+    return maskClientSensitive(client, await this.canViewSensitive(user));
   }
 
   /** نظرة 360° مجمّعة للعميل — كل ما يخصّه (معزول بالمستأجر تلقائيًا). */
-  async overview(id: string) {
-    const client = await this.prisma.client.findUnique({ where: { id }, select: CLIENT_FIELDS });
-    if (!client) throw new NotFoundException("العميل غير موجود");
+  async overview(id: string, user: AuthUser) {
+    const raw = await this.prisma.client.findUnique({ where: { id }, select: CLIENT_FIELDS });
+    if (!raw) throw new NotFoundException("العميل غير موجود");
+    const client = maskClientSensitive(raw, await this.canViewSensitive(user));
     const [policies, claims, requests, verifications, debitNotes, activities] = await Promise.all([
       this.prisma.policy.findMany({ where: { clientId: id }, orderBy: { createdAt: "desc" }, select: { id: true, sequenceNo: true, productLineCode: true, insurerName: true, premium: true, totalPremium: true, status: true, startDate: true, endDate: true, createdAt: true } }),
       this.prisma.claim.findMany({ where: { clientId: id }, orderBy: { createdAt: "desc" }, select: { id: true, sequenceNo: true, insurerName: true, claimedAmount: true, settledAmount: true, status: true, incidentDate: true, createdAt: true } }),
@@ -128,5 +151,68 @@ export class ClientsService {
     });
     await this.audit.log({ tenantId, userId, action: "approve", entity: "client", entityId: id, meta: { decision, note: note ?? null } });
     return updated;
+  }
+
+  // ————————————————— حق المحو (PDPL) + الاحتفاظ والإتلاف الآمن —————————————————
+
+  /**
+   * محو بيانات العميل الشخصية (حق المحو — PDPL): يُخفي كل PII ويُبقي **الهيكل المالي**
+   * (الوثائق/المطالبات/القيود/الفواتير) لسلامة التدقيق وZATCA. يُسجَّل في سجلّ الإتلاف (تدقيق ثابت).
+   */
+  async erase(user: AuthUser, id: string, reason?: string) {
+    const client = await this.prisma.client.findFirst({ where: { id }, select: { id: true, code: true, erasedAt: true } });
+    if (!client) throw new NotFoundException("العميل غير موجود");
+    if (client.erasedAt) throw new ConflictException("سبق محو بيانات هذا العميل");
+    const updated = await this.prisma.client.update({
+      where: { id },
+      data: {
+        name: "«عميل محذوف» (PDPL)",
+        crNumber: null, nationalId: null, email: null, phone: null, nationalAddress: null,
+        vatNumber: null, iban: null, producerName: null, businessActivity: null,
+        contacts: Prisma.DbNull,
+        status: "erased",
+        erasedAt: new Date(), erasedBy: user.userId,
+      },
+      select: { id: true, code: true, status: true, erasedAt: true, tenantId: true },
+    });
+    await this.audit.log({ tenantId: user.tenantId, userId: user.userId, action: "erase", entity: "client", entityId: id, meta: { code: client.code, reason: reason ?? "PDPL erasure" } });
+    return updated;
+  }
+
+  /** سجلّ الإتلاف: العملاء الذين مُحيت بياناتهم (كود + توقيت + مُنفِّذ — بلا PII). */
+  async erasures() {
+    return this.prisma.client.findMany({
+      where: { erasedAt: { not: null } },
+      orderBy: { erasedAt: "desc" },
+      select: { id: true, code: true, status: true, erasedAt: true, erasedBy: true },
+    });
+  }
+
+  /** مدّة الاحتفاظ (سنوات) — من سياسة الشركة، وإلا الافتراضي. */
+  private async retentionYears(tenantId: string): Promise<number> {
+    const cfg = await this.prisma.tenantConfig.findFirst({ where: { tenantId }, select: { securityPolicy: true } });
+    const y = ((cfg?.securityPolicy ?? {}) as { retentionYears?: number }).retentionYears;
+    return typeof y === "number" && y > 0 ? y : RETENTION_DEFAULT_YEARS;
+  }
+
+  /**
+   * تقرير الاستحقاق للإتلاف: عملاء غير ممحوّين تجاوز آخر نشاط لهم مدّة الاحتفاظ
+   * (آخر انتهاء وثيقة، أو تاريخ الإنشاء إن لا وثائق). تقرير استعراضي — الإتلاف يدويّ بقرار.
+   */
+  async retentionDue(tenantId: string) {
+    const years = await this.retentionYears(tenantId);
+    const cutoff = new Date();
+    cutoff.setFullYear(cutoff.getFullYear() - years);
+    const clients = await this.prisma.client.findMany({
+      where: { erasedAt: null },
+      select: { id: true, code: true, name: true, createdAt: true },
+    });
+    const due: Array<{ id: string; code: string | null; name: string; lastActivity: Date }> = [];
+    for (const c of clients) {
+      const lastPolicy = await this.prisma.policy.findFirst({ where: { clientId: c.id }, orderBy: { endDate: "desc" }, select: { endDate: true } });
+      const ref = lastPolicy?.endDate ?? c.createdAt;
+      if (ref && ref < cutoff) due.push({ id: c.id, code: c.code, name: c.name, lastActivity: ref });
+    }
+    return { retentionYears: years, cutoff, count: due.length, due };
   }
 }

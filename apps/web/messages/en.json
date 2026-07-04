@@ -278,7 +278,12 @@
     "orgSubtitle": "Require all staff to enable two-factor authentication.",
     "orgToggle": "Require 2FA for all staff",
     "orgSaved": "Security policy saved.",
-    "manageOwn": "Your account's 2FA"
+    "manageOwn": "Your account's 2FA",
+    "retentionTitle": "Data retention & secure destruction",
+    "retentionSubtitle": "How long client data is retained before destruction (PDPL/Insurance Authority). Default 10 years.",
+    "retentionLabel": "Retention period (years)",
+    "retentionSave": "Save period",
+    "retentionSaved": "Retention period saved."
   },
   "signup": {
     "title": "Create your company account",
@@ -416,6 +421,12 @@
     "priorities": { "low": "Low", "normal": "Normal", "high": "High" }
   },
   "client360": {
+    "erase": {
+      "action": "Erase data (PDPL)",
+      "title": "Erase client personal data",
+      "desc": "All personal data (name/national ID/contact/IBAN) will be permanently masked to fulfil the right to erasure (PDPL), while financial records are retained for audit. This cannot be undone.",
+      "badge": "Data erased"
+    },
     "back": "Back to clients",
     "tabs": { "overview": "Overview", "policies": "Issued policies", "renewals": "Renewals", "claims": "Claims", "requests": "Requests", "documents": "Documents", "statement": "Statement", "timeline": "Timeline" },
     "endDate": "Ends", "daysLeft": "left", "days": "days", "expired": "Expired", "noRenewals": "No policies nearing expiry",

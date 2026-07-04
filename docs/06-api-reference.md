@@ -579,6 +579,9 @@ curl -X POST http://localhost:4000/staff \
 |---|---|---|---|
 | GET/PUT | `/config/approval-chain` | settings | البوّابة الفنية + فصل المهام + الخطوات الإضافية |
 | GET/PUT | `/config/security` | settings | سياسة الأمان — إلزام المصادقة الثنائية لكل الموظفين (`{ mfaRequired }`) |
+| GET/PUT | `/config/retention` | settings | مدّة الاحتفاظ بالبيانات (`{ retentionYears }`، 1–30، افتراضي 10 — PDPL/هيئة التأمين) |
+| POST | `/clients/:id/erase` | clients:delete | **حق المحو (PDPL)** — يُخفي كل PII ويُبقي الهيكل المالي + سجلّ إتلاف ثابت (لا يتكرّر ⇒ 409) |
+| GET | `/clients/erasures` · `/clients/retention/due` | clients:read | سجلّ الإتلاف (الممحوّون) · تقرير الاستحقاق للإتلاف (تجاوز مدّة الاحتفاظ). **DLP**: الهوية/الآيبان مُخفاة لغير الالتزام/المالية |
 | GET | `/auth/mfa/status` | مصادقة | حالة MFA للمستخدم + إلزام الشركة |
 | POST | `/auth/mfa/setup` · `/auth/mfa/enable` · `/auth/mfa/disable` | مصادقة | تسجيل/تفعيل/إلغاء MFA (TOTP). `login` بكلمة المرور وحدها ⇒ `401 MFA_REQUIRED`، ومع `mfaCode` ⇒ توكن |
 | POST | `/policies/:id/approve-step` | ديناميكي (وحدة الخطوة) | اعتماد خطوة إضافية مُهيّأة |
