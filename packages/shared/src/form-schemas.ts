@@ -199,22 +199,86 @@ const engineeringSection: SectionDef = {
   ],
 };
 
+// قسم عام لحدّ التغطية (للفروع بلا كتلة متكررة: السيبراني/الطيران/الطاقة…)
+const limitSection: SectionDef = {
+  key: "cover", titleAr: "حدود التغطية", titleEn: "Cover Limits",
+  fields: [
+    { key: "sumInsured", labelAr: "مبلغ التأمين", labelEn: "Sum insured", type: "currency", required: true, span: 2 },
+    { key: "limitOfIndemnity", labelAr: "حدّ التعويض", labelEn: "Limit of indemnity", type: "currency", span: 2 },
+    { key: "deductible", labelAr: "التحمّل", labelEn: "Deductible", type: "currency" },
+  ],
+};
+
+// قسم الضمانات والسندات (Surety/Bonds)
+const suretySection: SectionDef = {
+  key: "surety", titleAr: "بيانات الضمان", titleEn: "Bond Details",
+  fields: [
+    { key: "bondAmount", labelAr: "قيمة الضمان", labelEn: "Bond amount", type: "currency", required: true, span: 2 },
+    { key: "beneficiary", labelAr: "المستفيد", labelEn: "Beneficiary", type: "text", required: true, span: 2 },
+    { key: "bondPeriodMonths", labelAr: "مدة الضمان (أشهر)", labelEn: "Bond period (months)", type: "number", required: true },
+    { key: "projectName", labelAr: "المشروع/العقد", labelEn: "Project/Contract", type: "text", span: 3 },
+  ],
+};
+
 // ---------- المخططات لكل فرع ----------
 export const FORM_SCHEMAS: Record<string, FormSchemaDef> = {
+  // الطبي
   GMI: base("GMI", [medicalNetwork], [membersBlock]),
   IMI: base("IMI", [medicalNetwork], [membersBlock]),
+  SME: base("SME", [medicalNetwork], [membersBlock]),
+  EXP: base("EXP", [medicalNetwork], [membersBlock]),
+  MVI: base("MVI", [medicalNetwork], [membersBlock]),
+  // المركبات
   MCI: base("MCI", [motorCover], [vehiclesBlock]),
   MTP: base("MTP", [motorCover], [vehiclesBlock]),
+  MFL: base("MFL", [motorCover], [vehiclesBlock]),
+  // الممتلكات
   PAR: base("PAR", [], [locationsBlock]),
   FIR: base("FIR", [], [locationsBlock]),
+  BIZ: base("BIZ", [], [locationsBlock]),
+  HOU: base("HOU", [], [locationsBlock]),
+  BBB: base("BBB", [], [locationsBlock]),
+  // الهندسي
   CAR: base("CAR", [engineeringSection], [locationsBlock]),
   EAR: base("EAR", [engineeringSection], [locationsBlock]),
+  MBD: base("MBD", [engineeringSection], [locationsBlock]),
+  EEI: base("EEI", [engineeringSection], [locationsBlock]),
+  CPM: base("CPM", [engineeringSection], [locationsBlock]),
+  DSU: base("DSU", [engineeringSection], [locationsBlock]),
+  // البحري
   MCG: base("MCG", [], [shipmentsBlock]),
+  MHU: base("MHU", [limitSection], [shipmentsBlock]),
+  MFT: base("MFT", [], [shipmentsBlock]),
+  // الحوادث والمسؤوليات
   GPA: base("GPA", [], [livesBlock]),
+  IPA: base("IPA", [], [livesBlock]),
   PLI: base("PLI", [liabilitySection], []),
+  PRL: base("PRL", [liabilitySection], []),
+  PMI: base("PMI", [liabilitySection], []),
+  DNO: base("DNO", [liabilitySection], []),
+  EPL: base("EPL", [liabilitySection], []),
+  MML: base("MML", [liabilitySection], []),
+  CYB: base("CYB", [limitSection], []),
+  FID: base("FID", [limitSection], []),
   TRV: base("TRV", [], [travellersBlock]),
+  // الطيران
+  AVH: base("AVH", [limitSection], []),
+  AVL: base("AVL", [liabilitySection], []),
+  // الطاقة
+  ENO: base("ENO", [limitSection], [locationsBlock]),
+  ENP: base("ENP", [limitSection], [locationsBlock]),
+  // الضمانات والسندات
+  BID: base("BID", [suretySection], []),
+  PRF: base("PRF", [suretySection], []),
+  ADV: base("ADV", [suretySection], []),
+  MNT: base("MNT", [suretySection], []),
+  CUS: base("CUS", [suretySection], []),
+  // الحياة والحماية
   TRM: base("TRM", [lifeSection], [livesBlock]),
   GLI: base("GLI", [lifeSection], [livesBlock]),
+  CRL: base("CRL", [lifeSection], [livesBlock]),
+  MTG: base("MTG", [lifeSection], [livesBlock]),
+  SAV: base("SAV", [lifeSection], [livesBlock]),
 };
 
 export function getFormSchema(lineCode: string): FormSchemaDef | undefined {

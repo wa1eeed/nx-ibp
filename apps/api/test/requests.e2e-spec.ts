@@ -40,10 +40,12 @@ describe("النموذج الديناميكي والالتزام (e2e)", () => {
   });
 
   // ----- الكتالوج -----
-  it("الكتالوج يضمّ عائلات متنوّعة بينها الحياة (LIF)", async () => {
+  it("الكتالوج الموسّع يضمّ كل فروع الوساطة السعودية + ~48 خطًا فرعيًا", async () => {
     const res = await request(app.getHttpServer()).get("/catalog").set(auth(gm)).expect(200);
     const codes = res.body.map((c: { code: string }) => c.code);
-    expect(codes).toEqual(expect.arrayContaining(["MED", "MOT", "LIF", "GEN"]));
+    expect(codes).toEqual(expect.arrayContaining(["MED", "MOT", "PRP", "ENG", "MAR", "GEN", "AVI", "ENR", "BND", "LIF"]));
+    const lineCount = res.body.reduce((s: number, c: { lines: unknown[] }) => s + c.lines.length, 0);
+    expect(lineCount).toBeGreaterThanOrEqual(45);
   });
 
   it("مخطط الطبي الجماعي يحوي كتلة التابعين", async () => {
