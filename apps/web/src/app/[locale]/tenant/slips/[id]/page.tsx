@@ -10,9 +10,9 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Badge, type BadgeTone } from "@/components/ui/Badge";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 
-interface Slip { id: string; sequenceNo: string | null; status: string; insurers: string[]; selectedQuotationId: string | null; request: { id: string; productLineCode: string; client: { name: string } | null } | null }
+interface Slip { id: string; sequenceNo: string | null; status: string; insurers: string[]; selectedQuotationId: string | null; request: { id: string; productLineCode: string; client: { name: string; type?: string } | null } | null }
 interface Column { key: string; labelAr: string; labelEn: string }
-interface Row { id: string; insurer: string; status: string; rate: number | null; premium: number | null; vat: number | null; totalPremium: number | null; deductible: number | null; limit: number | null; generalRemarks: string | null }
+interface Row { id: string; insurer: string; status: string; generalRemarks: string | null; [k: string]: string | number | null }
 interface Comparison { columns: Column[]; rows: Row[]; bestByPrice: string | null }
 
 const STATUS_TONE: Record<string, BadgeTone> = { DRAFT: "neutral", SENT: "info", QUOTED: "warning", SELECTED: "success", CLOSED: "neutral" };
@@ -116,12 +116,16 @@ export default function SlipWorkbenchPage() {
                         </div>
                         {r.generalRemarks ? <div className="text-[11px] text-subtle">{r.generalRemarks}</div> : null}
                       </td>
-                      <td className="px-4 py-3 text-[12.5px] tnum">{r.rate == null ? "—" : `${r.rate}%`}</td>
-                      <td className="px-4 py-3 text-[12.5px] tnum">{fmt(r.premium)}</td>
-                      <td className="px-4 py-3 text-[12.5px] tnum">{fmt(r.vat)}</td>
-                      <td className="px-4 py-3 text-[12.5px] font-semibold tnum">{fmt(r.totalPremium)}</td>
-                      <td className="px-4 py-3 text-[12.5px] tnum">{fmt(r.deductible)}</td>
-                      <td className="px-4 py-3 text-[12.5px] tnum">{fmt(r.limit)}</td>
+                      {cmp.columns.map((c) => {
+                        const val = r[c.key];
+                        const isRate = c.key === "rate";
+                        const num = typeof val === "number" ? val : null;
+                        return (
+                          <td key={c.key} className={`px-4 py-3 text-[12.5px] tnum ${c.key === "totalPremium" ? "font-semibold text-ink" : c.key === "commissionAmount" ? "text-success" : ""}`}>
+                            {isRate ? (num == null ? "—" : `${num}%`) : fmt(num)}
+                          </td>
+                        );
+                      })}
                       <td className="px-4 py-3 text-end">
                         {selected ? (
                           <Badge tone="success">{t("underwriting.selected")}</Badge>
@@ -152,6 +156,25 @@ function AddQuotation({ slipId, onDone, onError }: { slipId: string; onDone: () 
   const set = (k: string) => (e: { target: { value: string } }) => setV((p) => ({ ...p, [k]: e.target.value }));
   const numField = (k: string) => (v[k] === undefined || v[k] === "" ? undefined : Number(v[k]));
 
+  // احتساب المشتقّات: القسط (=مبلغ التأمين×النسبة) · الضريبة (15%) · الإجمالي (=صافي+رسوم+ضريبة) · العمولة (=صافي×نسبة العمولة)
+  function compute() {
+    setV((p) => {
+      const n = (k: string) => (p[k] === undefined || p[k] === "" ? undefined : Number(p[k]));
+      const si = n("sumInsured"), rate = n("rate"), fees = n("policyFees") ?? 0, comRate = n("commissionRate");
+      const premium = n("premium") ?? (si != null && rate != null ? +((si * rate) / 100).toFixed(2) : undefined);
+      const vat = premium != null ? +(premium * 0.15).toFixed(2) : n("vat");
+      const total = premium != null ? +(premium + fees + (vat ?? 0)).toFixed(2) : n("totalPremium");
+      const commission = premium != null && comRate != null ? +((premium * comRate) / 100).toFixed(2) : n("commissionAmount");
+      return {
+        ...p,
+        ...(premium != null ? { premium: String(premium) } : {}),
+        ...(vat != null ? { vat: String(vat) } : {}),
+        ...(total != null ? { totalPremium: String(total) } : {}),
+        ...(commission != null ? { commissionAmount: String(commission) } : {}),
+      };
+    });
+  }
+
   async function submit(e: FormEvent) {
     e.preventDefault();
     setSaving(true);
@@ -160,10 +183,14 @@ function AddQuotation({ slipId, onDone, onError }: { slipId: string; onDone: () 
         method: "POST",
         body: JSON.stringify({
           insurerName: v.insurerName ?? "",
+          sumInsured: numField("sumInsured"),
           rate: numField("rate"),
           premium: numField("premium"),
+          policyFees: numField("policyFees"),
           vat: numField("vat"),
           totalPremium: numField("totalPremium"),
+          commissionRate: numField("commissionRate"),
+          commissionAmount: numField("commissionAmount"),
           deductible: numField("deductible"),
           limit: numField("limit"),
           generalRemarks: v.generalRemarks || undefined,
@@ -198,13 +225,20 @@ function AddQuotation({ slipId, onDone, onError }: { slipId: string; onDone: () 
       <div className="mb-3 text-[14px] font-semibold text-ink">{t("underwriting.addQuotation")}</div>
       <div className="grid grid-cols-1 gap-x-3 gap-y-4 sm:grid-cols-4">
         {F("insurerName", t("underwriting.insurer"), { type: "text", hint: t("underwriting.hint.insurer") })}
+        {F("sumInsured", t("underwriting.sumInsured"), { hint: t("underwriting.hint.sumInsured"), sub: t("underwriting.sub.sumInsured") })}
         {F("rate", t("underwriting.rate"), { hint: t("underwriting.hint.rate"), sub: t("underwriting.sub.rate") })}
         {F("premium", t("underwriting.premium"), { hint: t("underwriting.hint.premium"), sub: t("underwriting.sub.premium") })}
+        {F("policyFees", t("underwriting.policyFees"), { hint: t("underwriting.hint.policyFees"), sub: t("underwriting.sub.policyFees") })}
         {F("vat", t("underwriting.vat"), { hint: t("underwriting.hint.vat"), sub: t("underwriting.sub.vat") })}
         {F("totalPremium", t("underwriting.totalPremium"), { hint: t("underwriting.hint.totalPremium"), sub: t("underwriting.sub.totalPremium") })}
+        {F("commissionRate", t("underwriting.commissionRate"), { hint: t("underwriting.hint.commissionRate"), sub: t("underwriting.sub.commissionRate") })}
+        {F("commissionAmount", t("underwriting.commissionAmount"), { hint: t("underwriting.hint.commissionAmount"), sub: t("underwriting.sub.commissionAmount") })}
         {F("deductible", t("underwriting.deductible"), { hint: t("underwriting.hint.deductible"), sub: t("underwriting.sub.deductible") })}
         {F("limit", t("underwriting.limit"), { hint: t("underwriting.hint.limit"), sub: t("underwriting.sub.limit") })}
       </div>
+      <button type="button" onClick={compute} className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface-2 px-3 py-1.5 text-[12px] font-semibold text-primary hover:bg-primary/5">
+        {t("underwriting.compute")}
+      </button>
       <label className="mt-4 block">
         <span className="mb-1 flex items-center gap-1 text-[12px] font-medium text-muted">
           {t("underwriting.remarks")}

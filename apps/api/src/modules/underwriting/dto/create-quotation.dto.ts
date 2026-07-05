@@ -10,9 +10,13 @@ export class CreateQuotationDto {
 
   // ----- الحقول المعيارية (Structured) -----
   @IsOptional() @IsNumber() rate?: number; // %
+  @IsOptional() @IsNumber() sumInsured?: number; // مبلغ التأمين
   @IsOptional() @IsNumber() premium?: number; // القسط الصافي
+  @IsOptional() @IsNumber() policyFees?: number; // رسوم الوثيقة
   @IsOptional() @IsNumber() vat?: number;
-  @IsOptional() @IsNumber() totalPremium?: number;
+  @IsOptional() @IsNumber() totalPremium?: number; // الإجمالي = صافي + رسوم + ضريبة
+  @IsOptional() @IsNumber() commissionRate?: number; // نسبة عمولة الوسيط %
+  @IsOptional() @IsNumber() commissionAmount?: number; // مبلغ عمولة الوسيط (Brokerage)
   @IsOptional() @IsNumber() deductible?: number; // مبلغ التحمل
   @IsOptional() @IsNumber() limit?: number; // حد التغطية
   @IsOptional() @IsString() validUntil?: string;
