@@ -80,7 +80,9 @@ export default function FinancePage() {
             <thead><tr className="border-b border-line text-[11px] uppercase tracking-wide text-subtle">
               <th className="px-5 py-3 text-start font-semibold">{t("finance.col.invoiceNo")}</th>
               <th className="px-5 py-3 text-start font-semibold">{t("finance.col.insurer")}</th>
-              <th className="px-5 py-3 text-start font-semibold">{t("finance.col.total")}</th>
+              <th className="px-5 py-3 text-end font-semibold">{t("finance.col.net")}</th>
+              <th className="px-5 py-3 text-end font-semibold">{t("finance.col.vat")}</th>
+              <th className="px-5 py-3 text-end font-semibold">{t("finance.col.total")}</th>
               <th className="px-5 py-3 text-start font-semibold">ZATCA</th>
               <th className="px-5 py-3"></th>
             </tr></thead>
@@ -90,7 +92,9 @@ export default function FinancePage() {
                   <tr className="hover:bg-surface-2/60">
                     <td className="px-5 py-3 text-[12.5px] font-medium text-ink tnum">{inv.sequenceNo ?? "—"}</td>
                     <td className="px-5 py-3 text-[13px] text-muted">{inv.insurerName ?? "—"}</td>
-                    <td className="px-5 py-3 text-[13px] font-medium text-ink tnum">{fmt(inv.totalAmount)} <span className="text-[11px] text-subtle">{t("common.sar")}</span></td>
+                    <td className="px-5 py-3 text-end text-[13px] text-muted tnum">{fmt(inv.netAmount)}</td>
+                    <td className="px-5 py-3 text-end text-[13px] text-muted tnum">{fmt(inv.vatAmount)}</td>
+                    <td className="px-5 py-3 text-end text-[13px] font-medium text-ink tnum">{fmt(inv.totalAmount)} <span className="text-[11px] text-subtle">{t("common.sar")}</span></td>
                     <td className="px-5 py-3"><Badge tone="success"><ShieldCheck size={12} /> {t("finance.zatcaOk")}</Badge></td>
                     <td className="px-5 py-3 text-end">
                       <button onClick={() => setOpen(open === inv.id ? "" : inv.id)} className="rounded-lg border border-line bg-card px-2.5 py-1.5 text-[12px] font-medium text-muted hover:bg-surface-2 hover:text-ink">{t("finance.zatcaShow")}</button>
@@ -98,7 +102,7 @@ export default function FinancePage() {
                   </tr>
                   {open === inv.id ? (
                     <tr className="bg-surface-2/40">
-                      <td colSpan={5} className="px-5 py-3">
+                      <td colSpan={7} className="px-5 py-3">
                         <div className="space-y-1.5 text-[11.5px]">
                           <div className="flex gap-2"><span className="w-20 text-subtle">UUID</span><span className="tnum text-ink">{inv.zatca.uuid}</span></div>
                           <div className="flex gap-2"><span className="w-20 text-subtle">{t("finance.zatcaHash")}</span><span className="tnum break-all text-ink">{inv.zatca.hash}</span></div>

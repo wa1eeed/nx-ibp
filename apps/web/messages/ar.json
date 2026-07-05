@@ -134,7 +134,7 @@
     "zatcaOk": "متوافقة",
     "zatcaShow": "تفاصيل ZATCA",
     "zatcaHash": "البصمة",
-    "col": { "code": "الكود", "account": "الحساب", "type": "النوع", "balance": "الميزانية", "invoiceNo": "رقم الفاتورة", "insurer": "شركة التأمين", "total": "الإجمالي" }
+    "col": { "code": "الكود", "account": "الحساب", "type": "النوع", "balance": "الميزانية", "invoiceNo": "رقم الفاتورة", "insurer": "شركة التأمين", "net": "الصافي", "vat": "الضريبة", "total": "الإجمالي" }
   },
   "premiums": {
     "title": "الأقساط والتحصيل",

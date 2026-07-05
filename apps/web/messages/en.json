@@ -134,7 +134,7 @@
     "zatcaOk": "Compliant",
     "zatcaShow": "ZATCA details",
     "zatcaHash": "Hash",
-    "col": { "code": "Code", "account": "Account", "type": "Type", "balance": "Balance", "invoiceNo": "Invoice no.", "insurer": "Insurer", "total": "Total" }
+    "col": { "code": "Code", "account": "Account", "type": "Type", "balance": "Balance", "invoiceNo": "Invoice no.", "insurer": "Insurer", "net": "Net", "vat": "VAT", "total": "Total" }
   },
   "premiums": {
     "title": "Premiums & collections",
