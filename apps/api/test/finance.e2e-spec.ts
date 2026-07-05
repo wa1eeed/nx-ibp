@@ -192,4 +192,31 @@ describe("الإصدار والاعتماد المالي (e2e)", () => {
     const st = (await request(srv).get(`/finance/statement/${policy.clientId}`).set(auth(accountant)).expect(200)).body;
     expect(st.summary.credited).toBeGreaterThan(0);
   });
+
+  it("المستحقّ للمؤمِّنين + تسوية (PYV) + ميزان مراجعة متوازن", async () => {
+    const srv = app.getHttpServer();
+    const requestId = await createAwardedRequest();
+    const policy = (await request(srv).post("/policies/issue").set(auth(underwriter)).send({ requestId, branchCode: "RUH" }).expect(201)).body;
+    await request(srv).post(`/policies/${policy.id}/approve-technical`).set(auth(underwriter)).expect(200);
+    await request(srv).post(`/finance/policies/${policy.id}/approve`).set(auth(accountant)).expect(200);
+
+    const pay = (await request(srv).get("/finance/payables").set(auth(accountant)).expect(200)).body;
+    const bupa = pay.rows.find((r: { insurer: string }) => r.insurer === "بوبا");
+    expect(bupa).toBeTruthy();
+    expect(bupa.outstanding).toBeGreaterThan(0);
+
+    // تسوية جزئية ⇒ سند صرف PYV
+    const s1 = (await request(srv).post("/finance/insurers/settle").set(auth(accountant)).send({ insurerName: "بوبا", amount: 1000 }).expect(201)).body;
+    expect(s1.voucher.sequenceNo).toMatch(/^PYV-/);
+    expect(s1.outstanding).toBe(Number((bupa.outstanding - 1000).toFixed(2)));
+
+    // تجاوز المستحقّ ⇒ 409 · المكتتب (لا finance) ⇒ 403
+    await request(srv).post("/finance/insurers/settle").set(auth(accountant)).send({ insurerName: "بوبا", amount: 99_999_999 }).expect(409);
+    await request(srv).post("/finance/insurers/settle").set(auth(underwriter)).send({ insurerName: "بوبا", amount: 100 }).expect(403);
+
+    // ميزان المراجعة متوازن (مدين = دائن)
+    const tb = (await request(srv).get("/finance/trial-balance").set(auth(accountant)).expect(200)).body;
+    expect(tb.totals.balanced).toBe(true);
+    expect(tb.totals.debit).toBe(tb.totals.credit);
+  });
 });

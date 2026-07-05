@@ -134,7 +134,17 @@
     "zatcaOk": "Compliant",
     "zatcaShow": "ZATCA details",
     "zatcaHash": "Hash",
-    "col": { "code": "Code", "account": "Account", "type": "Type", "balance": "Balance", "invoiceNo": "Invoice no.", "insurer": "Insurer", "net": "Net", "vat": "VAT", "total": "Total" }
+    "col": { "code": "Code", "account": "Account", "type": "Type", "balance": "Balance", "invoiceNo": "Invoice no.", "insurer": "Insurer", "net": "Net", "vat": "VAT", "total": "Total" },
+    "payables": "Insurer payables (trust)",
+    "payablesSub": "Net premium held per insurer — with aging and amounts settled",
+    "settle": "Settle",
+    "pcol": { "insurer": "Insurer", "payable": "Payable", "settled": "Settled", "outstanding": "Outstanding" },
+    "settleModal": { "title": "Settle insurer payable", "amount": "Amount paid", "reference": "Reference", "submit": "Record payment", "cancel": "Cancel", "done": "Payment voucher {seq} recorded" },
+    "trialBalance": "Trial balance",
+    "trialBalanceSub": "Voucher entries aggregated by account — debit must equal credit",
+    "balanced": "Balanced",
+    "notBalanced": "Not balanced",
+    "tcol": { "account": "Account", "debit": "Debit", "credit": "Credit", "balance": "Balance" }
   },
   "premiums": {
     "title": "Premiums & collections",

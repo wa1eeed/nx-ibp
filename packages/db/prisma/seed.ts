@@ -981,6 +981,27 @@ async function main() {
     create: { email: adminEmail, fullName: process.env.PLATFORM_ADMIN_NAME?.trim() || "مالك المنصة", passwordHash: adminHash },
   });
 
+  // قيود يومية (JRV) لكل وثيقة مُصدَرة — كي يكتمل ميزان المراجعة ويتّسق مع الملخّص المالي.
+  const issuedPolicies = await prisma.policy.findMany({ where: { status: "ISSUED" }, select: { id: true, tenantId: true, sequenceNo: true, premium: true, vat: true, totalPremium: true, commissionAmount: true }, orderBy: { id: "asc" } });
+  let jrvi = 0;
+  for (const p of issuedPolicies) {
+    jrvi++;
+    const total = round2(Number(p.totalPremium ?? 0));
+    const commission = round2(Number(p.commissionAmount ?? 0));
+    const commVat = round2(commission * 0.15);
+    const trust = round2(total - commission - commVat);
+    await prisma.voucher.upsert({
+      where: { id: `jrv-seed-${p.id}` },
+      update: { amount: total },
+      create: { id: `jrv-seed-${p.id}`, tenantId: p.tenantId, type: "JRV", sequenceNo: `JRV-2026-${20001 + jrvi}`, amount: total, status: "posted", isAuto: true, reference: p.id, lines: { description: `إصدار الوثيقة ${p.sequenceNo}`, entries: [
+        { account: "01030000000000000", name: "ذمم العملاء المدينة", debit: total, credit: 0 },
+        { account: "02020000000000000", name: "أمانات أقساط العملاء (Off-Balance)", debit: 0, credit: trust },
+        { account: "04010000000000000", name: "عمولات الوساطة", debit: 0, credit: commission },
+        { account: "02030000000000000", name: "ضريبة القيمة المضافة المستحقة (Output VAT)", debit: 0, credit: commVat },
+      ] } },
+    });
+  }
+
   // تحصيل واقعي: تسوية جزء من إشعارات المدين بسندات قبض (RCV) — كي تتحرّك الذمم في الديمو
   // (مسدَّد بالكامل ~40% · جزئي ~20% · مستحقّ ~40%)، بشكل حتمي حسب الترتيب.
   const allNotes = await prisma.debitNote.findMany({ select: { id: true, tenantId: true, sequenceNo: true, netAmount: true, vatAmount: true, createdAt: true }, orderBy: { id: "asc" } });

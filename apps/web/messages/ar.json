@@ -134,7 +134,17 @@
     "zatcaOk": "متوافقة",
     "zatcaShow": "تفاصيل ZATCA",
     "zatcaHash": "البصمة",
-    "col": { "code": "الكود", "account": "الحساب", "type": "النوع", "balance": "الميزانية", "invoiceNo": "رقم الفاتورة", "insurer": "شركة التأمين", "net": "الصافي", "vat": "الضريبة", "total": "الإجمالي" }
+    "col": { "code": "الكود", "account": "الحساب", "type": "النوع", "balance": "الميزانية", "invoiceNo": "رقم الفاتورة", "insurer": "شركة التأمين", "net": "الصافي", "vat": "الضريبة", "total": "الإجمالي" },
+    "payables": "المستحقّ للمؤمِّنين (أمانات)",
+    "payablesSub": "صافي الأقساط المحتفَظ بها لكل مؤمِّن — مع أعمار الدَّين والمُسوّى",
+    "settle": "تسوية",
+    "pcol": { "insurer": "المؤمِّن", "payable": "المستحقّ", "settled": "المُسوّى", "outstanding": "المتبقّي" },
+    "settleModal": { "title": "تسوية مستحقّ المؤمِّن", "amount": "المبلغ المدفوع", "reference": "المرجع", "submit": "تسجيل الصرف", "cancel": "إلغاء", "done": "تم تسجيل سند الصرف {seq}" },
+    "trialBalance": "ميزان المراجعة",
+    "trialBalanceSub": "تجميع أطراف القيود حسب الحساب — يجب أن يتوازن المدين مع الدائن",
+    "balanced": "متوازن",
+    "notBalanced": "غير متوازن",
+    "tcol": { "account": "الحساب", "debit": "مدين", "credit": "دائن", "balance": "الرصيد" }
   },
   "premiums": {
     "title": "الأقساط والتحصيل",

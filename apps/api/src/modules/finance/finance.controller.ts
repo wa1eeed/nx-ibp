@@ -2,6 +2,7 @@ import { Body, Controller, Get, HttpCode, Param, Post } from "@nestjs/common";
 import { FinanceService } from "./finance.service";
 import { RecordReceiptDto } from "./dto/record-receipt.dto";
 import { CancelPolicyDto } from "./dto/cancel-policy.dto";
+import { SettleInsurerDto } from "./dto/settle-insurer.dto";
 import { Authorize } from "../rbac/authorize.decorator";
 import { CurrentUser } from "../auth/current-user.decorator";
 
@@ -104,5 +105,31 @@ export class FinanceController {
     @Body() dto: CancelPolicyDto,
   ) {
     return this.finance.cancelPolicy(tenantId, userId, id, dto);
+  }
+
+  // المستحقّ للمؤمِّنين (أمانات) + أعمار الدَّين والمُسوّى
+  @Authorize({ module: "finance", action: "read", entitlement: "module.finance" })
+  @Get("payables")
+  payables() {
+    return this.finance.payables();
+  }
+
+  // سند صرف (PYV) لتسوية مستحقّ مؤمِّن
+  @Authorize({ module: "finance", action: "create", entitlement: "module.finance" })
+  @HttpCode(201)
+  @Post("insurers/settle")
+  settleInsurer(
+    @CurrentUser("tenantId") tenantId: string,
+    @CurrentUser("userId") userId: string,
+    @Body() dto: SettleInsurerDto,
+  ) {
+    return this.finance.settleInsurer(tenantId, userId, dto);
+  }
+
+  // ميزان المراجعة (تجميع أطراف القيود حسب الحساب)
+  @Authorize({ module: "finance", action: "read", entitlement: "module.finance" })
+  @Get("trial-balance")
+  trialBalance() {
+    return this.finance.trialBalance();
   }
 }

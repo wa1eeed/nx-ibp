@@ -269,6 +269,83 @@ export class FinanceService {
     return { status: "CANCELLED", creditNote: result.creditNote.sequenceNo, endorsement: result.endo.sequenceNo, returnNet, returnVat, returnTotal, returnCommission, unexpiredDays: unexpired, totalDays };
   }
 
+  /**
+   * المستحقّ للمؤمِّنين (صافي القسط المحتفَظ به أمانةً) لكل مؤمِّن — مع أعمار الدَّين والمُسوّى.
+   * الأمانة للمؤمِّن = إجمالي القسط − عمولة الوسيط − ضريبة العمولة (تُحتَجز للوسيط).
+   */
+  async payables() {
+    const DAY = 86_400_000;
+    const [policies, settlements] = await Promise.all([
+      this.prisma.policy.findMany({ where: { status: "ISSUED" }, select: { insurerName: true, totalPremium: true, commissionAmount: true, issueDate: true, createdAt: true } }),
+      this.prisma.voucher.findMany({ where: { type: "PYV" }, select: { amount: true, reference: true } }),
+    ]);
+    const settledBy = new Map<string, number>();
+    for (const s of settlements) { const k = s.reference ?? "—"; settledBy.set(k, r2((settledBy.get(k) ?? 0) + num(s.amount))); }
+    const now = Date.now();
+    const byInsurer = new Map<string, { insurer: string; payable: number; count: number; b: [number, number, number, number] }>();
+    for (const p of policies) {
+      const key = p.insurerName ?? "—";
+      const trust = r2(num(p.totalPremium) - num(p.commissionAmount) * 1.15); // أمانة المؤمِّن
+      const days = (now - +(p.issueDate ?? p.createdAt)) / DAY;
+      const i = days <= 30 ? 0 : days <= 60 ? 1 : days <= 90 ? 2 : 3;
+      const g = byInsurer.get(key) ?? { insurer: key, payable: 0, count: 0, b: [0, 0, 0, 0] };
+      g.payable = r2(g.payable + trust); g.count += 1; g.b[i] = r2(g.b[i] + trust);
+      byInsurer.set(key, g);
+    }
+    const rows = [...byInsurer.values()].map((g) => {
+      const settled = settledBy.get(g.insurer) ?? 0;
+      return { ...g, settled: r2(settled), outstanding: r2(Math.max(0, g.payable - settled)) };
+    }).sort((a, b) => b.outstanding - a.outstanding);
+    const totalPayable = r2(rows.reduce((s, r) => s + r.payable, 0));
+    const totalSettled = r2(rows.reduce((s, r) => s + r.settled, 0));
+    return { rows, summary: { payable: totalPayable, settled: totalSettled, outstanding: r2(Math.max(0, totalPayable - totalSettled)) } };
+  }
+
+  /** سند صرف (PYV) لتسوية مستحقّ مؤمِّن — يمنع تجاوز المستحقّ. */
+  async settleInsurer(tenantId: string, userId: string, dto: { insurerName: string; amount: number; reference?: string; paidDate?: string }) {
+    const { rows } = await this.payables();
+    const row = rows.find((r) => r.insurer === dto.insurerName);
+    if (!row) throw new NotFoundException("لا يوجد مستحقّ لهذا المؤمِّن");
+    if (dto.amount > row.outstanding + 0.001) throw new ConflictException(`المبلغ يتجاوز المتبقّي المستحقّ (${row.outstanding})`);
+    const seq = await this.seq.nextVoucherSeq("PYV");
+    const voucher = await this.prisma.voucher.create({
+      data: {
+        tenantId, type: "PYV", sequenceNo: seq, amount: r2(dto.amount), status: "posted", isAuto: false, reference: dto.insurerName,
+        lines: asJson({
+          description: `تسوية مستحقّ ${dto.insurerName}`, ref: dto.reference ?? null, paidDate: dto.paidDate ?? null, insurer: dto.insurerName,
+          entries: [
+            { account: "02020000000000000", name: "أمانات أقساط العملاء (Off-Balance)", debit: r2(dto.amount), credit: 0 },
+            { account: "01010000000000000", name: "النقد والبنوك", debit: 0, credit: r2(dto.amount) },
+          ],
+        }),
+      },
+      select: { id: true, sequenceNo: true, amount: true },
+    });
+    await this.audit.log({ tenantId, userId, action: "create", entity: "insurer_settlement", entityId: voucher.id, meta: { insurer: dto.insurerName, amount: r2(dto.amount) } });
+    const settled = r2(row.settled + dto.amount);
+    return { voucher, insurer: dto.insurerName, payable: row.payable, settled, outstanding: r2(Math.max(0, row.payable - settled)) };
+  }
+
+  /** ميزان المراجعة: تجميع كل أطراف قيود السندات حسب الحساب (مدين/دائن/الرصيد). */
+  async trialBalance() {
+    const vouchers = await this.prisma.voucher.findMany({ select: { lines: true } });
+    const acc = new Map<string, { account: string; name: string; debit: number; credit: number }>();
+    for (const v of vouchers) {
+      const entries = ((v.lines as { entries?: Array<{ account?: string; name?: string; debit?: number; credit?: number }> } | null)?.entries) ?? [];
+      for (const e of entries) {
+        const key = e.account ?? "—";
+        const g = acc.get(key) ?? { account: key, name: e.name ?? "—", debit: 0, credit: 0 };
+        g.debit = r2(g.debit + num(e.debit)); g.credit = r2(g.credit + num(e.credit));
+        if (e.name) g.name = e.name;
+        acc.set(key, g);
+      }
+    }
+    const rows = [...acc.values()].map((g) => ({ ...g, balance: r2(g.debit - g.credit) })).sort((a, b) => a.account.localeCompare(b.account));
+    const totalDebit = r2(rows.reduce((s, r) => s + r.debit, 0));
+    const totalCredit = r2(rows.reduce((s, r) => s + r.credit, 0));
+    return { rows, totals: { debit: totalDebit, credit: totalCredit, balanced: Math.abs(totalDebit - totalCredit) < 0.01 } };
+  }
+
   /** ملخّص مالي: القسط المكتتب، العمولة، الأمانات (خارج الميزانية)، الذمم. */
   async summary() {
     const [policyAgg, commissionAgg, invoiceAgg, debitAgg, creditAgg, vouchers] = await Promise.all([

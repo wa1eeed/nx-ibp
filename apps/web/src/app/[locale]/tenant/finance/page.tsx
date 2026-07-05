@@ -1,29 +1,40 @@
 "use client";
 
-import { Fragment, useEffect, useState } from "react";
-import { Landmark, Wallet2, ShieldCheck, FileText, QrCode } from "lucide-react";
+import { Fragment, useCallback, useEffect, useState } from "react";
+import { Landmark, Wallet2, ShieldCheck, FileText, QrCode, Building2, Scale, Banknote, X, Check } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatCard } from "@/components/ui/StatCard";
 import { Badge } from "@/components/ui/Badge";
 
-interface Summary { grossPremium: number; netPremium: number; vat: number; commission: number; offBalanceTrust: number; receivables: number; invoiceCount: number; voucherCount: number }
+interface Summary { grossPremium: number; netPremium: number; vat: number; commission: number; offBalanceTrust: number; receivables: number; collected: number; invoiceCount: number; voucherCount: number }
 interface Coa { id: string; code: string; name: string; level: number; isOnBalance: boolean; isLocked: boolean; accountType: string | null }
 interface Invoice { id: string; sequenceNo: string | null; insurerName: string | null; netAmount: string | null; vatAmount: string | null; totalAmount: string | null; status: string | null; zatca: { qr: string; uuid: string; hash: string } }
+interface PayRow { insurer: string; payable: number; settled: number; outstanding: number; count: number }
+interface Payables { rows: PayRow[]; summary: { payable: number; settled: number; outstanding: number } }
+interface TrialRow { account: string; name: string; debit: number; credit: number; balance: number }
+interface Trial { rows: TrialRow[]; totals: { debit: number; credit: number; balanced: boolean } }
 
 export default function FinancePage() {
   const t = useTranslations();
   const [s, setS] = useState<Summary | null>(null);
   const [coa, setCoa] = useState<Coa[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [pay, setPay] = useState<Payables | null>(null);
+  const [trial, setTrial] = useState<Trial | null>(null);
+  const [settle, setSettle] = useState<PayRow | null>(null);
+  const [done, setDone] = useState("");
   const [open, setOpen] = useState("");
 
-  useEffect(() => {
+  const load = useCallback(() => {
     void api<Summary>("/finance/summary").then(setS).catch(() => undefined);
     void api<Coa[]>("/finance/coa").then(setCoa).catch(() => undefined);
     void api<Invoice[]>("/finance/invoices").then(setInvoices).catch(() => undefined);
+    void api<Payables>("/finance/payables").then(setPay).catch(() => undefined);
+    void api<Trial>("/finance/trial-balance").then(setTrial).catch(() => undefined);
   }, []);
+  useEffect(() => { load(); }, [load]);
 
   const fmt = (n: string | number | null) => (n == null ? "—" : Number(n).toLocaleString("en-US"));
 
@@ -117,6 +128,113 @@ export default function FinancePage() {
           </table>
         </div>
       </section>
+
+      {done ? <p className="rounded-lg bg-success-soft px-3 py-2 text-[12.5px] font-medium text-success">{done}</p> : null}
+
+      {/* المستحقّ للمؤمِّنين (أمانات) + التسوية */}
+      <section className="overflow-hidden rounded-card border border-line bg-card shadow-card">
+        <div className="flex items-center gap-2 border-b border-line px-5 py-3.5">
+          <Building2 size={17} className="text-info" />
+          <div><h2 className="text-[15px] font-semibold text-ink">{t("finance.payables")}</h2><p className="text-[12px] text-subtle">{t("finance.payablesSub")}</p></div>
+          {pay ? <span className="ms-auto text-[12px] text-subtle">{t("finance.pcol.outstanding")}: <span className="font-bold text-warning tnum">{fmt(pay.summary.outstanding)}</span> {t("common.sar")}</span> : null}
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[680px]">
+            <thead><tr className="border-b border-line text-[11px] uppercase tracking-wide text-subtle">
+              <th className="px-5 py-3 text-start font-semibold">{t("finance.pcol.insurer")}</th>
+              <th className="px-5 py-3 text-end font-semibold">{t("finance.pcol.payable")}</th>
+              <th className="px-5 py-3 text-end font-semibold">{t("finance.pcol.settled")}</th>
+              <th className="px-5 py-3 text-end font-semibold">{t("finance.pcol.outstanding")}</th>
+              <th className="px-5 py-3 text-end font-semibold" />
+            </tr></thead>
+            <tbody className="divide-y divide-line">
+              {pay?.rows.map((r) => (
+                <tr key={r.insurer} className="hover:bg-surface-2/60">
+                  <td className="px-5 py-3 text-[13px] font-medium text-ink">{r.insurer} <span className="text-[11px] text-subtle">({r.count})</span></td>
+                  <td className="px-5 py-3 text-end text-[13px] text-ink tnum">{fmt(r.payable)}</td>
+                  <td className="px-5 py-3 text-end text-[13px] text-success tnum">{r.settled ? fmt(r.settled) : "—"}</td>
+                  <td className={`px-5 py-3 text-end text-[13px] tnum ${r.outstanding > 0 ? "font-medium text-warning" : "text-subtle"}`}>{fmt(r.outstanding)}</td>
+                  <td className="px-5 py-3 text-end">{r.outstanding > 0 ? <button onClick={() => { setDone(""); setSettle(r); }} className="inline-flex items-center gap-1 rounded-lg border border-line px-2.5 py-1.5 text-[12px] font-medium text-muted hover:bg-surface-2"><Banknote size={13} /> {t("finance.settle")}</button> : null}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {/* ميزان المراجعة */}
+      <section className="overflow-hidden rounded-card border border-line bg-card shadow-card">
+        <div className="flex items-center gap-2 border-b border-line px-5 py-3.5">
+          <Scale size={17} className="text-primary" />
+          <div><h2 className="text-[15px] font-semibold text-ink">{t("finance.trialBalance")}</h2><p className="text-[12px] text-subtle">{t("finance.trialBalanceSub")}</p></div>
+          {trial ? <Badge tone={trial.totals.balanced ? "success" : "danger"}>{trial.totals.balanced ? t("finance.balanced") : t("finance.notBalanced")}</Badge> : null}
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[620px]">
+            <thead><tr className="border-b border-line text-[11px] uppercase tracking-wide text-subtle">
+              <th className="px-5 py-3 text-start font-semibold">{t("finance.tcol.account")}</th>
+              <th className="px-5 py-3 text-end font-semibold">{t("finance.tcol.debit")}</th>
+              <th className="px-5 py-3 text-end font-semibold">{t("finance.tcol.credit")}</th>
+              <th className="px-5 py-3 text-end font-semibold">{t("finance.tcol.balance")}</th>
+            </tr></thead>
+            <tbody className="divide-y divide-line">
+              {trial?.rows.map((r) => (
+                <tr key={r.account} className="hover:bg-surface-2/60">
+                  <td className="px-5 py-2.5 text-[12.5px] text-ink">{r.name} <span className="text-[11px] text-subtle tnum">{r.account.slice(0, 4)}</span></td>
+                  <td className="px-5 py-2.5 text-end text-[12.5px] text-ink tnum">{r.debit ? fmt(r.debit) : "—"}</td>
+                  <td className="px-5 py-2.5 text-end text-[12.5px] text-ink tnum">{r.credit ? fmt(r.credit) : "—"}</td>
+                  <td className={`px-5 py-2.5 text-end text-[12.5px] tnum ${r.balance < 0 ? "text-danger" : "text-ink"}`}>{fmt(r.balance)}</td>
+                </tr>
+              ))}
+            </tbody>
+            {trial ? (
+              <tfoot><tr className="border-t-2 border-line bg-surface-2/40 text-[13px] font-bold text-ink">
+                <td className="px-5 py-3">{t("premiums.totalRow")}</td>
+                <td className="px-5 py-3 text-end tnum">{fmt(trial.totals.debit)}</td>
+                <td className="px-5 py-3 text-end tnum">{fmt(trial.totals.credit)}</td>
+                <td className="px-5 py-3 text-end tnum">{fmt(trial.totals.debit - trial.totals.credit)}</td>
+              </tr></tfoot>
+            ) : null}
+          </table>
+        </div>
+      </section>
+
+      {settle ? <SettleInsurer row={settle} onClose={() => setSettle(null)} onDone={(seq) => { setSettle(null); setDone(t("finance.settleModal.done", { seq })); load(); }} /> : null}
+    </div>
+  );
+}
+
+function SettleInsurer({ row, onClose, onDone }: { row: PayRow; onClose: () => void; onDone: (seq: string) => void }) {
+  const t = useTranslations("finance.settleModal");
+  const [amount, setAmount] = useState(String(row.outstanding));
+  const [reference, setReference] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState("");
+  const field = "h-9 w-full rounded-lg border border-line bg-card px-3 text-[13px] text-ink focus:outline-none focus:ring-2 focus:ring-primary/30";
+
+  async function save() {
+    setErr(""); setSaving(true);
+    try {
+      const r = await api<{ voucher: { sequenceNo: string } }>("/finance/insurers/settle", { method: "POST", body: JSON.stringify({ insurerName: row.insurer, amount: Number(amount), reference: reference || undefined }) });
+      onDone(r.voucher.sequenceNo);
+    } catch (e) { setErr(e instanceof ApiError ? e.message : "خطأ"); setSaving(false); }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onMouseDown={onClose}>
+      <div className="w-full max-w-sm rounded-card border border-line bg-card p-5 shadow-card" onMouseDown={(e) => e.stopPropagation()}>
+        <div className="mb-1 flex items-center justify-between"><h2 className="text-[15px] font-bold text-ink">{t("title")}</h2><button onClick={onClose} className="text-subtle hover:text-ink"><X size={18} /></button></div>
+        <p className="mb-3 text-[12px] text-subtle">{row.insurer} · <span className="tnum text-warning">{row.outstanding.toLocaleString("en-US")}</span></p>
+        <div className="space-y-3">
+          <label className="block"><span className="mb-1 block text-[11.5px] font-medium text-muted">{t("amount")}</span><input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} className={`${field} tnum`} /></label>
+          <label className="block"><span className="mb-1 block text-[11.5px] font-medium text-muted">{t("reference")}</span><input value={reference} onChange={(e) => setReference(e.target.value)} className={field} /></label>
+          {err ? <p className="text-[12px] font-medium text-danger">{err}</p> : null}
+          <div className="flex justify-end gap-2 pt-1">
+            <button onClick={onClose} className="h-9 rounded-lg border border-line px-3 text-[12.5px] font-medium text-muted hover:bg-surface-2">{t("cancel")}</button>
+            <button onClick={save} disabled={saving || !(Number(amount) > 0)} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary-strong px-4 text-[12.5px] font-semibold text-primary-fg hover:bg-primary disabled:opacity-60"><Check size={15} /> {saving ? "…" : t("submit")}</button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
