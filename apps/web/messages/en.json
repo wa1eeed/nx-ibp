@@ -346,6 +346,9 @@
   "org": {
     "title": "Org structure & departments",
     "subtitle": "Organize departments hierarchically and set each one's default role",
+    "tabChart": "Org chart",
+    "tabManage": "Structure",
+    "chartHint": "View the company as an org chart — each department with its member count and default role.",
     "addDepartment": "Add department",
     "nameField": "Department name",
     "parent": "Parent department",
