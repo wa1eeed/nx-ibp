@@ -20,6 +20,7 @@ export class IssuePolicyDto {
   @IsOptional() @IsNumber() policyFees?: number; // رسوم الإصدار
   @IsOptional() @IsNumber() sumInsured?: number; // مبلغ التأمين الإجمالي
   @IsOptional() @IsString() paymentTerms?: string; // شروط السداد
-  @IsOptional() @IsString() producerName?: string; // المنتِج
-  @IsOptional() @IsNumber() producerCommission?: number; // عمولة المنتِج
+  @IsOptional() @IsString() producerName?: string; // المنتِج (نص حرّ — توافق خلفي)
+  @IsOptional() @IsString() producerId?: string; // مرجع سجلّ المنتِجين
+  @IsOptional() @IsNumber() producerCommission?: number; // عمولة المنتِج (تُحتسب آليًا من نسبته إن غابت)
 }

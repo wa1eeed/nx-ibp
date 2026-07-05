@@ -45,6 +45,7 @@
     "verification": "التحقّق",
     "requests": "الطلبات",
     "policies": "الوثائق",
+    "producers": "المنتِجون",
     "service": "خدمة العملاء",
     "renewals": "التجديدات",
     "premiums": "الأقساط",
@@ -148,6 +149,25 @@
     "balanced": "متوازن",
     "notBalanced": "غير متوازن",
     "tcol": { "account": "الحساب", "debit": "مدين", "credit": "دائن", "balance": "الرصيد" }
+  },
+  "producers": {
+    "title": "المنتِجون (الوسطاء الفرعيون)",
+    "subtitle": "سجلّ من يجلب الأعمال مقابل حصّة من عمولة الوسيط — مع دفتر عمولاتهم المستحقّة والمُسوّاة",
+    "add": "منتِج جديد",
+    "registry": "السجلّ",
+    "empty": "لا منتِجون بعد — أضِف أول منتِج",
+    "created": "أُضيف المنتِج {name}",
+    "noLicense": "بلا ترخيص",
+    "theirPolicies": "وثائقه",
+    "noPolicies": "لا وثائق مرتبطة",
+    "settlements": "سندات الصرف",
+    "kpi": { "count": "المنتِجون", "active": "نشط", "owed": "العمولة المستحقّة", "paid": "المُسوّى", "outstanding": "المتبقّي" },
+    "col": { "code": "الرمز", "name": "الاسم", "license": "الترخيص", "rate": "النسبة", "policies": "الوثائق", "owed": "المستحقّ", "outstanding": "المتبقّي", "status": "الحالة", "policy": "الوثيقة", "client": "العميل", "premium": "القسط", "share": "حصّته" },
+    "status": { "active": "نشط", "suspended": "موقوف" },
+    "type": { "individual": "فرد", "company": "شركة" },
+    "field": { "name": "الاسم", "type": "النوع", "rate": "نسبة العمولة (%)", "license": "رقم ترخيص الهيئة", "cr": "السجل التجاري", "nid": "الهوية", "phone": "الجوال", "email": "البريد", "iban": "الآيبان" },
+    "save": "حفظ",
+    "settle": { "action": "صرف العمولة", "title": "صرف عمولة المنتِج", "outstanding": "المتبقّي", "amount": "المبلغ", "reference": "المرجع/رقم التحويل", "submit": "تأكيد الصرف", "cancel": "إلغاء" }
   },
   "premiums": {
     "title": "الأقساط والتحصيل",

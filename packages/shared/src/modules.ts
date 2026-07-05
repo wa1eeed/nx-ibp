@@ -8,6 +8,7 @@ export type ModuleKey =
   | "verification"
   | "requests"
   | "policies"
+  | "producers"
   | "service"
   | "renewals"
   | "premiums"
@@ -93,6 +94,7 @@ export const TENANT_NAV: NavGroup[] = [
       { key: "finance", href: "/tenant/finance", icon: "Landmark", entitlement: "module.finance" },
       { key: "premiums", href: "/tenant/premiums", icon: "Coins", entitlement: "module.finance" },
       { key: "commissions", href: "/tenant/commissions", icon: "Percent", entitlement: "module.finance" },
+      { key: "producers", href: "/tenant/producers", icon: "Handshake", entitlement: "module.finance" },
     ],
   },
   // التقارير والتحليلات

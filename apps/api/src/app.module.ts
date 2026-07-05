@@ -42,6 +42,7 @@ import { ConfigModule as TenantConfigModule } from "./modules/config/config.modu
 import { RevertModule } from "./modules/revert/revert.module";
 import { CrmModule } from "./modules/crm/crm.module";
 import { RemindersModule } from "./modules/reminders/reminders.module";
+import { ProducersModule } from "./modules/producers/producers.module";
 
 /**
  * الوحدة الجذرية. معماري وحدات — module لكل مجال (GUIDELINES.md §5).
@@ -90,6 +91,7 @@ import { RemindersModule } from "./modules/reminders/reminders.module";
     RevertModule,
     CrmModule,
     RemindersModule,
+    ProducersModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

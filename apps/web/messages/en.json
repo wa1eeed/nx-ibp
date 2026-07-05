@@ -45,6 +45,7 @@
     "verification": "Verification",
     "requests": "Requests",
     "policies": "Policies",
+    "producers": "Producers",
     "service": "Service",
     "renewals": "Renewals",
     "premiums": "Premiums",
@@ -148,6 +149,25 @@
     "balanced": "Balanced",
     "notBalanced": "Not balanced",
     "tcol": { "account": "Account", "debit": "Debit", "credit": "Credit", "balance": "Balance" }
+  },
+  "producers": {
+    "title": "Producers (sub-brokers)",
+    "subtitle": "Registry of those who bring business for a share of the brokerage commission — with their owed and settled commission ledger",
+    "add": "New producer",
+    "registry": "Registry",
+    "empty": "No producers yet — add the first one",
+    "created": "Producer {name} added",
+    "noLicense": "No license",
+    "theirPolicies": "Their policies",
+    "noPolicies": "No linked policies",
+    "settlements": "Payout vouchers",
+    "kpi": { "count": "Producers", "active": "active", "owed": "Commission owed", "paid": "Settled", "outstanding": "Outstanding" },
+    "col": { "code": "Code", "name": "Name", "license": "License", "rate": "Rate", "policies": "Policies", "owed": "Owed", "outstanding": "Outstanding", "status": "Status", "policy": "Policy", "client": "Client", "premium": "Premium", "share": "Share" },
+    "status": { "active": "Active", "suspended": "Suspended" },
+    "type": { "individual": "Individual", "company": "Company" },
+    "field": { "name": "Name", "type": "Type", "rate": "Commission rate (%)", "license": "IA license no.", "cr": "CR", "nid": "ID", "phone": "Phone", "email": "Email", "iban": "IBAN" },
+    "save": "Save",
+    "settle": { "action": "Pay commission", "title": "Pay producer commission", "outstanding": "Outstanding", "amount": "Amount", "reference": "Reference / transfer no.", "submit": "Confirm payout", "cancel": "Cancel" }
   },
   "premiums": {
     "title": "Premiums & collections",

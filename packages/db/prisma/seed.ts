@@ -301,6 +301,7 @@ const COA_TEMPLATE: Array<{ path: number[]; name: string; type: string; onBal: b
   { path: [4, 1], name: "عمولات الوساطة", type: "revenue", onBal: true },
   { path: [4, 2], name: "رسوم خدمات وإصدار الوثائق", type: "revenue", onBal: true },
   { path: [5], name: "المصروفات", type: "expense", onBal: true },
+  { path: [5, 1], name: "عمولات المنتِجين (الوسطاء الفرعيون)", type: "expense", onBal: true },
 ];
 
 const coa17 = (path: number[]) => path.map((p) => String(p).padStart(2, "0")).join("").padEnd(17, "0");
@@ -1042,6 +1043,32 @@ async function main() {
       update: { amount: settled },
       create: { id: `rcv-seed-${dn.id}`, tenantId: dn.tenantId, type: "RCV", sequenceNo: `RCV-2026-${10001 + i}`, amount: settled, status: "posted", isAuto: false, reference: dn.id, lines: { description: `تحصيل مقابل ${dn.sequenceNo ?? dn.id}`, method: "transfer", clientId: null } },
     });
+  }
+
+  // ---- سجلّ المنتِجين (الوسطاء الفرعيون) + ربط جزء من الوثائق بهم مع حصّة عمولتهم ----
+  const producerDefs = [
+    // منتِجو حساب الخليج (ديمو دون قاعدة الاختبار)
+    ...(isTestDb ? [] : [
+      { id: "prd-gib-1", t: GIB_DEF.id, code: "PRD-1001", name: "مكتب الرواد لوساطة التأمين", type: "COMPANY", licenseNo: "IA-PRD-2024-118", crNumber: "1010556677", commissionRate: 25, iban: "SA0380000000608010167519" },
+      { id: "prd-gib-2", t: GIB_DEF.id, code: "PRD-1002", name: "خالد الدوسري (منتِج مرخّص)", type: "INDIVIDUAL", licenseNo: "IA-PRD-2023-441", nationalId: "1055667788", commissionRate: 20, phone: "0555102030" },
+    ]),
+    { id: "prd-dt-1", t: "demo-tenant", code: "PRD-1003", name: "شركة آفاق التسويق التأميني", type: "COMPANY", licenseNo: "IA-PRD-2024-207", crNumber: "1010889900", commissionRate: 30 },
+  ] as Array<{ id: string; t: string; code: string; name: string; type: string; licenseNo: string; crNumber?: string; nationalId?: string; phone?: string; iban?: string; commissionRate: number }>;
+  for (const pr of producerDefs) {
+    await prisma.producer.upsert({ where: { id: pr.id }, update: { commissionRate: pr.commissionRate, status: "active" }, create: { id: pr.id, tenantId: pr.t, code: pr.code, name: pr.name, type: pr.type, licenseNo: pr.licenseNo, crNumber: pr.crNumber ?? null, nationalId: pr.nationalId ?? null, phone: pr.phone ?? null, iban: pr.iban ?? null, commissionRate: pr.commissionRate, status: "active" } });
+  }
+  // اربط كل ثالث وثيقة مُصدَرة بمنتِج مناسب لمستأجرها، واحسب حصّته من العمولة بنسبته.
+  const linkable = await prisma.policy.findMany({ where: { status: "ISSUED" }, select: { id: true, tenantId: true, commissionAmount: true }, orderBy: { id: "asc" } });
+  const producersByTenant = new Map<string, Array<{ id: string; rate: number }>>();
+  for (const pr of producerDefs) { const arr = producersByTenant.get(pr.t) ?? []; arr.push({ id: pr.id, rate: pr.commissionRate }); producersByTenant.set(pr.t, arr); }
+  let li = 0;
+  for (const pol of linkable) {
+    const arr = producersByTenant.get(pol.tenantId);
+    if (!arr?.length || li % 3 !== 0) { li++; continue; }
+    const pr = arr[li % arr.length];
+    const share = round2((round2(Number(pol.commissionAmount ?? 0)) * pr.rate) / 100);
+    await prisma.policy.update({ where: { id: pol.id }, data: { producerId: pr.id, producerCommission: share } });
+    li++;
   }
 
   const [nc, np, ncl] = await Promise.all([prisma.client.count(), prisma.policy.count(), prisma.claim.count()]);

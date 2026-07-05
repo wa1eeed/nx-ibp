@@ -54,6 +54,7 @@ sequenceDiagram
 | `02030000000000000` | 2 🔒 | On | ضريبة القيمة المضافة المستحقة (Output VAT) |
 | `04010000000000000` | 2 🔒 | On | عمولات الوساطة |
 | `04020000000000000` | 2 🔒 | On | رسوم خدمات وإصدار الوثائق |
+| `05010000000000000` | 2 🔒 | On | عمولات المنتِجين (الوسطاء الفرعيون) |
 
 المستوى 3 **تحليلي ديناميكي** (`isLocked=false`): يُفتح حساب لكل عميل تحت `0103` عند أول إصدار، ويدعم الرفع الأولي عبر Excel للهجرة. مراكز التكلفة (`CostCenter`) تبدأ بالفرع.
 
@@ -108,6 +109,13 @@ sequenceDiagram
 | `GET /policies` · `GET /policies/:id` | `production:read` |
 | `POST /finance/policies/:id/approve` | `module.finance` + `finance:update` |
 | `GET /finance/vouchers` · `GET /finance/policies/:id/postings` | `finance:read` |
+| `GET /producers` · `GET /producers/:id` | `module.finance` + `finance:read` |
+| `POST /producers` · `PATCH /producers/:id` | `finance:create` / `finance:update` |
+| `POST /producers/:id/settle` | `finance:create` |
+
+## 7ب. سجلّ المنتِجين (الوسطاء الفرعيون)
+
+المنتِج (`Producer`) يجلب أعمالاً مقابل **حصّة من عمولة الوسيط**. عند ربط وثيقة به (`Policy.producerId`) تُحتسب حصّته آليًا: `producerCommission = عمولة الوسيط × نسبة المنتِج`. حصّته **مصروف** على الوسيط يُقيَّد في `05010` عند الصرف (سند PYV: مصروف عمولات المنتِجين ⇒ نقد). **دفتر المنتِج** مشتقّ: العمولة المستحقّة = Σ حصص وثائقه المُصدَرة − المُسوّى. السجلّ والتسوية تحت وحدة **المالية**؛ التسوية تمنع تجاوز المستحقّ (409).
 
 ## 8. الاختبارات
 

@@ -172,6 +172,11 @@ export class ProductionService {
     const rate = dto.commissionRate ?? 12.5;
     const commission = +((premium * rate) / 100).toFixed(2);
 
+    // المنتِج (الوسيط الفرعي): إن رُبط بسجلّ، تُحتسب حصّته من عمولة الوسيط بنسبته الافتراضية (ما لم تُمرَّر يدويًا).
+    const producer = dto.producerId ? await this.prisma.producer.findFirst({ where: { id: dto.producerId }, select: { id: true, name: true, commissionRate: true } }) : null;
+    const producerName = producer?.name ?? dto.producerName ?? null;
+    const producerCommission = dto.producerCommission ?? (producer?.commissionRate != null ? +((commission * Number(producer.commissionRate)) / 100).toFixed(2) : null);
+
     // فترة التغطية من نموذج الطلب (startDate/endDate)؛ افتراضيًا سنة من الإصدار عند غيابها.
     const base = (request.base ?? {}) as Record<string, unknown>;
     const parseDate = (v: unknown) => { const d = v ? new Date(String(v)) : null; return d && !Number.isNaN(+d) ? d : null; };
@@ -205,8 +210,9 @@ export class ProductionService {
           policyFees: dto.policyFees ?? null,
           sumInsured: dto.sumInsured ?? null,
           paymentTerms: dto.paymentTerms ?? null,
-          producerName: dto.producerName ?? null,
-          producerCommission: dto.producerCommission ?? null,
+          producerName,
+          producerId: dto.producerId ?? null,
+          producerCommission,
           startDate,
           endDate,
           status: initialStatus,

@@ -66,5 +66,11 @@ export class SequenceService {
     const count = await this.prisma.claim.count();
     return `CL-${this.year()}-${1001 + count}`;
   }
+
+  /** رمز منتِج: PRD-1001 */
+  async nextProducerSeq(): Promise<string> {
+    const count = await this.prisma.producer.count();
+    return `PRD-${1001 + count}`;
+  }
 }
 
