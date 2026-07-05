@@ -598,6 +598,9 @@ curl -X POST http://localhost:4000/staff \
 | POST | `/finance/commissions/:id/receipt` | finance:create | استلام عمولة من المؤمِّن — يضبط `receivedAmount`/الحالة (مستلمة/فرق تحصيل) |
 | GET | `/finance/statement/:clientId` | finance:read | كشف حساب العميل: قيود (إشعارات مدين) + إشعارات دائنة + مدفوعات (سندات قبض) برصيد جارٍ |
 | POST | `/finance/policies/:id/cancel` | finance:update | **إلغاء وثيقة** — قسط مُرتجَع نسبةً وتناسبًا + إشعار دائن (CNP) + قيد عكسي + `CANCELLED` (تكرار ⇒ 409) |
+| GET | `/finance/payables` | finance:read | المستحقّ للمؤمِّنين (أمانات) لكل مؤمِّن + أعمار الدَّين + المُسوّى + المتبقّي |
+| POST | `/finance/insurers/settle` | finance:create | سند صرف (PYV) لتسوية مستحقّ مؤمِّن (يمنع التجاوز ⇒ 409) |
+| GET | `/finance/trial-balance` | finance:read | ميزان المراجعة — أطراف القيود مجمّعة حسب الحساب + مؤشّر توازن |
 | GET | `/finance/receivables` · `/finance/summary` | finance:read | تعيدان **المتبقّي بعد التحصيل والإشعارات الدائنة** + `collected` + `creditNotes` + حالة كل إشعار |
 
 ### تفاصيل الوثيقة 360° · الاكتتاب المالي
