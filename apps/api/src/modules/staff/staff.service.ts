@@ -46,8 +46,8 @@ export class StaffService {
       this.prisma.auditLog.count({ where: { userId: id } }),
       this.prisma.auditLog.count({ where: { userId: id, entity: "policy", action: "create" } }),
       this.prisma.auditLog.count({ where: { userId: id, action: "approve" } }),
-      this.prisma.deal.findMany({ where: { assigneeId: id, status: "open" }, orderBy: { updatedAt: "desc" }, select: { id: true, title: true, stage: true, value: true, clientId: true } }),
-      this.prisma.crmTask.findMany({ where: { assigneeId: id, status: "open" }, orderBy: { dueDate: "asc" }, select: { id: true, title: true, priority: true, dueDate: true } }),
+      this.prisma.deal.findMany({ where: { assigneeId: id, status: "open" }, orderBy: { updatedAt: "desc" }, select: { id: true, title: true, stage: true, status: true, value: true, productLineCode: true, clientId: true, createdAt: true } }),
+      this.prisma.crmTask.findMany({ where: { assigneeId: id, status: "open" }, orderBy: { dueDate: "asc" }, select: { id: true, title: true, priority: true, status: true, entityType: true, entityId: true, dueDate: true, createdAt: true } }),
       this.prisma.auditLog.findMany({ where: { userId: id, entity: "policy", action: "create" }, orderBy: { createdAt: "desc" }, take: 100, select: { entityId: true } }),
     ]);
     // الوثائق التي أصدرها/تحت مسؤوليته (من سجل التدقيق ⇒ الوثائق الفعلية)

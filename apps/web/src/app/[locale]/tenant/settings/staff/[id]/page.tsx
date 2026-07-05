@@ -14,10 +14,14 @@ interface Detail {
   activity: Array<{ action: string; entity: string; entityId: string | null; meta: unknown; createdAt: string }>;
   stats: { totalActions: number; policiesCreated: number; approvals: number };
   policies: Array<{ id: string; sequenceNo: string | null; insurerName: string | null; totalPremium: string | null; status: string; endDate: string | null }>;
-  deals: Array<{ id: string; title: string; stage: string; value: string | null; clientName: string | null }>;
-  tasks: Array<{ id: string; title: string; priority: string; dueDate: string | null }>;
+  deals: Array<{ id: string; title: string; stage: string; status: string; value: string | null; productLineCode: string | null; clientName: string | null; createdAt: string }>;
+  tasks: Array<{ id: string; title: string; priority: string; status: string; entityType: string | null; entityId: string | null; dueDate: string | null; createdAt: string }>;
 }
 
+const STAGE_TONE: Record<string, "info" | "warning" | "neutral" | "success"> = { new: "neutral", contacted: "info", quoting: "warning", proposal: "info", negotiation: "success" };
+const STAGES = ["new", "contacted", "quoting", "proposal", "negotiation"];
+const PRIOS = ["low", "normal", "high"];
+const ENTITIES = ["client", "policy", "request", "claim", "service_request", "deal"];
 const TABS = ["policies", "deals", "tasks", "activity"] as const;
 const dt = (s: string) => new Date(s).toLocaleString("en-GB", { dateStyle: "short", timeStyle: "short" });
 const d2 = (s: string | null) => (s ? new Date(s).toLocaleDateString("en-GB") : "—");
@@ -109,20 +113,46 @@ export default function StaffDetailPage() {
 
         {tab === "deals" ? (d.deals.length ? (
           <div className="space-y-2">{d.deals.map((dl) => (
-            <div key={dl.id} className="flex items-center justify-between rounded-card border border-line bg-card p-3">
-              <div><div className="text-[12.5px] font-semibold text-ink">{dl.title}</div>{dl.clientName ? <div className="text-[11.5px] text-subtle">{dl.clientName}</div> : null}</div>
-              <div className="flex items-center gap-2">{dl.value ? <span className="text-[12px] font-bold text-primary tnum">{fmt(dl.value)}</span> : null}<Badge tone="info">{dl.stage}</Badge></div>
+            <div key={dl.id} className="rounded-card border border-line bg-card p-3.5">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="text-[13px] font-semibold text-ink">{dl.title}</div>
+                  <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11.5px] text-subtle">
+                    <span>{t("client")}: <span className="text-muted">{dl.clientName ?? "—"}</span></span>
+                    {dl.productLineCode ? <span>{t("product")}: <span className="text-muted">{dl.productLineCode}</span></span> : null}
+                    <span>{t("created")}: <span className="text-muted tnum">{d2(dl.createdAt)}</span></span>
+                  </div>
+                </div>
+                <div className="flex shrink-0 flex-col items-end gap-1">
+                  {dl.value ? <span className="text-[13px] font-bold text-primary tnum">{fmt(dl.value)} <span className="text-[10px] font-normal text-subtle">{t("value")}</span></span> : null}
+                  <Badge tone={STAGE_TONE[dl.stage] ?? "neutral"}>{STAGES.includes(dl.stage) ? t(`stages.${dl.stage}`) : dl.stage}</Badge>
+                </div>
+              </div>
             </div>
           ))}</div>
         ) : <p className="rounded-card border border-dashed border-line px-3 py-8 text-center text-[12.5px] text-subtle">{t("noDeals")}</p>) : null}
 
         {tab === "tasks" ? (d.tasks.length ? (
-          <div className="space-y-2">{d.tasks.map((tk) => (
-            <div key={tk.id} className="flex items-center justify-between rounded-card border border-line bg-card p-3">
-              <span className="text-[12.5px] text-ink">{tk.title}</span>
-              <div className="flex items-center gap-2"><Badge tone={tk.priority === "high" ? "danger" : "neutral"}>{tk.priority}</Badge>{tk.dueDate ? <span className="text-[11px] text-subtle">{d2(tk.dueDate)}</span> : null}</div>
-            </div>
-          ))}</div>
+          <div className="space-y-2">{d.tasks.map((tk) => {
+            const overdue = tk.dueDate && new Date(tk.dueDate).getTime() < Date.now();
+            return (
+              <div key={tk.id} className="rounded-card border border-line bg-card p-3.5">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="text-[13px] font-medium text-ink">{tk.title}</div>
+                    <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11.5px] text-subtle">
+                      {tk.entityType ? <span>{t("related")}: <span className="text-muted">{ENTITIES.includes(tk.entityType) ? t(`entities.${tk.entityType}`) : tk.entityType}{tk.entityId ? ` (${tk.entityId.slice(0, 8)})` : ""}</span></span> : null}
+                      <span>{t("created")}: <span className="text-muted tnum">{d2(tk.createdAt)}</span></span>
+                    </div>
+                  </div>
+                  <div className="flex shrink-0 flex-col items-end gap-1">
+                    <Badge tone={tk.priority === "high" ? "danger" : "neutral"}>{PRIOS.includes(tk.priority) ? t(`priorities.${tk.priority}`) : tk.priority}</Badge>
+                    {tk.dueDate ? <span className={`inline-flex items-center gap-1 text-[11px] tnum ${overdue ? "font-semibold text-danger" : "text-subtle"}`}><Clock size={10} /> {d2(tk.dueDate)}{overdue ? ` · ${t("overdue")}` : ""}</span> : null}
+                  </div>
+                </div>
+              </div>
+            );
+          })}</div>
         ) : <p className="rounded-card border border-dashed border-line px-3 py-8 text-center text-[12.5px] text-subtle">{t("noTasks")}</p>) : null}
 
         {tab === "activity" ? (d.activity.length === 0 ? <p className="rounded-card border border-dashed border-line px-3 py-8 text-center text-[12.5px] text-subtle">{t("empty")}</p> : (

@@ -472,6 +472,10 @@
     "tabs": { "overview": "Overview", "policies": "Policies (responsibility)", "deals": "Deals", "tasks": "Tasks", "activity": "Activity" },
     "insurer": "Insurer", "premium": "Premium", "statusCol": "Status", "client": "Client", "stage": "Stage", "value": "Value", "due": "Due", "priority": "Priority",
     "noPolicies": "No policies under responsibility", "noDeals": "No deals assigned", "noTasks": "No open tasks",
+    "product": "Product", "created": "Created", "related": "Related to", "overdue": "Overdue", "noRelated": "—",
+    "stages": { "new": "New", "contacted": "Contacted", "quoting": "Quoting", "proposal": "Proposal", "negotiation": "Negotiation" },
+    "priorities": { "low": "Low", "normal": "Normal", "high": "High" },
+    "entities": { "client": "Client", "policy": "Policy", "request": "Request", "claim": "Claim", "service_request": "Service request", "deal": "Deal" },
     "activity": "Employee activity log", "empty": "No activity recorded"
   },
   "notifCenter": {
