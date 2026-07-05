@@ -70,25 +70,38 @@ export class ProductionService {
    * الرقم التسلسلي `POL-…/E{n}`. لا يُسمح على غير المُصدَرة (409).
    */
   async addEndorsement(user: AuthUser, policyId: string, dto: CreateEndorsementDto) {
-    const policy = await this.prisma.policy.findFirst({ where: { id: policyId }, select: { id: true, sequenceNo: true, status: true } });
+    const policy = await this.prisma.policy.findFirst({ where: { id: policyId }, select: { id: true, sequenceNo: true, status: true, clientId: true, productLineCode: true } });
     if (!policy) throw new NotFoundException("الوثيقة غير موجودة");
     if (policy.status !== "ISSUED") throw new ConflictException("لا يمكن إضافة ملحق إلا على وثيقة مُصدَرة");
     const count = await this.prisma.endorsement.count({ where: { policyId } });
-    const endo = await this.prisma.endorsement.create({
-      data: {
-        tenantId: user.tenantId,
-        policyId,
-        sequenceNo: `${policy.sequenceNo ?? policyId}/E${count + 1}`,
-        type: dto.type,
-        effectiveDate: dto.effectiveDate ? new Date(dto.effectiveDate) : null,
-        premiumDelta: dto.premiumDelta ?? null,
-        details: dto.reason ? ({ reason: dto.reason } as Prisma.InputJsonValue) : undefined,
-        status: "ISSUED",
-      },
-      select: { id: true, sequenceNo: true, type: true, effectiveDate: true, premiumDelta: true, status: true, createdAt: true },
+    const delta = dto.premiumDelta ?? 0;
+    // فرق القسط ⇒ ضريبة حسب فرع التأمين (الحياة معفاة). موجب ⇒ إشعار مدين، سالب ⇒ إشعار دائن.
+    const line = delta !== 0 && policy.productLineCode ? await this.prisma.productLine.findFirst({ where: { code: policy.productLineCode }, include: { class: true } }) : null;
+    const vatRate = line ? vatTreatmentForClass(line.class.code).rate : 15;
+    const deltaVat = +((Math.abs(delta) * vatRate) / 100).toFixed(2);
+    const noteSeq = delta > 0 ? await this.seq.nextNoteSeq("DN") : delta < 0 ? await this.seq.nextNoteSeq("CN") : null;
+
+    const result = await this.prisma.$transaction(async (tx) => {
+      const endo = await tx.endorsement.create({
+        data: {
+          tenantId: user.tenantId, policyId, sequenceNo: `${policy.sequenceNo ?? policyId}/E${count + 1}`, type: dto.type,
+          effectiveDate: dto.effectiveDate ? new Date(dto.effectiveDate) : null, premiumDelta: dto.premiumDelta ?? null,
+          details: dto.reason ? ({ reason: dto.reason } as Prisma.InputJsonValue) : undefined, status: "ISSUED",
+        },
+        select: { id: true, sequenceNo: true, type: true, effectiveDate: true, premiumDelta: true, status: true, createdAt: true },
+      });
+      let note: { kind: string; sequenceNo: string | null } | null = null;
+      if (delta > 0 && noteSeq) {
+        const dn = await tx.debitNote.create({ data: { tenantId: user.tenantId, sequenceNo: noteSeq, clientId: policy.clientId, policyId, netAmount: delta, vatAmount: deltaVat }, select: { sequenceNo: true } });
+        note = { kind: "debit", sequenceNo: dn.sequenceNo };
+      } else if (delta < 0 && noteSeq) {
+        const cn = await tx.creditNote.create({ data: { tenantId: user.tenantId, sequenceNo: noteSeq, clientId: policy.clientId, policyId, netAmount: -delta, vatAmount: deltaVat }, select: { sequenceNo: true } });
+        note = { kind: "credit", sequenceNo: cn.sequenceNo };
+      }
+      return { endo, note };
     });
-    await this.audit.log({ tenantId: user.tenantId, userId: user.userId, action: "create", entity: "endorsement", entityId: endo.id, meta: { policyId, type: dto.type } });
-    return endo;
+    await this.audit.log({ tenantId: user.tenantId, userId: user.userId, action: "create", entity: "endorsement", entityId: result.endo.id, meta: { policyId, type: dto.type, premiumDelta: delta, note: result.note?.sequenceNo } });
+    return { ...result.endo, note: result.note };
   }
 
   /**

@@ -38,14 +38,17 @@ describe("صفحات 360° (e2e)", () => {
   it("عزل: مستأجر آخر لا يقرأ نظرة عميل ليس له ⇒ 404", () =>
     request(app.getHttpServer()).get("/clients/cl-naseej/overview").set(auth(omar)).expect(404));
 
-  it("إضافة ملحق على وثيقة مُصدَرة ⇒ 201 ويظهر في نظرة الوثيقة", async () => {
+  it("إضافة ملحق بفرق قسط موجب ⇒ يُنشئ إشعار مدين ويزيد المستحقّ في نظرة الوثيقة", async () => {
     const srv = app.getHttpServer();
+    const before = (await request(srv).get("/policies/pol-fahd-pro/overview").set(auth(gm)).expect(200)).body.summary.outstanding as number;
     const res = await request(srv).post("/policies/pol-fahd-pro/endorsements").set(auth(gm))
-      .send({ type: "amendment", effectiveDate: "2026-08-01", premiumDelta: 1200, reason: "تعديل تجريبي" }).expect(201);
+      .send({ type: "addition", effectiveDate: "2026-08-01", premiumDelta: 1200, reason: "تعديل تجريبي" }).expect(201);
     expect(res.body.sequenceNo).toMatch(/\/E\d+$/);
     expect(res.body.status).toBe("ISSUED");
-    const ov = await request(srv).get("/policies/pol-fahd-pro/overview").set(auth(gm)).expect(200);
-    expect(ov.body.endorsements.some((e: { id: string }) => e.id === res.body.id)).toBe(true);
+    expect(res.body.note?.kind).toBe("debit"); // فرق موجب ⇒ إشعار مدين
+    const ov = (await request(srv).get("/policies/pol-fahd-pro/overview").set(auth(gm)).expect(200)).body;
+    expect(ov.endorsements.some((e: { id: string }) => e.id === res.body.id)).toBe(true);
+    expect(ov.summary.outstanding).toBeCloseTo(before + 1200 * 1.15, 1); // +القسط +15% ضريبة
   });
 
   it("عزل: مستأجر آخر لا يضيف ملحقًا على وثيقة ليست له ⇒ 404", () =>
