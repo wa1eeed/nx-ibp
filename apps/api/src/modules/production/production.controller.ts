@@ -48,6 +48,13 @@ export class ProductionController {
     return this.production.approveStep(user.tenantId, user, id, dto.stepKey);
   }
 
+  // نظرة 360° للوثيقة (مالية/ملاحق/مطالبات/فواتير/مستندات/خط زمني)
+  @Authorize({ module: "production", action: "read", entitlement: "module.production" })
+  @Get(":id/overview")
+  overview(@Param("id") id: string) {
+    return this.production.overview(id);
+  }
+
   @Authorize({ module: "production", action: "read", entitlement: "module.production" })
   @Get(":id")
   getOne(@Param("id") id: string) {

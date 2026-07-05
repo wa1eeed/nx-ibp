@@ -420,6 +420,17 @@
     "stages": { "new": "جديدة", "contacted": "تواصل", "quoting": "تسعير", "proposal": "عرض", "negotiation": "تفاوض" },
     "priorities": { "low": "منخفضة", "normal": "عادية", "high": "عالية" }
   },
+  "policy360": {
+    "back": "رجوع للوثائق",
+    "insurerPolicyNo": "رقم وثيقة المؤمِّن",
+    "kpi": { "gross": "الإجمالي", "commission": "العمولة", "claims": "المطالبات", "endorsements": "الملاحق" },
+    "tabs": { "financial": "المالية والتغطية", "endorsements": "الملاحق", "claims": "المطالبات", "invoices": "الفواتير", "documents": "المستندات", "timeline": "الخط الزمني" },
+    "financialTitle": "التفصيل المالي", "commissionTitle": "العمولة والمنتِج", "coverageTitle": "التغطية والمدّة",
+    "sumInsured": "مبلغ التأمين", "premium": "القسط الصافي", "policyFees": "رسوم الوثيقة", "vat": "الضريبة", "totalPremium": "الإجمالي المستحق",
+    "commissionRate": "عمولة الوسيط", "producer": "المنتِج", "period": "مدّة التغطية", "paymentTerms": "شروط السداد",
+    "debitNotes": "إشعارات المدين", "taxInvoices": "الفواتير الضريبية", "emptyTab": "لا بيانات في هذا القسم",
+    "col": { "ref": "المرجع", "type": "النوع", "effective": "السريان", "delta": "فرق القسط", "status": "الحالة", "claimed": "المطالَب", "settled": "المسوّى", "incident": "الحادث", "net": "الصافي", "vat": "الضريبة", "total": "الإجمالي", "date": "التاريخ", "file": "الملف", "docType": "النوع" }
+  },
   "client360": {
     "erase": {
       "action": "محو البيانات (PDPL)",

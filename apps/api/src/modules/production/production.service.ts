@@ -33,6 +33,9 @@ const POLICY_FIELDS = {
   requestId: true,
   tenantId: true,
   pendingApprovals: true,
+  startDate: true,
+  endDate: true,
+  createdAt: true,
 } as const;
 
 /**
@@ -58,6 +61,44 @@ export class ProductionService {
     const policy = await this.prisma.policy.findFirst({ where: { id }, select: POLICY_FIELDS });
     if (!policy) throw new NotFoundException("الوثيقة غير موجودة");
     return policy;
+  }
+
+  /**
+   * نظرة 360° للوثيقة — كل ما يخصّها (معزول بالمستأجر تلقائيًا):
+   * المالية الكاملة · العميل · الملاحق · المطالبات · إشعارات المدين/الفواتير · المستندات · الخط الزمني.
+   */
+  async overview(id: string) {
+    const policy = await this.prisma.policy.findFirst({ where: { id }, select: POLICY_FIELDS });
+    if (!policy) throw new NotFoundException("الوثيقة غير موجودة");
+    const [client, endorsements, claims, debitNotes, invoices, activity] = await Promise.all([
+      policy.clientId ? this.prisma.client.findFirst({ where: { id: policy.clientId }, select: { id: true, name: true, type: true, code: true } }) : null,
+      this.prisma.endorsement.findMany({ where: { policyId: id }, orderBy: { createdAt: "desc" }, select: { id: true, sequenceNo: true, type: true, effectiveDate: true, premiumDelta: true, status: true, createdAt: true } }),
+      this.prisma.claim.findMany({ where: { policyId: id }, orderBy: { createdAt: "desc" }, select: { id: true, sequenceNo: true, insurerName: true, claimedAmount: true, settledAmount: true, status: true, incidentDate: true, createdAt: true } }),
+      this.prisma.debitNote.findMany({ where: { policyId: id }, orderBy: { createdAt: "desc" }, select: { id: true, sequenceNo: true, netAmount: true, vatAmount: true, createdAt: true } }),
+      this.prisma.invoice.findMany({ where: { policyId: id }, orderBy: { createdAt: "desc" }, select: { id: true, sequenceNo: true, status: true, netAmount: true, vatAmount: true, totalAmount: true, createdAt: true } }),
+      this.prisma.auditLog.findMany({ where: { entity: "policy", entityId: id }, orderBy: { createdAt: "desc" }, take: 60, select: { action: true, meta: true, createdAt: true } }),
+    ]);
+    const documents = await this.prisma.document.findMany({ where: { entityId: id }, orderBy: { createdAt: "desc" }, select: { id: true, fileName: true, docType: true, createdAt: true } });
+    const n = (d: unknown) => (d == null ? 0 : Number(d));
+    const commissionTotal = n(policy.commissionAmount);
+    return {
+      policy,
+      client,
+      endorsements,
+      claims,
+      debitNotes,
+      invoices,
+      documents,
+      activity,
+      summary: {
+        endorsements: endorsements.length,
+        claims: claims.length,
+        claimsSettled: claims.reduce((s, c) => s + n(c.settledAmount), 0),
+        commission: commissionTotal,
+        gross: n(policy.totalPremium),
+        outstanding: debitNotes.reduce((s, d) => s + n(d.netAmount) + n(d.vatAmount), 0),
+      },
+    };
   }
 
   /** إصدار وثيقة من طلب أُسند عرضه (Firm Order). */

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { CheckCircle2, Landmark, FileCheck2, Undo2 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useRouter } from "@/i18n/routing";
+import { Link, useRouter } from "@/i18n/routing";
 import { api, getToken, ApiError } from "@/lib/api";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Badge, type BadgeTone } from "@/components/ui/Badge";
@@ -141,7 +141,7 @@ export default function PoliciesPage() {
               <tbody className="divide-y divide-line">
                 {rows.map((p) => (
                   <tr key={p.id} className="transition-colors hover:bg-surface-2/60">
-                    <td className="px-5 py-3 text-[12.5px] font-medium text-ink tnum">{p.sequenceNo ?? "—"}</td>
+                    <td className="px-5 py-3 text-[12.5px] font-medium tnum"><Link href={`/tenant/policies/${p.id}`} className="text-ink hover:text-primary hover:underline">{p.sequenceNo ?? "—"}</Link></td>
                     <td className="px-5 py-3 text-[13px] text-ink">{p.insurerName ?? "—"}</td>
                     <td className="px-5 py-3 text-[12.5px] tnum">{fmt(p.totalPremium)}</td>
                     <td className="px-5 py-3 text-[12.5px] text-muted tnum">{fmt(p.commissionAmount)}</td>

@@ -420,6 +420,17 @@
     "stages": { "new": "New", "contacted": "Contacted", "quoting": "Quoting", "proposal": "Proposal", "negotiation": "Negotiation" },
     "priorities": { "low": "Low", "normal": "Normal", "high": "High" }
   },
+  "policy360": {
+    "back": "Back to policies",
+    "insurerPolicyNo": "Insurer policy no.",
+    "kpi": { "gross": "Total", "commission": "Commission", "claims": "Claims", "endorsements": "Endorsements" },
+    "tabs": { "financial": "Financials & cover", "endorsements": "Endorsements", "claims": "Claims", "invoices": "Invoices", "documents": "Documents", "timeline": "Timeline" },
+    "financialTitle": "Financial breakdown", "commissionTitle": "Commission & producer", "coverageTitle": "Cover & period",
+    "sumInsured": "Sum insured", "premium": "Net premium", "policyFees": "Policy fees", "vat": "VAT", "totalPremium": "Total due",
+    "commissionRate": "Brokerage", "producer": "Producer", "period": "Cover period", "paymentTerms": "Payment terms",
+    "debitNotes": "Debit notes", "taxInvoices": "Tax invoices", "emptyTab": "No data in this section",
+    "col": { "ref": "Ref", "type": "Type", "effective": "Effective", "delta": "Premium Δ", "status": "Status", "claimed": "Claimed", "settled": "Settled", "incident": "Incident", "net": "Net", "vat": "VAT", "total": "Total", "date": "Date", "file": "File", "docType": "Type" }
+  },
   "client360": {
     "erase": {
       "action": "Erase data (PDPL)",
