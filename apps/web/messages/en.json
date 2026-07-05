@@ -442,6 +442,8 @@
     "sumInsured": "Sum insured", "premium": "Net premium", "policyFees": "Policy fees", "vat": "VAT", "totalPremium": "Total due",
     "commissionRate": "Brokerage", "producer": "Producer", "period": "Cover period", "paymentTerms": "Payment terms",
     "debitNotes": "Debit notes", "taxInvoices": "Tax invoices", "emptyTab": "No data in this section",
+    "addEndorsement": "Add endorsement",
+    "endo": { "title": "Add policy endorsement", "type": "Endorsement type", "effectiveDate": "Effective date", "delta": "Premium delta (± SAR)", "reason": "Reason / details", "submit": "Add endorsement", "cancel": "Cancel", "done": "Endorsement {seq} added", "onlyIssued": "Endorsements can only be added to issued policies", "types": { "addition": "Addition", "deletion": "Deletion", "amendment": "Amendment", "cancellation": "Cancellation" } },
     "col": { "ref": "Ref", "type": "Type", "effective": "Effective", "delta": "Premium Δ", "status": "Status", "claimed": "Claimed", "settled": "Settled", "incident": "Incident", "net": "Net", "vat": "VAT", "total": "Total", "date": "Date", "file": "File", "docType": "Type" }
   },
   "client360": {

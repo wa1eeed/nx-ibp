@@ -2,6 +2,7 @@ import { Body, Controller, Get, HttpCode, Param, Post } from "@nestjs/common";
 import { ProductionService } from "./production.service";
 import { IssuePolicyDto } from "./dto/issue-policy.dto";
 import { ApproveStepDto } from "./dto/approve-step.dto";
+import { CreateEndorsementDto } from "./dto/create-endorsement.dto";
 import { Authorize } from "../rbac/authorize.decorator";
 import { CurrentUser, type AuthUser } from "../auth/current-user.decorator";
 
@@ -46,6 +47,17 @@ export class ProductionController {
     @Body() dto: ApproveStepDto,
   ) {
     return this.production.approveStep(user.tenantId, user, id, dto.stepKey);
+  }
+
+  // إضافة ملحق (Endorsement) على وثيقة مُصدَرة
+  @Authorize({ module: "production", action: "create", entitlement: "module.production" })
+  @Post(":id/endorsements")
+  addEndorsement(
+    @CurrentUser() user: AuthUser,
+    @Param("id") id: string,
+    @Body() dto: CreateEndorsementDto,
+  ) {
+    return this.production.addEndorsement(user, id, dto);
   }
 
   // نظرة 360° للوثيقة (مالية/ملاحق/مطالبات/فواتير/مستندات/خط زمني)

@@ -1,4 +1,5 @@
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import { Prisma } from "@ibp/db";
 import { PrismaService } from "../../prisma/prisma.service";
 import { SequenceService } from "../../common/sequence/sequence.service";
 import { AuditService } from "../../common/audit/audit.service";
@@ -9,6 +10,7 @@ import { vatTreatmentForClass } from "../../common/tax/vat";
 import type { RbacAction } from "../rbac/rbac.constants";
 import type { AuthUser } from "../auth/current-user.decorator";
 import type { IssuePolicyDto } from "./dto/issue-policy.dto";
+import type { CreateEndorsementDto } from "./dto/create-endorsement.dto";
 
 const POLICY_FIELDS = {
   id: true,
@@ -61,6 +63,32 @@ export class ProductionService {
     const policy = await this.prisma.policy.findFirst({ where: { id }, select: POLICY_FIELDS });
     if (!policy) throw new NotFoundException("الوثيقة غير موجودة");
     return policy;
+  }
+
+  /**
+   * إضافة ملحق (Endorsement) على وثيقة مُصدَرة — تعديل/إضافة/حذف/إلغاء بتاريخ سريان وفرق قسط اختياري.
+   * الرقم التسلسلي `POL-…/E{n}`. لا يُسمح على غير المُصدَرة (409).
+   */
+  async addEndorsement(user: AuthUser, policyId: string, dto: CreateEndorsementDto) {
+    const policy = await this.prisma.policy.findFirst({ where: { id: policyId }, select: { id: true, sequenceNo: true, status: true } });
+    if (!policy) throw new NotFoundException("الوثيقة غير موجودة");
+    if (policy.status !== "ISSUED") throw new ConflictException("لا يمكن إضافة ملحق إلا على وثيقة مُصدَرة");
+    const count = await this.prisma.endorsement.count({ where: { policyId } });
+    const endo = await this.prisma.endorsement.create({
+      data: {
+        tenantId: user.tenantId,
+        policyId,
+        sequenceNo: `${policy.sequenceNo ?? policyId}/E${count + 1}`,
+        type: dto.type,
+        effectiveDate: dto.effectiveDate ? new Date(dto.effectiveDate) : null,
+        premiumDelta: dto.premiumDelta ?? null,
+        details: dto.reason ? ({ reason: dto.reason } as Prisma.InputJsonValue) : undefined,
+        status: "ISSUED",
+      },
+      select: { id: true, sequenceNo: true, type: true, effectiveDate: true, premiumDelta: true, status: true, createdAt: true },
+    });
+    await this.audit.log({ tenantId: user.tenantId, userId: user.userId, action: "create", entity: "endorsement", entityId: endo.id, meta: { policyId, type: dto.type } });
+    return endo;
   }
 
   /**

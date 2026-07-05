@@ -442,6 +442,8 @@
     "sumInsured": "مبلغ التأمين", "premium": "القسط الصافي", "policyFees": "رسوم الوثيقة", "vat": "الضريبة", "totalPremium": "الإجمالي المستحق",
     "commissionRate": "عمولة الوسيط", "producer": "المنتِج", "period": "مدّة التغطية", "paymentTerms": "شروط السداد",
     "debitNotes": "إشعارات المدين", "taxInvoices": "الفواتير الضريبية", "emptyTab": "لا بيانات في هذا القسم",
+    "addEndorsement": "إضافة ملحق",
+    "endo": { "title": "إضافة ملحق للوثيقة", "type": "نوع الملحق", "effectiveDate": "تاريخ السريان", "delta": "فرق القسط (± ريال)", "reason": "السبب/التفاصيل", "submit": "إضافة الملحق", "cancel": "إلغاء", "done": "تمت إضافة الملحق {seq}", "onlyIssued": "تُضاف الملاحق على الوثائق المُصدَرة فقط", "types": { "addition": "إضافة", "deletion": "حذف", "amendment": "تعديل", "cancellation": "إلغاء" } },
     "col": { "ref": "المرجع", "type": "النوع", "effective": "السريان", "delta": "فرق القسط", "status": "الحالة", "claimed": "المطالَب", "settled": "المسوّى", "incident": "الحادث", "net": "الصافي", "vat": "الضريبة", "total": "الإجمالي", "date": "التاريخ", "file": "الملف", "docType": "النوع" }
   },
   "client360": {

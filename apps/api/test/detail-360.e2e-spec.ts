@@ -38,6 +38,19 @@ describe("صفحات 360° (e2e)", () => {
   it("عزل: مستأجر آخر لا يقرأ نظرة عميل ليس له ⇒ 404", () =>
     request(app.getHttpServer()).get("/clients/cl-naseej/overview").set(auth(omar)).expect(404));
 
+  it("إضافة ملحق على وثيقة مُصدَرة ⇒ 201 ويظهر في نظرة الوثيقة", async () => {
+    const srv = app.getHttpServer();
+    const res = await request(srv).post("/policies/pol-fahd-pro/endorsements").set(auth(gm))
+      .send({ type: "amendment", effectiveDate: "2026-08-01", premiumDelta: 1200, reason: "تعديل تجريبي" }).expect(201);
+    expect(res.body.sequenceNo).toMatch(/\/E\d+$/);
+    expect(res.body.status).toBe("ISSUED");
+    const ov = await request(srv).get("/policies/pol-fahd-pro/overview").set(auth(gm)).expect(200);
+    expect(ov.body.endorsements.some((e: { id: string }) => e.id === res.body.id)).toBe(true);
+  });
+
+  it("عزل: مستأجر آخر لا يضيف ملحقًا على وثيقة ليست له ⇒ 404", () =>
+    request(app.getHttpServer()).post("/policies/pol-fahd-pro/endorsements").set(auth(omar)).send({ type: "amendment" }).expect(404));
+
   it("تفاصيل الموظف تحوي دوره ونشاطه ومؤشراته + ما تحت مسؤوليته (وثائق/صفقات/مهام)", async () => {
     // موظف مبيعات + صفقة ومهمة مُسنَدتان إليه ⇒ تظهران في صفحته
     const uniq = String(Date.now()).slice(-8);

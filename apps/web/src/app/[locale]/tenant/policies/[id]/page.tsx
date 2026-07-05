@@ -2,11 +2,13 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { ArrowRight, FileCheck2, Coins, ClipboardList, FilePlus2, Receipt, FolderOpen, Clock } from "lucide-react";
+import { ArrowRight, FileCheck2, Coins, ClipboardList, FilePlus2, FolderOpen, Clock, Plus, X, Check } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
-import { api, getToken } from "@/lib/api";
+import { api, ApiError, getToken } from "@/lib/api";
 import { Badge, type BadgeTone } from "@/components/ui/Badge";
+
+const ENDO_TYPES = ["addition", "deletion", "amendment", "cancellation"] as const;
 
 interface Overview {
   policy: {
@@ -36,6 +38,8 @@ export default function PolicyDetailPage() {
   const id = String(useParams().id);
   const [ov, setOv] = useState<Overview | null>(null);
   const [tab, setTab] = useState<(typeof TABS)[number]>("financial");
+  const [endoOpen, setEndoOpen] = useState(false);
+  const [endoDone, setEndoDone] = useState("");
 
   const load = useCallback(async () => {
     try { setOv(await api<Overview>(`/policies/${id}/overview`)); } catch { /* تجاهل */ }
@@ -118,7 +122,18 @@ export default function PolicyDetailPage() {
           </div>
         ) : null}
 
-        {tab === "endorsements" ? (ov.endorsements.length ? table([t("col.ref"), t("col.type"), t("col.effective"), t("col.delta"), t("col.status")], ov.endorsements.map((e) => row([e.sequenceNo ?? "—", e.type, dt(e.effectiveDate), fmt(e.premiumDelta), <Badge key="s" tone="neutral">{e.status}</Badge>]))) : empty) : null}
+        {tab === "endorsements" ? (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-[12px] text-subtle">{p.status === "ISSUED" ? "" : t("endo.onlyIssued")}</p>
+              {p.status === "ISSUED" ? (
+                <button onClick={() => { setEndoDone(""); setEndoOpen(true); }} className="inline-flex items-center gap-1.5 rounded-lg bg-primary-strong px-3 py-1.5 text-[12.5px] font-semibold text-primary-fg hover:bg-primary"><Plus size={15} /> {t("addEndorsement")}</button>
+              ) : null}
+            </div>
+            {endoDone ? <p className="rounded-lg bg-success-soft px-3 py-2 text-[12.5px] font-medium text-success">{endoDone}</p> : null}
+            {ov.endorsements.length ? table([t("col.ref"), t("col.type"), t("col.effective"), t("col.delta"), t("col.status")], ov.endorsements.map((e) => row([e.sequenceNo ?? "—", (ENDO_TYPES as readonly string[]).includes(e.type) ? t(`endo.types.${e.type}`) : e.type, dt(e.effectiveDate), fmt(e.premiumDelta), <Badge key="s" tone="neutral">{e.status}</Badge>]))) : empty}
+          </div>
+        ) : null}
 
         {tab === "claims" ? (ov.claims.length ? table([t("col.ref"), t("col.status"), t("col.claimed"), t("col.settled"), t("col.incident")], ov.claims.map((c) => row([c.sequenceNo ?? "—", <Badge key="s" tone={c.status === "SETTLED" ? "success" : c.status === "REJECTED" ? "danger" : "info"}>{c.status}</Badge>, fmt(c.claimedAmount), fmt(c.settledAmount), dt(c.incidentDate)]))) : empty) : null}
 
@@ -142,6 +157,51 @@ export default function PolicyDetailPage() {
             ))}
           </ol>
         ) : empty) : null}
+      </div>
+
+      {endoOpen ? <AddEndorsement policyId={id} onClose={() => setEndoOpen(false)} onDone={(seq) => { setEndoOpen(false); setEndoDone(t("endo.done", { seq })); void load(); }} /> : null}
+    </div>
+  );
+}
+
+function AddEndorsement({ policyId, onClose, onDone }: { policyId: string; onClose: () => void; onDone: (seq: string) => void }) {
+  const t = useTranslations("policy360");
+  const [type, setType] = useState<string>("amendment");
+  const [effectiveDate, setEffectiveDate] = useState("");
+  const [delta, setDelta] = useState("");
+  const [reason, setReason] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState("");
+
+  async function save() {
+    setErr(""); setSaving(true);
+    try {
+      const r = await api<{ sequenceNo: string }>(`/policies/${policyId}/endorsements`, { method: "POST", body: JSON.stringify({ type, effectiveDate: effectiveDate || undefined, premiumDelta: delta ? Number(delta) : undefined, reason: reason || undefined }) });
+      onDone(r.sequenceNo);
+    } catch (e) { setErr(e instanceof ApiError ? e.message : "خطأ"); setSaving(false); }
+  }
+
+  const field = "h-9 w-full rounded-lg border border-line bg-card px-3 text-[13px] text-ink focus:outline-none focus:ring-2 focus:ring-primary/30";
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onMouseDown={onClose}>
+      <div className="w-full max-w-md rounded-card border border-line bg-card p-5 shadow-card" onMouseDown={(e) => e.stopPropagation()}>
+        <div className="mb-3 flex items-center justify-between"><h2 className="text-[15px] font-bold text-ink">{t("endo.title")}</h2><button onClick={onClose} className="text-subtle hover:text-ink"><X size={18} /></button></div>
+        <div className="space-y-3">
+          <label className="block"><span className="mb-1 block text-[11.5px] font-medium text-muted">{t("endo.type")}</span>
+            <select value={type} onChange={(e) => setType(e.target.value)} className={field}>
+              {ENDO_TYPES.map((tp) => <option key={tp} value={tp}>{t(`endo.types.${tp}`)}</option>)}
+            </select></label>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="block"><span className="mb-1 block text-[11.5px] font-medium text-muted">{t("endo.effectiveDate")}</span><input type="date" value={effectiveDate} onChange={(e) => setEffectiveDate(e.target.value)} className={field} /></label>
+            <label className="block"><span className="mb-1 block text-[11.5px] font-medium text-muted">{t("endo.delta")}</span><input type="number" value={delta} onChange={(e) => setDelta(e.target.value)} className={`${field} tnum`} /></label>
+          </div>
+          <label className="block"><span className="mb-1 block text-[11.5px] font-medium text-muted">{t("endo.reason")}</span><textarea value={reason} onChange={(e) => setReason(e.target.value)} className="h-20 w-full rounded-lg border border-line bg-card px-3 py-2 text-[13px]" /></label>
+          {err ? <p className="text-[12px] font-medium text-danger">{err}</p> : null}
+          <div className="flex justify-end gap-2 pt-1">
+            <button onClick={onClose} className="h-9 rounded-lg border border-line px-3 text-[12.5px] font-medium text-muted hover:bg-surface-2">{t("endo.cancel")}</button>
+            <button onClick={save} disabled={saving} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary-strong px-4 text-[12.5px] font-semibold text-primary-fg hover:bg-primary disabled:opacity-60"><Check size={15} /> {saving ? "…" : t("endo.submit")}</button>
+          </div>
+        </div>
       </div>
     </div>
   );
