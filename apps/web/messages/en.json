@@ -578,11 +578,17 @@
   },
   "renewals": {
     "title": "Renewals",
-    "subtitle": "Policies due for renewal within 60 days",
-    "empty": "No policies due for renewal soon",
+    "subtitle": "Renewals board — expired and upcoming policies, ranked by urgency",
+    "empty": "No policies due for renewal in this window",
     "initiate": "Initiate renewal",
     "initiated": "Renewal request {seq} created",
-    "col": { "seq": "Policy #", "insurer": "Insurer", "end": "Expiry" }
+    "confirmTitle": "Initiate renewal",
+    "confirmDesc": "A renewal request will be created for this policy, a reminder sent to the client, and a new cycle started.",
+    "dayShort": "d",
+    "daysLeft": "days",
+    "expiredBy": "expired {n}d ago",
+    "kpi": { "expired": "Expired (overdue)", "soon": "Within 30 days", "upcoming": "Upcoming", "atRisk": "Premium at risk (SAR)" },
+    "col": { "seq": "Policy #", "client": "Client", "insurer": "Insurer", "premium": "Premium", "end": "Expiry", "urgency": "Urgency" }
   },
   "underwriting": {
     "title": "Underwriting",

@@ -17,15 +17,19 @@ export class RenewalsService {
     private readonly notifications: NotificationsService,
   ) {}
 
-  /** الوثائق المُصدَرة المنتهية خلال (days) يوماً. */
-  due(days = 60) {
+  /** الوثائق المُصدَرة المنتهية خلال (days) يوماً — مُثراة باسم العميل والقسط (للوحة التجديدات). */
+  async due(days = 60) {
     const until = new Date();
     until.setDate(until.getDate() + days);
-    return this.prisma.policy.findMany({
+    const rows = await this.prisma.policy.findMany({
       where: { status: "ISSUED", endDate: { lte: until } },
       orderBy: { endDate: "asc" },
-      select: { id: true, sequenceNo: true, insurerName: true, endDate: true, clientId: true, productLineCode: true, tenantId: true },
+      select: { id: true, sequenceNo: true, insurerName: true, endDate: true, totalPremium: true, commissionAmount: true, clientId: true, productLineCode: true, tenantId: true },
     });
+    const clientIds = [...new Set(rows.map((r) => r.clientId).filter(Boolean) as string[])];
+    const clients = clientIds.length ? await this.prisma.client.findMany({ where: { id: { in: clientIds } }, select: { id: true, name: true } }) : [];
+    const nameOf = new Map(clients.map((c) => [c.id, c.name]));
+    return rows.map((r) => ({ ...r, clientName: r.clientId ? nameOf.get(r.clientId) ?? null : null }));
   }
 
   async initiate(tenantId: string, userId: string, policyId: string) {
