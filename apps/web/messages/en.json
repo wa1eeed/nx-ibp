@@ -143,6 +143,12 @@
     "clients": "Debtor clients",
     "notes": "Debit notes",
     "byClient": "Outstanding by client",
+    "aging": "Receivables aging",
+    "agingSub": "Outstanding per client by overdue period — for collection priorities",
+    "bucket": { "current": "0–30 days", "d60": "31–60", "d90": "61–90", "over": "90+" },
+    "totalRow": "Total",
+    "overdue": "Overdue",
+    "over60": "60+ days",
     "debitNotes": "Debit notes",
     "col": { "no": "No.", "client": "Client", "date": "Date", "total": "Total" }
   },
@@ -226,7 +232,11 @@
       "received": "Received",
       "variance": "Variance",
       "status": "Status"
-    }
+    },
+    "status": { "received": "Received", "accrued": "Accrued", "variance": "Variance" },
+    "byInsurer": "By insurer",
+    "collectionRate": "Collection rate",
+    "empty": "No commissions recorded yet"
   },
   "status": {
     "completed": "Completed",
