@@ -29,8 +29,10 @@ export default function LoginPage() {
         body: JSON.stringify({ email, password, ...(mfaStep && mfaCode ? { mfaCode } : {}) }),
       });
       setToken(res.accessToken);
-      // إلزام الشركة بالـMFA ولم يُفعّلها بعد ⇒ يُوجَّه للتفعيل قبل المتابعة
-      router.push(res.mfaEnrollmentRequired ? "/tenant/settings/security" : "/tenant/settings/staff");
+      // بعد الدخول ⇒ الصفحة الافتراضية (لوحة المعلومات، متاحة لكل الأدوار) — لا آخر صفحة
+      // من جلسة سابقة قد تكون خارج صلاحية الموظف. إلزام MFA غير المُفعّل ⇒ صفحة التفعيل أولاً.
+      // نستخدم replace كي لا تبقى صفحة الدخول في سجلّ التصفّح.
+      router.replace(res.mfaEnrollmentRequired ? "/tenant/settings/security" : "/tenant/dashboard");
     } catch (err) {
       if (err instanceof ApiError && err.message === "MFA_REQUIRED") {
         setMfaStep(true); // كلمة المرور صحيحة — نطلب رمز المصادقة الثنائية
