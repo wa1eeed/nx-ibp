@@ -963,11 +963,13 @@ async function main() {
     });
   }
 
-  // مالك المنصة (سوبر أدمن)
+  // مالك المنصة (سوبر أدمن) — كلمة المرور/البريد من البيئة إن وُجدت (لـstaging المنشورة)، وإلا الافتراضي التطويري.
+  const adminEmail = (process.env.PLATFORM_ADMIN_EMAIL ?? "admin@ibp-platform.sa").trim();
+  const adminHash = process.env.PLATFORM_ADMIN_PASSWORD ? await bcrypt.hash(process.env.PLATFORM_ADMIN_PASSWORD, 10) : passwordHash;
   await prisma.platformAdmin.upsert({
-    where: { email: "admin@ibp-platform.sa" },
-    update: { passwordHash },
-    create: { email: "admin@ibp-platform.sa", fullName: "مالك المنصة", passwordHash },
+    where: { email: adminEmail },
+    update: { passwordHash: adminHash },
+    create: { email: adminEmail, fullName: process.env.PLATFORM_ADMIN_NAME?.trim() || "مالك المنصة", passwordHash: adminHash },
   });
 
   const [nc, np, ncl] = await Promise.all([prisma.client.count(), prisma.policy.count(), prisma.claim.count()]);
@@ -976,7 +978,7 @@ async function main() {
   console.log("   الخليج (premium+مطالبات): waleed/sara/fahad/laila@gulf-demo.sa");
   console.log("   الأمان (basic): omar@aman-demo.sa");
   if (!isTestDb) console.log("   🏢 Gulf Insurance Brokers Co. (enterprise، ديمو واقعي): AAlanazi@gib-sa.com + pricing/finance/claims/compliance/care@gib-sa.com");
-  console.log("   سوبر أدمن: admin@ibp-platform.sa");
+  console.log(`   سوبر أدمن: ${adminEmail}`);
   console.log("   بوّابة العميل: portal@alfahd.sa · portal@naseej.sa · portal@nukhba.sa");
 }
 

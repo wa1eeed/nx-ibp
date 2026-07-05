@@ -12,6 +12,7 @@
     "migrate:deploy:test": "dotenv -e ../../.env.test -e ../../.env -- prisma migrate deploy",
     "seed:prod": "SEED_MODE=production tsx prisma/seed.ts",
     "seed:demo": "SEED_MODE=demo tsx prisma/seed.ts",
+    "admin:set": "tsx prisma/set-platform-admin.ts",
     "seed": "dotenv -e ../../.env -- tsx prisma/seed.ts",
     "seed:test": "dotenv -e ../../.env.test -e ../../.env -- tsx prisma/seed.ts",
     "test:setup": "pnpm run migrate:deploy:test && pnpm run seed:test",

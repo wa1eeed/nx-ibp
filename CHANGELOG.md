@@ -2,6 +2,11 @@
 
 كل التغييرات الملموسة في منصة IBP، منظّمة حسب المراحل. الصيغة مستلهمة من [Keep a Changelog](https://keepachangelog.com).
 
+## [كلمة مرور سوبر أدمن المنصّة من البيئة] ✅
+- **أمر مخصّص `admin:set`** (`pnpm --filter @ibp/db admin:set`) — يضبط/يُغيّر كلمة مرور سوبر أدمن المنصّة من `PLATFORM_ADMIN_PASSWORD`/`PLATFORM_ADMIN_EMAIL` بلا إعادة بذر كامل: يُنشئ إن لم يوجد، ويُحدّث إن وُجد (idempotent، لا يمسّ MFA). تحقّق: كلمة مرور فارغة/أقل من 12 حرفًا ⇒ رفض.
+- **البذر المنشور صار يحترم البيئة**: `seed:demo`/`seed:prod` يستخدمان `PLATFORM_ADMIN_EMAIL`/`PLATFORM_ADMIN_PASSWORD` إن ضُبطت (بدل `Passw0rd!` التطويري) — فلا تبقى كلمة المرور الافتراضية على بيئة منشورة.
+- **الغرض**: تحصين staging/production — تغيير كلمة مرور `/admin/login` من متغيّرات Coolify. موثّق في [`coolify.md §8`](infra/docker/coolify.md). مُتحقَّق (guards + happy path + تحديث متكرّر على قاعدة نظيفة).
+
 ## [نشر staging] — المنصّة حيّة على `ibp.nx.sa` + تحصين مطابقة الإنتاج ✅
 - **staging منشورة** (2026-07-05) على Coolify: `https://ibp.nx.sa` (واجهة) + `https://api.ibp.nx.sa` (API)، Postgres+Redis داخل الحزمة، تكاملات Sandbox، بيانات ديمو GIB عبر `seed:demo`. تُحاكي الإنتاج. **البيئات الثلاث موثّقة** في [docs/32](docs/32-environments.md): dev (جهاز المطوّر) · staging (السيرفر الحالي) · production (لاحقًا، داخل المملكة).
 - **إصلاح نشر Coolify:** `build.context` من `../..` إلى `.` (Coolify يبني من جذر المستودع؛ `../..` كان يفشل بـ`lstat /apps`).

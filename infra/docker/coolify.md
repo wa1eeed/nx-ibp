@@ -42,7 +42,7 @@ SEED_MODE=demo                                # يسمح ببذرة الديمو
 | المتغيّر | إلزامي | ملاحظة |
 |---|---|---|
 | `POSTGRES_PASSWORD` | ✅ | كلمة مرور قاعدة قويّة |
-| `PLATFORM_ADMIN_EMAIL` / `PLATFORM_ADMIN_PASSWORD` | ✅ (لـ `seed:prod`) | سوبر أدمن الإقلاع — كلمة مرور ≥ 12 حرفًا؛ لا تُعاد كتابتها إن وُجد الحساب |
+| `PLATFORM_ADMIN_EMAIL` / `PLATFORM_ADMIN_PASSWORD` / `PLATFORM_ADMIN_NAME` | ✅ (لـ `seed:prod`/`seed:demo` المنشورة) | سوبر أدمن المنصّة — بريد + كلمة مرور ≥ 12 حرفًا. تُستخدم عند البذر، ويمكن **تغييرها لاحقًا** بأمر `admin:set` (§8) |
 | `POSTGRES_USER` / `POSTGRES_DB` | — | افتراضي `ibp` / `ibp` |
 | `JWT_SECRET` | ✅ | `openssl rand -base64 48` |
 | `ZATCA_ENC_KEY` | ✅ | تشفير الاعتماد at-rest: `openssl rand -base64 32` |
@@ -88,6 +88,19 @@ cd /tmp && rm -rf ibp-build && git clone --depth 1 https://github.com/wa1eeed/nx
 docker exec $(docker ps --format '{{.Names}}' | grep -m1 -i api) sh -c "cd /app && pnpm --filter @ibp/db run seed:demo"
 ```
 انتظر `✅ تمّ الزرع`. القاعدة على volume دائم ⇒ لا تتكرّر مع كل نشر.
+
+## 8. تغيير كلمة مرور سوبر أدمن المنصّة (من متغيّرات البيئة)
+لا تُبقِ كلمة المرور التطويرية `Passw0rd!` على بيئة منشورة. لضبط/تغيير كلمة مرور سوبر أدمن المنصّة:
+1. في Coolify، اضبط المتغيّر **`PLATFORM_ADMIN_PASSWORD`** (واختياريًا `PLATFORM_ADMIN_EMAIL`) بقيمة قوية (≥ 12 حرفًا).
+2. شغّل الأمر مرّة واحدة — من طرفية خدمة `api`، أو عبر SSH للمضيف:
+```bash
+docker exec $(docker ps --format '{{.Names}}' | grep -m1 -i api) sh -c "cd /app && pnpm --filter @ibp/db run admin:set"
+```
+3. النتيجة `✅ ضُبطت كلمة مرور سوبر أدمن المنصّة: <البريد>`. ادخل الآن على `/admin/login` بالبريد وكلمة المرور الجديدة.
+
+- **`admin:set`** يُنشئ الحساب إن لم يوجد، أو **يُحدّث كلمة مروره** إن وُجد (آمن للتكرار). لا يمسّ MFA.
+- لتغيير كلمة المرور لاحقًا: بدّل `PLATFORM_ADMIN_PASSWORD` وأعد تشغيل الأمر — لا حاجة لإعادة بذر.
+- بديل: بعد ضبط المتغيّرات، إعادة `seed:demo` تلتقطها أيضًا (لكن `admin:set` أخفّ وأدقّ).
 
 ## انظر أيضاً
 - [13 — الإعداد المحلي والتشغيل](../../docs/13-local-setup-and-operations.md) · [14 — متغيّرات البيئة](../../docs/14-environment-variables.md)
