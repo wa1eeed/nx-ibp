@@ -121,4 +121,47 @@ describe("الإصدار والاعتماد المالي (e2e)", () => {
     const res = await request(app.getHttpServer()).get("/policies").set(auth(amanGm)).expect(200);
     expect(res.body.every((p: { tenantId: string }) => p.tenantId === "demo-tenant-2")).toBe(true);
   });
+
+  it("دورة التحصيل: سند قبض يُنقص المتبقّي · الزيادة 409 · الإكمال ⇒ مسدَّد · كشف الحساب يوازن", async () => {
+    const srv = app.getHttpServer();
+    const requestId = await createAwardedRequest();
+    const policy = (await request(srv).post("/policies/issue").set(auth(underwriter)).send({ requestId, branchCode: "RUH" }).expect(201)).body;
+    await request(srv).post(`/policies/${policy.id}/approve-technical`).set(auth(underwriter)).expect(200);
+    const fin = (await request(srv).post(`/finance/policies/${policy.id}/approve`).set(auth(accountant)).expect(200)).body;
+
+    const recv = (await request(srv).get("/finance/receivables").set(auth(accountant))).body;
+    const note = recv.notes.find((n: { sequenceNo: string }) => n.sequenceNo === fin.debitNote);
+    expect(note).toBeTruthy();
+    expect(note.status).toBe("outstanding");
+    const total = note.total as number; // 69000
+
+    // سند قبض جزئي ⇒ partial + إنقاص المتبقّي
+    const r1 = (await request(srv).post(`/finance/debit-notes/${note.id}/receipt`).set(auth(accountant)).send({ amount: 20000, method: "transfer" }).expect(201)).body;
+    expect(r1.voucher.sequenceNo).toMatch(/^RCV-/);
+    expect(r1.debitNote.status).toBe("partial");
+    expect(r1.debitNote.outstanding).toBe(total - 20000);
+
+    // الزيادة عن المتبقّي ⇒ 409
+    await request(srv).post(`/finance/debit-notes/${note.id}/receipt`).set(auth(accountant)).send({ amount: total }).expect(409);
+
+    // إكمال التحصيل ⇒ paid
+    const r2 = (await request(srv).post(`/finance/debit-notes/${note.id}/receipt`).set(auth(accountant)).send({ amount: total - 20000 }).expect(201)).body;
+    expect(r2.debitNote.status).toBe("paid");
+
+    // كشف حساب العميل يوازن (الرصيد = 0)
+    const st = (await request(srv).get(`/finance/statement/${policy.clientId}`).set(auth(accountant)).expect(200)).body;
+    expect(st.summary.balance).toBe(0);
+    expect(st.rows.some((r: { kind: string }) => r.kind === "payment")).toBe(true);
+  });
+
+  it("صلاحية/عزل التحصيل: المكتتب (لا finance) 403 · مستأجر آخر 404", async () => {
+    const srv = app.getHttpServer();
+    const requestId = await createAwardedRequest();
+    const policy = (await request(srv).post("/policies/issue").set(auth(underwriter)).send({ requestId, branchCode: "RUH" }).expect(201)).body;
+    await request(srv).post(`/policies/${policy.id}/approve-technical`).set(auth(underwriter)).expect(200);
+    const fin = (await request(srv).post(`/finance/policies/${policy.id}/approve`).set(auth(accountant)).expect(200)).body;
+    const note = (await request(srv).get("/finance/receivables").set(auth(accountant))).body.notes.find((n: { sequenceNo: string }) => n.sequenceNo === fin.debitNote);
+    await request(srv).post(`/finance/debit-notes/${note.id}/receipt`).set(auth(underwriter)).send({ amount: 100 }).expect(403);
+    await request(srv).post(`/finance/debit-notes/${note.id}/receipt`).set(auth(amanGm)).send({ amount: 100 }).expect(404);
+  });
 });

@@ -149,6 +149,13 @@
     "totalRow": "الإجمالي",
     "overdue": "متأخّرة",
     "over60": "أكثر من 60 يوماً",
+    "collected": "المُحصَّل",
+    "recordPayment": "تسجيل دفعة",
+    "statementBtn": "كشف الحساب",
+    "status": { "outstanding": "مستحقّ", "partial": "جزئي", "paid": "مسدَّد" },
+    "colx": { "settled": "المُحصَّل", "outstanding": "المتبقّي", "status": "الحالة", "actions": "إجراءات" },
+    "receipt": { "title": "تسجيل دفعة/تحصيل", "on": "مقابل إشعار المدين", "amount": "المبلغ المُحصَّل", "method": "طريقة الدفع", "reference": "المرجع (تحويل/شيك…)", "submit": "تسجيل التحصيل", "cancel": "إلغاء", "done": "تم تسجيل التحصيل {seq}", "methods": { "cash": "نقدًا", "transfer": "تحويل بنكي", "cheque": "شيك", "card": "بطاقة", "pos": "نقاط بيع" } },
+    "statement": { "title": "كشف حساب العميل", "charged": "إجمالي المُحمَّل", "paid": "إجمالي المُحصَّل", "balance": "الرصيد المستحقّ", "date": "التاريخ", "ref": "المرجع", "desc": "البيان", "debit": "مدين", "credit": "دائن", "balanceCol": "الرصيد", "charge": "إشعار مدين", "payment": "سند قبض", "close": "إغلاق", "empty": "لا حركات" },
     "debitNotes": "إشعارات المدين",
     "col": { "no": "الرقم", "client": "العميل", "date": "التاريخ", "total": "الإجمالي" }
   },
@@ -236,7 +243,9 @@
     "status": { "received": "مستلمة", "accrued": "مستحقّة", "variance": "فرق تحصيل" },
     "byInsurer": "حسب شركة التأمين",
     "collectionRate": "نسبة التحصيل",
-    "empty": "لا عمولات مسجّلة بعد"
+    "empty": "لا عمولات مسجّلة بعد",
+    "recordReceipt": "تسجيل استلام",
+    "receipt": { "title": "تسجيل استلام عمولة", "from": "من", "amount": "المبلغ المُستلَم", "reference": "المرجع", "submit": "تسجيل", "cancel": "إلغاء", "done": "تم تسجيل الاستلام {seq}" }
   },
   "status": {
     "completed": "مكتمل",

@@ -79,7 +79,7 @@ export class FinanceService {
   async receivables() {
     const notes = await this.prisma.debitNote.findMany({
       orderBy: { createdAt: "desc" },
-      select: { id: true, sequenceNo: true, clientId: true, policyId: true, netAmount: true, vatAmount: true, createdAt: true },
+      select: { id: true, sequenceNo: true, clientId: true, policyId: true, netAmount: true, vatAmount: true, settledAmount: true, settledAt: true, createdAt: true },
     });
     const clientIds = [...new Set(notes.map((n) => n.clientId).filter((x): x is string => !!x))];
     const clients = clientIds.length
@@ -89,20 +89,125 @@ export class FinanceService {
 
     const byClient = new Map<string, { clientId: string; clientName: string; total: number; count: number }>();
     let outstanding = 0;
+    let collected = 0;
     for (const n of notes) {
-      const t = num(n.netAmount) + num(n.vatAmount);
-      outstanding += t;
+      const gross = num(n.netAmount) + num(n.vatAmount);
+      const out = r2(gross - num(n.settledAmount));
+      outstanding += out;
+      collected += num(n.settledAmount);
+      if (out <= 0) continue; // مسدَّد بالكامل — لا يظهر في «المستحقّ حسب العميل»
       const key = n.clientId ?? "—";
       const cur = byClient.get(key) ?? { clientId: key, clientName: nameOf[key] ?? "—", total: 0, count: 0 };
-      cur.total += t;
+      cur.total += out;
       cur.count += 1;
       byClient.set(key, cur);
     }
     return {
       outstanding: r2(outstanding),
+      collected: r2(collected),
       byClient: [...byClient.values()].sort((a, b) => b.total - a.total),
-      notes: notes.map((n) => ({ id: n.id, sequenceNo: n.sequenceNo, clientName: nameOf[n.clientId ?? ""] ?? "—", total: r2(num(n.netAmount) + num(n.vatAmount)), createdAt: n.createdAt })),
+      notes: notes.map((n) => {
+        const gross = r2(num(n.netAmount) + num(n.vatAmount));
+        const settled = r2(num(n.settledAmount));
+        return { id: n.id, sequenceNo: n.sequenceNo, clientId: n.clientId, clientName: nameOf[n.clientId ?? ""] ?? "—", total: gross, settled, outstanding: r2(gross - settled), status: settled <= 0 ? "outstanding" : settled >= gross ? "paid" : "partial", createdAt: n.createdAt };
+      }),
     };
+  }
+
+  /** سند قبض من العميل (RCV) مقابل إشعار مدين — يزيد المُحصَّل ويُنقص الذمم. يمنع تجاوز المستحقّ. */
+  async recordReceipt(tenantId: string, userId: string, debitNoteId: string, dto: { amount: number; method?: string; reference?: string; receivedDate?: string }) {
+    const note = await this.prisma.debitNote.findFirst({ where: { id: debitNoteId } });
+    if (!note) throw new NotFoundException("إشعار المدين غير موجود");
+    const gross = r2(num(note.netAmount) + num(note.vatAmount));
+    const already = num(note.settledAmount);
+    const remaining = r2(gross - already);
+    if (remaining <= 0) throw new ConflictException("إشعار المدين مُسدَّد بالكامل");
+    if (dto.amount > remaining + 0.001) throw new ConflictException(`المبلغ يتجاوز المتبقّي المستحقّ (${remaining})`);
+
+    const newSettled = r2(already + dto.amount);
+    const fullyPaid = newSettled >= gross - 0.001;
+    const seq = await this.seq.nextVoucherSeq("RCV");
+    const result = await this.prisma.$transaction(async (tx) => {
+      const voucher = await tx.voucher.create({
+        data: {
+          tenantId, type: "RCV", sequenceNo: seq, amount: r2(dto.amount), status: "posted", isAuto: false, reference: debitNoteId,
+          lines: asJson({
+            description: `تحصيل من العميل مقابل ${note.sequenceNo ?? debitNoteId}`,
+            method: dto.method ?? "transfer", ref: dto.reference ?? null, receivedDate: dto.receivedDate ?? null, clientId: note.clientId,
+            entries: [
+              { account: "01010000000000000", name: "النقد والبنوك", debit: r2(dto.amount), credit: 0 },
+              { account: "01030000000000000", name: "ذمم العملاء المدينة", debit: 0, credit: r2(dto.amount) },
+            ],
+          }),
+        },
+        select: { id: true, sequenceNo: true, amount: true },
+      });
+      const updated = await tx.debitNote.update({
+        where: { id: debitNoteId },
+        data: { settledAmount: newSettled, settledAt: fullyPaid ? new Date() : null },
+        select: { id: true, sequenceNo: true, netAmount: true, vatAmount: true, settledAmount: true, settledAt: true },
+      });
+      return { voucher, note: updated };
+    });
+    await this.audit.log({ tenantId, userId, action: "create", entity: "receipt", entityId: result.voucher.id, meta: { debitNoteId, amount: r2(dto.amount), fullyPaid } });
+    const settled = num(result.note.settledAmount);
+    return {
+      voucher: result.voucher,
+      debitNote: { id: result.note.id, sequenceNo: result.note.sequenceNo, total: gross, settled: r2(settled), outstanding: r2(gross - settled), status: settled >= gross - 0.001 ? "paid" : "partial" },
+    };
+  }
+
+  /** استلام عمولة من المؤمِّن (RCV) — يسجّل المُستلَم ويضبط الحالة (مستلمة/فرق تحصيل). */
+  async recordCommissionReceipt(tenantId: string, userId: string, commissionId: string, dto: { amount: number; reference?: string; receivedDate?: string }) {
+    const comm = await this.prisma.commission.findFirst({ where: { id: commissionId } });
+    if (!comm) throw new NotFoundException("سجلّ العمولة غير موجود");
+    const expected = num(comm.amount);
+    const already = num(comm.receivedAmount);
+    const newReceived = r2(already + dto.amount);
+    if (newReceived > expected + 0.001) throw new ConflictException(`المبلغ يتجاوز العمولة المتوقّعة (${r2(expected - already)} متبقّية)`);
+    const status = newReceived >= expected - 0.001 ? "received" : "variance"; // مكتمل ⇒ مستلمة، أقلّ ⇒ فرق تحصيل
+    const seq = await this.seq.nextVoucherSeq("RCV");
+    const result = await this.prisma.$transaction(async (tx) => {
+      const voucher = await tx.voucher.create({
+        data: {
+          tenantId, type: "RCV", sequenceNo: seq, amount: r2(dto.amount), status: "posted", isAuto: false, reference: commissionId,
+          lines: asJson({
+            description: `استلام عمولة من ${comm.insurerName ?? "المؤمِّن"}`,
+            ref: dto.reference ?? null, receivedDate: dto.receivedDate ?? null,
+            entries: [
+              { account: "01010000000000000", name: "النقد والبنوك", debit: r2(dto.amount), credit: 0 },
+              { account: "01040000000000000", name: "عمولات مستحقّة على المؤمِّنين", debit: 0, credit: r2(dto.amount) },
+            ],
+          }),
+        },
+        select: { id: true, sequenceNo: true, amount: true },
+      });
+      const updated = await tx.commission.update({ where: { id: commissionId }, data: { receivedAmount: newReceived, status }, select: { id: true, amount: true, receivedAmount: true, status: true } });
+      return { voucher, comm: updated };
+    });
+    await this.audit.log({ tenantId, userId, action: "create", entity: "commission_receipt", entityId: result.voucher.id, meta: { commissionId, amount: r2(dto.amount), status } });
+    return { voucher: result.voucher, commission: result.comm };
+  }
+
+  /** كشف حساب العميل: القيود (إشعارات مدين) والمدفوعات (سندات قبض) برصيد جارٍ. */
+  async statement(clientId: string) {
+    const client = await this.prisma.client.findFirst({ where: { id: clientId }, select: { id: true, name: true, code: true } });
+    if (!client) throw new NotFoundException("العميل غير موجود");
+    const notes = await this.prisma.debitNote.findMany({ where: { clientId }, orderBy: { createdAt: "asc" }, select: { id: true, sequenceNo: true, netAmount: true, vatAmount: true, createdAt: true } });
+    const noteIds = notes.map((n) => n.id);
+    const receipts = noteIds.length
+      ? await this.prisma.voucher.findMany({ where: { type: "RCV", reference: { in: noteIds } }, orderBy: { createdAt: "asc" }, select: { id: true, sequenceNo: true, amount: true, reference: true, createdAt: true } })
+      : [];
+    type Line = { date: Date; kind: "charge" | "payment"; ref: string | null; debit: number; credit: number };
+    const lines: Line[] = [
+      ...notes.map((n) => ({ date: n.createdAt, kind: "charge" as const, ref: n.sequenceNo, debit: r2(num(n.netAmount) + num(n.vatAmount)), credit: 0 })),
+      ...receipts.map((r) => ({ date: r.createdAt, kind: "payment" as const, ref: r.sequenceNo, debit: 0, credit: num(r.amount) })),
+    ].sort((a, b) => +a.date - +b.date);
+    let balance = 0;
+    const rows = lines.map((l) => { balance = r2(balance + l.debit - l.credit); return { ...l, balance }; });
+    const charged = r2(notes.reduce((s, n) => s + num(n.netAmount) + num(n.vatAmount), 0));
+    const paid = r2(receipts.reduce((s, r) => s + num(r.amount), 0));
+    return { client, rows, summary: { charged, paid, balance: r2(charged - paid) } };
   }
 
   /** ملخّص مالي: القسط المكتتب، العمولة، الأمانات (خارج الميزانية)، الذمم. */
@@ -111,7 +216,7 @@ export class FinanceService {
       this.prisma.policy.aggregate({ where: { status: "ISSUED" }, _sum: { premium: true, vat: true, totalPremium: true, commissionAmount: true } }),
       this.prisma.commission.aggregate({ _sum: { amount: true } }),
       this.prisma.invoice.aggregate({ _sum: { totalAmount: true }, _count: true }),
-      this.prisma.debitNote.aggregate({ _sum: { netAmount: true, vatAmount: true } }),
+      this.prisma.debitNote.aggregate({ _sum: { netAmount: true, vatAmount: true, settledAmount: true } }),
       this.prisma.voucher.count(),
     ]);
     const total = num(policyAgg._sum.totalPremium);
@@ -124,7 +229,8 @@ export class FinanceService {
       commission: num(commissionAgg._sum.amount),
       outputVatPayable, // ضريبة القيمة المضافة المستحقة على العمولة
       offBalanceTrust: r2(total - commission - outputVatPayable), // أمانات أقساط العملاء (خارج الميزانية)
-      receivables: r2(num(debitAgg._sum.netAmount) + num(debitAgg._sum.vatAmount)),
+      receivables: r2(num(debitAgg._sum.netAmount) + num(debitAgg._sum.vatAmount) - num(debitAgg._sum.settledAmount)), // المتبقّي بعد التحصيل
+      collected: r2(num(debitAgg._sum.settledAmount)), // المُحصَّل من العملاء
       invoiceCount: invoiceAgg._count,
       voucherCount: vouchers,
     };

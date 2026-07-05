@@ -149,6 +149,13 @@
     "totalRow": "Total",
     "overdue": "Overdue",
     "over60": "60+ days",
+    "collected": "Collected",
+    "recordPayment": "Record payment",
+    "statementBtn": "Statement",
+    "status": { "outstanding": "Outstanding", "partial": "Partial", "paid": "Paid" },
+    "colx": { "settled": "Collected", "outstanding": "Remaining", "status": "Status", "actions": "Actions" },
+    "receipt": { "title": "Record a receipt", "on": "against debit note", "amount": "Amount received", "method": "Payment method", "reference": "Reference (transfer/cheque…)", "submit": "Record receipt", "cancel": "Cancel", "done": "Receipt {seq} recorded", "methods": { "cash": "Cash", "transfer": "Bank transfer", "cheque": "Cheque", "card": "Card", "pos": "POS" } },
+    "statement": { "title": "Client statement", "charged": "Total charged", "paid": "Total collected", "balance": "Outstanding balance", "date": "Date", "ref": "Ref", "desc": "Description", "debit": "Debit", "credit": "Credit", "balanceCol": "Balance", "charge": "Debit note", "payment": "Receipt", "close": "Close", "empty": "No entries" },
     "debitNotes": "Debit notes",
     "col": { "no": "No.", "client": "Client", "date": "Date", "total": "Total" }
   },
@@ -236,7 +243,9 @@
     "status": { "received": "Received", "accrued": "Accrued", "variance": "Variance" },
     "byInsurer": "By insurer",
     "collectionRate": "Collection rate",
-    "empty": "No commissions recorded yet"
+    "empty": "No commissions recorded yet",
+    "recordReceipt": "Record receipt",
+    "receipt": { "title": "Record commission receipt", "from": "From", "amount": "Amount received", "reference": "Reference", "submit": "Record", "cancel": "Cancel", "done": "Receipt {seq} recorded" }
   },
   "status": {
     "completed": "Completed",

@@ -804,17 +804,20 @@ model Invoice {
 
 // إشعار مدين/دائن للعميل (يُولَّد عند الاعتماد المالي)
 model DebitNote {
-  id         String   @id @default(cuid())
-  tenantId   String
-  tenant     Tenant   @relation(fields: [tenantId], references: [id])
-  sequenceNo String?
-  clientId   String?
-  policyId   String?
-  netAmount  Decimal? @db.Decimal(14, 2)
-  vatAmount  Decimal? @db.Decimal(14, 2)
-  createdAt  DateTime @default(now())
+  id            String   @id @default(cuid())
+  tenantId      String
+  tenant        Tenant   @relation(fields: [tenantId], references: [id])
+  sequenceNo    String?
+  clientId      String?
+  policyId      String?
+  netAmount     Decimal? @db.Decimal(14, 2)
+  vatAmount     Decimal? @db.Decimal(14, 2)
+  settledAmount Decimal  @default(0) @db.Decimal(14, 2) // المُحصَّل من العميل عبر سندات القبض (RCV)
+  settledAt     DateTime? // تاريخ اكتمال التحصيل (settledAmount ≥ الإجمالي)
+  createdAt     DateTime @default(now())
 
   @@index([tenantId])
+  @@index([tenantId, clientId])
 }
 
 model CreditNote {

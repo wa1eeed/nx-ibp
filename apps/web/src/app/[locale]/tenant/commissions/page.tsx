@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Wallet2, Clock, TrendingDown, Building2 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Wallet2, Clock, TrendingDown, Building2, Receipt, X, Check } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatCard } from "@/components/ui/StatCard";
 import { Badge, type BadgeTone } from "@/components/ui/Badge";
@@ -17,7 +17,10 @@ const STATUS_KEY: Record<string, string> = { received: "commissions.status.recei
 export default function CommissionsPage() {
   const t = useTranslations();
   const [d, setD] = useState<Data | null>(null);
-  useEffect(() => { void api<Data>("/reports/commissions").then(setD).catch(() => undefined); }, []);
+  const [rcv, setRcv] = useState<Row | null>(null);
+  const [done, setDone] = useState("");
+  const load = useCallback(() => { void api<Data>("/reports/commissions").then(setD).catch(() => undefined); }, []);
+  useEffect(() => { load(); }, [load]);
 
   const fmt = (n: string | number | null) => (n == null ? "—" : Number(n).toLocaleString("en-US"));
   const variance = (r: Row) => (r.receivedAmount == null ? "—" : fmt(Number(r.amount ?? 0) - Number(r.receivedAmount)));
@@ -40,6 +43,7 @@ export default function CommissionsPage() {
   return (
     <div className="space-y-6">
       <PageHeader title={t("commissions.title")} subtitle={t("commissions.subtitle")} />
+      {done ? <p className="rounded-lg bg-success-soft px-3 py-2 text-[12.5px] font-medium text-success">{done}</p> : null}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard tone="primary" icon={<Wallet2 size={18} />} title={t("commissions.kpi.total")} value={<span className="tnum">{s ? fmt(s.total) : "…"}</span>} sub={t("common.sar")} />
@@ -109,6 +113,7 @@ export default function CommissionsPage() {
                 <th className="px-5 py-3 text-start font-semibold">{t("commissions.table.received")}</th>
                 <th className="px-5 py-3 text-start font-semibold">{t("commissions.table.variance")}</th>
                 <th className="px-5 py-3 text-start font-semibold">{t("commissions.table.status")}</th>
+                <th className="px-5 py-3 text-end font-semibold" />
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
@@ -121,13 +126,54 @@ export default function CommissionsPage() {
                   <td className="px-5 py-3 text-[13px] text-subtle tnum">{fmt(r.receivedAmount)}</td>
                   <td className={`px-5 py-3 text-[13px] tnum ${r.status === "variance" ? "font-medium text-danger" : "text-subtle"}`}>{variance(r)}</td>
                   <td className="px-5 py-3">{r.status ? <Badge tone={STATUS_TONE[r.status] ?? "neutral"}>{t(STATUS_KEY[r.status] ?? "commissions.status.accrued")}</Badge> : null}</td>
+                  <td className="px-5 py-3 text-end">
+                    {r.status !== "received" ? <button onClick={() => { setDone(""); setRcv(r); }} className="inline-flex items-center gap-1 rounded-lg border border-line px-2.5 py-1.5 text-[12px] font-medium text-muted hover:bg-surface-2"><Receipt size={13} /> {t("commissions.recordReceipt")}</button> : null}
+                  </td>
                 </tr>
               ))}
-              {d && d.rows.length === 0 ? <tr><td colSpan={7} className="px-5 py-10 text-center text-[13px] text-subtle">{t("commissions.empty")}</td></tr> : null}
+              {d && d.rows.length === 0 ? <tr><td colSpan={8} className="px-5 py-10 text-center text-[13px] text-subtle">{t("commissions.empty")}</td></tr> : null}
             </tbody>
           </table>
         </div>
       </section>
+
+      {rcv ? <CommReceipt row={rcv} onClose={() => setRcv(null)} onDone={(seq) => { setRcv(null); setDone(t("commissions.receipt.done", { seq })); load(); }} /> : null}
+    </div>
+  );
+}
+
+function CommReceipt({ row, onClose, onDone }: { row: Row; onClose: () => void; onDone: (seq: string) => void }) {
+  const t = useTranslations("commissions.receipt");
+  const remaining = Number(row.amount ?? 0) - Number(row.receivedAmount ?? 0);
+  const [amount, setAmount] = useState(String(remaining > 0 ? remaining : 0));
+  const [reference, setReference] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState("");
+  const field = "h-9 w-full rounded-lg border border-line bg-card px-3 text-[13px] text-ink focus:outline-none focus:ring-2 focus:ring-primary/30";
+
+  async function save() {
+    setErr(""); setSaving(true);
+    try {
+      const r = await api<{ voucher: { sequenceNo: string } }>(`/finance/commissions/${row.id}/receipt`, { method: "POST", body: JSON.stringify({ amount: Number(amount), reference: reference || undefined }) });
+      onDone(r.voucher.sequenceNo);
+    } catch (e) { setErr(e instanceof ApiError ? e.message : "خطأ"); setSaving(false); }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onMouseDown={onClose}>
+      <div className="w-full max-w-sm rounded-card border border-line bg-card p-5 shadow-card" onMouseDown={(e) => e.stopPropagation()}>
+        <div className="mb-1 flex items-center justify-between"><h2 className="text-[15px] font-bold text-ink">{t("title")}</h2><button onClick={onClose} className="text-subtle hover:text-ink"><X size={18} /></button></div>
+        <p className="mb-3 text-[12px] text-subtle">{t("from")} {row.insurerName ?? "—"} · {row.clientName ?? "—"}</p>
+        <div className="space-y-3">
+          <label className="block"><span className="mb-1 block text-[11.5px] font-medium text-muted">{t("amount")}</span><input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} className={`${field} tnum`} /></label>
+          <label className="block"><span className="mb-1 block text-[11.5px] font-medium text-muted">{t("reference")}</span><input value={reference} onChange={(e) => setReference(e.target.value)} className={field} /></label>
+          {err ? <p className="text-[12px] font-medium text-danger">{err}</p> : null}
+          <div className="flex justify-end gap-2 pt-1">
+            <button onClick={onClose} className="h-9 rounded-lg border border-line px-3 text-[12.5px] font-medium text-muted hover:bg-surface-2">{t("cancel")}</button>
+            <button onClick={save} disabled={saving || !(Number(amount) > 0)} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary-strong px-4 text-[12.5px] font-semibold text-primary-fg hover:bg-primary disabled:opacity-60"><Check size={15} /> {saving ? "…" : t("submit")}</button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

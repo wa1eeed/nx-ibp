@@ -1,5 +1,6 @@
-import { Controller, Get, HttpCode, Param, Post } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, Param, Post } from "@nestjs/common";
 import { FinanceService } from "./finance.service";
+import { RecordReceiptDto } from "./dto/record-receipt.dto";
 import { Authorize } from "../rbac/authorize.decorator";
 import { CurrentUser } from "../auth/current-user.decorator";
 
@@ -56,5 +57,38 @@ export class FinanceController {
   @Get("receivables")
   receivables() {
     return this.finance.receivables();
+  }
+
+  // سند قبض من العميل مقابل إشعار مدين (RCV) — يُحصّل ويُنقص الذمم
+  @Authorize({ module: "finance", action: "create", entitlement: "module.finance" })
+  @HttpCode(201)
+  @Post("debit-notes/:id/receipt")
+  recordReceipt(
+    @CurrentUser("tenantId") tenantId: string,
+    @CurrentUser("userId") userId: string,
+    @Param("id") id: string,
+    @Body() dto: RecordReceiptDto,
+  ) {
+    return this.finance.recordReceipt(tenantId, userId, id, dto);
+  }
+
+  // استلام عمولة من المؤمِّن (RCV)
+  @Authorize({ module: "finance", action: "create", entitlement: "module.finance" })
+  @HttpCode(201)
+  @Post("commissions/:id/receipt")
+  recordCommissionReceipt(
+    @CurrentUser("tenantId") tenantId: string,
+    @CurrentUser("userId") userId: string,
+    @Param("id") id: string,
+    @Body() dto: RecordReceiptDto,
+  ) {
+    return this.finance.recordCommissionReceipt(tenantId, userId, id, dto);
+  }
+
+  // كشف حساب العميل (قيود + مدفوعات + رصيد جارٍ)
+  @Authorize({ module: "finance", action: "read", entitlement: "module.finance" })
+  @Get("statement/:clientId")
+  statement(@Param("clientId") clientId: string) {
+    return this.finance.statement(clientId);
   }
 }

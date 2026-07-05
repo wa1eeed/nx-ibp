@@ -981,6 +981,23 @@ async function main() {
     create: { email: adminEmail, fullName: process.env.PLATFORM_ADMIN_NAME?.trim() || "مالك المنصة", passwordHash: adminHash },
   });
 
+  // تحصيل واقعي: تسوية جزء من إشعارات المدين بسندات قبض (RCV) — كي تتحرّك الذمم في الديمو
+  // (مسدَّد بالكامل ~40% · جزئي ~20% · مستحقّ ~40%)، بشكل حتمي حسب الترتيب.
+  const allNotes = await prisma.debitNote.findMany({ select: { id: true, tenantId: true, sequenceNo: true, netAmount: true, vatAmount: true, createdAt: true }, orderBy: { id: "asc" } });
+  for (let i = 0; i < allNotes.length; i++) {
+    const dn = allNotes[i];
+    const gross = round2(Number(dn.netAmount ?? 0) + Number(dn.vatAmount ?? 0));
+    const mode = i % 5; // 0,1 مسدَّد · 2 جزئي · 3,4 مستحقّ
+    const settled = mode === 0 || mode === 1 ? gross : mode === 2 ? round2(gross * 0.5) : 0;
+    if (settled <= 0) continue;
+    await prisma.debitNote.update({ where: { id: dn.id }, data: { settledAmount: settled, settledAt: settled >= gross ? dn.createdAt : null } });
+    await prisma.voucher.upsert({
+      where: { id: `rcv-seed-${dn.id}` },
+      update: { amount: settled },
+      create: { id: `rcv-seed-${dn.id}`, tenantId: dn.tenantId, type: "RCV", sequenceNo: `RCV-2026-${10001 + i}`, amount: settled, status: "posted", isAuto: false, reference: dn.id, lines: { description: `تحصيل مقابل ${dn.sequenceNo ?? dn.id}`, method: "transfer", clientId: null } },
+    });
+  }
+
   const [nc, np, ncl] = await Promise.all([prisma.client.count(), prisma.policy.count(), prisma.claim.count()]);
   console.log(`✅ تمّ الزرع: ${TENANTS.length} مستأجر + سوبر أدمن + بيانات شبه واقعية واسعة. كلمة مرور التطوير: ${DEV_PASSWORD}`);
   console.log(`   البيانات: ${nc} عميل · ${np} وثيقة · ${ncl} مطالبة + طلبات/عروض/عمولات/تحقّق/مستندات`);
