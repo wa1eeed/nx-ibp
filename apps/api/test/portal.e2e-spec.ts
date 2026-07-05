@@ -73,7 +73,7 @@ describe("بوّابة العميل (e2e)", () => {
   it("عزل: عميل مستأجر آخر (النخبة) لا يرى وثائق الفهد", async () => {
     const res = await request(app.getHttpServer()).get("/portal/policies").set(auth(nukhba)).expect(200);
     expect(res.body.length).toBe(1);
-    expect(res.body[0].sequenceNo).toBe("POL-RUH-MTP-2026-1005");
+    expect(res.body[0].sequenceNo).toBe("POL-RUH-MTP-2026-1006");
   });
 
   it("عزل: موظف المستأجر ممنوع من البوّابة ⇒ 403", () =>

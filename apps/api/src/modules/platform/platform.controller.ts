@@ -3,7 +3,7 @@ import { PlatformService } from "./platform.service";
 import { PlatformGuard } from "./platform.guard";
 import { NotificationsService } from "../notifications/notifications.service";
 import { UpdateNotificationDto } from "../notifications/dto/notification.dto";
-import { MfaCodeDto, PlatformLoginDto, TenantStatusDto, UpdateEntitlementDto } from "./dto/platform.dto";
+import { MfaCodeDto, PlatformLoginDto, TenantStatusDto, UpdateEntitlementDto, UpdatePlanDto } from "./dto/platform.dto";
 import { Public } from "../auth/public.decorator";
 import { CurrentUser } from "../auth/current-user.decorator";
 
@@ -67,6 +67,12 @@ export class PlatformController {
   @Get("plans")
   plans() {
     return this.platform.plans();
+  }
+
+  // تعديل إعدادات الباقة (أهمّها حدّ المستخدمين seatLimit)
+  @Put("plans/:code")
+  updatePlan(@Param("code") code: string, @CurrentUser("userId") adminId: string, @Body() dto: UpdatePlanDto) {
+    return this.platform.updatePlan(code, dto, adminId);
   }
 
   @HttpCode(200)

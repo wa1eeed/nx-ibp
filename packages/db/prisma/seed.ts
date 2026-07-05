@@ -67,7 +67,7 @@ const TENANTS: TenantDef[] = [
     name: "وكالة الخليج لوساطة التأمين",
     nameEn: "Gulf Insurance Brokerage",
     cr: "1010101010",
-    plan: "premium",
+    plan: "enterprise", // باقة مؤسسات (100 مقعدًا) — سعة كافية لبيئة العرض/الاختبار
     billing: "RESELLER",
     seatsUsed: 4,
     branches: [

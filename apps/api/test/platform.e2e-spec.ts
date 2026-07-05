@@ -37,7 +37,7 @@ describe("لوحة السوبر أدمن (e2e)", () => {
     const res = await request(app.getHttpServer()).get("/platform/tenants").set(auth(platform)).expect(200);
     const ids = res.body.map((t: { id: string }) => t.id);
     expect(ids).toEqual(expect.arrayContaining(["demo-tenant", "demo-tenant-2"]));
-    expect(res.body.find((t: { id: string }) => t.id === "demo-tenant").subscription.plan.code).toBe("premium");
+    expect(res.body.find((t: { id: string }) => t.id === "demo-tenant").subscription.plan.code).toBe("enterprise");
   });
 
   it("السوبر أدمن يطّلع على الشركات المسجّلة ذاتيًا ومالكها (سوبر أدمن الشركة)", async () => {

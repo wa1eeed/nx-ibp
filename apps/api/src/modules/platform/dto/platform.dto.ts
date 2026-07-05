@@ -1,4 +1,4 @@
-import { IsEmail, IsIn, IsNumber, IsOptional, IsString } from "class-validator";
+import { IsEmail, IsIn, IsInt, IsNumber, IsOptional, IsString, Max, Min } from "class-validator";
 
 export class PlatformLoginDto {
   @IsEmail() email!: string;
@@ -13,6 +13,13 @@ export class MfaCodeDto {
 export class TenantStatusDto {
   @IsIn(["ACTIVE", "SUSPENDED", "TRIAL", "CANCELLED"])
   status!: "ACTIVE" | "SUSPENDED" | "TRIAL" | "CANCELLED";
+}
+
+export class UpdatePlanDto {
+  @IsOptional() @IsInt() @Min(1) @Max(100000) seatLimit?: number; // الحد الأقصى للمستخدمين
+  @IsOptional() @IsString() name?: string;
+  @IsOptional() @IsNumber() priceMonthly?: number;
+  @IsOptional() @IsNumber() priceYearly?: number;
 }
 
 export class UpdateEntitlementDto {

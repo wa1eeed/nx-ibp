@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { Plus, UserPlus, ShieldCheck, X } from "lucide-react";
+import { Plus, UserPlus, ShieldCheck, X, Users } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { RBAC_MODULES, type RbacModule } from "@ibp/shared";
 import { Link, useRouter } from "@/i18n/routing";
@@ -30,6 +30,7 @@ export default function StaffPage() {
 
   const [staff, setStaff] = useState<StaffRow[]>([]);
   const [roles, setRoles] = useState<RoleTemplate[]>([]);
+  const [seats, setSeats] = useState<{ used: number; limit: number | null; planName: string | null } | null>(null);
   const [forbidden, setForbidden] = useState(false);
   const [showForm, setShowForm] = useState(false);
 
@@ -44,9 +45,14 @@ export default function StaffPage() {
 
   const load = useCallback(async () => {
     try {
-      const [s, r] = await Promise.all([api<StaffRow[]>("/staff"), api<RoleTemplate[]>("/staff/roles")]);
+      const [s, r, seatInfo] = await Promise.all([
+        api<StaffRow[]>("/staff"),
+        api<RoleTemplate[]>("/staff/roles"),
+        api<{ used: number; limit: number | null; planName: string | null }>("/staff/seats").catch(() => null),
+      ]);
       setStaff(s);
       setRoles(r);
+      setSeats(seatInfo);
       setForbidden(false);
     } catch (e) {
       if (e instanceof ApiError && e.status === 403) setForbidden(true);
@@ -119,15 +125,25 @@ export default function StaffPage() {
         title={t("staff.title")}
         subtitle={t("staff.subtitle")}
         actions={
-          <button
-            onClick={() => setShowForm((v) => !v)}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-primary-strong px-3.5 py-2 text-[13px] font-semibold text-primary-fg shadow-sm transition-colors hover:bg-primary"
-          >
-            {showForm ? <X size={16} /> : <Plus size={16} />}
-            {showForm ? t("staff.cancel") : t("staff.new")}
-          </button>
+          <div className="flex items-center gap-2.5">
+            {seats && seats.limit != null ? (
+              <span className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] font-semibold ${seats.used >= seats.limit ? "bg-danger/10 text-danger" : "bg-surface-2 text-subtle"}`}>
+                <Users size={14} /> {seats.used} / {seats.limit} {t("staff.seats")}{seats.planName ? ` · ${seats.planName}` : ""}
+              </span>
+            ) : null}
+            <button
+              onClick={() => setShowForm((v) => !v)}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-primary-strong px-3.5 py-2 text-[13px] font-semibold text-primary-fg shadow-sm transition-colors hover:bg-primary"
+            >
+              {showForm ? <X size={16} /> : <Plus size={16} />}
+              {showForm ? t("staff.cancel") : t("staff.new")}
+            </button>
+          </div>
         }
       />
+      {seats && seats.limit != null && seats.used >= seats.limit && !showForm ? (
+        <p className="mb-4 rounded-lg bg-warning-soft px-3 py-2 text-[12.5px] font-medium text-warning">{t("staff.seatFull")}</p>
+      ) : null}
 
       {showForm ? (
         <form onSubmit={onSubmit} className="mb-5 rounded-card border border-line bg-card p-5 shadow-card">

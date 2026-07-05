@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
+import { ConflictException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import * as bcrypt from "bcryptjs";
 import { PrismaService } from "../../prisma/prisma.service";
 import { AuditService } from "../../common/audit/audit.service";
@@ -86,6 +86,12 @@ export class StaffService {
     const existing = await this.prisma.user.findFirst({ where: { email: dto.email } });
     if (existing) throw new ConflictException("البريد مستخدم مسبقاً في هذا المستأجر");
 
+    // فرض حدّ المقاعد وفق باقة الشركة (يضبطه سوبر أدمن المنصّة في إعدادات الباقات)
+    const { used, limit } = await this.seats(tenantId);
+    if (limit != null && used >= limit) {
+      throw new ForbiddenException(`بلغت الحدّ الأقصى للمستخدمين في باقتك (${limit}). رقِّ الباقة أو أضِف مقاعد لإضافة المزيد.`);
+    }
+
     const passwordHash = await bcrypt.hash(dto.password, 10);
 
     const user = await this.prisma.$transaction(async (tx) => {
@@ -131,7 +137,22 @@ export class StaffService {
     // إشعار إداري بإضافة مستخدم جديد للحساب
     void this.notifications.notifyStaff(tenantId, "staff_member_added", { name: dto.fullName, role: dto.roleName }).catch(() => undefined);
 
+    // مزامنة عدّاد المقاعد المستخدمة (للعرض في لوحة المنصّة)
+    await this.prisma.subscription.updateMany({ where: { tenantId }, data: { seatsUsed: await this.prisma.user.count({ where: { tenantId, status: "ACTIVE" } }) } });
+
     return user;
+  }
+
+  /**
+   * استخدام المقاعد لباقة الشركة: المستخدَم (المستخدمون النشطون) والحدّ (seatLimit من الباقة).
+   * `limit=null` يعني بلا اشتراك/بلا حدّ (لا يُفرَض).
+   */
+  async seats(tenantId: string): Promise<{ used: number; limit: number | null; planName: string | null }> {
+    const [used, sub] = await Promise.all([
+      this.prisma.user.count({ where: { tenantId, status: "ACTIVE" } }),
+      this.prisma.subscription.findFirst({ where: { tenantId }, select: { plan: { select: { name: true, seatLimit: true } } } }),
+    ]);
+    return { used, limit: sub?.plan.seatLimit ?? null, planName: sub?.plan.name ?? null };
   }
 
   /**

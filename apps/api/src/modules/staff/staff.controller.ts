@@ -23,6 +23,13 @@ export class StaffController {
     return this.staff.roleTemplates();
   }
 
+  // استخدام المقاعد وفق الباقة (المستخدَم/الحدّ) — لعرضه في صفحة الموظفين
+  @Authorize({ module: "settings", action: "read" })
+  @Get("seats")
+  seats(@CurrentUser("tenantId") tenantId: string) {
+    return this.staff.seats(tenantId);
+  }
+
   // تفاصيل موظف 360° (بياناته/دوره/قسمه + نشاطه ومؤشراته)
   @Authorize({ module: "settings", action: "read" })
   @Get(":id")

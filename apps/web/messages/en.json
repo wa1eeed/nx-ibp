@@ -481,6 +481,8 @@
   "staff": {
     "title": "Staff",
     "subtitle": "Manage employees and their permission matrix",
+    "seats": "seats",
+    "seatFull": "You've reached your plan's user limit. Upgrade your plan or add seats to add more employees.",
     "new": "New employee",
     "name": "Name",
     "email": "Email",
@@ -693,6 +695,7 @@
       "title": "Plans & entitlements",
       "subtitle": "Control the modules and limits available per plan",
       "seatLimit": "Seat limit",
+      "seatLimit": "User limit (seats)",
       "uploadLimit": "Upload limit (MB)",
       "storageLimit": "Storage quota (GB)",
       "modules": "Enabled modules",

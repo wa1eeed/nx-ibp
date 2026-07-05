@@ -5,7 +5,7 @@ import * as bcrypt from "bcryptjs";
 import { PrismaService } from "../../prisma/prisma.service";
 import { AuditService } from "../../common/audit/audit.service";
 import { RateLimitService } from "../../common/security/rate-limit.service";
-import type { TenantStatusDto, UpdateEntitlementDto } from "./dto/platform.dto";
+import type { TenantStatusDto, UpdateEntitlementDto, UpdatePlanDto } from "./dto/platform.dto";
 
 /**
  * لوحة السوبر أدمن (المرحلة 8أ) — عابرة للمستأجرين. كل استعلاماتها غير مفلترة
@@ -126,6 +126,25 @@ export class PlatformService {
         _count: { select: { subscriptions: true } },
       },
     });
+  }
+
+  /** تعديل إعدادات الباقة — أهمّها **حدّ المستخدمين (seatLimit)** الذي يضبطه سوبر أدمن المنصّة. */
+  async updatePlan(planCode: string, dto: UpdatePlanDto, adminId: string) {
+    const plan = await this.prisma.plan.findFirst({ where: { code: planCode }, select: { id: true } });
+    if (!plan) throw new NotFoundException("الباقة غير موجودة");
+    const data: { seatLimit?: number; name?: string; priceMonthly?: number; priceYearly?: number } = {};
+    if (dto.seatLimit !== undefined) data.seatLimit = dto.seatLimit;
+    if (dto.name !== undefined) data.name = dto.name;
+    if (dto.priceMonthly !== undefined) data.priceMonthly = dto.priceMonthly;
+    if (dto.priceYearly !== undefined) data.priceYearly = dto.priceYearly;
+    if (Object.keys(data).length === 0) throw new BadRequestException("لا حقول للتحديث");
+    const updated = await this.prisma.plan.update({
+      where: { id: plan.id },
+      data,
+      select: { code: true, name: true, seatLimit: true, priceMonthly: true, priceYearly: true },
+    });
+    await this.audit.log({ tenantId: "platform", userId: adminId, action: "update", entity: "plan", entityId: planCode, meta: { ...data } });
+    return updated;
   }
 
   async updateEntitlement(planCode: string, dto: UpdateEntitlementDto) {

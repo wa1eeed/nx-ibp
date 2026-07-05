@@ -39,9 +39,9 @@ describe("وحدة المستندات (e2e)", () => {
     request(app.getHttpServer()).post("/documents/upload-url").set(auth(gm))
       .send({ entityType: "client", entityId, fileName: "x.exe", mime: "application/x-msdownload", sizeBytes: 1024 }).expect(400));
 
-  it("يرفض حجماً يتجاوز حد الباقة (premium 25MB) ⇒ 403", () =>
+  it("يرفض حجماً يتجاوز حد الباقة (enterprise 100MB) ⇒ 403", () =>
     request(app.getHttpServer()).post("/documents/upload-url").set(auth(gm))
-      .send({ entityType: "client", entityId, fileName: "big.pdf", mime: "application/pdf", sizeBytes: 30 * 1024 * 1024 }).expect(403));
+      .send({ entityType: "client", entityId, fileName: "big.pdf", mime: "application/pdf", sizeBytes: 120 * 1024 * 1024 }).expect(403));
 
   it("يرفض الوصول لرابط blob بتوكن غير صالح ⇒ 403 (لا روابط عامة)", () =>
     request(app.getHttpServer()).get("/documents/blob/not-a-valid-token").expect(403));
