@@ -32,6 +32,9 @@ import { TENANT_NAV, type NavItem } from "@ibp/shared";
 import { Link, usePathname } from "@/i18n/routing";
 import { api, getToken } from "@/lib/api";
 
+// شارة «وضع التجربة» تظهر في التطوير المحلي فقط — تُخفى في الإنتاج/staging.
+const DEV_ONLY = process.env.NODE_ENV !== "production";
+
 const ICONS: Record<string, LucideIcon> = {
   LayoutDashboard,
   Users,
@@ -148,14 +151,16 @@ export function Sidebar() {
         ))}
       </nav>
 
-      {/* تذييل وضع التجربة */}
-      <div className="m-3 rounded-xl bg-surface-2 px-3 py-2.5 ring-1 ring-line">
-        <div className="flex items-center gap-2">
-          <span className="h-2 w-2 shrink-0 rounded-full bg-warning" />
-          <span className="text-[12.5px] font-semibold text-ink">{t("demo.title")}</span>
+      {/* تذييل وضع التجربة — في التطوير المحلي فقط */}
+      {DEV_ONLY ? (
+        <div className="m-3 rounded-xl bg-surface-2 px-3 py-2.5 ring-1 ring-line">
+          <div className="flex items-center gap-2">
+            <span className="h-2 w-2 shrink-0 rounded-full bg-warning" />
+            <span className="text-[12.5px] font-semibold text-ink">{t("demo.title")}</span>
+          </div>
+          <p className="mt-0.5 ps-4 text-[11px] leading-snug text-subtle">{t("demo.subtitle")}</p>
         </div>
-        <p className="mt-0.5 ps-4 text-[11px] leading-snug text-subtle">{t("demo.subtitle")}</p>
-      </div>
+      ) : null}
     </aside>
   );
 }
