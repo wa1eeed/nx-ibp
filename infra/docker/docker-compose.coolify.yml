@@ -38,7 +38,8 @@ services:
 
   api:
     build:
-      context: ../..
+      # السياق = جذر المستودع (Coolify يشغّل compose بـ project-directory = الجذر)
+      context: .
       dockerfile: apps/api/Dockerfile
     restart: unless-stopped
     depends_on:
@@ -91,7 +92,8 @@ services:
 
   web:
     build:
-      context: ../..
+      # السياق = جذر المستودع (Coolify يشغّل compose بـ project-directory = الجذر)
+      context: .
       dockerfile: apps/web/Dockerfile
       args:
         # NEXT_PUBLIC_API_URL يُدمَج في حزمة العميل وقت البناء — لا بدّ من تمريره build arg (لا runtime فقط)
