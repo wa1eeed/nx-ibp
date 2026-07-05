@@ -5,7 +5,8 @@ export const RBAC_MODULES = [
   "dashboard",
   "sales",
   "clients",
-  "production",
+  "underwriting", // الاكتتاب: طلبات الأسعار (Slip/RFQ) + عروض شركات التأمين + المقارنة + أمر الإسناد
+  "production", // الإنتاج/الإصدار: إصدار الوثيقة + الملاحق (منفصل عن الاكتتاب)
   "renewals",
   "service",
   "claims",

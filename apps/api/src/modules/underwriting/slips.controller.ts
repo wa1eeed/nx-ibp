@@ -13,13 +13,13 @@ import { CurrentUser } from "../auth/current-user.decorator";
 export class SlipsController {
   constructor(private readonly slips: SlipsService) {}
 
-  @Authorize({ module: "production", action: "read", entitlement: "module.production" })
+  @Authorize({ module: "underwriting", action: "read", entitlement: "module.production" })
   @Get()
   list() {
     return this.slips.listSlips();
   }
 
-  @Authorize({ module: "production", action: "create", entitlement: "module.production" })
+  @Authorize({ module: "underwriting", action: "create", entitlement: "module.production" })
   @Post()
   create(
     @CurrentUser("tenantId") tenantId: string,
@@ -29,19 +29,19 @@ export class SlipsController {
     return this.slips.createSlip(tenantId, userId, dto);
   }
 
-  @Authorize({ module: "production", action: "read", entitlement: "module.production" })
+  @Authorize({ module: "underwriting", action: "read", entitlement: "module.production" })
   @Get(":id")
   getOne(@Param("id") id: string) {
     return this.slips.getSlip(id);
   }
 
-  @Authorize({ module: "production", action: "read", entitlement: "module.production" })
+  @Authorize({ module: "underwriting", action: "read", entitlement: "module.production" })
   @Get(":id/comparison")
   comparison(@Param("id") id: string) {
     return this.slips.comparison(id);
   }
 
-  @Authorize({ module: "production", action: "create", entitlement: "module.production" })
+  @Authorize({ module: "underwriting", action: "create", entitlement: "module.production" })
   @Post(":id/quotations")
   addQuotation(
     @CurrentUser("tenantId") tenantId: string,
@@ -53,7 +53,7 @@ export class SlipsController {
   }
 
   // أمر الإسناد (Firm Order)
-  @Authorize({ module: "production", action: "update", entitlement: "module.production" })
+  @Authorize({ module: "underwriting", action: "update", entitlement: "module.production" })
   @HttpCode(200)
   @Post(":id/select")
   select(

@@ -534,7 +534,7 @@
     "segregationHint": "لا يعتمد مُصدِر الوثيقة نفسه ماليًا — توصية رقابية (هيئة التأمين/NCA)",
     "complianceTag": "توصية رقابية",
     "actions": { "read": "اطّلاع", "create": "إضافة", "update": "تعديل", "delete": "حذف" },
-    "modules": { "dashboard": "لوحة المعلومات", "sales": "المبيعات", "clients": "العملاء", "production": "الإنتاج/الإصدار", "renewals": "التجديدات", "service": "خدمة العملاء", "claims": "المطالبات", "finance": "المالية", "reports": "التقارير", "compliance": "الامتثال", "hr": "الموارد البشرية", "settings": "الإعدادات" }
+    "modules": { "dashboard": "لوحة المعلومات", "sales": "المبيعات", "clients": "العملاء", "underwriting": "الاكتتاب (عروض الأسعار)", "production": "الإنتاج/الإصدار", "renewals": "التجديدات", "service": "خدمة العملاء", "claims": "المطالبات", "finance": "المالية", "reports": "التقارير", "compliance": "الامتثال", "hr": "الموارد البشرية", "settings": "الإعدادات" }
   },
   "staff": {
     "title": "الموظفون",

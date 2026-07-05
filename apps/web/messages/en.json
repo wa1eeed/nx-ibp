@@ -534,7 +534,7 @@
     "segregationHint": "The policy issuer cannot approve it financially — regulatory recommendation (SAMA/NCA)",
     "complianceTag": "Regulatory",
     "actions": { "read": "View", "create": "Create", "update": "Edit", "delete": "Delete" },
-    "modules": { "dashboard": "Dashboard", "sales": "Sales", "clients": "Clients", "production": "Production", "renewals": "Renewals", "service": "Service", "claims": "Claims", "finance": "Finance", "reports": "Reports", "compliance": "Compliance", "hr": "HR", "settings": "Settings" }
+    "modules": { "dashboard": "Dashboard", "sales": "Sales", "clients": "Clients", "underwriting": "Underwriting (RFQ)", "production": "Production / Issuance", "renewals": "Renewals", "service": "Service", "claims": "Claims", "finance": "Finance", "reports": "Reports", "compliance": "Compliance", "hr": "HR", "settings": "Settings" }
   },
   "staff": {
     "title": "Staff",

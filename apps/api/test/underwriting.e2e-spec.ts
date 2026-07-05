@@ -54,9 +54,26 @@ describe("الاكتتاب الفني وعروض الأسعار (e2e)", () => {
     await app?.close();
   });
 
-  it("مدير المبيعات (لا production) ممنوع من إنشاء Slip ⇒ 403", async () => {
+  it("مدير المبيعات (لا اكتتاب) ممنوع من إنشاء Slip ⇒ 403", async () => {
     const { requestId } = await createApprovedRequest();
     await request(app.getHttpServer()).post("/slips").set(auth(sales)).send({ requestId }).expect(403);
+  });
+
+  it("فصل الاكتتاب عن الإصدار: دور «عمليات/إنتاج فقط» (بلا underwriting) ممنوع من Slip ⇒ 403", async () => {
+    const srv = app.getHttpServer();
+    const uniq = String(Date.now()).slice(-8);
+    // دور عمليات: production فقط (إصدار)، بلا صلاحية الاكتتاب
+    await request(srv).post("/staff").set(auth(gm)).send({
+      fullName: "موظف عمليات", email: `ops-${uniq}@gulf-demo.sa`, password: "Passw0rd!", roleName: `عمليات-${uniq}`,
+      permissions: [
+        { module: "production", canAccess: true, canCreate: true, canEdit: true, canDelete: false, canRevert: false },
+        { module: "clients", canAccess: true, canCreate: false, canEdit: false, canDelete: false, canRevert: false },
+      ],
+    }).expect(201);
+    const opsToken = await login(`ops-${uniq}@gulf-demo.sa`);
+    const { requestId } = await createApprovedRequest();
+    // العمليات لا تُنشئ Slip (اكتتاب) رغم امتلاكها الإصدار — الفصل الوظيفي
+    await request(srv).post("/slips").set(auth(opsToken)).send({ requestId }).expect(403);
   });
 
   it("المكتتب ينشئ Slip ⇒ 201 برقم RFQ، والطلب يصبح QUOTING", async () => {

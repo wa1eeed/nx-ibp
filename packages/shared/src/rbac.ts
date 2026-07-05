@@ -6,7 +6,8 @@ export const RBAC_MODULES = [
   "dashboard",
   "sales",
   "clients",
-  "production",
+  "underwriting", // الاكتتاب: طلبات الأسعار (Slip/RFQ) + عروض شركات التأمين + المقارنة + أمر الإسناد
+  "production", // الإنتاج/الإصدار: إصدار الوثيقة + الملاحق (منفصل عن الاكتتاب — معيار الوساطة)
   "renewals",
   "service",
   "claims",
@@ -46,7 +47,7 @@ export interface PresetRole {
   matrix: Record<RbacModule, string>;
 }
 
-// الترتيب: dashboard sales clients production renewals service claims finance reports compliance hr settings
+// الترتيب: dashboard sales clients underwriting production renewals service claims finance reports compliance hr settings
 function row(...codes: string[]): Record<RbacModule, string> {
   return RBAC_MODULES.reduce(
     (acc, m, i) => ({ ...acc, [m]: codes[i] ?? "—" }),
@@ -56,27 +57,27 @@ function row(...codes: string[]): Record<RbacModule, string> {
 
 export const PRESET_ROLES: PresetRole[] = [
   { code: "general_manager", nameAr: "المدير العام", nameEn: "General Manager",
-    matrix: row("A", "ACED", "ACED", "ACEDR", "ACEDR", "ACEDR", "ACEDR", "ACED", "ACED", "ACED", "ACED", "ACED") },
+    matrix: row("A", "ACED", "ACED", "ACED", "ACEDR", "ACEDR", "ACEDR", "ACEDR", "ACED", "ACED", "ACED", "ACED", "ACED") },
   { code: "sales_manager", nameAr: "مدير المبيعات", nameEn: "Sales Manager",
-    matrix: row("A", "ACED", "ACE", "—", "ACE", "—", "—", "—", "A", "—", "—", "—") },
+    matrix: row("A", "ACED", "ACE", "—", "—", "ACE", "—", "—", "—", "A", "—", "—", "—") },
   { code: "sales_rep", nameAr: "ممثل مبيعات", nameEn: "Sales Representative",
-    matrix: row("A", "ACE", "ACE", "—", "—", "—", "—", "—", "—", "—", "—", "—") },
-  { code: "pricing_officer", nameAr: "مسؤول التسعير", nameEn: "Pricing Officer",
-    matrix: row("A", "AE", "—", "ACE", "ACE", "—", "—", "—", "A", "—", "—", "—") },
-  { code: "policy_admin", nameAr: "مسؤول إدارة الوثائق", nameEn: "Policy Administration Officer",
-    matrix: row("A", "—", "A", "ACE", "—", "A", "—", "—", "—", "—", "—", "—") },
+    matrix: row("A", "ACE", "ACE", "—", "—", "—", "—", "—", "—", "—", "—", "—", "—") },
+  { code: "pricing_officer", nameAr: "مكتتب (مسؤول التسعير)", nameEn: "Underwriter (Pricing)",
+    matrix: row("A", "AE", "—", "ACE", "ACE", "ACE", "—", "—", "—", "A", "—", "—", "—") },
+  { code: "policy_admin", nameAr: "مسؤول العمليات والإصدار", nameEn: "Operations / Issuance Officer",
+    matrix: row("A", "—", "A", "A", "ACE", "—", "A", "—", "—", "—", "—", "—", "—") },
   { code: "customer_care_manager", nameAr: "مدير عناية العملاء", nameEn: "Customer Care Manager",
-    matrix: row("A", "—", "AE", "—", "—", "ACED", "A", "—", "A", "—", "—", "—") },
+    matrix: row("A", "—", "AE", "—", "—", "—", "ACED", "A", "—", "A", "—", "—", "—") },
   { code: "claims_officer", nameAr: "مسؤول المطالبات", nameEn: "Claims Officer",
-    matrix: row("A", "—", "A", "—", "—", "A", "ACE", "—", "—", "—", "—", "—") },
+    matrix: row("A", "—", "A", "—", "—", "—", "A", "ACE", "—", "—", "—", "—", "—") },
   { code: "accountant", nameAr: "المحاسب / مدير مالي", nameEn: "Accountant / Finance Manager",
-    matrix: row("A", "—", "—", "—", "—", "—", "—", "ACED", "A", "—", "—", "—") },
+    matrix: row("A", "—", "—", "—", "—", "—", "—", "—", "ACED", "A", "—", "—", "—") },
   { code: "collector", nameAr: "محصّل", nameEn: "Collector",
-    matrix: row("A", "—", "A", "—", "—", "—", "—", "AE", "—", "—", "—", "—") },
+    matrix: row("A", "—", "A", "—", "—", "—", "—", "—", "AE", "—", "—", "—", "—") },
   { code: "compliance_manager", nameAr: "مدير الالتزام", nameEn: "Compliance Manager",
-    matrix: row("A", "A", "—", "A", "—", "—", "A", "A", "A", "ACED", "—", "—") },
+    matrix: row("A", "A", "—", "A", "A", "—", "—", "A", "A", "A", "ACED", "—", "—") },
   { code: "hr_manager", nameAr: "مدير الموارد البشرية", nameEn: "HR Manager",
-    matrix: row("A", "—", "—", "—", "—", "—", "—", "—", "—", "—", "ACED", "—") },
+    matrix: row("A", "—", "—", "—", "—", "—", "—", "—", "—", "—", "—", "ACED", "—") },
   { code: "admin_assistant", nameAr: "مساعد إداري", nameEn: "Administrative Assistant",
-    matrix: row("A", "—", "—", "—", "—", "—", "—", "—", "—", "—", "A", "—") },
+    matrix: row("A", "—", "—", "—", "—", "—", "—", "—", "—", "—", "—", "A", "—") },
 ];
