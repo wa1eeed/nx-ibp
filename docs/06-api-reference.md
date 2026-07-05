@@ -639,6 +639,8 @@ curl -X POST http://localhost:4000/staff \
 | `POST` | `/platform/tenants/:id/status` | PlatformGuard | 200 |
 | `GET` | `/platform/plans` · `/usage` | PlatformGuard | 200 |
 | `POST` | `/platform/plans/:code/entitlements` | PlatformGuard | 201 |
+| `PUT` | `/platform/plans/:code` | PlatformGuard | **حدّ المقاعد (`seatLimit`)** + الاسم/الأسعار |
+| `GET` | `/staff/seats` | settings:read | مقاعد الشركة `{ used, limit, planName }` — الإنشاء يُرفَض 403 عند الحدّ |
 | `POST` | `/portal/login` | Public | 201 |
 | `GET` | `/portal/me` · `/policies` · `/requests` · `/claims` · `/statement` · `/documents` | PortalGuard (نطاق العميل) | 200 |
 | `GET` | `/portal/documents/:id/url` | PortalGuard | 200 |
