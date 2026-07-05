@@ -85,19 +85,24 @@ export class ClientsService {
       this.prisma.claim.findMany({ where: { clientId: id }, orderBy: { createdAt: "desc" }, select: { id: true, sequenceNo: true, insurerName: true, claimedAmount: true, settledAmount: true, status: true, incidentDate: true, createdAt: true } }),
       this.prisma.policyRequest.findMany({ where: { clientId: id }, orderBy: { createdAt: "desc" }, select: { id: true, sequenceNo: true, productLineCode: true, status: true, createdAt: true } }),
       this.prisma.verificationCheck.findMany({ where: { clientId: id }, orderBy: { createdAt: "desc" }, select: { id: true, checkType: true, status: true, riskLevel: true, createdAt: true } }),
-      this.prisma.debitNote.findMany({ where: { clientId: id }, orderBy: { createdAt: "desc" }, select: { id: true, sequenceNo: true, netAmount: true, vatAmount: true, createdAt: true } }),
+      this.prisma.debitNote.findMany({ where: { clientId: id }, orderBy: { createdAt: "desc" }, select: { id: true, sequenceNo: true, netAmount: true, vatAmount: true, settledAmount: true, createdAt: true } }),
       this.prisma.crmActivity.findMany({ where: { entityType: "client", entityId: id }, orderBy: { createdAt: "desc" }, take: 50 }),
     ]);
+    const creditNotes = await this.prisma.creditNote.findMany({ where: { clientId: id }, select: { netAmount: true, vatAmount: true } });
     const policyIds = policies.map((p) => p.id);
     const documents = await this.prisma.document.findMany({
       where: { OR: [{ entityType: "client", entityId: id }, ...(policyIds.length ? [{ entityId: { in: policyIds } }] : [])] },
       orderBy: { createdAt: "desc" }, select: { id: true, fileName: true, docType: true, entityType: true, createdAt: true },
     });
     const num = (d: Prisma.Decimal | null) => (d == null ? 0 : Number(d));
-    const totalDue = debitNotes.reduce((s, d) => s + num(d.netAmount) + num(d.vatAmount), 0);
+    // المستحقّ = إجمالي الإشعارات − المُحصَّل (سندات القبض) − الإشعارات الدائنة (قسط مُرتجَع)
+    const charged = debitNotes.reduce((s, d) => s + num(d.netAmount) + num(d.vatAmount), 0);
+    const collected = debitNotes.reduce((s, d) => s + num(d.settledAmount), 0);
+    const credited = creditNotes.reduce((s, c) => s + num(c.netAmount) + num(c.vatAmount), 0);
+    const totalDue = charged - collected - credited;
     return {
       client, policies, claims, requests, verifications, debitNotes, documents, activities,
-      summary: { policies: policies.length, claims: claims.length, requests: requests.length, documents: documents.length, totalDue: +totalDue.toFixed(2) },
+      summary: { policies: policies.length, claims: claims.length, requests: requests.length, documents: documents.length, totalDue: +totalDue.toFixed(2), collected: +collected.toFixed(2) },
     };
   }
 

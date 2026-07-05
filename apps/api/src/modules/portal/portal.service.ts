@@ -165,13 +165,16 @@ export class PortalService {
     });
   }
 
-  /** كشف الحساب: إشعارات المدين (مستحقّ على العميل) + الفواتير الضريبية لوثائقه + الرصيد المستحق. */
+  /** كشف الحساب: إشعارات المدين (مستحقّ) + الإشعارات الدائنة + الفواتير + الرصيد المستحقّ بعد التحصيل. */
   async statement(clientId: string) {
-    const debitNotes = await this.prisma.debitNote.findMany({
-      where: { clientId },
-      orderBy: { createdAt: "desc" },
-      select: { id: true, sequenceNo: true, policyId: true, netAmount: true, vatAmount: true, createdAt: true },
-    });
+    const [debitNotes, creditNotes] = await Promise.all([
+      this.prisma.debitNote.findMany({
+        where: { clientId },
+        orderBy: { createdAt: "desc" },
+        select: { id: true, sequenceNo: true, policyId: true, netAmount: true, vatAmount: true, settledAmount: true, createdAt: true },
+      }),
+      this.prisma.creditNote.findMany({ where: { clientId }, orderBy: { createdAt: "desc" }, select: { id: true, sequenceNo: true, policyId: true, netAmount: true, vatAmount: true, createdAt: true } }),
+    ]);
     const policyIds = (await this.prisma.policy.findMany({ where: { clientId }, select: { id: true } })).map((p) => p.id);
     const invoices = policyIds.length
       ? await this.prisma.invoice.findMany({
@@ -180,8 +183,12 @@ export class PortalService {
           select: { id: true, sequenceNo: true, insurerName: true, netAmount: true, vatAmount: true, totalAmount: true, status: true, createdAt: true },
         })
       : [];
-    const outstanding = debitNotes.reduce((sum, d) => sum + Number(d.netAmount ?? 0) + Number(d.vatAmount ?? 0), 0);
-    return { debitNotes, invoices, outstanding };
+    const num = (v: unknown) => Number(v ?? 0);
+    const charged = debitNotes.reduce((s, d) => s + num(d.netAmount) + num(d.vatAmount), 0);
+    const collected = debitNotes.reduce((s, d) => s + num(d.settledAmount), 0);
+    const credited = creditNotes.reduce((s, c) => s + num(c.netAmount) + num(c.vatAmount), 0);
+    const outstanding = Math.round((charged - collected - credited) * 100) / 100;
+    return { debitNotes, creditNotes, invoices, outstanding, collected: Math.round(collected * 100) / 100 };
   }
 
   /** كل معرّفات الكيانات التي تخصّ العميل (هو + طلباته + مطالباته + وثائقه). أساس فحص ملكية المستندات. */
