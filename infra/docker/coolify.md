@@ -68,6 +68,27 @@ SEED_MODE=demo                                # يسمح ببذرة الديمو
 - `local`: مرفقات على volume `ibp_storage` (مناسب لـ VPS واحد؛ خذ نسخًا احتياطية).
 - سحابي (`s3`/`r2`): المرفقات في الدلو مباشرةً — لا حاجة لـ volume. **راعِ سيادة البيانات** للإنتاج الحقيقي.
 
+## 7. استكشاف الأخطاء (من نشر staging الفعلي — `ibp.nx.sa`)
+| العَرَض | السبب | الحل |
+|---|---|---|
+| `Docker Compose file not found ... .ym` | خطأ إملائي في الامتداد | المسار الصحيح **حرفيًا**: `infra/docker/docker-compose.coolify.yml` (`.yml`) |
+| `Error: lstat /apps: no such file or directory` | سياق البناء كان `../..` وCoolify يشغّل من جذر المستودع فيقفز فوقه | مُصلَح في المستودع: `build.context: .` (جذر المستودع) |
+| بناء الواجهة يطلب دومين API أو يظهر `localhost` بالمتصفح | `NEXT_PUBLIC_API_URL` يُدمَج **وقت البناء** | يُمرَّر `build arg` (مضبوط في الـcompose)؛ عند تغيير الدومين **أعد البناء** لا التشغيل |
+| فشل البناء `exit 255` في منتصفه دون رسالة خطأ | تذبذب في مُغلّف بناء Coolify (بناء متوازٍ للخدمتين) | **أعد المحاولة** — أول بناء يُسخّن الـcache فيُسرّع اللاحق ويتجاوز العثرة. للتشخيص: ابنِ الصور يدويًا على السيرفر (أدناه) |
+| `Invalid credentials` بعد نشر ناجح | الهجرات تُطبَّق تلقائيًا لكن **البذرة لا** — القاعدة بلا مستخدمين | شغّل البذرة مرّة واحدة (أدناه) |
+
+**بناء الصور يدويًا على السيرفر (تشخيص/بديل):**
+```bash
+cd /tmp && rm -rf ibp-build && git clone --depth 1 https://github.com/wa1eeed/nx-ibp.git ibp-build && cd ibp-build && docker compose --project-directory . -f infra/docker/docker-compose.coolify.yml build
+```
+لو نجح ⇒ صورك سليمة والمشكلة في تنسيق Coolify فقط.
+
+**تشغيل البذرة بعد النشر (مرّة واحدة):** من طرفية خدمة `api` في Coolify، أو عبر SSH للمضيف:
+```bash
+docker exec $(docker ps --format '{{.Names}}' | grep -m1 -i api) sh -c "cd /app && pnpm --filter @ibp/db run seed:demo"
+```
+انتظر `✅ تمّ الزرع`. القاعدة على volume دائم ⇒ لا تتكرّر مع كل نشر.
+
 ## انظر أيضاً
 - [13 — الإعداد المحلي والتشغيل](../../docs/13-local-setup-and-operations.md) · [14 — متغيّرات البيئة](../../docs/14-environment-variables.md)
 - [30 — الأمن والامتثال](../../docs/30-security-and-compliance.md) · [infra/k8s](../k8s/README.md) (نشر Kubernetes البديل)

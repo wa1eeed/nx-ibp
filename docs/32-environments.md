@@ -1,6 +1,11 @@
 # 32 — البيئات الثلاث وتدفّق الترقية (Dev · Staging · Production)
 
-> الهدف: ترقيات وتحديثات وصيانة آمنة عبر فصل ثلاث بيئات. **الأساس جاهز الآن** (تهيئة مدفوعة بالبيئة + أوضاع تكامل قابلة للتبديل + هجرات تقدّمية). **إنشاء نسخ staging/production الفعلية يتم عند اكتمال المشروع** (قرار المستخدم) — وهو حينها مجرّد تطبيق لهذه الوثيقة، لا تغيير كود.
+> الهدف: ترقيات وتحديثات وصيانة آمنة عبر فصل ثلاث بيئات. **الأساس جاهز** (تهيئة مدفوعة بالبيئة + أوضاع تكامل قابلة للتبديل + هجرات تقدّمية).
+>
+> **الحالة (2026-07-05):**
+> - **dev** — جهاز المطوّر (محلي): Postgres 5434 · Redis 6381 · `NODE_ENV=development`.
+> - **staging** — ✅ **منشورة حيًّا** على Coolify: الواجهة `https://ibp.nx.sa` · الـAPI `https://api.ibp.nx.sa` · بيانات ديمو (`seed:demo`) · تكاملات Sandbox. تُحاكي الإنتاج (نفس البناء والسلوك) وتُستخدم للاختبار/UAT.
+> - **production** — ⏳ لاحقًا: تُنشأ من staging بعد اجتيازها، بمفاتيح حقيقية وبيانات حقيقية **داخل المملكة**.
 
 ## 1. البيئات والغرض
 | البيئة | الغرض | البيانات | التكاملات |
@@ -19,16 +24,25 @@
 ## 3. مصفوفة التهيئة لكل بيئة (env)
 كل المتغيّرات الكاملة في [`.env.example`](../.env.example). القيم المختلفة جوهريًا بين البيئات:
 
-| المتغيّر | dev | staging | production |
+| المتغيّر | dev | staging (الحالية) | production |
 |---|---|---|---|
 | `NODE_ENV` | development | production | production |
-| `DATABASE_URL` / `REDIS_URL` | محلي (5434/6381) | **قاعدة/Redis مستقلّة للـ staging** | **مستقلّة للإنتاج، داخل المملكة** |
-| `JWT_SECRET` / `ZATCA_ENC_KEY` | تطوير فقط | سرّ مستقلّ | سرّ مستقلّ (KMS لاحقًا) |
-| `CORS_ORIGINS` / `APP_PUBLIC_URL` / `NEXT_PUBLIC_API_URL` | localhost | دومين staging | دومين الإنتاج |
-| `STORAGE_DRIVER` | local | s3/r2 (دلو staging) | s3/r2 (**دلو داخل المملكة**) |
+| `DATABASE_URL` / `REDIS_URL` | محلي (5434/6381) | Postgres/Redis داخل حزمة Coolify | **مستقلّة للإنتاج، داخل المملكة** |
+| `JWT_SECRET` / `ZATCA_ENC_KEY` | تطوير فقط | سرّ مستقلّ (`openssl rand`) | سرّ مستقلّ (KMS لاحقًا) |
+| `CORS_ORIGINS` | localhost:3000 | `https://ibp.nx.sa` | دومين الإنتاج |
+| `NEXT_PUBLIC_API_URL` (build arg) | localhost:4000 | `https://api.ibp.nx.sa` | دومين API الإنتاج |
+| `STORAGE_DRIVER` | local | local (volume) | s3/r2 (**دلو داخل المملكة**) |
 | `ZATCA_DEFAULT_ENV` | SANDBOX | SANDBOX | Production (بعد الاعتماد داخل المملكة) |
-| `BILLING_GATEWAY` | sandbox | sandbox أو Tap **test** | **tap (مفاتيح live)** |
-| البيانات | seed وهمية | وهمية واقعية | حقيقية |
+| `NOTIFY_GATEWAY` / `BILLING_GATEWAY` | sandbox | sandbox | live (مفاتيح Taqnyat/Resend/Tap) |
+| `SEED_MODE` | (فارغ = ديمو محلي) | `demo` | `production` (مرجعيات + سوبر أدمن فقط) |
+| البيانات | seed وهمية | `seed:demo` (وهمية واقعية) | `seed:prod` ثم GIB حقيقي عبر `/signup` |
+
+### تحصين مطابقة الإنتاج (Dev-only UI)
+عناصر مساعِدة للتطوير **تُخفى تلقائيًا** عندما `NODE_ENV=production` (staging والإنتاج) وتظهر في dev فقط — عبر الثابت `DEV_PREFILL`/`DEV_ONLY = process.env.NODE_ENV !== "production"` (يُدمَج وقت البناء):
+- **تعبئة بيانات الدخول** المسبقة في صفحات `login`/`admin/login`/`portal/login` + تلميح «حساب تجريبي».
+- **شارة «Demo Session / وضع التجربة»** في القائمة الجانبية.
+
+فالنسخة المنشورة تبدأ بخانات دخول فارغة وبلا أي إشارة ديمو — مطابقة للإنتاج.
 
 **مبدأ:** لا أسرار في الكود؛ كل بيئة تحقن قيمها (في Coolify: مجموعة env لكل تطبيق). dev/staging لا تلمسان بيانات حقيقية إطلاقًا.
 
@@ -47,7 +61,8 @@
 
 ## 7. الحالة
 - ✅ **الأساس جاهز**: تهيئة مدفوعة بالبيئة، أوضاع تكامل قابلة للتبديل (Sandbox↔حقيقي)، هجرات تقدّمية تلقائية، Terraform يعي البيئات.
-- ⏳ **مؤجَّل لاكتمال المشروع**: إنشاء نسخ staging + production الفعلية (قواعد/دومينات/أسرار) + ربط CI للترقية الآلية.
+- ✅ **staging منشورة حيًّا** (2026-07-05): `https://ibp.nx.sa` + `https://api.ibp.nx.sa` على Coolify، بيانات ديمو GIB، تكاملات Sandbox. تُحاكي الإنتاج وتُستخدم للاختبار.
+- ⏳ **production**: تُنشأ من staging بعد اجتيازها — قاعدة/دومين/أسرار مستقلّة داخل المملكة + مفاتيح حقيقية + `seed:prod` + GIB حقيقي. + ربط CI للترقية الآلية (`main`→staging، وسم إصدار→production).
 
 ## انظر أيضاً
 - [13 — الإعداد المحلي والتشغيل](./13-local-setup-and-operations.md) · [14 — متغيّرات البيئة](./14-environment-variables.md) · [`infra/docker/coolify.md`](../infra/docker/coolify.md) · [30 — الأمن والامتثال](./30-security-and-compliance.md)
