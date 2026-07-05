@@ -4,7 +4,7 @@ import { PortalService } from "./portal.service";
 import { PortalGuard } from "./portal.guard";
 import { Public } from "../auth/public.decorator";
 import { CurrentUser, type AuthUser } from "../auth/current-user.decorator";
-import { PortalLoginDto } from "./dto/portal.dto";
+import { PortalLoginDto, SubmitClaimDto, SubmitServiceDto } from "./dto/portal.dto";
 
 /** بوّابة العميل — كل المسارات بنطاق `client` عدا الدخول. clientId يُشتقّ من التوكن. */
 @UseGuards(PortalGuard)
@@ -26,6 +26,30 @@ export class PortalController {
   @Get("policies")
   policies(@CurrentUser() user: AuthUser) {
     return this.portal.policies(user.clientId!);
+  }
+
+  // ——— الخدمة الذاتية للعميل (تقديم مطالبة/طلب خدمة/تجديد) ———
+  @HttpCode(201)
+  @Post("claims")
+  submitClaim(@CurrentUser() user: AuthUser, @Body() dto: SubmitClaimDto) {
+    return this.portal.submitClaim(user.tenantId, user.clientId!, dto);
+  }
+
+  @HttpCode(201)
+  @Post("service-requests")
+  submitService(@CurrentUser() user: AuthUser, @Body() dto: SubmitServiceDto) {
+    return this.portal.submitService(user.tenantId, user.clientId!, dto);
+  }
+
+  @HttpCode(201)
+  @Post("policies/:id/renew")
+  renew(@CurrentUser() user: AuthUser, @Param("id") id: string) {
+    return this.portal.requestRenewal(user.tenantId, user.clientId!, id);
+  }
+
+  @Get("policies/:id")
+  policyDetail(@CurrentUser() user: AuthUser, @Param("id") id: string) {
+    return this.portal.policyDetail(user.clientId!, id);
   }
 
   @Get("requests")

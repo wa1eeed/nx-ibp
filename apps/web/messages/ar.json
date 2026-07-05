@@ -745,7 +745,6 @@
     "plans": {
       "title": "الباقات والصلاحيات",
       "subtitle": "تحكّم في الموديولز والحدود المتاحة لكل باقة",
-      "seatLimit": "حد المقاعد",
       "seatLimit": "حد المستخدمين (المقاعد)",
       "uploadLimit": "حد رفع الملفات (ميجابايت)",
       "storageLimit": "حصّة التخزين (جيجابايت)",
@@ -761,6 +760,17 @@
     "badge": "بوّابة العميل",
     "logout": "تسجيل الخروج",
     "empty": "لا توجد بيانات",
+    "fileClaim": {
+      "action": "تقديم مطالبة", "title": "تقديم مطالبة جديدة", "policy": "الوثيقة", "incidentDate": "تاريخ الحادث", "claimedAmount": "المبلغ المطالَب",
+      "description": "وصف الحادث", "pickPolicy": "اختر الوثيقة", "descRequired": "أدخل وصفًا للحادث", "cancel": "إلغاء", "submit": "إرسال المطالبة",
+      "done": "استلمنا مطالبتك {seq} وسنتابعها معك"
+    },
+    "fileService": {
+      "action": "طلب خدمة", "title": "طلب خدمة جديد", "type": "نوع الطلب", "policy": "الوثيقة (اختياري)", "subject": "الموضوع", "description": "التفاصيل",
+      "cancel": "إلغاء", "submit": "إرسال الطلب", "done": "استلمنا طلبك {seq} وسنتابعه معك",
+      "types": { "certificate": "شهادة تغطية", "policy_copy": "نسخة من الوثيقة", "amendment": "تعديل/إضافة", "cancellation": "إلغاء وثيقة", "renewal": "تجديد", "inquiry": "استفسار" }
+    },
+    "renew": { "action": "طلب تجديد", "done": "أرسلنا طلب تجديد {seq}" },
     "nav": { "dashboard": "الرئيسية", "policies": "وثائقي", "requests": "طلباتي", "claims": "مطالباتي", "statement": "كشف الحساب", "documents": "مستنداتي" },
     "login": { "title": "دخول بوّابة العميل", "submit": "تسجيل الدخول", "error": "بيانات الدخول غير صحيحة" },
     "dashboard": {
@@ -770,12 +780,24 @@
       "policies": "الوثائق السارية",
       "openClaims": "مطالبات قيد المعالجة",
       "openRequests": "طلبات مفتوحة",
-      "outstanding": "الرصيد المستحق"
+      "outstanding": "الرصيد المستحق",
+      "expiring": "وثائق قرب انتهائها",
+      "sumInsured": "إجمالي مبالغ التأمين",
+      "expiringTitle": "وثائق تنتهي قريباً",
+      "daysLeft": "متبقٍّ {days} يوم",
+      "urgent": "عاجل",
+      "soon": "قريباً",
+      "view": "عرض"
     },
     "policies": {
       "title": "وثائقي",
       "subtitle": "وثائق التأمين السارية والمنتهية",
-      "col": { "no": "رقم الوثيقة", "product": "المنتج", "insurer": "شركة التأمين", "total": "الإجمالي", "period": "فترة التغطية", "status": "الحالة" }
+      "col": { "no": "رقم الوثيقة", "product": "المنتج", "insurer": "شركة التأمين", "total": "الإجمالي", "period": "فترة التغطية", "status": "الحالة", "actions": "إجراءات", "detail": "التفاصيل" }
+    },
+    "policyDetail": {
+      "back": "الرجوع للوثائق", "title": "الوثيقة", "sumInsured": "مبلغ التأمين", "total": "الإجمالي", "daysLeft": "أيام متبقية", "claims": "المطالبات",
+      "details": "بيانات الوثيقة", "financial": "التفاصيل المالية", "status": "الحالة", "product": "المنتج", "insurer": "شركة التأمين",
+      "insurerPolicyNo": "رقم وثيقة شركة التأمين", "period": "فترة التغطية", "premium": "صافي القسط", "vat": "ضريبة القيمة المضافة", "documents": "المستندات"
     },
     "claims": {
       "title": "مطالباتي",

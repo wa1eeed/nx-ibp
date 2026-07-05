@@ -89,6 +89,63 @@ describe("بوّابة العميل (e2e)", () => {
     await request(app.getHttpServer()).get(`/portal/documents/${someId}/url`).set(auth(nukhba)).expect(404);
   });
 
+  // ——— الخدمة الذاتية للعميل (المرحلة 8ب — الحزمة الكاملة) ———
+
+  it("العميل يفتح تفاصيل وثيقته (وثيقة + مطالبات + مستندات)", async () => {
+    const srv = app.getHttpServer();
+    const policies = (await request(srv).get("/portal/policies").set(auth(fahd))).body as Array<{ id: string }>;
+    const res = await request(srv).get(`/portal/policies/${policies[0].id}`).set(auth(fahd)).expect(200);
+    expect(res.body.policy.id).toBe(policies[0].id);
+    expect(Array.isArray(res.body.claims)).toBe(true);
+    expect(Array.isArray(res.body.documents)).toBe(true);
+  });
+
+  it("العميل يقدّم مطالبة على وثيقته ⇒ 201 RECEIVED وتظهر في قائمته", async () => {
+    const srv = app.getHttpServer();
+    const policies = (await request(srv).get("/portal/policies").set(auth(fahd))).body as Array<{ id: string }>;
+    const res = await request(srv).post("/portal/claims").set(auth(fahd))
+      .send({ policyId: policies[0].id, incidentDate: "2026-06-01", claimedAmount: 5000, description: "حادث تجريبي عبر البوّابة" })
+      .expect(201);
+    expect(res.body.status).toBe("RECEIVED");
+    expect(res.body.sequenceNo).toBeTruthy();
+    const list = (await request(srv).get("/portal/claims").set(auth(fahd))).body as Array<{ id: string }>;
+    expect(list.some((c) => c.id === res.body.id)).toBe(true);
+  });
+
+  it("العميل يقدّم طلب خدمة ⇒ 201 OPEN ويظهر في طلباته", async () => {
+    const srv = app.getHttpServer();
+    const res = await request(srv).post("/portal/service-requests").set(auth(fahd))
+      .send({ type: "certificate", subject: "شهادة تغطية", description: "أرغب بشهادة تغطية" })
+      .expect(201);
+    expect(res.body.status).toBe("OPEN");
+    expect(res.body.type).toBe("certificate");
+    const reqs = (await request(srv).get("/portal/requests").set(auth(fahd))).body as { serviceRequests: Array<{ id: string }> };
+    expect(reqs.serviceRequests.some((s) => s.id === res.body.id)).toBe(true);
+  });
+
+  it("العميل يطلب تجديد وثيقته ⇒ 201 طلب خدمة نوعه renewal", async () => {
+    const srv = app.getHttpServer();
+    const policies = (await request(srv).get("/portal/policies").set(auth(fahd))).body as Array<{ id: string }>;
+    const res = await request(srv).post(`/portal/policies/${policies[0].id}/renew`).set(auth(fahd)).expect(201);
+    expect(res.body.type).toBe("renewal");
+    expect(res.body.status).toBe("OPEN");
+  });
+
+  it("عزل: العميل لا يقدّم مطالبة على وثيقة لا يملكها ⇒ 403", async () => {
+    const srv = app.getHttpServer();
+    // وثيقة الفهد لا يطالب عليها عميل النخبة
+    const fahdPolicies = (await request(srv).get("/portal/policies").set(auth(fahd))).body as Array<{ id: string }>;
+    await request(srv).post("/portal/claims").set(auth(nukhba))
+      .send({ policyId: fahdPolicies[0].id, description: "محاولة على وثيقة الغير" })
+      .expect(403);
+  });
+
+  it("عزل: العميل لا يفتح تفاصيل وثيقة لا يملكها ⇒ 404", async () => {
+    const srv = app.getHttpServer();
+    const fahdPolicies = (await request(srv).get("/portal/policies").set(auth(fahd))).body as Array<{ id: string }>;
+    await request(srv).get(`/portal/policies/${fahdPolicies[0].id}`).set(auth(nukhba)).expect(404);
+  });
+
   it("إشعار داخل المنصة للعميل: حدث من الوسيط يظهر في بوّابة العميل + عزل + تعليم مقروء", async () => {
     const srv = app.getHttpServer();
     // الوسيط (نفس المستأجر) ينشئ طلب خدمة للعميل cl-fahd ⇒ يُطلق request_ack (نسخة داخل المنصة للعميل)

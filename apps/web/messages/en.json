@@ -745,7 +745,6 @@
     "plans": {
       "title": "Plans & entitlements",
       "subtitle": "Control the modules and limits available per plan",
-      "seatLimit": "Seat limit",
       "seatLimit": "User limit (seats)",
       "uploadLimit": "Upload limit (MB)",
       "storageLimit": "Storage quota (GB)",
@@ -761,6 +760,17 @@
     "badge": "CLIENT PORTAL",
     "logout": "Sign out",
     "empty": "No data",
+    "fileClaim": {
+      "action": "File a claim", "title": "File a new claim", "policy": "Policy", "incidentDate": "Incident date", "claimedAmount": "Claimed amount",
+      "description": "Incident description", "pickPolicy": "Select a policy", "descRequired": "Enter an incident description", "cancel": "Cancel", "submit": "Submit claim",
+      "done": "We received your claim {seq} and will follow up"
+    },
+    "fileService": {
+      "action": "Request a service", "title": "New service request", "type": "Request type", "policy": "Policy (optional)", "subject": "Subject", "description": "Details",
+      "cancel": "Cancel", "submit": "Submit request", "done": "We received your request {seq} and will follow up",
+      "types": { "certificate": "Coverage certificate", "policy_copy": "Policy copy", "amendment": "Amendment/addition", "cancellation": "Policy cancellation", "renewal": "Renewal", "inquiry": "Inquiry" }
+    },
+    "renew": { "action": "Request renewal", "done": "Renewal request {seq} sent" },
     "nav": { "dashboard": "Home", "policies": "My policies", "requests": "My requests", "claims": "My claims", "statement": "Statement", "documents": "My documents" },
     "login": { "title": "Client portal sign-in", "submit": "Sign in", "error": "Invalid credentials" },
     "dashboard": {
@@ -770,12 +780,24 @@
       "policies": "Active policies",
       "openClaims": "Claims in progress",
       "openRequests": "Open requests",
-      "outstanding": "Outstanding balance"
+      "outstanding": "Outstanding balance",
+      "expiring": "Policies expiring soon",
+      "sumInsured": "Total sum insured",
+      "expiringTitle": "Policies expiring soon",
+      "daysLeft": "{days} days left",
+      "urgent": "Urgent",
+      "soon": "Soon",
+      "view": "View"
     },
     "policies": {
       "title": "My policies",
       "subtitle": "Active and expired insurance policies",
-      "col": { "no": "Policy no.", "product": "Product", "insurer": "Insurer", "total": "Total", "period": "Coverage period", "status": "Status" }
+      "col": { "no": "Policy no.", "product": "Product", "insurer": "Insurer", "total": "Total", "period": "Coverage period", "status": "Status", "actions": "Actions", "detail": "Details" }
+    },
+    "policyDetail": {
+      "back": "Back to policies", "title": "Policy", "sumInsured": "Sum insured", "total": "Total", "daysLeft": "Days left", "claims": "Claims",
+      "details": "Policy details", "financial": "Financial breakdown", "status": "Status", "product": "Product", "insurer": "Insurer",
+      "insurerPolicyNo": "Insurer policy no.", "period": "Coverage period", "premium": "Net premium", "vat": "VAT", "documents": "Documents"
     },
     "claims": {
       "title": "My claims",

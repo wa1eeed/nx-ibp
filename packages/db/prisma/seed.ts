@@ -335,6 +335,15 @@ async function seedFinanceFoundation(def: TenantDef) {
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
 const D = (s: string) => new Date(`${s}T00:00:00.000Z`);
+// مبلغ التأمين (Sum Insured) تقديري من صافي القسط حسب فرع التأمين — القسط نسبة صغيرة من المبلغ المؤمَّن.
+const SI_FACTOR: Record<string, number> = {
+  MTP: 22, MCI: 22, MOT: 22, // مركبات
+  GMI: 4, PMI: 4, MED: 4, // طبي (المبلغ = الحد السنوي)
+  PAR: 120, PRO: 120, FIR: 120, ENG: 150, // ممتلكات/هندسي
+  MAR: 80, CAR: 90, // بحري/مقاولين
+  PL: 60, GL: 60, PI: 60, // مسؤوليات
+};
+const siOf = (line: string, net: number) => round2(net * (SI_FACTOR[line] ?? 40));
 
 /**
  * بيانات تشغيلية واقعية (وهمية) — تُغذّي واجهات الموظف وبوّابة العميل معاً:
@@ -357,10 +366,10 @@ async function seedOperations(passwordHash: string) {
     const total = round2(p.net + vat);
     await prisma.policy.upsert({
       where: { id: p.id },
-      update: { insurerName: p.insurer, premium: p.net, vat, totalPremium: total, status: "ISSUED" },
+      update: { insurerName: p.insurer, premium: p.net, vat, totalPremium: total, sumInsured: siOf(p.line, p.net), status: "ISSUED" },
       create: {
         id: p.id, tenantId: p.t, clientId: p.clientId, productLineCode: p.line, insurerName: p.insurer,
-        sequenceNo: `POL-RUH-${p.line}-2026-${1000 + pi}`, premium: p.net, vat, totalPremium: total,
+        sequenceNo: `POL-RUH-${p.line}-2026-${1000 + pi}`, premium: p.net, vat, totalPremium: total, sumInsured: siOf(p.line, p.net),
         commissionRate: p.comm, commissionAmount: round2((p.net * p.comm) / 100), status: "ISSUED",
         startDate: D(p.start), endDate: D(p.end),
       },
@@ -550,8 +559,8 @@ async function seedRichData(passwordHash: string) {
     sp++;
     const vat = round2(p.net * 0.15), total = round2(p.net + vat), comm = round2((p.net * p.comm) / 100);
     await prisma.policy.upsert({
-      where: { id: p.id }, update: { status: p.status as never },
-      create: { id: p.id, tenantId: p.t, clientId: p.clientId, productLineCode: p.line, insurerName: INSURERS[p.ins], sequenceNo: `POL-RUH-${p.line}-2026-${sp}`, premium: p.net, vat, totalPremium: total, commissionRate: p.comm, commissionAmount: comm, status: p.status as never, startDate: D(p.start), endDate: D(p.end) },
+      where: { id: p.id }, update: { status: p.status as never, sumInsured: siOf(p.line, p.net) },
+      create: { id: p.id, tenantId: p.t, clientId: p.clientId, productLineCode: p.line, insurerName: INSURERS[p.ins], sequenceNo: `POL-RUH-${p.line}-2026-${sp}`, premium: p.net, vat, totalPremium: total, sumInsured: siOf(p.line, p.net), commissionRate: p.comm, commissionAmount: comm, status: p.status as never, startDate: D(p.start), endDate: D(p.end) },
     });
     if (p.status !== "ISSUED") continue;
     await prisma.debitNote.upsert({ where: { id: `dn-${p.id}` }, update: {}, create: { id: `dn-${p.id}`, tenantId: p.t, clientId: p.clientId, policyId: p.id, sequenceNo: `DN-2026-${sp}`, netAmount: p.net, vatAmount: vat } });
@@ -751,8 +760,8 @@ async function seedGibDemo(passwordHash: string) {
     const exempt = p.line === "GLI" || p.line === "TRM";
     const vat = exempt ? 0 : round2(p.net * 0.15), total = round2(p.net + vat), comm = round2((p.net * p.comm) / 100);
     await prisma.policy.upsert({
-      where: { id: p.id }, update: { status: p.status as never },
-      create: { id: p.id, tenantId: T, clientId: p.clientId, productLineCode: p.line, insurerName: INSURERS[p.ins], sequenceNo: `POL-RUH-${p.line}-2026-${sp}`, premium: p.net, vat, totalPremium: total, commissionRate: p.comm, commissionAmount: comm, status: p.status as never, startDate: D(p.start), endDate: D(p.end) },
+      where: { id: p.id }, update: { status: p.status as never, sumInsured: siOf(p.line, p.net) },
+      create: { id: p.id, tenantId: T, clientId: p.clientId, productLineCode: p.line, insurerName: INSURERS[p.ins], sequenceNo: `POL-RUH-${p.line}-2026-${sp}`, premium: p.net, vat, totalPremium: total, sumInsured: siOf(p.line, p.net), commissionRate: p.comm, commissionAmount: comm, status: p.status as never, startDate: D(p.start), endDate: D(p.end) },
     });
     if (p.status !== "ISSUED") continue;
     await prisma.debitNote.upsert({ where: { id: `gib-dn-${p.id}` }, update: {}, create: { id: `gib-dn-${p.id}`, tenantId: T, clientId: p.clientId, policyId: p.id, sequenceNo: `DN-2026-${sp}`, netAmount: p.net, vatAmount: vat } });

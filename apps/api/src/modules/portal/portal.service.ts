@@ -1,11 +1,16 @@
-import { Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
+import { ForbiddenException, Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
+import { Prisma } from "@ibp/db";
 import * as bcrypt from "bcryptjs";
 import { PrismaService } from "../../prisma/prisma.service";
 import { StorageService } from "../../common/storage/storage.service";
 import { AuditService } from "../../common/audit/audit.service";
+import { SequenceService } from "../../common/sequence/sequence.service";
 import { RateLimitService } from "../../common/security/rate-limit.service";
 import { NotificationsService } from "../notifications/notifications.service";
+import type { SubmitClaimDto, SubmitServiceDto } from "./dto/portal.dto";
+
+const asJson = (v: unknown) => v as Prisma.InputJsonValue;
 
 /**
  * بوّابة العميل (المرحلة 8ب) — نطاق `client`.
@@ -19,6 +24,7 @@ export class PortalService {
     private readonly jwt: JwtService,
     private readonly storage: StorageService,
     private readonly audit: AuditService,
+    private readonly seq: SequenceService,
     private readonly rateLimit: RateLimitService,
     private readonly notifications: NotificationsService,
   ) {}
@@ -65,9 +71,71 @@ export class PortalService {
       orderBy: { createdAt: "desc" },
       select: {
         id: true, sequenceNo: true, productLineCode: true, insurerName: true, status: true,
-        premium: true, vat: true, totalPremium: true, startDate: true, endDate: true, createdAt: true,
+        premium: true, vat: true, totalPremium: true, sumInsured: true, startDate: true, endDate: true, createdAt: true,
       },
     });
+  }
+
+  /** تفاصيل وثيقة للعميل (مقصورة على وثائقه) + مطالباتها ومستنداتها. */
+  async policyDetail(clientId: string, id: string) {
+    const policy = await this.prisma.policy.findFirst({
+      where: { id, clientId },
+      select: { id: true, sequenceNo: true, productLineCode: true, insurerName: true, insurerPolicyNo: true, status: true, premium: true, vat: true, totalPremium: true, sumInsured: true, startDate: true, endDate: true },
+    });
+    if (!policy) throw new NotFoundException("الوثيقة غير موجودة");
+    const [claims, documents] = await Promise.all([
+      this.prisma.claim.findMany({ where: { policyId: id, clientId }, orderBy: { createdAt: "desc" }, select: { id: true, sequenceNo: true, status: true, claimedAmount: true, incidentDate: true } }),
+      this.prisma.document.findMany({ where: { entityId: id }, orderBy: { createdAt: "desc" }, select: { id: true, fileName: true, docType: true, createdAt: true } }),
+    ]);
+    return { policy, claims, documents };
+  }
+
+  /** يتحقّق أن الوثيقة تخصّ العميل (حماية قبل أي تقديم عليها). */
+  private async assertOwnsPolicy(clientId: string, policyId: string) {
+    const p = await this.prisma.policy.findFirst({ where: { id: policyId, clientId }, select: { id: true, sequenceNo: true, insurerName: true } });
+    if (!p) throw new ForbiddenException("الوثيقة غير مرتبطة بحسابك");
+    return p;
+  }
+
+  /** تقديم مطالبة من البوّابة على وثيقة العميل ⇒ مطالبة RECEIVED + إشعار فريق المطالبات. */
+  async submitClaim(tenantId: string, clientId: string, dto: SubmitClaimDto) {
+    const policy = await this.assertOwnsPolicy(clientId, dto.policyId);
+    const sequenceNo = await this.seq.nextClaimSeq();
+    const claim = await this.prisma.claim.create({
+      data: {
+        tenantId, sequenceNo, clientId, policyId: dto.policyId, insurerName: policy.insurerName ?? null,
+        incidentDate: dto.incidentDate ? new Date(dto.incidentDate) : null,
+        claimedAmount: dto.claimedAmount ?? null, status: "RECEIVED",
+        details: dto.description ? asJson({ description: dto.description, viaPortal: true }) : asJson({ viaPortal: true }),
+      },
+      select: { id: true, sequenceNo: true, status: true },
+    });
+    await this.audit.log({ tenantId, userId: clientId, action: "create", entity: "claim", entityId: claim.id, meta: { viaPortal: true } });
+    void this.notifications.notifyStaff(tenantId, "staff_claim_created", { ref: claim.sequenceNo ?? claim.id }).catch(() => undefined);
+    return claim;
+  }
+
+  /** تقديم طلب خدمة من البوّابة (شهادة/نسخة/تعديل/إلغاء/تجديد/استفسار) ⇒ OPEN + إشعار. */
+  async submitService(tenantId: string, clientId: string, dto: SubmitServiceDto) {
+    if (dto.policyId) await this.assertOwnsPolicy(clientId, dto.policyId);
+    const sequenceNo = await this.seq.nextServiceSeq();
+    const sr = await this.prisma.serviceRequest.create({
+      data: {
+        tenantId, sequenceNo, clientId, policyId: dto.policyId ?? null, type: dto.type,
+        subject: dto.subject ?? null, status: "OPEN",
+        details: dto.description ? asJson({ description: dto.description, viaPortal: true }) : asJson({ viaPortal: true }),
+      },
+      select: { id: true, sequenceNo: true, type: true, status: true },
+    });
+    await this.audit.log({ tenantId, userId: clientId, action: "create", entity: "service_request", entityId: sr.id, meta: { viaPortal: true, type: dto.type } });
+    void this.notifications.notifyStaff(tenantId, "staff_request_created", { ref: sr.sequenceNo ?? sr.id }).catch(() => undefined);
+    return sr;
+  }
+
+  /** طلب تجديد وثيقة (اختصار — طلب خدمة نوعه renewal). */
+  async requestRenewal(tenantId: string, clientId: string, policyId: string) {
+    const policy = await this.assertOwnsPolicy(clientId, policyId);
+    return this.submitService(tenantId, clientId, { type: "renewal", policyId, subject: `طلب تجديد الوثيقة ${policy.sequenceNo ?? policyId}` });
   }
 
   async requests(clientId: string) {
