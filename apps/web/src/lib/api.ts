@@ -47,21 +47,38 @@ export class ApiError extends Error {
   }
 }
 
+type Scope = "tenant" | "platform" | "portal";
+
 export async function api<T = unknown>(path: string, opts: RequestInit = {}): Promise<T> {
-  return request<T>(path, opts, getToken());
+  return request<T>(path, opts, getToken(), "tenant");
 }
 
 /** نداء بنطاق المنصّة (السوبر أدمن). */
 export async function papi<T = unknown>(path: string, opts: RequestInit = {}): Promise<T> {
-  return request<T>(path, opts, getPlatformToken());
+  return request<T>(path, opts, getPlatformToken(), "platform");
 }
 
 /** نداء بنطاق بوّابة العميل. */
 export async function cpapi<T = unknown>(path: string, opts: RequestInit = {}): Promise<T> {
-  return request<T>(path, opts, getPortalToken());
+  return request<T>(path, opts, getPortalToken(), "portal");
 }
 
-async function request<T>(path: string, opts: RequestInit, token: string | null): Promise<T> {
+/**
+ * انتهاء/بطلان الجلسة (401 مع توكن موجود) ⇒ نظّف التوكن وأعِد لصفحة الدخول المناسبة.
+ * يمنع بقاء المستخدم في حالة معطوبة (قائمة فارغة/اسم افتراضي) بعد خمول التوكن.
+ */
+function handleSessionExpired(scope: Scope): void {
+  if (typeof window === "undefined") return;
+  const login = scope === "platform" ? "admin/login" : scope === "portal" ? "portal/login" : "login";
+  if (scope === "platform") clearPlatformToken();
+  else if (scope === "portal") clearPortalToken();
+  else clearToken();
+  const seg = window.location.pathname.split("/")[1];
+  const locale = seg === "ar" || seg === "en" ? seg : "ar";
+  if (!window.location.pathname.includes(`/${login}`)) window.location.replace(`/${locale}/${login}`);
+}
+
+async function request<T>(path: string, opts: RequestInit, token: string | null, scope: Scope = "tenant"): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     ...opts,
     headers: {
@@ -70,6 +87,9 @@ async function request<T>(path: string, opts: RequestInit, token: string | null)
       ...(opts.headers ?? {}),
     },
   });
+
+  // جلسة منتهية: أُرسل توكن لكنه رُفض ⇒ إعادة توجيه نظيفة للدخول (لا نُظهر مستخدمًا آخر)
+  if (res.status === 401 && token) handleSessionExpired(scope);
 
   if (!res.ok) {
     let message: string = res.statusText;

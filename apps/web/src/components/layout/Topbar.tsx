@@ -34,8 +34,9 @@ export function Topbar() {
     router.replace("/login");
   }
 
-  const name = me?.fullName ?? t("topbar.userName");
-  const role = me ? me.email : t("topbar.userRole");
+  // لا نعرض اسمًا افتراضيًا (كان يُظهر مستخدمًا آخر عند انتهاء الجلسة) — نعرض «…» حتى تُحمَّل الهوية.
+  const name = me?.fullName ?? "…";
+  const role = me?.email ?? "";
 
   return (
     <header className="sticky top-0 z-10 flex h-16 items-center gap-3 border-b border-line bg-topbar/95 px-5 backdrop-blur sm:px-7">

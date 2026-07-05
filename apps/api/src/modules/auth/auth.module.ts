@@ -8,7 +8,8 @@ import { AuthController } from "./auth.controller";
     JwtModule.register({
       global: true, // JwtService متاح عالمياً (للـ middleware أيضاً)
       secret: process.env.JWT_SECRET ?? "dev-only-change-me",
-      signOptions: { expiresIn: process.env.JWT_EXPIRES_IN ?? "15m" },
+      // جلسة عمل يوم كامل افتراضيًا (كان 15د — قصير جدًا يُخرج المستخدم عند الخمول). قابل للضبط بالبيئة.
+      signOptions: { expiresIn: process.env.JWT_EXPIRES_IN ?? "8h" },
     }),
   ],
   controllers: [AuthController],
