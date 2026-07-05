@@ -1,12 +1,18 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { ConflictException, Injectable, NotFoundException, UnprocessableEntityException } from "@nestjs/common";
+import { Prisma } from "@ibp/db";
 import { PrismaService } from "../../prisma/prisma.service";
 import { SequenceService } from "../../common/sequence/sequence.service";
 import { AuditService } from "../../common/audit/audit.service";
 import { NotificationsService } from "../notifications/notifications.service";
 
+const asJson = (v: unknown) => v as Prisma.InputJsonValue;
+
 /**
  * التجديدات (المرحلة 6): عرض الوثائق المستحقّة للتجديد ضمن نافذة زمنية،
- * وبدء طلب تجديد (ServiceRequest type=renewal). معزولة بالمستأجر.
+ * و**بدء دورة تجديد فعلية**: إنشاء طلب تأمين (PolicyRequest) مبني على بيانات الوثيقة
+ * المنتهية (استنساخ مسبق التعبئة + رابط سلسلة التجديد) يدخل دورة RFQ⇐عرض⇐إصدار من جديد.
+ * لا يُطلق تذكيرًا تلقائيًا للعميل عند البدء (التذكير المبكّر مهمّة المجدول؛ والتواصل الفعلي
+ * هو إرسال عرض التجديد لاحقًا) — بل يُشعر فريق التجديدات داخليًا فقط. معزولة بالمستأجر.
  */
 @Injectable()
 export class RenewalsService {
@@ -32,30 +38,62 @@ export class RenewalsService {
     return rows.map((r) => ({ ...r, clientName: r.clientId ? nameOf.get(r.clientId) ?? null : null }));
   }
 
+  /**
+   * بدء دورة تجديد فعلية للوثيقة المنتهية: يُنشئ طلب تأمين جديدًا (PolicyRequest) مبنيًا على
+   * بيانات الطلب الأصلي للوثيقة (استنساخ base/details وصفوف الكتل) + رابط `renewedFromPolicyId`.
+   * يمنع التكرار (طلب تجديد قائم لنفس الوثيقة ⇒ 409). لا تذكير تلقائي للعميل.
+   */
   async initiate(tenantId: string, userId: string, policyId: string) {
     const policy = await this.prisma.policy.findFirst({ where: { id: policyId } });
     if (!policy) throw new NotFoundException("الوثيقة غير موجودة");
-    const sequenceNo = await this.seq.nextServiceSeq();
-    const sr = await this.prisma.serviceRequest.create({
+    if (!policy.clientId || !policy.productLineCode) {
+      throw new UnprocessableEntityException("الوثيقة تفتقر لعميل أو فرع منتج — لا يمكن بناء طلب تجديد");
+    }
+
+    // منع التكرار: طلب تجديد قائم (غير مرفوض) لنفس الوثيقة
+    const existing = await this.prisma.policyRequest.findFirst({
+      where: { renewedFromPolicyId: policyId, status: { not: "REJECTED" } },
+      select: { id: true, sequenceNo: true },
+    });
+    if (existing) throw new ConflictException(`يوجد طلب تجديد قائم لهذه الوثيقة بالفعل (${existing.sequenceNo ?? existing.id})`);
+
+    // استنساخ بيانات الطلب الأصلي إن وُجد (تعبئة مسبقة)
+    const source = policy.requestId
+      ? await this.prisma.policyRequest.findFirst({ where: { id: policy.requestId }, select: { base: true, details: true } })
+      : null;
+    const line = await this.prisma.productLine.findFirst({ where: { code: policy.productLineCode }, include: { class: true } });
+    const sequenceNo = await this.seq.nextRequestSeq(line?.class.code ?? "GEN");
+
+    const req = await this.prisma.policyRequest.create({
       data: {
         tenantId,
-        sequenceNo,
         clientId: policy.clientId,
-        policyId,
-        type: "renewal",
-        subject: `تجديد الوثيقة ${policy.sequenceNo ?? policyId}`,
-        status: "OPEN",
+        productLineCode: policy.productLineCode,
+        status: "DRAFT",
+        sequenceNo,
+        base: asJson(source?.base ?? {}),
+        details: source?.details != null ? asJson(source.details) : undefined,
+        renewedFromPolicyId: policyId,
       },
-      select: { id: true, sequenceNo: true, type: true, status: true, policyId: true, tenantId: true },
+      select: { id: true, sequenceNo: true, status: true, productLineCode: true, tenantId: true },
     });
-    await this.audit.log({ tenantId, userId, action: "create", entity: "renewal", entityId: sr.id, meta: { policyId } });
-    // تذكير العميل باستحقاق تجديد وثيقته (لا يُفشل بدء التجديد عند تعذّره)
-    if (policy.clientId) {
-      const client = await this.prisma.client.findFirst({ where: { id: policy.clientId }, select: { email: true, phone: true } });
-      if (client) void this.notifications.notify(tenantId, "renewal_reminder", { email: client.email ?? undefined, phone: client.phone ?? undefined, clientId: policy.clientId ?? undefined }, { ref: String(policy.sequenceNo ?? sequenceNo) }).catch(() => undefined);
+
+    // نسخ صفوف الكتل من الطلب الأصلي (إن وُجدت) حتى يبدأ الوسيط من نسخة مطابقة
+    if (policy.requestId) {
+      const srcRows = await this.prisma.requestBlockRow.findMany({
+        where: { requestId: policy.requestId },
+        select: { blockKey: true, rowIndex: true, data: true },
+      });
+      if (srcRows.length) {
+        await this.prisma.requestBlockRow.createMany({
+          data: srcRows.map((r) => ({ tenantId, requestId: req.id, blockKey: r.blockKey, rowIndex: r.rowIndex, data: asJson(r.data) })),
+        });
+      }
     }
-    // إشعار فريق التجديدات ببدء إجراء تجديد
+
+    await this.audit.log({ tenantId, userId, action: "create", entity: "renewal", entityId: req.id, meta: { policyId, requestId: req.id } });
+    // إشعار فريق التجديدات فقط ببدء دورة التجديد (لا تذكير تلقائي للعميل)
     void this.notifications.notifyStaff(tenantId, "staff_renewal_due", { ref: String(policy.sequenceNo ?? sequenceNo) }).catch(() => undefined);
-    return sr;
+    return req;
   }
 }

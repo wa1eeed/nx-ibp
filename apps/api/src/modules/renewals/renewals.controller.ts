@@ -15,7 +15,7 @@ export class RenewalsController {
   }
 
   @Authorize({ module: "production", action: "create", entitlement: "module.production" })
-  @HttpCode(200)
+  @HttpCode(201)
   @Post(":policyId/initiate")
   initiate(
     @CurrentUser("tenantId") tenantId: string,

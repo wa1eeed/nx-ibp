@@ -72,6 +72,18 @@ describe("الموديولز التشغيلية (e2e)", () => {
   it("بدء تجديد لوثيقة غير موجودة ⇒ 404", () =>
     request(app.getHttpServer()).post("/renewals/nonexistent/initiate").set(auth(underwriter)).expect(404));
 
+  it("المكتتب يبدأ دورة تجديد ⇒ 201 طلب تأمين (DRAFT) مبني على الوثيقة، والتكرار ⇒ 409", async () => {
+    const srv = app.getHttpServer();
+    const due = (await request(srv).get("/renewals?days=120").set(auth(underwriter))).body as Array<{ id: string }>;
+    expect(due.length).toBeGreaterThan(0);
+    const policyId = due[0].id;
+    const res = await request(srv).post(`/renewals/${policyId}/initiate`).set(auth(underwriter)).expect(201);
+    expect(res.body.sequenceNo).toMatch(/^SL-/); // طلب تأمين جديد (لا مجرّد تذكرة RQ)
+    expect(res.body.status).toBe("DRAFT");
+    // منع التكرار: طلب تجديد قائم لنفس الوثيقة ⇒ 409
+    await request(srv).post(`/renewals/${policyId}/initiate`).set(auth(underwriter)).expect(409);
+  });
+
   // ----- العزل -----
   it("العزل: الأمان لا يرى طلبات خدمة الخليج", async () => {
     const res = await request(app.getHttpServer()).get("/service-requests").set(auth(amanGm)).expect(200);

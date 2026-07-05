@@ -15,6 +15,7 @@ interface Policy {
 }
 
 const TONE: Record<string, BadgeTone> = { ISSUED: "success", TECHNICAL_REVIEW: "warning", FINANCE_REVIEW: "info", REJECTED: "danger", CANCELLED: "neutral" };
+const RENEWAL_WINDOW_DAYS = 60; // التجديد يُفتح ضمن نافذة قبل الانتهاء (معيار الوساطة)
 
 export default function PortalPolicies() {
   const t = useTranslations();
@@ -26,6 +27,11 @@ export default function PortalPolicies() {
 
   const fmt = (n: string | null) => (n == null ? "—" : Number(n).toLocaleString("en-US"));
   const date = (d: string | null) => (d ? new Date(d).toLocaleDateString("en-GB") : "—");
+  const canRenew = (p: Policy) => {
+    if (p.status !== "ISSUED" || !p.endDate) return false;
+    const days = Math.ceil((new Date(p.endDate).getTime() - Date.now()) / 86_400_000);
+    return days >= 0 && days <= RENEWAL_WINDOW_DAYS;
+  };
 
   async function renew(p: Policy) {
     setBusy(p.id); setDone("");
@@ -64,7 +70,7 @@ export default function PortalPolicies() {
                 <td className="px-5 py-3"><Badge tone={TONE[p.status] ?? "neutral"}>{p.status}</Badge></td>
                 <td className="px-5 py-3">
                   <div className="flex items-center justify-end gap-1.5">
-                    {p.status === "ISSUED" ? (
+                    {canRenew(p) ? (
                       <button onClick={() => renew(p)} disabled={busy === p.id} className="inline-flex items-center gap-1 rounded-lg border border-line px-2.5 py-1.5 text-[12px] font-medium text-muted hover:bg-surface-2 disabled:opacity-50">
                         <RefreshCw size={13} /> {busy === p.id ? "…" : t("portal.renew.action")}
                       </button>

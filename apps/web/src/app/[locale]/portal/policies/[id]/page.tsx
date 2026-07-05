@@ -19,6 +19,7 @@ interface Claim { id: string; sequenceNo: string | null; status: string; claimed
 interface Doc { id: string; fileName: string; docType: string | null; createdAt: string }
 interface Detail { policy: Policy; claims: Claim[]; documents: Doc[] }
 
+const RENEWAL_WINDOW_DAYS = 60; // التجديد يُفتح ضمن نافذة قبل الانتهاء (معيار الوساطة)
 const P_TONE: Record<string, BadgeTone> = { ISSUED: "success", TECHNICAL_REVIEW: "warning", FINANCE_REVIEW: "info", REJECTED: "danger", CANCELLED: "neutral" };
 const C_TONE: Record<string, BadgeTone> = { RECEIVED: "neutral", UNDER_REVIEW: "warning", SUBMITTED: "info", SETTLED: "success", CLOSED: "neutral", REJECTED: "danger" };
 
@@ -54,6 +55,9 @@ export default function PortalPolicyDetail() {
   const p = data?.policy;
   const now = Date.now();
   const daysLeft = p?.endDate ? Math.ceil((new Date(p.endDate).getTime() - now) / 86_400_000) : null;
+  const inRenewalWindow = p?.status === "ISSUED" && daysLeft != null && daysLeft >= 0 && daysLeft <= RENEWAL_WINDOW_DAYS;
+  const activeButEarly = p?.status === "ISSUED" && daysLeft != null && daysLeft > RENEWAL_WINDOW_DAYS;
+  const endStr = p?.endDate ? new Date(p.endDate).toLocaleDateString("en-GB") : "";
 
   return (
     <PortalShell>
@@ -65,13 +69,14 @@ export default function PortalPolicyDetail() {
       <PageHeader
         title={p ? `${t("portal.policyDetail.title")} ${p.sequenceNo ?? ""}` : t("portal.policyDetail.title")}
         subtitle={p?.insurerName ?? undefined}
-        actions={p?.status === "ISSUED" ? (
+        actions={inRenewalWindow ? (
           <button onClick={renew} disabled={busy} className="inline-flex items-center gap-1.5 rounded-lg bg-primary-strong px-3.5 py-2 text-[13px] font-semibold text-primary-fg hover:bg-primary disabled:opacity-60">
             <RefreshCw size={15} /> {busy ? "…" : t("portal.renew.action")}
           </button>
         ) : undefined}
       />
       {done ? <p className="mb-3 rounded-lg bg-success-soft px-3 py-2 text-[12.5px] font-medium text-success">{done}</p> : null}
+      {activeButEarly ? <p className="mb-3 rounded-lg bg-surface-2 px-3 py-2 text-[12px] text-subtle">{t("portal.renew.window", { date: endStr, days: RENEWAL_WINDOW_DAYS })}</p> : null}
 
       {p ? (
         <>

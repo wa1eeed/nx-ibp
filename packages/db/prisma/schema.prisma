@@ -490,12 +490,14 @@ model PolicyRequest {
   status          RequestStatus     @default(DRAFT)
   base            Json // الحقول الأساسية المعبّأة (محقّقة ضد FormSchema)
   details         Json? // حقول خاصة بالفرع
+  renewedFromPolicyId String? // الوثيقة المنتهية التي بُني عليها هذا الطلب (سلسلة التجديد)
   blockRows       RequestBlockRow[]
   slips           Slip[]
   createdAt       DateTime          @default(now())
 
   @@index([tenantId])
   @@index([clientId])
+  @@index([renewedFromPolicyId])
 }
 
 enum RequestStatus {

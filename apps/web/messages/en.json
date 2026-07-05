@@ -581,9 +581,9 @@
     "subtitle": "Renewals board — expired and upcoming policies, ranked by urgency",
     "empty": "No policies due for renewal in this window",
     "initiate": "Initiate renewal",
-    "initiated": "Renewal request {seq} created",
+    "initiated": "Renewal request {seq} created — track it under “Requests”",
     "confirmTitle": "Initiate renewal",
-    "confirmDesc": "A renewal request will be created for this policy, a reminder sent to the client, and a new cycle started.",
+    "confirmDesc": "A new insurance request will be created from this policy's data and enter the quoting/issuance cycle. No reminder is sent to the client automatically.",
     "dayShort": "d",
     "daysLeft": "days",
     "expiredBy": "expired {n}d ago",
@@ -770,7 +770,7 @@
       "cancel": "Cancel", "submit": "Submit request", "done": "We received your request {seq} and will follow up",
       "types": { "certificate": "Coverage certificate", "policy_copy": "Policy copy", "amendment": "Amendment/addition", "cancellation": "Policy cancellation", "renewal": "Renewal", "inquiry": "Inquiry" }
     },
-    "renew": { "action": "Request renewal", "done": "Renewal request {seq} sent" },
+    "renew": { "action": "Request renewal", "done": "Renewal request {seq} sent", "window": "Policy valid until {date} — renewal opens {days} days before expiry." },
     "nav": { "dashboard": "Home", "policies": "My policies", "requests": "My requests", "claims": "My claims", "statement": "Statement", "documents": "My documents" },
     "login": { "title": "Client portal sign-in", "submit": "Sign in", "error": "Invalid credentials" },
     "dashboard": {
