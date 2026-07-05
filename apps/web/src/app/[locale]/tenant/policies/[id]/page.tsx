@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { ArrowRight, FileCheck2, Coins, ClipboardList, FilePlus2, FolderOpen, Clock, Plus, X, Check } from "lucide-react";
+import { ArrowRight, FileCheck2, Coins, ClipboardList, FilePlus2, FolderOpen, Clock, Plus, X, Check, Ban } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
 import { api, ApiError, getToken } from "@/lib/api";
@@ -21,6 +21,7 @@ interface Overview {
   endorsements: Array<{ id: string; sequenceNo: string | null; type: string; effectiveDate: string | null; premiumDelta: string | null; status: string; createdAt: string }>;
   claims: Array<{ id: string; sequenceNo: string | null; insurerName: string | null; claimedAmount: string | null; settledAmount: string | null; status: string; incidentDate: string | null; createdAt: string }>;
   debitNotes: Array<{ id: string; sequenceNo: string | null; netAmount: string | null; vatAmount: string | null; createdAt: string }>;
+  creditNotes: Array<{ id: string; sequenceNo: string | null; netAmount: string | null; vatAmount: string | null; createdAt: string }>;
   invoices: Array<{ id: string; sequenceNo: string | null; status: string | null; netAmount: string | null; vatAmount: string | null; totalAmount: string | null; createdAt: string }>;
   documents: Array<{ id: string; fileName: string; docType: string; createdAt: string }>;
   activity: Array<{ action: string; meta: unknown; createdAt: string }>;
@@ -40,11 +41,15 @@ export default function PolicyDetailPage() {
   const [tab, setTab] = useState<(typeof TABS)[number]>("financial");
   const [endoOpen, setEndoOpen] = useState(false);
   const [endoDone, setEndoDone] = useState("");
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [banner, setBanner] = useState("");
+  const [canFinance, setCanFinance] = useState(false);
 
   const load = useCallback(async () => {
     try { setOv(await api<Overview>(`/policies/${id}/overview`)); } catch { /* تجاهل */ }
   }, [id]);
   useEffect(() => { if (getToken()) void load(); }, [load]);
+  useEffect(() => { if (getToken()) void api<{ permissions?: Record<string, { edit?: boolean }> }>("/auth/me").then((m) => setCanFinance(m.permissions?.finance?.edit === true)).catch(() => undefined); }, []);
 
   if (!ov) return <div className="grid min-h-[40vh] place-items-center text-subtle">…</div>;
   const p = ov.policy;
@@ -83,9 +88,13 @@ export default function PolicyDetailPage() {
         </div>
         <div className="flex items-center gap-2">
           {p.insurerPolicyNo ? <span className="text-[11.5px] text-subtle">{t("insurerPolicyNo")}: {p.insurerPolicyNo}</span> : null}
+          {p.status === "ISSUED" && canFinance ? (
+            <button onClick={() => { setBanner(""); setCancelOpen(true); }} className="inline-flex items-center gap-1.5 rounded-lg border border-danger/30 bg-danger/5 px-3 py-1.5 text-[12px] font-semibold text-danger hover:bg-danger/10"><Ban size={14} /> {t("cancel.action")}</button>
+          ) : null}
           <Badge tone={STATUS_TONE[p.status] ?? "neutral"}>{p.status}</Badge>
         </div>
       </header>
+      {banner ? <p className="rounded-lg bg-success-soft px-3 py-2 text-[12.5px] font-medium text-success">{banner}</p> : null}
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {kpi(t("kpi.gross"), fmt(ov.summary.gross), Coins)}
@@ -140,8 +149,9 @@ export default function PolicyDetailPage() {
         {tab === "invoices" ? (
           <div className="space-y-3">
             {ov.debitNotes.length ? (<div><p className="mb-1.5 text-[12px] font-semibold text-subtle">{t("debitNotes")}</p>{table([t("col.ref"), t("col.net"), t("col.vat"), t("col.date")], ov.debitNotes.map((d) => row([d.sequenceNo ?? "—", fmt(d.netAmount), fmt(d.vatAmount), dt(d.createdAt)])))}</div>) : null}
+            {ov.creditNotes.length ? (<div><p className="mb-1.5 text-[12px] font-semibold text-danger">{t("creditNotes")}</p>{table([t("col.ref"), t("col.net"), t("col.vat"), t("col.date")], ov.creditNotes.map((c) => row([c.sequenceNo ?? "—", <span key="n" className="text-danger">−{fmt(c.netAmount)}</span>, <span key="v" className="text-danger">−{fmt(c.vatAmount)}</span>, dt(c.createdAt)])))}</div>) : null}
             {ov.invoices.length ? (<div><p className="mb-1.5 text-[12px] font-semibold text-subtle">{t("taxInvoices")}</p>{table([t("col.ref"), t("col.status"), t("col.total"), t("col.date")], ov.invoices.map((i) => row([i.sequenceNo ?? "—", <Badge key="s" tone="neutral">{i.status ?? "—"}</Badge>, fmt(i.totalAmount), dt(i.createdAt)])))}</div>) : null}
-            {!ov.debitNotes.length && !ov.invoices.length ? empty : null}
+            {!ov.debitNotes.length && !ov.invoices.length && !ov.creditNotes.length ? empty : null}
           </div>
         ) : null}
 
@@ -160,6 +170,42 @@ export default function PolicyDetailPage() {
       </div>
 
       {endoOpen ? <AddEndorsement policyId={id} onClose={() => setEndoOpen(false)} onDone={(seq) => { setEndoOpen(false); setEndoDone(t("endo.done", { seq })); void load(); }} /> : null}
+      {cancelOpen ? <CancelPolicy policyId={id} onClose={() => setCancelOpen(false)} onDone={(seq, amount) => { setCancelOpen(false); setBanner(t("cancel.done", { seq, amount })); void load(); }} /> : null}
+    </div>
+  );
+}
+
+function CancelPolicy({ policyId, onClose, onDone }: { policyId: string; onClose: () => void; onDone: (seq: string, amount: string) => void }) {
+  const t = useTranslations("policy360");
+  const [effectiveDate, setEffectiveDate] = useState(new Date().toISOString().slice(0, 10));
+  const [reason, setReason] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState("");
+  const field = "h-9 w-full rounded-lg border border-line bg-card px-3 text-[13px] text-ink focus:outline-none focus:ring-2 focus:ring-primary/30";
+
+  async function save() {
+    setErr(""); setSaving(true);
+    try {
+      const r = await api<{ creditNote: string; returnTotal: number }>(`/finance/policies/${policyId}/cancel`, { method: "POST", body: JSON.stringify({ effectiveDate, reason: reason || undefined }) });
+      onDone(r.creditNote, Number(r.returnTotal).toLocaleString("en-US"));
+    } catch (e) { setErr(e instanceof ApiError ? e.message : "خطأ"); setSaving(false); }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onMouseDown={onClose}>
+      <div className="w-full max-w-md rounded-card border border-line bg-card p-5 shadow-card" onMouseDown={(e) => e.stopPropagation()}>
+        <div className="mb-1 flex items-center justify-between"><h2 className="text-[15px] font-bold text-ink">{t("cancel.title")}</h2><button onClick={onClose} className="text-subtle hover:text-ink"><X size={18} /></button></div>
+        <p className="mb-3 text-[12px] text-subtle">{t("cancel.hint")}</p>
+        <div className="space-y-3">
+          <label className="block"><span className="mb-1 block text-[11.5px] font-medium text-muted">{t("cancel.effectiveDate")}</span><input type="date" value={effectiveDate} onChange={(e) => setEffectiveDate(e.target.value)} className={field} /></label>
+          <label className="block"><span className="mb-1 block text-[11.5px] font-medium text-muted">{t("cancel.reason")}</span><textarea value={reason} onChange={(e) => setReason(e.target.value)} className="h-16 w-full rounded-lg border border-line bg-card px-3 py-2 text-[13px]" /></label>
+          {err ? <p className="text-[12px] font-medium text-danger">{err}</p> : null}
+          <div className="flex justify-end gap-2 pt-1">
+            <button onClick={onClose} className="h-9 rounded-lg border border-line px-3 text-[12.5px] font-medium text-muted hover:bg-surface-2">{t("cancel.cancel")}</button>
+            <button onClick={save} disabled={saving} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-danger px-4 text-[12.5px] font-semibold text-white hover:opacity-90 disabled:opacity-60"><Ban size={15} /> {saving ? "…" : t("cancel.submit")}</button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

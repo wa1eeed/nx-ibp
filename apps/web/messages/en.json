@@ -452,6 +452,8 @@
     "commissionRate": "Brokerage", "producer": "Producer", "period": "Cover period", "paymentTerms": "Payment terms",
     "debitNotes": "Debit notes", "taxInvoices": "Tax invoices", "emptyTab": "No data in this section",
     "addEndorsement": "Add endorsement",
+    "creditNotes": "Credit notes (return premium)",
+    "cancel": { "action": "Cancel policy", "title": "Cancel policy & return premium", "hint": "Return premium is computed pro-rata on the unexpired days, and a credit note is issued to the client.", "effectiveDate": "Cancellation effective date", "reason": "Reason", "submit": "Confirm cancellation", "cancel": "Back", "done": "Policy cancelled — credit note {seq}, return premium {amount}" },
     "endo": { "title": "Add policy endorsement", "type": "Endorsement type", "effectiveDate": "Effective date", "delta": "Premium delta (± SAR)", "reason": "Reason / details", "submit": "Add endorsement", "cancel": "Cancel", "done": "Endorsement {seq} added", "onlyIssued": "Endorsements can only be added to issued policies", "types": { "addition": "Addition", "deletion": "Deletion", "amendment": "Amendment", "cancellation": "Cancellation" } },
     "col": { "ref": "Ref", "type": "Type", "effective": "Effective", "delta": "Premium Δ", "status": "Status", "claimed": "Claimed", "settled": "Settled", "incident": "Incident", "net": "Net", "vat": "VAT", "total": "Total", "date": "Date", "file": "File", "docType": "Type" }
   },

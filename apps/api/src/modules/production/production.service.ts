@@ -98,11 +98,12 @@ export class ProductionService {
   async overview(id: string) {
     const policy = await this.prisma.policy.findFirst({ where: { id }, select: POLICY_FIELDS });
     if (!policy) throw new NotFoundException("الوثيقة غير موجودة");
-    const [client, endorsements, claims, debitNotes, invoices, activity] = await Promise.all([
+    const [client, endorsements, claims, debitNotes, creditNotes, invoices, activity] = await Promise.all([
       policy.clientId ? this.prisma.client.findFirst({ where: { id: policy.clientId }, select: { id: true, name: true, type: true, code: true } }) : null,
       this.prisma.endorsement.findMany({ where: { policyId: id }, orderBy: { createdAt: "desc" }, select: { id: true, sequenceNo: true, type: true, effectiveDate: true, premiumDelta: true, status: true, createdAt: true } }),
       this.prisma.claim.findMany({ where: { policyId: id }, orderBy: { createdAt: "desc" }, select: { id: true, sequenceNo: true, insurerName: true, claimedAmount: true, settledAmount: true, status: true, incidentDate: true, createdAt: true } }),
       this.prisma.debitNote.findMany({ where: { policyId: id }, orderBy: { createdAt: "desc" }, select: { id: true, sequenceNo: true, netAmount: true, vatAmount: true, createdAt: true } }),
+      this.prisma.creditNote.findMany({ where: { policyId: id }, orderBy: { createdAt: "desc" }, select: { id: true, sequenceNo: true, netAmount: true, vatAmount: true, createdAt: true } }),
       this.prisma.invoice.findMany({ where: { policyId: id }, orderBy: { createdAt: "desc" }, select: { id: true, sequenceNo: true, status: true, netAmount: true, vatAmount: true, totalAmount: true, createdAt: true } }),
       this.prisma.auditLog.findMany({ where: { entity: "policy", entityId: id }, orderBy: { createdAt: "desc" }, take: 60, select: { action: true, meta: true, createdAt: true } }),
     ]);
@@ -115,6 +116,7 @@ export class ProductionService {
       endorsements,
       claims,
       debitNotes,
+      creditNotes,
       invoices,
       documents,
       activity,
@@ -156,6 +158,12 @@ export class ProductionService {
     const rate = dto.commissionRate ?? 12.5;
     const commission = +((premium * rate) / 100).toFixed(2);
 
+    // فترة التغطية من نموذج الطلب (startDate/endDate)؛ افتراضيًا سنة من الإصدار عند غيابها.
+    const base = (request.base ?? {}) as Record<string, unknown>;
+    const parseDate = (v: unknown) => { const d = v ? new Date(String(v)) : null; return d && !Number.isNaN(+d) ? d : null; };
+    const startDate = parseDate(base.startDate) ?? new Date();
+    const endDate = parseDate(base.endDate) ?? new Date(+startDate + 365 * 86_400_000);
+
     // E2 — سلسلة الاعتماد: البوّابة الفنية قابلة للتعطيل من الشركة (المالية تبقى إلزامية)
     const approvalCfg = await this.config.getPolicyApprovalConfig(tenantId);
     const skipTechnical = !approvalCfg.technicalGate;
@@ -185,6 +193,8 @@ export class ProductionService {
           paymentTerms: dto.paymentTerms ?? null,
           producerName: dto.producerName ?? null,
           producerCommission: dto.producerCommission ?? null,
+          startDate,
+          endDate,
           status: initialStatus,
           pendingApprovals: initialPending,
         },

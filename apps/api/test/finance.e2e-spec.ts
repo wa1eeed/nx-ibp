@@ -164,4 +164,32 @@ describe("الإصدار والاعتماد المالي (e2e)", () => {
     await request(srv).post(`/finance/debit-notes/${note.id}/receipt`).set(auth(underwriter)).send({ amount: 100 }).expect(403);
     await request(srv).post(`/finance/debit-notes/${note.id}/receipt`).set(auth(amanGm)).send({ amount: 100 }).expect(404);
   });
+
+  it("إلغاء وثيقة: قسط مُرتجَع نسبةً وتناسبًا + إشعار دائن (CNP) + CANCELLED + كشف حساب يعكسه", async () => {
+    const srv = app.getHttpServer();
+    const requestId = await createAwardedRequest();
+    const policy = (await request(srv).post("/policies/issue").set(auth(underwriter)).send({ requestId, branchCode: "RUH" }).expect(201)).body;
+    await request(srv).post(`/policies/${policy.id}/approve-technical`).set(auth(underwriter)).expect(200);
+    await request(srv).post(`/finance/policies/${policy.id}/approve`).set(auth(accountant)).expect(200);
+
+    // المكتتب (لا finance) لا يُلغي ⇒ 403
+    await request(srv).post(`/finance/policies/${policy.id}/cancel`).set(auth(underwriter)).send({}).expect(403);
+
+    // إلغاء منتصف المدة (السريان 2026-01-01..2026-12-31، الإلغاء 2026-07-01 ⇒ ~نصف القسط)
+    const c = (await request(srv).post(`/finance/policies/${policy.id}/cancel`).set(auth(accountant)).send({ effectiveDate: "2026-07-01", reason: "طلب العميل" }).expect(200)).body;
+    expect(c.status).toBe("CANCELLED");
+    expect(c.creditNote).toMatch(/^CN-/);
+    expect(c.returnNet).toBeGreaterThan(25000); // ~نصف 60000
+    expect(c.returnNet).toBeLessThan(35000);
+
+    // الوثيقة CANCELLED + إعادة الإلغاء ⇒ 409
+    expect((await request(srv).get(`/policies/${policy.id}`).set(auth(gm)).expect(200)).body.status).toBe("CANCELLED");
+    await request(srv).post(`/finance/policies/${policy.id}/cancel`).set(auth(accountant)).send({}).expect(409);
+
+    // الإشعار الدائن يظهر في نظرة الوثيقة + كشف الحساب يعكسه (credited > 0)
+    const ov = (await request(srv).get(`/policies/${policy.id}/overview`).set(auth(gm)).expect(200)).body;
+    expect(ov.creditNotes.length).toBeGreaterThanOrEqual(1);
+    const st = (await request(srv).get(`/finance/statement/${policy.clientId}`).set(auth(accountant)).expect(200)).body;
+    expect(st.summary.credited).toBeGreaterThan(0);
+  });
 });

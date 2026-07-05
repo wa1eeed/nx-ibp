@@ -77,15 +77,22 @@ export class FinanceService {
 
   /** الذمم المدينة (المستحقّ على العملاء) من إشعارات المدين، مُجمّعة حسب العميل. */
   async receivables() {
-    const notes = await this.prisma.debitNote.findMany({
-      orderBy: { createdAt: "desc" },
-      select: { id: true, sequenceNo: true, clientId: true, policyId: true, netAmount: true, vatAmount: true, settledAmount: true, settledAt: true, createdAt: true },
-    });
+    const [notes, credits] = await Promise.all([
+      this.prisma.debitNote.findMany({
+        orderBy: { createdAt: "desc" },
+        select: { id: true, sequenceNo: true, clientId: true, policyId: true, netAmount: true, vatAmount: true, settledAmount: true, settledAt: true, createdAt: true },
+      }),
+      this.prisma.creditNote.findMany({ select: { clientId: true, netAmount: true, vatAmount: true } }),
+    ]);
     const clientIds = [...new Set(notes.map((n) => n.clientId).filter((x): x is string => !!x))];
     const clients = clientIds.length
       ? await this.prisma.client.findMany({ where: { id: { in: clientIds } }, select: { id: true, name: true } })
       : [];
     const nameOf = Object.fromEntries(clients.map((c) => [c.id, c.name]));
+    // إشعارات دائنة لكل عميل (قسط مُرتجَع) — تُخصم من مستحقّاته
+    const creditByClient = new Map<string, number>();
+    for (const c of credits) { const k = c.clientId ?? "—"; creditByClient.set(k, r2((creditByClient.get(k) ?? 0) + num(c.netAmount) + num(c.vatAmount))); }
+    const creditsTotal = [...creditByClient.values()].reduce((s, v) => s + v, 0);
 
     const byClient = new Map<string, { clientId: string; clientName: string; total: number; count: number }>();
     let outstanding = 0;
@@ -102,10 +109,13 @@ export class FinanceService {
       cur.count += 1;
       byClient.set(key, cur);
     }
+    // خصم الإشعارات الدائنة من مستحقّ كل عميل
+    for (const [k, credit] of creditByClient) { const cur = byClient.get(k); if (cur) cur.total = r2(Math.max(0, cur.total - credit)); }
     return {
-      outstanding: r2(outstanding),
+      outstanding: r2(outstanding - creditsTotal),
       collected: r2(collected),
-      byClient: [...byClient.values()].sort((a, b) => b.total - a.total),
+      creditNotes: r2(creditsTotal),
+      byClient: [...byClient.values()].filter((c) => c.total > 0).sort((a, b) => b.total - a.total),
       notes: notes.map((n) => {
         const gross = r2(num(n.netAmount) + num(n.vatAmount));
         const settled = r2(num(n.settledAmount));
@@ -189,39 +199,90 @@ export class FinanceService {
     return { voucher: result.voucher, commission: result.comm };
   }
 
-  /** كشف حساب العميل: القيود (إشعارات مدين) والمدفوعات (سندات قبض) برصيد جارٍ. */
+  /** كشف حساب العميل: القيود (إشعارات مدين) والإشعارات الدائنة والمدفوعات (سندات قبض) برصيد جارٍ. */
   async statement(clientId: string) {
     const client = await this.prisma.client.findFirst({ where: { id: clientId }, select: { id: true, name: true, code: true } });
     if (!client) throw new NotFoundException("العميل غير موجود");
-    const notes = await this.prisma.debitNote.findMany({ where: { clientId }, orderBy: { createdAt: "asc" }, select: { id: true, sequenceNo: true, netAmount: true, vatAmount: true, createdAt: true } });
+    const [notes, credits] = await Promise.all([
+      this.prisma.debitNote.findMany({ where: { clientId }, orderBy: { createdAt: "asc" }, select: { id: true, sequenceNo: true, netAmount: true, vatAmount: true, createdAt: true } }),
+      this.prisma.creditNote.findMany({ where: { clientId }, orderBy: { createdAt: "asc" }, select: { id: true, sequenceNo: true, netAmount: true, vatAmount: true, createdAt: true } }),
+    ]);
     const noteIds = notes.map((n) => n.id);
     const receipts = noteIds.length
       ? await this.prisma.voucher.findMany({ where: { type: "RCV", reference: { in: noteIds } }, orderBy: { createdAt: "asc" }, select: { id: true, sequenceNo: true, amount: true, reference: true, createdAt: true } })
       : [];
-    type Line = { date: Date; kind: "charge" | "payment"; ref: string | null; debit: number; credit: number };
+    type Line = { date: Date; kind: "charge" | "payment" | "credit"; ref: string | null; debit: number; credit: number };
     const lines: Line[] = [
       ...notes.map((n) => ({ date: n.createdAt, kind: "charge" as const, ref: n.sequenceNo, debit: r2(num(n.netAmount) + num(n.vatAmount)), credit: 0 })),
       ...receipts.map((r) => ({ date: r.createdAt, kind: "payment" as const, ref: r.sequenceNo, debit: 0, credit: num(r.amount) })),
+      ...credits.map((c) => ({ date: c.createdAt, kind: "credit" as const, ref: c.sequenceNo, debit: 0, credit: r2(num(c.netAmount) + num(c.vatAmount)) })),
     ].sort((a, b) => +a.date - +b.date);
     let balance = 0;
     const rows = lines.map((l) => { balance = r2(balance + l.debit - l.credit); return { ...l, balance }; });
     const charged = r2(notes.reduce((s, n) => s + num(n.netAmount) + num(n.vatAmount), 0));
     const paid = r2(receipts.reduce((s, r) => s + num(r.amount), 0));
-    return { client, rows, summary: { charged, paid, balance: r2(charged - paid) } };
+    const credited = r2(credits.reduce((s, c) => s + num(c.netAmount) + num(c.vatAmount), 0));
+    return { client, rows, summary: { charged, paid, credited, balance: r2(charged - paid - credited) } };
+  }
+
+  /**
+   * إلغاء وثيقة مُصدَرة (نسبةً وتناسبًا): يحسب القسط المُرتجَع من الأيام غير المنقضية،
+   * وينشئ ملحق إلغاء + إشعارًا دائنًا (CNP) للعميل + قيدًا عكسيًا (JRV)، ويحوّل الوثيقة إلى CANCELLED.
+   */
+  async cancelPolicy(tenantId: string, userId: string, policyId: string, dto: { effectiveDate?: string; reason?: string }) {
+    const policy = await this.prisma.policy.findFirst({ where: { id: policyId } });
+    if (!policy) throw new NotFoundException("الوثيقة غير موجودة");
+    if (policy.status !== "ISSUED") throw new ConflictException("لا يُلغى إلا وثيقة مُصدَرة");
+    if (!policy.startDate || !policy.endDate) throw new ConflictException("الوثيقة تفتقر لتواريخ التغطية لحساب المُرتجَع");
+    const DAY = 86_400_000;
+    const eff = dto.effectiveDate ? new Date(dto.effectiveDate) : new Date();
+    const totalDays = Math.max(1, Math.round((+policy.endDate - +policy.startDate) / DAY));
+    const unexpired = Math.max(0, Math.min(totalDays, Math.round((+policy.endDate - +eff) / DAY)));
+    const frac = unexpired / totalDays;
+    const returnNet = r2(num(policy.premium) * frac);
+    const returnVat = r2(num(policy.vat) * frac);
+    const returnTotal = r2(returnNet + returnVat);
+    const returnCommission = r2(num(policy.commissionAmount) * frac);
+    const returnCommVat = r2(returnCommission * 0.15);
+    const returnTrust = r2(returnTotal - returnCommission - returnCommVat);
+
+    const creditSeq = await this.seq.nextNoteSeq("CN");
+    const voucherSeq = await this.seq.nextVoucherSeq("JRV");
+    const endoCount = await this.prisma.endorsement.count({ where: { policyId } });
+
+    const result = await this.prisma.$transaction(async (tx) => {
+      const endo = await tx.endorsement.create({ data: { tenantId, policyId, sequenceNo: `${policy.sequenceNo ?? policyId}/E${endoCount + 1}`, type: "cancellation", effectiveDate: eff, premiumDelta: r2(-returnNet), details: asJson({ reason: dto.reason ?? null, returnPremium: returnNet, unexpiredDays: unexpired, totalDays }), status: "ISSUED" } });
+      const creditNote = await tx.creditNote.create({ data: { tenantId, sequenceNo: creditSeq, clientId: policy.clientId, policyId, netAmount: returnNet, vatAmount: returnVat } });
+      const voucher = await tx.voucher.create({ data: { tenantId, type: "JRV", sequenceNo: voucherSeq, amount: returnTotal, status: "posted", isAuto: true, reference: policyId, lines: asJson({
+        description: `إلغاء الوثيقة ${policy.sequenceNo} — قسط مُرتجَع (${unexpired}/${totalDays} يوم)`,
+        entries: [
+          { account: "01030000000000000", name: "ذمم العملاء المدينة", debit: 0, credit: returnTotal },
+          { account: "02020000000000000", name: "أمانات أقساط العملاء (Off-Balance)", debit: returnTrust, credit: 0 },
+          { account: "04010000000000000", name: "عمولات الوساطة", debit: returnCommission, credit: 0 },
+          { account: "02030000000000000", name: "ضريبة القيمة المضافة المستحقة (Output VAT)", debit: returnCommVat, credit: 0 },
+        ],
+      }) } });
+      const updated = await tx.policy.update({ where: { id: policyId }, data: { status: "CANCELLED" }, select: { id: true, sequenceNo: true, status: true } });
+      return { endo, creditNote, voucher, policy: updated };
+    });
+    await this.audit.log({ tenantId, userId, action: "update", entity: "policy_cancellation", entityId: policyId, meta: { creditNote: creditSeq, returnPremium: returnNet, unexpiredDays: unexpired, totalDays } });
+    return { status: "CANCELLED", creditNote: result.creditNote.sequenceNo, endorsement: result.endo.sequenceNo, returnNet, returnVat, returnTotal, returnCommission, unexpiredDays: unexpired, totalDays };
   }
 
   /** ملخّص مالي: القسط المكتتب، العمولة، الأمانات (خارج الميزانية)، الذمم. */
   async summary() {
-    const [policyAgg, commissionAgg, invoiceAgg, debitAgg, vouchers] = await Promise.all([
+    const [policyAgg, commissionAgg, invoiceAgg, debitAgg, creditAgg, vouchers] = await Promise.all([
       this.prisma.policy.aggregate({ where: { status: "ISSUED" }, _sum: { premium: true, vat: true, totalPremium: true, commissionAmount: true } }),
       this.prisma.commission.aggregate({ _sum: { amount: true } }),
       this.prisma.invoice.aggregate({ _sum: { totalAmount: true }, _count: true }),
       this.prisma.debitNote.aggregate({ _sum: { netAmount: true, vatAmount: true, settledAmount: true } }),
+      this.prisma.creditNote.aggregate({ _sum: { netAmount: true, vatAmount: true } }),
       this.prisma.voucher.count(),
     ]);
     const total = num(policyAgg._sum.totalPremium);
     const commission = num(policyAgg._sum.commissionAmount);
     const outputVatPayable = r2(commission * 0.15); // ضريبة مخرجات الوسيط على العمولات (تُورَّد لـ ZATCA)
+    const creditsTotal = r2(num(creditAgg._sum.netAmount) + num(creditAgg._sum.vatAmount)); // إشعارات دائنة (قسط مُرتجَع)
     return {
       grossPremium: total,
       netPremium: num(policyAgg._sum.premium),
@@ -229,8 +290,9 @@ export class FinanceService {
       commission: num(commissionAgg._sum.amount),
       outputVatPayable, // ضريبة القيمة المضافة المستحقة على العمولة
       offBalanceTrust: r2(total - commission - outputVatPayable), // أمانات أقساط العملاء (خارج الميزانية)
-      receivables: r2(num(debitAgg._sum.netAmount) + num(debitAgg._sum.vatAmount) - num(debitAgg._sum.settledAmount)), // المتبقّي بعد التحصيل
+      receivables: r2(num(debitAgg._sum.netAmount) + num(debitAgg._sum.vatAmount) - num(debitAgg._sum.settledAmount) - creditsTotal), // المتبقّي بعد التحصيل والإشعارات الدائنة
       collected: r2(num(debitAgg._sum.settledAmount)), // المُحصَّل من العملاء
+      creditNotes: creditsTotal, // إجمالي الإشعارات الدائنة (قسط مُرتجَع)
       invoiceCount: invoiceAgg._count,
       voucherCount: vouchers,
     };

@@ -1,6 +1,7 @@
 import { Body, Controller, Get, HttpCode, Param, Post } from "@nestjs/common";
 import { FinanceService } from "./finance.service";
 import { RecordReceiptDto } from "./dto/record-receipt.dto";
+import { CancelPolicyDto } from "./dto/cancel-policy.dto";
 import { Authorize } from "../rbac/authorize.decorator";
 import { CurrentUser } from "../auth/current-user.decorator";
 
@@ -90,5 +91,18 @@ export class FinanceController {
   @Get("statement/:clientId")
   statement(@Param("clientId") clientId: string) {
     return this.finance.statement(clientId);
+  }
+
+  // إلغاء وثيقة مُصدَرة (قسط مُرتجَع نسبةً وتناسبًا + إشعار دائن)
+  @Authorize({ module: "finance", action: "update", entitlement: "module.finance" })
+  @HttpCode(200)
+  @Post("policies/:id/cancel")
+  cancel(
+    @CurrentUser("tenantId") tenantId: string,
+    @CurrentUser("userId") userId: string,
+    @Param("id") id: string,
+    @Body() dto: CancelPolicyDto,
+  ) {
+    return this.finance.cancelPolicy(tenantId, userId, id, dto);
   }
 }
