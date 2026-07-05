@@ -261,7 +261,7 @@ flowchart TB
 
 **`@Authorize(meta)`:** يضع metadata `{ module?, action?, entitlement? }` على المتحكّم/المسار. مسار بلا `@Authorize` يمرّ بمصادقة فقط.
 
-**الثوابت ([`rbac.constants.ts`](../apps/api/src/modules/rbac/rbac.constants.ts)):** `RBAC_MODULES` الـ12 (dashboard, sales, clients, production, renewals, service, claims, finance, reports, compliance, hr, settings)، الأفعال (`read/create/update/delete`)، و`ACTION_FLAG` الذي يربط الفعل بعمود `Permission` (`canAccess/canCreate/canEdit/canDelete`).
+**الثوابت ([`rbac.constants.ts`](../apps/api/src/modules/rbac/rbac.constants.ts)):** `RBAC_MODULES` الـ13 (dashboard, sales, clients, underwriting, production, renewals, service, claims, finance, reports, compliance, hr, settings)، الأفعال (`read/create/update/delete`)، و`ACTION_FLAG` الذي يربط الفعل بعمود `Permission` (`canAccess/canCreate/canEdit/canDelete`).
 
 **التبعيات:** `PrismaService`، `Reflector`. التفاصيل الكاملة في [05 — الصلاحيات و Entitlements](./05-rbac-and-entitlements.md).
 

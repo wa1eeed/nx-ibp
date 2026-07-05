@@ -102,7 +102,7 @@ async can(roleId: string | null, module: RbacModule, action: RbacAction): Promis
 
 **الموديولز الـ12** (`RBAC_MODULES`):
 
-`dashboard` · `sales` · `clients` · `production` · `renewals` · `service` · `claims` · `finance` · `reports` · `compliance` · `hr` · `settings`
+`dashboard` · `sales` · `clients` · `underwriting` (الاكتتاب/RFQ) · `production` (الإصدار) · `renewals` · `service` · `claims` · `finance` · `reports` · `compliance` · `hr` · `settings`
 
 **الأفعال** (`RbacAction`): `read` · `create` · `update` · `delete` · **`revert`** (التراجع خطوة للوراء — E4).
 
