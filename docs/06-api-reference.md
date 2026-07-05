@@ -569,7 +569,8 @@ curl -X POST http://localhost:4000/staff \
 | الطريقة | المسار | الحماية | الوصف |
 |---|---|---|---|
 | GET | `/crm/follow-up` | sales:read | لوحة «يحتاج متابعة» (عابرة للوحدات، تحترم الصلاحيات) |
-| GET/POST | `/crm/deals` · PATCH `/crm/deals/:id` | sales | خطّ الأنابيب (رؤية حسب الدور: مدير=الكل، مندوب=المُسنَد إليه) |
+| GET/POST | `/crm/deals` · GET `/crm/deals/:id` · PATCH `/crm/deals/:id` | sales | خطّ الأنابيب + تفاصيل الفرصة المُثراة (BOR/حصرية/القسط التقديري/نسبة الخسارة/المؤمِّنون المفضّلون). رؤية حسب الدور |
+| POST | `/crm/deals/:id/convert` | sales:update | **تحويل الفرصة إلى طلب تأمين** (Lead ⇒ Request) — طلب DRAFT مبني على الفرصة + الصفقة won ومربوطة (تكرار ⇒ 409) |
 | GET/POST | `/crm/tasks` (`?mine=1`) · POST `/crm/tasks/:id/complete` | sales | المهام/التذكيرات |
 | GET/POST | `/crm/activities/:entityType/:entityId` · `/crm/activities` | sales | النشاط/الملاحظات (الخط الزمني) |
 | POST | `/reminders/run` | sales:update | تشغيل مسح التذكيرات يدويًا (مقصور على مستأجر المُستدعي) — يُطلق تذكير المهام المستحقّة وتجديد الوثائق. يعمل تلقائيًا يوميًا عبر cron (`@nestjs/schedule`، 8ص). |
