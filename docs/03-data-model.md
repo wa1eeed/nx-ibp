@@ -565,9 +565,11 @@ erDiagram
 | `sequenceNo` | String? | الرقم |
 | `clientId` / `policyId` | String? | المراجع |
 | `netAmount` / `vatAmount` | Decimal(14,2)? | المبالغ |
+| `settledAmount` | Decimal(14,2) | المُحصَّل عبر سندات القبض (RCV) — الافتراضي 0 |
+| `settledAt` | DateTime? | تاريخ اكتمال التحصيل (settled ≥ الإجمالي) |
 | `createdAt` | DateTime | |
 
-**الفهرس:** `@@index([tenantId])`.
+**الفهارس:** `@@index([tenantId])` · `@@index([tenantId, clientId])`. **الحالة** مُشتقّة: `outstanding`/`partial`/`paid`. سندات القبض مُخزَّنة كـ`Voucher` نوع `RCV` بـ`reference = debitNoteId`.
 
 ### `CreditNote`
 **الغرض:** إشعار دائن للعميل (نفس بنية `DebitNote`).

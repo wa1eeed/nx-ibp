@@ -591,6 +591,14 @@ curl -X POST http://localhost:4000/staff \
 | GET | `/staff/:id` | settings:read | تفاصيل الموظف 360° (بياناته + ما تحت مسؤوليته + نشاطه) |
 | GET | `/auth/me` | مصادقة | يُرجِع الآن **خريطة صلاحيات المستخدم** (module ⇒ access/create/edit/delete/revert) |
 
+### المالية — دورة التحصيل (سندات القبض + كشف الحساب)
+| الطريقة | المسار | الحماية | الوصف |
+|---|---|---|---|
+| POST | `/finance/debit-notes/:id/receipt` | finance:create | سند قبض من العميل مقابل إشعار مدين — يزيد `settledAmount`، قيد متوازن (نقد/ذمم)، يمنع تجاوز المستحقّ (409) |
+| POST | `/finance/commissions/:id/receipt` | finance:create | استلام عمولة من المؤمِّن — يضبط `receivedAmount`/الحالة (مستلمة/فرق تحصيل) |
+| GET | `/finance/statement/:clientId` | finance:read | كشف حساب العميل: قيود (إشعارات) + مدفوعات (سندات قبض) برصيد جارٍ |
+| GET | `/finance/receivables` · `/finance/summary` | finance:read | تعيدان الآن **المتبقّي بعد التحصيل** + `collected` (المُحصَّل) + حالة كل إشعار |
+
 ### تفاصيل الوثيقة 360° · الاكتتاب المالي
 | الطريقة | المسار | الحماية | الوصف |
 |---|---|---|---|
