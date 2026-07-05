@@ -93,4 +93,20 @@ describe("MFA للموظفين (e2e)", () => {
 
   it("عزل: بلا صلاحية الإعدادات لا يضبط سياسة الأمان ⇒ 403", () =>
     request(srv()).put("/config/security").set(auth(userToken)).send({ mfaRequired: true }).expect(403));
+
+  it("أدمن الشركة يعيد تعيين مصادقة موظف (فقدان جهاز) ⇒ يعود دخوله بكلمة المرور وحدها", async () => {
+    // فعّل MFA للمستخدم الثاني، فيصير دخوله يتطلّب رمزًا
+    const ntok = (await login(noEnrollEmail, "Passw0rd1")).body.accessToken as string;
+    const secret = (await request(srv()).post("/auth/mfa/setup").set(auth(ntok)).expect(201)).body.secret;
+    await request(srv()).post("/auth/mfa/enable").set(auth(ntok)).send({ code: totp(secret) }).expect(201);
+    expect((await login(noEnrollEmail, "Passw0rd1").expect(401)).body.message).toBe("MFA_REQUIRED");
+    const meId = (await request(srv()).get("/auth/me").set(auth(ntok)).expect(200)).body.id as string;
+
+    // موظف بلا صلاحية الإعدادات لا يعيد التعيين ⇒ 403
+    await request(srv()).post(`/staff/${meId}/mfa/reset`).set(auth(userToken)).expect(403);
+
+    // أدمن (gm، settings) يعيد التعيين ⇒ يعود الدخول بكلمة المرور وحدها
+    await request(srv()).post(`/staff/${meId}/mfa/reset`).set(auth(gm)).expect(200);
+    await login(noEnrollEmail, "Passw0rd1").expect(201);
+  });
 });

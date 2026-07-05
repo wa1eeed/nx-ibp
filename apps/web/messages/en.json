@@ -439,6 +439,7 @@
     "empty": "No activity yet"
   },
   "staffDetail": {
+    "mfa": { "label": "2FA", "on": "Enabled", "off": "Disabled", "reset": "Reset 2FA", "resetTitle": "Reset employee 2FA", "resetDesc": "Two-factor authentication will be disabled for this employee (e.g. lost device); they can re-enroll themselves later. Confirm?" },
     "back": "Back to staff",
     "role": "Role", "department": "Department", "email": "Email", "status": "Status", "joined": "Joined", "noDept": "No department",
     "stats": { "total": "Total actions", "issued": "Policies issued", "approvals": "Approvals" },

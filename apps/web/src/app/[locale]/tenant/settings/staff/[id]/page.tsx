@@ -2,14 +2,15 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { ArrowRight, Activity, FileCheck2, CheckCircle2, Clock } from "lucide-react";
+import { ArrowRight, Activity, FileCheck2, CheckCircle2, Clock, ShieldCheck, ShieldOff } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
 import { api, getToken } from "@/lib/api";
 import { Badge } from "@/components/ui/Badge";
+import { useConfirm } from "@/components/ui/ConfirmProvider";
 
 interface Detail {
-  user: { id: string; fullName: string; email: string; status: string; createdAt: string; role: { name: string } | null; department: { name: string } | null };
+  user: { id: string; fullName: string; email: string; status: string; mfaEnabled: boolean; createdAt: string; role: { name: string } | null; department: { name: string } | null };
   activity: Array<{ action: string; entity: string; entityId: string | null; meta: unknown; createdAt: string }>;
   stats: { totalActions: number; policiesCreated: number; approvals: number };
   policies: Array<{ id: string; sequenceNo: string | null; insurerName: string | null; totalPremium: string | null; status: string; endDate: string | null }>;
@@ -26,6 +27,7 @@ const ACTION_AR: Record<string, string> = { create: "إنشاء", update: "تح�
 export default function StaffDetailPage() {
   const t = useTranslations("staffDetail");
   const params = useParams();
+  const confirm = useConfirm();
   const id = String(params.id);
   const [d, setD] = useState<Detail | null>(null);
   const [tab, setTab] = useState<(typeof TABS)[number]>("policies");
@@ -34,6 +36,13 @@ export default function StaffDetailPage() {
     try { setD(await api<Detail>(`/staff/${id}`)); } catch { /* تجاهل */ }
   }, [id]);
   useEffect(() => { if (getToken()) void load(); }, [load]);
+
+  async function resetMfa() {
+    const ok = await confirm({ title: t("mfa.resetTitle"), description: t("mfa.resetDesc"), tone: "danger", confirmLabel: t("mfa.reset") });
+    if (!ok) return;
+    await api(`/staff/${id}/mfa/reset`, { method: "POST", body: JSON.stringify({}) }).catch(() => undefined);
+    await load();
+  }
 
   if (!d) return <div className="grid min-h-[40vh] place-items-center text-subtle">…</div>;
   const u = d.user;
@@ -55,7 +64,17 @@ export default function StaffDetailPage() {
           <h1 className="text-[20px] font-bold text-ink">{u.fullName}</h1>
           <p className="text-[12.5px] text-subtle">{u.email}</p>
         </div>
-        <Badge tone={u.status === "ACTIVE" ? "success" : "neutral"}>{u.status}</Badge>
+        <div className="ms-auto flex items-center gap-2">
+          <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${u.mfaEnabled ? "bg-success-soft text-success" : "bg-surface-2 text-subtle"}`}>
+            {u.mfaEnabled ? <ShieldCheck size={12} /> : <ShieldOff size={12} />} {t("mfa.label")}: {u.mfaEnabled ? t("mfa.on") : t("mfa.off")}
+          </span>
+          {u.mfaEnabled ? (
+            <button onClick={resetMfa} className="inline-flex items-center gap-1.5 rounded-lg border border-danger/30 bg-danger/5 px-3 py-1.5 text-[12px] font-semibold text-danger hover:bg-danger/10">
+              <ShieldOff size={14} /> {t("mfa.reset")}
+            </button>
+          ) : null}
+          <Badge tone={u.status === "ACTIVE" ? "success" : "neutral"}>{u.status}</Badge>
+        </div>
       </header>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr]">

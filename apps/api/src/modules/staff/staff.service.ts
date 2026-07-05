@@ -3,6 +3,7 @@ import * as bcrypt from "bcryptjs";
 import { PrismaService } from "../../prisma/prisma.service";
 import { AuditService } from "../../common/audit/audit.service";
 import { NotificationsService } from "../notifications/notifications.service";
+import type { AuthUser } from "../auth/current-user.decorator";
 import type { CreateStaffDto } from "./dto/create-staff.dto";
 
 /**
@@ -37,7 +38,7 @@ export class StaffService {
   async detail(id: string) {
     const user = await this.prisma.user.findFirst({
       where: { id },
-      select: { id: true, fullName: true, email: true, status: true, createdAt: true, role: { select: { name: true, isPreset: true } }, department: { select: { name: true } } },
+      select: { id: true, fullName: true, email: true, status: true, mfaEnabled: true, createdAt: true, role: { select: { name: true, isPreset: true } }, department: { select: { name: true } } },
     });
     if (!user) throw new NotFoundException("المستخدم غير موجود");
     const [activity, totalActions, policiesCreated, approvals, deals, tasks, issuedAudit] = await Promise.all([
@@ -131,5 +132,17 @@ export class StaffService {
     void this.notifications.notifyStaff(tenantId, "staff_member_added", { name: dto.fullName, role: dto.roleName }).catch(() => undefined);
 
     return user;
+  }
+
+  /**
+   * إعادة تعيين المصادقة الثنائية لموظف (تعطيلها) — يستخدمها أدمن الشركة عند فقدان الجهاز.
+   * يمحو السرّ ويُطفئ التفعيل؛ يعيد الموظف التسجيل لاحقًا (يُدفع تلقائيًا إن كانت مُلزَمة).
+   */
+  async resetMfa(admin: AuthUser, id: string) {
+    const target = await this.prisma.user.findFirst({ where: { id }, select: { id: true, email: true, mfaEnabled: true } });
+    if (!target) throw new NotFoundException("الموظف غير موجود");
+    await this.prisma.user.update({ where: { id }, data: { mfaEnabled: false, mfaSecret: null } });
+    await this.audit.log({ tenantId: admin.tenantId, userId: admin.userId, action: "update", entity: "user_mfa_reset", entityId: id, meta: { target: target.email, wasEnabled: target.mfaEnabled } });
+    return { ok: true, enabled: false };
   }
 }
