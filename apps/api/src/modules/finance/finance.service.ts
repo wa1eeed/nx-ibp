@@ -61,10 +61,15 @@ export class FinanceService {
     const vatNumber = this.vatNumber(tenant?.crNumber ?? null);
     const rows = await this.prisma.invoice.findMany({
       orderBy: { createdAt: "desc" },
-      select: { id: true, sequenceNo: true, insurerName: true, netAmount: true, vatAmount: true, totalAmount: true, status: true, createdAt: true },
+      select: { id: true, sequenceNo: true, kind: true, insurerName: true, clientId: true, netAmount: true, vatAmount: true, totalAmount: true, status: true, createdAt: true },
     });
+    const clientIds = [...new Set(rows.map((r) => r.clientId).filter((x): x is string => !!x))];
+    const clients = clientIds.length ? await this.prisma.client.findMany({ where: { id: { in: clientIds } }, select: { id: true, name: true } }) : [];
+    const nameOf = Object.fromEntries(clients.map((c) => [c.id, c.name]));
     return rows.map((inv) => ({
       ...inv,
+      kind: inv.kind ?? "COMMISSION",
+      party: inv.kind === "FEES" ? (nameOf[inv.clientId ?? ""] ?? "—") : (inv.insurerName ?? "—"), // على العميل (رسوم) أو المؤمِّن (عمولة)
       zatca: zatcaPackage({
         sellerName,
         vatNumber,
@@ -82,7 +87,7 @@ export class FinanceService {
         orderBy: { createdAt: "desc" },
         select: { id: true, sequenceNo: true, clientId: true, policyId: true, netAmount: true, vatAmount: true, settledAmount: true, settledAt: true, createdAt: true },
       }),
-      this.prisma.creditNote.findMany({ select: { clientId: true, netAmount: true, vatAmount: true } }),
+      this.prisma.creditNote.findMany({ where: { clientId: { not: null } }, select: { clientId: true, netAmount: true, vatAmount: true } }), // إشعارات دائنة على العملاء فقط (تُستثنى CNC على المؤمِّن)
     ]);
     const clientIds = [...new Set(notes.map((n) => n.clientId).filter((x): x is string => !!x))];
     const clients = clientIds.length
@@ -247,12 +252,16 @@ export class FinanceService {
     const returnTrust = r2(returnTotal - returnCommission - returnCommVat);
 
     const creditSeq = await this.seq.nextNoteSeq("CN");
+    // إشعار دائن على المؤمِّن (CNC) لعكس العمولة المستردّة — رقمه يلي إشعار العميل الدائن
+    const creditInsurerSeq = returnCommission > 0 ? creditSeq.replace(/^CN/, "CNC").replace(/(\d+)$/, (m) => String(Number(m) + 1)) : null;
     const voucherSeq = await this.seq.nextVoucherSeq("JRV");
     const endoCount = await this.prisma.endorsement.count({ where: { policyId } });
 
     const result = await this.prisma.$transaction(async (tx) => {
       const endo = await tx.endorsement.create({ data: { tenantId, policyId, sequenceNo: `${policy.sequenceNo ?? policyId}/E${endoCount + 1}`, type: "cancellation", effectiveDate: eff, premiumDelta: r2(-returnNet), details: asJson({ reason: dto.reason ?? null, returnPremium: returnNet, unexpiredDays: unexpired, totalDays }), status: "ISSUED" } });
-      const creditNote = await tx.creditNote.create({ data: { tenantId, sequenceNo: creditSeq, clientId: policy.clientId, policyId, netAmount: returnNet, vatAmount: returnVat } });
+      const creditNote = await tx.creditNote.create({ data: { tenantId, sequenceNo: creditSeq, kind: "CNP", clientId: policy.clientId, policyId, netAmount: returnNet, vatAmount: returnVat } });
+      // إشعار دائن للمؤمِّن يعكس العمولة (وضريبتها) المستردّة نسبةً وتناسبًا — مقابل الفاتورة الضريبية الأصلية
+      const creditInsurer = creditInsurerSeq ? await tx.creditNote.create({ data: { tenantId, sequenceNo: creditInsurerSeq, kind: "CNC", insurerName: policy.insurerName, policyId, netAmount: returnCommission, vatAmount: returnCommVat } }) : null;
       const voucher = await tx.voucher.create({ data: { tenantId, type: "JRV", sequenceNo: voucherSeq, amount: returnTotal, status: "posted", isAuto: true, reference: policyId, lines: asJson({
         description: `إلغاء الوثيقة ${policy.sequenceNo} — قسط مُرتجَع (${unexpired}/${totalDays} يوم)`,
         entries: [
@@ -263,10 +272,10 @@ export class FinanceService {
         ],
       }) } });
       const updated = await tx.policy.update({ where: { id: policyId }, data: { status: "CANCELLED" }, select: { id: true, sequenceNo: true, status: true } });
-      return { endo, creditNote, voucher, policy: updated };
+      return { endo, creditNote, creditInsurer, voucher, policy: updated };
     });
-    await this.audit.log({ tenantId, userId, action: "update", entity: "policy_cancellation", entityId: policyId, meta: { creditNote: creditSeq, returnPremium: returnNet, unexpiredDays: unexpired, totalDays } });
-    return { status: "CANCELLED", creditNote: result.creditNote.sequenceNo, endorsement: result.endo.sequenceNo, returnNet, returnVat, returnTotal, returnCommission, unexpiredDays: unexpired, totalDays };
+    await this.audit.log({ tenantId, userId, action: "update", entity: "policy_cancellation", entityId: policyId, meta: { creditNote: creditSeq, creditInsurer: result.creditInsurer?.sequenceNo ?? null, returnPremium: returnNet, returnCommission, unexpiredDays: unexpired, totalDays } });
+    return { status: "CANCELLED", creditNote: result.creditNote.sequenceNo, creditNoteInsurer: result.creditInsurer?.sequenceNo ?? null, endorsement: result.endo.sequenceNo, returnNet, returnVat, returnTotal, returnCommission, returnCommVat, unexpiredDays: unexpired, totalDays };
   }
 
   /**
@@ -349,24 +358,27 @@ export class FinanceService {
   /** ملخّص مالي: القسط المكتتب، العمولة، الأمانات (خارج الميزانية)، الذمم. */
   async summary() {
     const [policyAgg, commissionAgg, invoiceAgg, debitAgg, creditAgg, vouchers] = await Promise.all([
-      this.prisma.policy.aggregate({ where: { status: "ISSUED" }, _sum: { premium: true, vat: true, totalPremium: true, commissionAmount: true } }),
+      this.prisma.policy.aggregate({ where: { status: "ISSUED" }, _sum: { premium: true, vat: true, totalPremium: true, commissionAmount: true, policyFees: true } }),
       this.prisma.commission.aggregate({ _sum: { amount: true } }),
       this.prisma.invoice.aggregate({ _sum: { totalAmount: true }, _count: true }),
       this.prisma.debitNote.aggregate({ _sum: { netAmount: true, vatAmount: true, settledAmount: true } }),
-      this.prisma.creditNote.aggregate({ _sum: { netAmount: true, vatAmount: true } }),
+      this.prisma.creditNote.aggregate({ where: { clientId: { not: null } }, _sum: { netAmount: true, vatAmount: true } }), // على العملاء فقط
       this.prisma.voucher.count(),
     ]);
     const total = num(policyAgg._sum.totalPremium);
     const commission = num(policyAgg._sum.commissionAmount);
-    const outputVatPayable = r2(commission * 0.15); // ضريبة مخرجات الوسيط على العمولات (تُورَّد لـ ZATCA)
-    const creditsTotal = r2(num(creditAgg._sum.netAmount) + num(creditAgg._sum.vatAmount)); // إشعارات دائنة (قسط مُرتجَع)
+    const serviceFees = num(policyAgg._sum.policyFees); // رسوم الخدمة/الإصدار (إيراد الوسيط الخاص)
+    const commissionVat = r2(commission * 0.15);
+    const outputVatPayable = r2(commissionVat + serviceFees * 0.15); // ضريبة مخرجات الوسيط: عمولات + رسوم خدمة (تُورَّد لـ ZATCA)
+    const creditsTotal = r2(num(creditAgg._sum.netAmount) + num(creditAgg._sum.vatAmount)); // إشعارات دائنة (قسط مُرتجَع للعملاء)
     return {
       grossPremium: total,
       netPremium: num(policyAgg._sum.premium),
       vat: num(policyAgg._sum.vat),
       commission: num(commissionAgg._sum.amount),
-      outputVatPayable, // ضريبة القيمة المضافة المستحقة على العمولة
-      offBalanceTrust: r2(total - commission - outputVatPayable), // أمانات أقساط العملاء (خارج الميزانية)
+      serviceFees, // رسوم الخدمة/الإصدار المُفوترة على العملاء
+      outputVatPayable, // ضريبة القيمة المضافة المستحقة (عمولات + رسوم)
+      offBalanceTrust: r2(total - commission - commissionVat), // أمانات أقساط العملاء (خارج الميزانية) — الرسوم ليست أمانة
       receivables: r2(num(debitAgg._sum.netAmount) + num(debitAgg._sum.vatAmount) - num(debitAgg._sum.settledAmount) - creditsTotal), // المتبقّي بعد التحصيل والإشعارات الدائنة
       collected: r2(num(debitAgg._sum.settledAmount)), // المُحصَّل من العملاء
       creditNotes: creditsTotal, // إجمالي الإشعارات الدائنة (قسط مُرتجَع)
@@ -376,12 +388,14 @@ export class FinanceService {
   }
 
   async postings(policyId: string) {
-    const [voucher, debitNote, invoice] = await Promise.all([
+    const [voucher, debitNote, invoices, creditNotes] = await Promise.all([
       this.prisma.voucher.findFirst({ where: { reference: policyId } }),
       this.prisma.debitNote.findFirst({ where: { policyId } }),
-      this.prisma.invoice.findFirst({ where: { policyId } }),
+      this.prisma.invoice.findMany({ where: { policyId }, orderBy: { createdAt: "asc" } }),
+      this.prisma.creditNote.findMany({ where: { policyId }, orderBy: { createdAt: "asc" } }),
     ]);
-    return { voucher, debitNote, invoice };
+    const invoice = invoices.find((i) => (i.kind ?? "COMMISSION") === "COMMISSION") ?? invoices[0] ?? null; // توافق خلفي
+    return { voucher, debitNote, invoice, invoices, creditNotes };
   }
 
   async approvePolicy(tenantId: string, userId: string, policyId: string) {
@@ -415,10 +429,16 @@ export class FinanceService {
     const commVat = r2(commission * 0.15); // ضريبة القيمة المضافة على عمولة الوساطة (مخرجات الوسيط)
     // الوسيط يحتفظ بعمولته + ضريبتها، ويحوّل الباقي (القسط + ضريبته − العمولة − ضريبتها) أمانةً للمؤمِّن.
     const trust = r2(total - commission - commVat); // أمانات أقساط العملاء (خارج الميزانية)
+    // رسوم الخدمة/الإصدار = إيراد الوسيط الخاص (خدمة خاضعة دائماً للضريبة القياسية 15%، فئة "S")، مستقلّة عن أمانة القسط.
+    const fees = r2(Number(policy.policyFees ?? 0));
+    const feesVat = r2(fees * 0.15);
+    const feesTotal = r2(fees + feesVat);
 
     const voucherSeq = await this.seq.nextVoucherSeq("JRV");
     const debitSeq = await this.seq.nextNoteSeq("DN");
     const invoiceSeq = await this.seq.nextInvoiceSeq();
+    // فاتورة الرسوم رقمها يلي فاتورة العمولة (كلاهما يُنشأ في المعاملة نفسها قبل تحديث العدّاد)
+    const feesInvoiceSeq = fees > 0 ? invoiceSeq.replace(/(\d+)$/, (m) => String(Number(m) + 1)) : null;
 
     // بيانات العميل + وجود تهيئة ZATCA (لتوليد مستندات الفوترة المتوافقة)
     const client = policy.clientId
@@ -428,31 +448,30 @@ export class FinanceService {
     const supplyDate = policy.startDate ? policy.startDate.toISOString().slice(0, 10) : null;
 
     const result = await this.prisma.$transaction(async (tx) => {
-      // 1) قيد يومية (JRV) — مدين = دائن
+      // 1) قيد يومية (JRV) — مدين = دائن. الرسوم إيراد للوسيط (04020) + ضريبتها، والعميل مدين بها.
+      const jrvEntries = [
+        { account: "01030000000000000", name: "ذمم العملاء المدينة", debit: r2(total + feesTotal), credit: 0 },
+        { account: "02020000000000000", name: "أمانات أقساط العملاء (Off-Balance)", debit: 0, credit: trust },
+        { account: "04010000000000000", name: "عمولات الوساطة", debit: 0, credit: commission },
+        { account: "02030000000000000", name: "ضريبة القيمة المضافة المستحقة (Output VAT)", debit: 0, credit: r2(commVat + feesVat) },
+      ];
+      if (fees > 0) jrvEntries.push({ account: "04020000000000000", name: "رسوم خدمات وإصدار الوثائق", debit: 0, credit: fees });
       const voucher = await tx.voucher.create({
         data: {
           tenantId,
           type: "JRV",
           sequenceNo: voucherSeq,
-          amount: total,
+          amount: r2(total + feesTotal),
           status: "posted",
           isAuto: true,
           reference: policy.id,
-          lines: asJson({
-            description: `إصدار الوثيقة ${policy.sequenceNo}`,
-            entries: [
-              { account: "01030000000000000", name: "ذمم العملاء المدينة", debit: total, credit: 0 },
-              { account: "02020000000000000", name: "أمانات أقساط العملاء (Off-Balance)", debit: 0, credit: trust },
-              { account: "04010000000000000", name: "عمولات الوساطة", debit: 0, credit: commission },
-              { account: "02030000000000000", name: "ضريبة القيمة المضافة المستحقة (Output VAT)", debit: 0, credit: commVat },
-            ],
-          }),
+          lines: asJson({ description: `إصدار الوثيقة ${policy.sequenceNo}`, entries: jrvEntries }),
         },
       });
 
-      // 2) إشعار مدين للعميل (قسط + ضريبة)
+      // 2) إشعار مدين للعميل (قسط + ضريبته + رسوم الخدمة + ضريبتها) — مطالبة واحدة قابلة للتحصيل
       const debitNote = await tx.debitNote.create({
-        data: { tenantId, sequenceNo: debitSeq, clientId: policy.clientId, policyId: policy.id, netAmount: premium, vatAmount: vat },
+        data: { tenantId, sequenceNo: debitSeq, clientId: policy.clientId, policyId: policy.id, netAmount: r2(premium + fees), vatAmount: r2(vat + feesVat) },
       });
 
       // 3) فاتورة ضريبية لشركة التأمين (العمولة + ضريبتها)
@@ -460,6 +479,7 @@ export class FinanceService {
         data: {
           tenantId,
           sequenceNo: invoiceSeq,
+          kind: "COMMISSION",
           insurerName: policy.insurerName,
           policyId: policy.id,
           netAmount: commission,
@@ -468,6 +488,21 @@ export class FinanceService {
           status: "issued",
         },
       });
+
+      // 3ب) فاتورة ضريبية للعميل برسوم الخدمة/الإصدار (إيراد الوسيط الخاص) — منفصلة عن أمانة القسط
+      const feesInvoice = fees > 0 ? await tx.invoice.create({
+        data: {
+          tenantId,
+          sequenceNo: feesInvoiceSeq,
+          kind: "FEES",
+          clientId: policy.clientId,
+          policyId: policy.id,
+          netAmount: fees,
+          vatAmount: feesVat,
+          totalAmount: feesTotal,
+          status: "issued",
+        },
+      }) : null;
 
       // 4) فتح حساب تحليلي للعميل في COA (مستوى 3 تحت ذمم العملاء 0103) إن لم يوجد
       if (policy.clientId) {
@@ -496,10 +531,13 @@ export class FinanceService {
       const billing: string[] = [];
       if (hasZatca) {
         const subtype = client?.type === "INDIVIDUAL" ? ("SIMPLIFIED_B2C" as const) : ("STANDARD_B2B" as const);
+        const dnLines = [{ description: policy.productLineCode ?? "قسط تأمين", quantity: 1, unitPrice: premium, vatRate: treatment.rate, vatAmount: vat, net: premium, taxCategory: treatment.category, exemptionReasonCode: treatment.exemptionReasonCode, exemptionReason: treatment.exemptionReason }];
+        // رسوم الخدمة/الإصدار سطر مستقل خاضع للضريبة القياسية 15% (فئة "S") — مستند العميل يطابق إشعار المدين
+        if (fees > 0) dnLines.push({ description: "رسوم خدمة وإصدار", quantity: 1, unitPrice: fees, vatRate: 15, vatAmount: feesVat, net: fees, taxCategory: "S", exemptionReasonCode: undefined, exemptionReason: undefined });
         const dn = await this.zatcaBilling.createInTx(tx, tenantId, {
           documentType: "DEBIT_NOTE", subtype, clientId: policy.clientId, policyId: policy.id,
           customer: { name: client?.name, crOrId: client?.crNumber ?? client?.nationalId, address: client?.city },
-          lines: [{ description: policy.productLineCode ?? "قسط تأمين", quantity: 1, unitPrice: premium, vatRate: treatment.rate, vatAmount: vat, net: premium, taxCategory: treatment.category, exemptionReasonCode: treatment.exemptionReasonCode, exemptionReason: treatment.exemptionReason }],
+          lines: dnLines,
           supplyDate,
         });
         const inv = await this.zatcaBilling.createInTx(tx, tenantId, {
@@ -516,10 +554,10 @@ export class FinanceService {
       await tx.policy.update({ where: { id: policyId }, data: { status: "ISSUED" } });
       if (policy.requestId) await tx.policyRequest.update({ where: { id: policy.requestId }, data: { status: "ISSUED" } });
 
-      return { voucher: voucher.sequenceNo, debitNote: debitNote.sequenceNo, invoice: invoice.sequenceNo, billing };
+      return { voucher: voucher.sequenceNo, debitNote: debitNote.sequenceNo, invoice: invoice.sequenceNo, feesInvoice: feesInvoice?.sequenceNo ?? null, billing };
     });
 
-    await this.audit.log({ tenantId, userId, action: "approve", entity: "policy_finance", entityId: policyId, meta: { voucher: result.voucher, debitNote: result.debitNote, invoice: result.invoice } });
+    await this.audit.log({ tenantId, userId, action: "approve", entity: "policy_finance", entityId: policyId, meta: { voucher: result.voucher, debitNote: result.debitNote, invoice: result.invoice, feesInvoice: result.feesInvoice } });
 
     // توجيه مستندات ZATCA بعد تثبيت المعاملة (مقاصة B2B فوراً / إبلاغ B2C خلفياً)
     for (const docId of result.billing) {
@@ -534,6 +572,6 @@ export class FinanceService {
     // إشعار داخلي باكتمال إصدار الوثيقة
     void this.notifications.notifyStaff(tenantId, "staff_policy_issued", { sequenceNo: policy.sequenceNo ?? policyId }).catch(() => undefined);
 
-    return { policyId, status: "ISSUED", voucher: result.voucher, debitNote: result.debitNote, invoice: result.invoice, billingDocuments: result.billing.length };
+    return { policyId, status: "ISSUED", voucher: result.voucher, debitNote: result.debitNote, invoice: result.invoice, feesInvoice: result.feesInvoice, serviceFees: fees, billingDocuments: result.billing.length };
   }
 }

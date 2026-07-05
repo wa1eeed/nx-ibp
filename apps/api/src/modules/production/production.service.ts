@@ -116,8 +116,8 @@ export class ProductionService {
       this.prisma.endorsement.findMany({ where: { policyId: id }, orderBy: { createdAt: "desc" }, select: { id: true, sequenceNo: true, type: true, effectiveDate: true, premiumDelta: true, status: true, createdAt: true } }),
       this.prisma.claim.findMany({ where: { policyId: id }, orderBy: { createdAt: "desc" }, select: { id: true, sequenceNo: true, insurerName: true, claimedAmount: true, settledAmount: true, status: true, incidentDate: true, createdAt: true } }),
       this.prisma.debitNote.findMany({ where: { policyId: id }, orderBy: { createdAt: "desc" }, select: { id: true, sequenceNo: true, netAmount: true, vatAmount: true, settledAmount: true, createdAt: true } }),
-      this.prisma.creditNote.findMany({ where: { policyId: id }, orderBy: { createdAt: "desc" }, select: { id: true, sequenceNo: true, netAmount: true, vatAmount: true, createdAt: true } }),
-      this.prisma.invoice.findMany({ where: { policyId: id }, orderBy: { createdAt: "desc" }, select: { id: true, sequenceNo: true, status: true, netAmount: true, vatAmount: true, totalAmount: true, createdAt: true } }),
+      this.prisma.creditNote.findMany({ where: { policyId: id }, orderBy: { createdAt: "desc" }, select: { id: true, sequenceNo: true, kind: true, clientId: true, insurerName: true, netAmount: true, vatAmount: true, createdAt: true } }), // CNP (عميل) + CNC (مؤمِّن)
+      this.prisma.invoice.findMany({ where: { policyId: id }, orderBy: { createdAt: "desc" }, select: { id: true, sequenceNo: true, kind: true, insurerName: true, status: true, netAmount: true, vatAmount: true, totalAmount: true, createdAt: true } }),
       this.prisma.auditLog.findMany({ where: { entity: "policy", entityId: id }, orderBy: { createdAt: "desc" }, take: 60, select: { action: true, meta: true, createdAt: true } }),
     ]);
     const documents = await this.prisma.document.findMany({ where: { entityId: id }, orderBy: { createdAt: "desc" }, select: { id: true, fileName: true, docType: true, createdAt: true } });
@@ -139,7 +139,8 @@ export class ProductionService {
         claimsSettled: claims.reduce((s, c) => s + n(c.settledAmount), 0),
         commission: commissionTotal,
         gross: n(policy.totalPremium),
-        outstanding: Math.round((debitNotes.reduce((s, d) => s + n(d.netAmount) + n(d.vatAmount) - n(d.settledAmount), 0) - creditNotes.reduce((s, c) => s + n(c.netAmount) + n(c.vatAmount), 0)) * 100) / 100,
+        // المستحقّ على العميل = مدين − مُحصَّل − إشعارات دائنة على العميل (CNP فقط، دون CNC على المؤمِّن)
+        outstanding: Math.round((debitNotes.reduce((s, d) => s + n(d.netAmount) + n(d.vatAmount) - n(d.settledAmount), 0) - creditNotes.filter((c) => c.clientId).reduce((s, c) => s + n(c.netAmount) + n(c.vatAmount), 0)) * 100) / 100,
       },
     };
   }

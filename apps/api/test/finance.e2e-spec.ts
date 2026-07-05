@@ -93,21 +93,33 @@ describe("الإصدار والاعتماد المالي (e2e)", () => {
     expect(fin.voucher).toMatch(/^JRV-/);
     expect(fin.debitNote).toMatch(/^DN-/);
     expect(fin.invoice).toMatch(/^INV-/);
+    expect(fin.feesInvoice).toMatch(/^INV-/); // فاتورة ضريبية للعميل برسوم الخدمة (250)
+    expect(fin.serviceFees).toBe(250);
 
-    // 6) المستندات المولّدة: قيد متوازن (مدين = دائن) + فاتورة بقيمة العمولة
+    // 6) المستندات المولّدة: قيد متوازن (مدين = دائن) + توجيه صحيح للفواتير
+    // القسط 60000 + ضريبته 9000 + رسوم الخدمة 250 + ضريبتها 37.5 = مدين ذمم 69287.5
     const post = (await request(app.getHttpServer()).get(`/finance/policies/${policy.id}/postings`).set(auth(accountant)).expect(200)).body;
-    const entries = post.voucher.lines.entries as Array<{ debit: number; credit: number }>;
+    const entries = post.voucher.lines.entries as Array<{ account: string; debit: number; credit: number }>;
     const debit = entries.reduce((s, e) => s + Number(e.debit), 0);
     const credit = entries.reduce((s, e) => s + Number(e.credit), 0);
-    expect(debit).toBe(credit); // توازن القيد المزدوج
-    expect(debit).toBe(69000);
+    expect(debit).toBeCloseTo(credit, 2); // توازن القيد المزدوج
+    expect(debit).toBeCloseTo(69287.5, 2);
+    // فاتورة العمولة ⇒ على المؤمِّن
     expect(Number(post.invoice.netAmount)).toBe(7500); // العمولة
     expect(Number(post.invoice.vatAmount)).toBe(1125); // ضريبة العمولة 15% (على فاتورة المؤمِّن)
-    expect(Number(post.debitNote.netAmount)).toBe(60000); // القسط الصافي
-    expect(Number(post.debitNote.vatAmount)).toBe(9000); // ضريبة القسط 15% (على إشعار العميل)
-    // ضريبة مخرجات الوسيط على العمولة مُقيَّدة كالتزام (Output VAT Payable)
-    const vatLine = entries.find((e) => Number(e.credit) === 1125);
-    expect(vatLine).toBeTruthy();
+    // فاتورتان على الوثيقة: عمولة (على المؤمِّن) + رسوم خدمة (على العميل)
+    const feesInv = (post.invoices as Array<{ kind: string; netAmount: string; vatAmount: string; clientId: string }>).find((i) => i.kind === "FEES");
+    expect(feesInv).toBeTruthy();
+    expect(Number(feesInv!.netAmount)).toBe(250); // رسوم الخدمة (إيراد الوسيط)
+    expect(Number(feesInv!.vatAmount)).toBe(37.5); // ضريبة الرسوم 15%
+    expect(feesInv!.clientId).toBe(policy.clientId); // موجّهة للعميل
+    // إشعار العميل يجمع القسط + الرسوم (مطالبة واحدة)
+    expect(Number(post.debitNote.netAmount)).toBe(60250); // القسط 60000 + الرسوم 250
+    expect(Number(post.debitNote.vatAmount)).toBe(9037.5); // ضريبة القسط 9000 + ضريبة الرسوم 37.5
+    // إيراد الرسوم مُقيَّد في حساب مستقل (04020) وضريبة المخرجات تجمع العمولة + الرسوم
+    expect(entries.find((e) => e.account.startsWith("0402"))?.credit).toBe(250);
+    const vatLine = entries.find((e) => e.account.startsWith("0203"));
+    expect(Number(vatLine?.credit)).toBeCloseTo(1162.5, 2); // 1125 (عمولة) + 37.5 (رسوم)
 
     // 7) الطلب أصبح ISSUED
     const req = (await request(app.getHttpServer()).get(`/requests/${requestId}`).set(auth(gm)).expect(200)).body;
@@ -178,9 +190,12 @@ describe("الإصدار والاعتماد المالي (e2e)", () => {
     // إلغاء منتصف المدة (السريان 2026-01-01..2026-12-31، الإلغاء 2026-07-01 ⇒ ~نصف القسط)
     const c = (await request(srv).post(`/finance/policies/${policy.id}/cancel`).set(auth(accountant)).send({ effectiveDate: "2026-07-01", reason: "طلب العميل" }).expect(200)).body;
     expect(c.status).toBe("CANCELLED");
-    expect(c.creditNote).toMatch(/^CN-/);
+    expect(c.creditNote).toMatch(/^CN-/); // إشعار دائن على العميل (قسط مُرتجَع)
+    expect(c.creditNoteInsurer).toMatch(/^CNC-/); // إشعار دائن على المؤمِّن (عكس العمولة)
     expect(c.returnNet).toBeGreaterThan(25000); // ~نصف 60000
     expect(c.returnNet).toBeLessThan(35000);
+    expect(c.returnCommission).toBeGreaterThan(0); // العمولة تُعكَس نسبةً وتناسبًا
+    expect(c.returnCommVat).toBeCloseTo(c.returnCommission * 0.15, 2);
 
     // الوثيقة CANCELLED + إعادة الإلغاء ⇒ 409
     expect((await request(srv).get(`/policies/${policy.id}`).set(auth(gm)).expect(200)).body.status).toBe("CANCELLED");

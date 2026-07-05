@@ -8,9 +8,9 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { StatCard } from "@/components/ui/StatCard";
 import { Badge } from "@/components/ui/Badge";
 
-interface Summary { grossPremium: number; netPremium: number; vat: number; commission: number; offBalanceTrust: number; receivables: number; collected: number; invoiceCount: number; voucherCount: number }
+interface Summary { grossPremium: number; netPremium: number; vat: number; commission: number; serviceFees: number; offBalanceTrust: number; receivables: number; collected: number; invoiceCount: number; voucherCount: number }
 interface Coa { id: string; code: string; name: string; level: number; isOnBalance: boolean; isLocked: boolean; accountType: string | null }
-interface Invoice { id: string; sequenceNo: string | null; insurerName: string | null; netAmount: string | null; vatAmount: string | null; totalAmount: string | null; status: string | null; zatca: { qr: string; uuid: string; hash: string } }
+interface Invoice { id: string; sequenceNo: string | null; kind: string; party: string; insurerName: string | null; netAmount: string | null; vatAmount: string | null; totalAmount: string | null; status: string | null; zatca: { qr: string; uuid: string; hash: string } }
 interface PayRow { insurer: string; payable: number; settled: number; outstanding: number; count: number }
 interface Payables { rows: PayRow[]; summary: { payable: number; settled: number; outstanding: number } }
 interface TrialRow { account: string; name: string; debit: number; credit: number; balance: number }
@@ -81,16 +81,20 @@ export default function FinancePage() {
       <section className="overflow-hidden rounded-card border border-line bg-card shadow-card">
         <div className="flex items-center gap-2 border-b border-line px-5 py-3.5">
           <QrCode size={17} className="text-success" />
-          <div>
+          <div className="flex-1">
             <h2 className="text-[15px] font-semibold text-ink">{t("finance.invoices")}</h2>
             <p className="text-[12px] text-subtle">{t("finance.invoicesSub")}</p>
           </div>
+          {s && s.serviceFees > 0 ? (
+            <Badge tone="warning">{t("finance.serviceFees")}: <span className="tnum">{fmt(s.serviceFees)}</span> {t("common.sar")}</Badge>
+          ) : null}
         </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[760px]">
             <thead><tr className="border-b border-line text-[11px] uppercase tracking-wide text-subtle">
               <th className="px-5 py-3 text-start font-semibold">{t("finance.col.invoiceNo")}</th>
-              <th className="px-5 py-3 text-start font-semibold">{t("finance.col.insurer")}</th>
+              <th className="px-5 py-3 text-start font-semibold">{t("finance.col.invoiceKind")}</th>
+              <th className="px-5 py-3 text-start font-semibold">{t("finance.col.party")}</th>
               <th className="px-5 py-3 text-end font-semibold">{t("finance.col.net")}</th>
               <th className="px-5 py-3 text-end font-semibold">{t("finance.col.vat")}</th>
               <th className="px-5 py-3 text-end font-semibold">{t("finance.col.total")}</th>
@@ -102,7 +106,8 @@ export default function FinancePage() {
                 <Fragment key={inv.id}>
                   <tr className="hover:bg-surface-2/60">
                     <td className="px-5 py-3 text-[12.5px] font-medium text-ink tnum">{inv.sequenceNo ?? "—"}</td>
-                    <td className="px-5 py-3 text-[13px] text-muted">{inv.insurerName ?? "—"}</td>
+                    <td className="px-5 py-3"><Badge tone={inv.kind === "FEES" ? "warning" : "info"}>{inv.kind === "FEES" ? t("finance.invoiceFees") : t("finance.invoiceCommission")}</Badge></td>
+                    <td className="px-5 py-3 text-[13px] text-muted">{inv.party ?? inv.insurerName ?? "—"}</td>
                     <td className="px-5 py-3 text-end text-[13px] text-muted tnum">{fmt(inv.netAmount)}</td>
                     <td className="px-5 py-3 text-end text-[13px] text-muted tnum">{fmt(inv.vatAmount)}</td>
                     <td className="px-5 py-3 text-end text-[13px] font-medium text-ink tnum">{fmt(inv.totalAmount)} <span className="text-[11px] text-subtle">{t("common.sar")}</span></td>
@@ -113,7 +118,7 @@ export default function FinancePage() {
                   </tr>
                   {open === inv.id ? (
                     <tr className="bg-surface-2/40">
-                      <td colSpan={7} className="px-5 py-3">
+                      <td colSpan={8} className="px-5 py-3">
                         <div className="space-y-1.5 text-[11.5px]">
                           <div className="flex gap-2"><span className="w-20 text-subtle">UUID</span><span className="tnum text-ink">{inv.zatca.uuid}</span></div>
                           <div className="flex gap-2"><span className="w-20 text-subtle">{t("finance.zatcaHash")}</span><span className="tnum break-all text-ink">{inv.zatca.hash}</span></div>

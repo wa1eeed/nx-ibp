@@ -175,14 +175,12 @@ export class PortalService {
       }),
       this.prisma.creditNote.findMany({ where: { clientId }, orderBy: { createdAt: "desc" }, select: { id: true, sequenceNo: true, policyId: true, netAmount: true, vatAmount: true, createdAt: true } }),
     ]);
-    const policyIds = (await this.prisma.policy.findMany({ where: { clientId }, select: { id: true } })).map((p) => p.id);
-    const invoices = policyIds.length
-      ? await this.prisma.invoice.findMany({
-          where: { policyId: { in: policyIds } },
-          orderBy: { createdAt: "desc" },
-          select: { id: true, sequenceNo: true, insurerName: true, netAmount: true, vatAmount: true, totalAmount: true, status: true, createdAt: true },
-        })
-      : [];
+    // العميل يرى فواتير الرسوم الخاصة به فقط (kind=FEES) — لا فواتير عمولة الوسيط على المؤمِّن
+    const invoices = await this.prisma.invoice.findMany({
+      where: { clientId, kind: "FEES" },
+      orderBy: { createdAt: "desc" },
+      select: { id: true, sequenceNo: true, netAmount: true, vatAmount: true, totalAmount: true, status: true, createdAt: true },
+    });
     const num = (v: unknown) => Number(v ?? 0);
     const charged = debitNotes.reduce((s, d) => s + num(d.netAmount) + num(d.vatAmount), 0);
     const collected = debitNotes.reduce((s, d) => s + num(d.settledAmount), 0);

@@ -21,8 +21,8 @@ interface Overview {
   endorsements: Array<{ id: string; sequenceNo: string | null; type: string; effectiveDate: string | null; premiumDelta: string | null; status: string; createdAt: string }>;
   claims: Array<{ id: string; sequenceNo: string | null; insurerName: string | null; claimedAmount: string | null; settledAmount: string | null; status: string; incidentDate: string | null; createdAt: string }>;
   debitNotes: Array<{ id: string; sequenceNo: string | null; netAmount: string | null; vatAmount: string | null; createdAt: string }>;
-  creditNotes: Array<{ id: string; sequenceNo: string | null; netAmount: string | null; vatAmount: string | null; createdAt: string }>;
-  invoices: Array<{ id: string; sequenceNo: string | null; status: string | null; netAmount: string | null; vatAmount: string | null; totalAmount: string | null; createdAt: string }>;
+  creditNotes: Array<{ id: string; sequenceNo: string | null; kind: string | null; clientId: string | null; insurerName: string | null; netAmount: string | null; vatAmount: string | null; createdAt: string }>;
+  invoices: Array<{ id: string; sequenceNo: string | null; kind: string | null; insurerName: string | null; status: string | null; netAmount: string | null; vatAmount: string | null; totalAmount: string | null; createdAt: string }>;
   documents: Array<{ id: string; fileName: string; docType: string; createdAt: string }>;
   activity: Array<{ action: string; meta: unknown; createdAt: string }>;
   summary: { endorsements: number; claims: number; claimsSettled: number; commission: number; gross: number; outstanding: number };
@@ -149,8 +149,8 @@ export default function PolicyDetailPage() {
         {tab === "invoices" ? (
           <div className="space-y-3">
             {ov.debitNotes.length ? (<div><p className="mb-1.5 text-[12px] font-semibold text-subtle">{t("debitNotes")}</p>{table([t("col.ref"), t("col.net"), t("col.vat"), t("col.date")], ov.debitNotes.map((d) => row([d.sequenceNo ?? "—", fmt(d.netAmount), fmt(d.vatAmount), dt(d.createdAt)])))}</div>) : null}
-            {ov.creditNotes.length ? (<div><p className="mb-1.5 text-[12px] font-semibold text-danger">{t("creditNotes")}</p>{table([t("col.ref"), t("col.net"), t("col.vat"), t("col.date")], ov.creditNotes.map((c) => row([c.sequenceNo ?? "—", <span key="n" className="text-danger">−{fmt(c.netAmount)}</span>, <span key="v" className="text-danger">−{fmt(c.vatAmount)}</span>, dt(c.createdAt)])))}</div>) : null}
-            {ov.invoices.length ? (<div><p className="mb-1.5 text-[12px] font-semibold text-subtle">{t("taxInvoices")}</p>{table([t("col.ref"), t("col.status"), t("col.total"), t("col.date")], ov.invoices.map((i) => row([i.sequenceNo ?? "—", <Badge key="s" tone="neutral">{i.status ?? "—"}</Badge>, fmt(i.totalAmount), dt(i.createdAt)])))}</div>) : null}
+            {ov.creditNotes.length ? (<div><p className="mb-1.5 text-[12px] font-semibold text-danger">{t("creditNotes")}</p>{table([t("col.ref"), t("col.party"), t("col.net"), t("col.vat"), t("col.date")], ov.creditNotes.map((c) => row([c.sequenceNo ?? "—", c.kind === "CNC" ? <Badge key="p" tone="info">{t("toInsurer")}{c.insurerName ? ` · ${c.insurerName}` : ""}</Badge> : <Badge key="p" tone="warning">{t("toClient")}</Badge>, <span key="n" className="text-danger">−{fmt(c.netAmount)}</span>, <span key="v" className="text-danger">−{fmt(c.vatAmount)}</span>, dt(c.createdAt)])))}</div>) : null}
+            {ov.invoices.length ? (<div><p className="mb-1.5 text-[12px] font-semibold text-subtle">{t("taxInvoices")}</p>{table([t("col.ref"), t("col.party"), t("col.total"), t("col.date")], ov.invoices.map((i) => row([i.sequenceNo ?? "—", i.kind === "FEES" ? <Badge key="p" tone="warning">{t("invFees")} · {t("toClient")}</Badge> : <Badge key="p" tone="info">{t("invCommission")} · {t("toInsurer")}{i.insurerName ? ` · ${i.insurerName}` : ""}</Badge>, fmt(i.totalAmount), dt(i.createdAt)])))}</div>) : null}
             {!ov.debitNotes.length && !ov.invoices.length && !ov.creditNotes.length ? empty : null}
           </div>
         ) : null}

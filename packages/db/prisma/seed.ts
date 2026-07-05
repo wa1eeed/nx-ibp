@@ -299,6 +299,7 @@ const COA_TEMPLATE: Array<{ path: number[]; name: string; type: string; onBal: b
   { path: [3], name: "حقوق الملكية", type: "equity", onBal: true },
   { path: [4], name: "الإيرادات", type: "revenue", onBal: true },
   { path: [4, 1], name: "عمولات الوساطة", type: "revenue", onBal: true },
+  { path: [4, 2], name: "رسوم خدمات وإصدار الوثائق", type: "revenue", onBal: true },
   { path: [5], name: "المصروفات", type: "expense", onBal: true },
 ];
 
@@ -364,26 +365,41 @@ async function seedOperations(passwordHash: string) {
     pi++;
     const vat = round2(p.net * 0.15);
     const total = round2(p.net + vat);
+    const comm = round2((p.net * p.comm) / 100);
+    const commVat = round2(comm * 0.15);
+    const fees = pi % 3 === 0 ? 300 : 0; // رسوم خدمة على كل ثالث وثيقة (لعرض التوجيه الصحيح)
+    const feesVat = round2(fees * 0.15);
     await prisma.policy.upsert({
       where: { id: p.id },
-      update: { insurerName: p.insurer, premium: p.net, vat, totalPremium: total, sumInsured: siOf(p.line, p.net), status: "ISSUED" },
+      update: { insurerName: p.insurer, premium: p.net, vat, totalPremium: total, sumInsured: siOf(p.line, p.net), status: "ISSUED", policyFees: fees },
       create: {
         id: p.id, tenantId: p.t, clientId: p.clientId, productLineCode: p.line, insurerName: p.insurer,
-        sequenceNo: `POL-RUH-${p.line}-2026-${1000 + pi}`, premium: p.net, vat, totalPremium: total, sumInsured: siOf(p.line, p.net),
-        commissionRate: p.comm, commissionAmount: round2((p.net * p.comm) / 100), status: "ISSUED",
+        sequenceNo: `POL-RUH-${p.line}-2026-${1000 + pi}`, premium: p.net, vat, totalPremium: total, sumInsured: siOf(p.line, p.net), policyFees: fees,
+        commissionRate: p.comm, commissionAmount: comm, status: "ISSUED",
         startDate: D(p.start), endDate: D(p.end),
       },
     });
+    // إشعار المدين يجمع القسط + رسوم الخدمة (مطالبة واحدة على العميل)
     await prisma.debitNote.upsert({
-      where: { id: `dn-${p.id}` }, update: {},
-      create: { id: `dn-${p.id}`, tenantId: p.t, clientId: p.clientId, policyId: p.id, sequenceNo: `DN-2026-${1000 + pi}`, netAmount: p.net, vatAmount: vat },
+      where: { id: `dn-${p.id}` }, update: { netAmount: round2(p.net + fees), vatAmount: round2(vat + feesVat) },
+      create: { id: `dn-${p.id}`, tenantId: p.t, clientId: p.clientId, policyId: p.id, sequenceNo: `DN-2026-${1000 + pi}`, netAmount: round2(p.net + fees), vatAmount: round2(vat + feesVat) },
     });
+    // فاتورة ضريبية على المؤمِّن بقيمة العمولة (لا القسط)
     await prisma.invoice.upsert({
-      where: { id: `inv-${p.id}` }, update: {},
+      where: { id: `inv-${p.id}` }, update: { kind: "COMMISSION", netAmount: comm, vatAmount: commVat, totalAmount: round2(comm + commVat) },
       create: {
-        id: `inv-${p.id}`, tenantId: p.t, policyId: p.id, insurerName: p.insurer, sequenceNo: `INV-2026-${1000 + pi}`,
-        netAmount: p.net, vatAmount: vat, totalAmount: total, status: "issued",
+        id: `inv-${p.id}`, tenantId: p.t, kind: "COMMISSION", policyId: p.id, insurerName: p.insurer, sequenceNo: `INV-2026-${1000 + pi}`,
+        netAmount: comm, vatAmount: commVat, totalAmount: round2(comm + commVat), status: "issued",
         zatcaUuid: `zatca-${p.id}`, zatcaHash: "demo-hash", qrPayload: "demo-qr",
+      },
+    });
+    // فاتورة ضريبية على العميل برسوم الخدمة (إيراد الوسيط)
+    if (fees > 0) await prisma.invoice.upsert({
+      where: { id: `inv-fees-${p.id}` }, update: { netAmount: fees, vatAmount: feesVat, totalAmount: round2(fees + feesVat) },
+      create: {
+        id: `inv-fees-${p.id}`, tenantId: p.t, kind: "FEES", policyId: p.id, clientId: p.clientId, sequenceNo: `INV-2026-${1000 + pi}-F`,
+        netAmount: fees, vatAmount: feesVat, totalAmount: round2(fees + feesVat), status: "issued",
+        zatcaUuid: `zatca-fees-${p.id}`, zatcaHash: "demo-hash", qrPayload: "demo-qr",
       },
     });
   }
@@ -563,8 +579,9 @@ async function seedRichData(passwordHash: string) {
       create: { id: p.id, tenantId: p.t, clientId: p.clientId, productLineCode: p.line, insurerName: INSURERS[p.ins], sequenceNo: `POL-RUH-${p.line}-2026-${sp}`, premium: p.net, vat, totalPremium: total, sumInsured: siOf(p.line, p.net), commissionRate: p.comm, commissionAmount: comm, status: p.status as never, startDate: D(p.start), endDate: D(p.end) },
     });
     if (p.status !== "ISSUED") continue;
+    const commVat = round2(comm * 0.15);
     await prisma.debitNote.upsert({ where: { id: `dn-${p.id}` }, update: {}, create: { id: `dn-${p.id}`, tenantId: p.t, clientId: p.clientId, policyId: p.id, sequenceNo: `DN-2026-${sp}`, netAmount: p.net, vatAmount: vat } });
-    await prisma.invoice.upsert({ where: { id: `inv-${p.id}` }, update: {}, create: { id: `inv-${p.id}`, tenantId: p.t, policyId: p.id, insurerName: INSURERS[p.ins], sequenceNo: `INV-2026-${sp}`, netAmount: p.net, vatAmount: vat, totalAmount: total, status: "issued", zatcaUuid: `zatca-${p.id}`, zatcaHash: "demo-hash", qrPayload: "demo-qr" } });
+    await prisma.invoice.upsert({ where: { id: `inv-${p.id}` }, update: { kind: "COMMISSION", netAmount: comm, vatAmount: commVat, totalAmount: round2(comm + commVat) }, create: { id: `inv-${p.id}`, tenantId: p.t, kind: "COMMISSION", policyId: p.id, insurerName: INSURERS[p.ins], sequenceNo: `INV-2026-${sp}`, netAmount: comm, vatAmount: commVat, totalAmount: round2(comm + commVat), status: "issued", zatcaUuid: `zatca-${p.id}`, zatcaHash: "demo-hash", qrPayload: "demo-qr" } });
     const st = ["received", "accrued", "variance"][sp % 3];
     const recv = st === "received" ? comm : st === "variance" ? round2(comm * 0.9) : null;
     await prisma.commission.upsert({ where: { id: `com-${p.id}` }, update: {}, create: { id: `com-${p.id}`, tenantId: p.t, policyId: p.id, insurerName: INSURERS[p.ins], clientName: nameOf[p.clientId] ?? "—", productLine: p.line, rate: p.comm, amount: comm, receivedAmount: recv, status: st, periodMonth: p.start.slice(0, 7) } });
@@ -759,14 +776,17 @@ async function seedGibDemo(passwordHash: string) {
     // E1 — تأمين الحياة معفى
     const exempt = p.line === "GLI" || p.line === "TRM";
     const vat = exempt ? 0 : round2(p.net * 0.15), total = round2(p.net + vat), comm = round2((p.net * p.comm) / 100);
+    const fees = p.status === "ISSUED" && !exempt && sp % 3 === 0 ? 350 : 0; // رسوم خدمة على كل ثالث وثيقة (لا على المعفى)
+    const feesVat = round2(fees * 0.15);
     await prisma.policy.upsert({
-      where: { id: p.id }, update: { status: p.status as never, sumInsured: siOf(p.line, p.net) },
-      create: { id: p.id, tenantId: T, clientId: p.clientId, productLineCode: p.line, insurerName: INSURERS[p.ins], sequenceNo: `POL-RUH-${p.line}-2026-${sp}`, premium: p.net, vat, totalPremium: total, sumInsured: siOf(p.line, p.net), commissionRate: p.comm, commissionAmount: comm, status: p.status as never, startDate: D(p.start), endDate: D(p.end) },
+      where: { id: p.id }, update: { status: p.status as never, sumInsured: siOf(p.line, p.net), policyFees: fees },
+      create: { id: p.id, tenantId: T, clientId: p.clientId, productLineCode: p.line, insurerName: INSURERS[p.ins], sequenceNo: `POL-RUH-${p.line}-2026-${sp}`, premium: p.net, vat, totalPremium: total, sumInsured: siOf(p.line, p.net), policyFees: fees, commissionRate: p.comm, commissionAmount: comm, status: p.status as never, startDate: D(p.start), endDate: D(p.end) },
     });
     if (p.status !== "ISSUED") continue;
-    await prisma.debitNote.upsert({ where: { id: `gib-dn-${p.id}` }, update: {}, create: { id: `gib-dn-${p.id}`, tenantId: T, clientId: p.clientId, policyId: p.id, sequenceNo: `DN-2026-${sp}`, netAmount: p.net, vatAmount: vat } });
+    await prisma.debitNote.upsert({ where: { id: `gib-dn-${p.id}` }, update: { netAmount: round2(p.net + fees), vatAmount: round2(vat + feesVat) }, create: { id: `gib-dn-${p.id}`, tenantId: T, clientId: p.clientId, policyId: p.id, sequenceNo: `DN-2026-${sp}`, netAmount: round2(p.net + fees), vatAmount: round2(vat + feesVat) } });
     const commVat = round2(comm * 0.15);
-    await prisma.invoice.upsert({ where: { id: `gib-inv-${p.id}` }, update: {}, create: { id: `gib-inv-${p.id}`, tenantId: T, policyId: p.id, insurerName: INSURERS[p.ins], sequenceNo: `INV-2026-${sp}`, netAmount: comm, vatAmount: commVat, totalAmount: round2(comm + commVat), status: "issued", zatcaUuid: `zatca-${p.id}`, zatcaHash: "demo-hash", qrPayload: "demo-qr" } });
+    await prisma.invoice.upsert({ where: { id: `gib-inv-${p.id}` }, update: { kind: "COMMISSION" }, create: { id: `gib-inv-${p.id}`, tenantId: T, kind: "COMMISSION", policyId: p.id, insurerName: INSURERS[p.ins], sequenceNo: `INV-2026-${sp}`, netAmount: comm, vatAmount: commVat, totalAmount: round2(comm + commVat), status: "issued", zatcaUuid: `zatca-${p.id}`, zatcaHash: "demo-hash", qrPayload: "demo-qr" } });
+    if (fees > 0) await prisma.invoice.upsert({ where: { id: `gib-inv-fees-${p.id}` }, update: { netAmount: fees, vatAmount: feesVat, totalAmount: round2(fees + feesVat) }, create: { id: `gib-inv-fees-${p.id}`, tenantId: T, kind: "FEES", policyId: p.id, clientId: p.clientId, sequenceNo: `INV-2026-${sp}-F`, netAmount: fees, vatAmount: feesVat, totalAmount: round2(fees + feesVat), status: "issued", zatcaUuid: `zatca-fees-${p.id}`, zatcaHash: "demo-hash", qrPayload: "demo-qr" } });
     const st = ["received", "accrued", "variance"][sp % 3];
     const recv = st === "received" ? comm : st === "variance" ? round2(comm * 0.9) : null;
     await prisma.commission.upsert({ where: { id: `gib-com-${p.id}` }, update: {}, create: { id: `gib-com-${p.id}`, tenantId: T, policyId: p.id, insurerName: INSURERS[p.ins], clientName: nameOf[p.clientId] ?? "—", productLine: p.line, rate: p.comm, amount: comm, receivedAmount: recv, status: st, periodMonth: p.start.slice(0, 7) } });
@@ -982,7 +1002,7 @@ async function main() {
   });
 
   // قيود يومية (JRV) لكل وثيقة مُصدَرة — كي يكتمل ميزان المراجعة ويتّسق مع الملخّص المالي.
-  const issuedPolicies = await prisma.policy.findMany({ where: { status: "ISSUED" }, select: { id: true, tenantId: true, sequenceNo: true, premium: true, vat: true, totalPremium: true, commissionAmount: true }, orderBy: { id: "asc" } });
+  const issuedPolicies = await prisma.policy.findMany({ where: { status: "ISSUED" }, select: { id: true, tenantId: true, sequenceNo: true, premium: true, vat: true, totalPremium: true, commissionAmount: true, policyFees: true }, orderBy: { id: "asc" } });
   let jrvi = 0;
   for (const p of issuedPolicies) {
     jrvi++;
@@ -990,15 +1010,20 @@ async function main() {
     const commission = round2(Number(p.commissionAmount ?? 0));
     const commVat = round2(commission * 0.15);
     const trust = round2(total - commission - commVat);
+    const fees = round2(Number(p.policyFees ?? 0)); // رسوم الخدمة (إيراد الوسيط، خارج الأمانة)
+    const feesVat = round2(fees * 0.15);
+    const grand = round2(total + fees + feesVat);
+    const entries = [
+      { account: "01030000000000000", name: "ذمم العملاء المدينة", debit: grand, credit: 0 },
+      { account: "02020000000000000", name: "أمانات أقساط العملاء (Off-Balance)", debit: 0, credit: trust },
+      { account: "04010000000000000", name: "عمولات الوساطة", debit: 0, credit: commission },
+      { account: "02030000000000000", name: "ضريبة القيمة المضافة المستحقة (Output VAT)", debit: 0, credit: round2(commVat + feesVat) },
+    ];
+    if (fees > 0) entries.push({ account: "04020000000000000", name: "رسوم خدمات وإصدار الوثائق", debit: 0, credit: fees });
     await prisma.voucher.upsert({
       where: { id: `jrv-seed-${p.id}` },
-      update: { amount: total },
-      create: { id: `jrv-seed-${p.id}`, tenantId: p.tenantId, type: "JRV", sequenceNo: `JRV-2026-${20001 + jrvi}`, amount: total, status: "posted", isAuto: true, reference: p.id, lines: { description: `إصدار الوثيقة ${p.sequenceNo}`, entries: [
-        { account: "01030000000000000", name: "ذمم العملاء المدينة", debit: total, credit: 0 },
-        { account: "02020000000000000", name: "أمانات أقساط العملاء (Off-Balance)", debit: 0, credit: trust },
-        { account: "04010000000000000", name: "عمولات الوساطة", debit: 0, credit: commission },
-        { account: "02030000000000000", name: "ضريبة القيمة المضافة المستحقة (Output VAT)", debit: 0, credit: commVat },
-      ] } },
+      update: { amount: grand, lines: { description: `إصدار الوثيقة ${p.sequenceNo}`, entries } },
+      create: { id: `jrv-seed-${p.id}`, tenantId: p.tenantId, type: "JRV", sequenceNo: `JRV-2026-${20001 + jrvi}`, amount: grand, status: "posted", isAuto: true, reference: p.id, lines: { description: `إصدار الوثيقة ${p.sequenceNo}`, entries } },
     });
   }
 

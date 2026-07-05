@@ -49,8 +49,8 @@ export class SequenceService {
     return `INV-${this.year()}-${1001 + count}`;
   }
 
-  /** رقم إشعار مدين/دائن: DN/CN-2026-1001 */
-  async nextNoteSeq(prefix: "DN" | "CN"): Promise<string> {
+  /** رقم إشعار مدين/دائن: DN/CN/CNC-2026-1001 (CNC = إشعار دائن على المؤمِّن) */
+  async nextNoteSeq(prefix: "DN" | "CN" | "CNC"): Promise<string> {
     const count = prefix === "DN" ? await this.prisma.debitNote.count() : await this.prisma.creditNote.count();
     return `${prefix}-${this.year()}-${1001 + count}`;
   }

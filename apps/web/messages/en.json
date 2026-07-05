@@ -130,11 +130,14 @@
     "onBalance": "On-balance",
     "offBalanceTag": "Off-balance",
     "invoices": "Tax invoices (ZATCA / Fatoora)",
-    "invoicesSub": "Each invoice carries a Phase-1 compliant QR (TLV)",
+    "invoicesSub": "Correct direction: commission invoiced to the insurer, service fees invoiced to the client — each with a compliant QR (TLV)",
+    "invoiceCommission": "Commission — to insurer",
+    "invoiceFees": "Service fees — to client",
+    "serviceFees": "Service / issuance fees",
     "zatcaOk": "Compliant",
     "zatcaShow": "ZATCA details",
     "zatcaHash": "Hash",
-    "col": { "code": "Code", "account": "Account", "type": "Type", "balance": "Balance", "invoiceNo": "Invoice no.", "insurer": "Insurer", "net": "Net", "vat": "VAT", "total": "Total" },
+    "col": { "code": "Code", "account": "Account", "type": "Type", "balance": "Balance", "invoiceNo": "Invoice no.", "insurer": "Insurer", "party": "Party", "invoiceKind": "Invoice type", "net": "Net", "vat": "VAT", "total": "Total" },
     "payables": "Insurer payables (trust)",
     "payablesSub": "Net premium held per insurer — with aging and amounts settled",
     "settle": "Settle",
@@ -468,9 +471,10 @@
     "debitNotes": "Debit notes", "taxInvoices": "Tax invoices", "emptyTab": "No data in this section",
     "addEndorsement": "Add endorsement",
     "creditNotes": "Credit notes (return premium)",
+    "toInsurer": "To insurer", "toClient": "To client", "invCommission": "Commission", "invFees": "Service fees",
     "cancel": { "action": "Cancel policy", "title": "Cancel policy & return premium", "hint": "Return premium is computed pro-rata on the unexpired days, and a credit note is issued to the client.", "effectiveDate": "Cancellation effective date", "reason": "Reason", "submit": "Confirm cancellation", "cancel": "Back", "done": "Policy cancelled — credit note {seq}, return premium {amount}" },
     "endo": { "title": "Add policy endorsement", "type": "Endorsement type", "effectiveDate": "Effective date", "delta": "Premium delta (± SAR)", "reason": "Reason / details", "submit": "Add endorsement", "cancel": "Cancel", "done": "Endorsement {seq} added", "onlyIssued": "Endorsements can only be added to issued policies", "types": { "addition": "Addition", "deletion": "Deletion", "amendment": "Amendment", "cancellation": "Cancellation" } },
-    "col": { "ref": "Ref", "type": "Type", "effective": "Effective", "delta": "Premium Δ", "status": "Status", "claimed": "Claimed", "settled": "Settled", "incident": "Incident", "net": "Net", "vat": "VAT", "total": "Total", "date": "Date", "file": "File", "docType": "Type" }
+    "col": { "ref": "Ref", "type": "Type", "party": "Party", "effective": "Effective", "delta": "Premium Δ", "status": "Status", "claimed": "Claimed", "settled": "Settled", "incident": "Incident", "net": "Net", "vat": "VAT", "total": "Total", "date": "Date", "file": "File", "docType": "Type" }
   },
   "client360": {
     "erase": {

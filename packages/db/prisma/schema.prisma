@@ -793,13 +793,15 @@ enum VoucherType {
   DPV // دفع مباشر
 }
 
-// الفاتورة الضريبية الصادرة لشركة التأمين (تحصيل العمولة) — بنية ممهّدة لـ ZATCA
+// الفاتورة الضريبية الصادرة من الوسيط — عمولة على المؤمِّن (COMMISSION) أو رسوم خدمة على العميل (FEES). بنية ممهّدة لـ ZATCA.
 model Invoice {
   id          String   @id @default(cuid())
   tenantId    String
   tenant      Tenant   @relation(fields: [tenantId], references: [id])
   sequenceNo  String?
-  insurerName String?
+  kind        String?  @default("COMMISSION") // COMMISSION (على المؤمِّن) | FEES (رسوم خدمة على العميل)
+  insurerName String? // للفاتورة على المؤمِّن (عمولة)
+  clientId    String? // للفاتورة على العميل (رسوم خدمة)
   policyId    String?
   netAmount   Decimal? @db.Decimal(14, 2)
   vatAmount   Decimal? @db.Decimal(14, 2)
@@ -811,6 +813,7 @@ model Invoice {
   createdAt   DateTime @default(now())
 
   @@index([tenantId])
+  @@index([tenantId, clientId])
 }
 
 // إشعار مدين/دائن للعميل (يُولَّد عند الاعتماد المالي)
@@ -831,16 +834,19 @@ model DebitNote {
   @@index([tenantId, clientId])
 }
 
+// إشعار دائن: CNP = قسط مُرتجَع للعميل (إلغاء)؛ CNC = عكس عمولة على المؤمِّن (إلغاء).
 model CreditNote {
-  id         String   @id @default(cuid())
-  tenantId   String
-  tenant     Tenant   @relation(fields: [tenantId], references: [id])
-  sequenceNo String?
-  clientId   String?
-  policyId   String?
-  netAmount  Decimal? @db.Decimal(14, 2)
-  vatAmount  Decimal? @db.Decimal(14, 2)
-  createdAt  DateTime @default(now())
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  sequenceNo  String?
+  kind        String?  @default("CNP") // CNP (على العميل: قسط مُرتجَع) | CNC (على المؤمِّن: عكس عمولة)
+  clientId    String? // للإشعار الدائن على العميل
+  insurerName String? // للإشعار الدائن على المؤمِّن (عكس العمولة)
+  policyId    String?
+  netAmount   Decimal? @db.Decimal(14, 2)
+  vatAmount   Decimal? @db.Decimal(14, 2)
+  createdAt   DateTime @default(now())
 
   @@index([tenantId])
 }

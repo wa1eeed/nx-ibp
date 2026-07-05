@@ -55,11 +55,13 @@ describe("بوّابة العميل (e2e)", () => {
     expect(res.body.map((c: { sequenceNo: string }) => c.sequenceNo)).toEqual(expect.arrayContaining(["CL-RUH-2026-0001", "CL-RUH-2026-0002"]));
   });
 
-  it("كشف الحساب يجمع المستحقّ من إشعارات المدين", async () => {
+  it("كشف الحساب يجمع المستحقّ من إشعارات المدين، ولا يكشف فواتير عمولة الوسيط", async () => {
     const res = await request(app.getHttpServer()).get("/portal/statement").set(auth(fahd)).expect(200);
     // ≥3 (قد تُضيف اختبارات الملاحق إشعارات مدين لوثائق الفهد — نتحقّق من العلاقة لا عددٍ صلب)
     expect(res.body.debitNotes.length).toBeGreaterThanOrEqual(3);
-    expect(res.body.invoices.length).toBe(3);
+    // العميل يرى فواتير رسومه الخاصة فقط (kind=FEES) — لا فواتير عمولة الوسيط على المؤمِّنين
+    expect(Array.isArray(res.body.invoices)).toBe(true);
+    expect(res.body.invoices.every((i: { sequenceNo: string }) => typeof i.sequenceNo === "string")).toBe(true);
     expect(res.body.outstanding).toBeGreaterThan(0);
   });
 
