@@ -129,6 +129,16 @@ model Deal {
   lostReason      String?
   requestId       String? // ربط بطلب تأمين عند التحويل (won)
   createdById     String?
+  // إثراء الفرصة البيعية (Sales Lead) وفق معايير الوساطة (أويسس)
+  exclusivity      String? // exclusive | non_exclusive (حالة BOR — وسيط السجل)
+  estimatedPremium Decimal? @db.Decimal(14, 2) // القسط التقديري (يُقارَن بقسط الإصدار)
+  expectedCloseDate DateTime? // تاريخ الإغلاق المتوقّع
+  source           String? // direct | producer (مصدر الفرصة)
+  producerName     String? // اسم المنتِج/الوسيط الفرعي عند source=producer
+  currentInsurer   String? // شركة التأمين الحالية (للأعمال المُحوَّلة/التجديد)
+  lossRatio        Decimal? @db.Decimal(6, 2) // نسبة الخسارة الحالية %
+  preferredInsurers String[] // شركات التأمين المفضّلة للعميل
+  notes            String? // ملاحظات/متطلبات
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
@@ -435,6 +445,7 @@ model Client {
   businessActivity String? // النشاط التجاري
   iban             String? // للاسترداد/الدفعات
   contacts         Json? // قائمة جهات الاتصال: [{ name, title, phone, email }]
+  accountManagerId String? // مدير الحساب المُعيَّن (نقطة تواصل العميل — معيار الوساطة)
   status           String?          @default("active")
   complianceStatus ComplianceStatus @default(PENDING)
   complianceNote   String?

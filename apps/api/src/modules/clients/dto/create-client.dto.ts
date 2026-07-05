@@ -31,6 +31,7 @@ export class CreateClientDto {
   @IsOptional() @IsString() producerName?: string;
   @IsOptional() @IsString() businessActivity?: string;
   @IsOptional() @IsString() iban?: string;
+  @IsOptional() @IsString() accountManagerId?: string; // مدير الحساب المُعيَّن
 
   @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => ClientContactDto)
   contacts?: ClientContactDto[];

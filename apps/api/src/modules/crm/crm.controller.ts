@@ -23,6 +23,12 @@ export class CrmController {
     return this.crm.listDeals(user);
   }
 
+  @Authorize({ module: "sales", action: "read", entitlement: "module.sales" })
+  @Get("deals/:id")
+  getDeal(@CurrentUser() user: AuthUser, @Param("id") id: string) {
+    return this.crm.getDeal(user, id);
+  }
+
   @Authorize({ module: "sales", action: "create", entitlement: "module.sales" })
   @Post("deals")
   createDeal(@CurrentUser("tenantId") tenantId: string, @CurrentUser("userId") userId: string, @Body() dto: CreateDealDto) {
@@ -33,6 +39,13 @@ export class CrmController {
   @Patch("deals/:id")
   updateDeal(@CurrentUser() user: AuthUser, @Param("id") id: string, @Body() dto: UpdateDealDto) {
     return this.crm.updateDeal(user, id, dto);
+  }
+
+  // تحويل الفرصة إلى طلب تأمين (المبيعات ⇒ الاكتتاب)
+  @Authorize({ module: "sales", action: "update", entitlement: "module.sales" })
+  @Post("deals/:id/convert")
+  convertDeal(@CurrentUser() user: AuthUser, @Param("id") id: string) {
+    return this.crm.convertDeal(user, id);
   }
 
   // ——— المهام/التذكيرات ———

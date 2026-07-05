@@ -1,10 +1,17 @@
-import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import { ConflictException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import { Prisma } from "@ibp/db";
 import { PrismaService } from "../../prisma/prisma.service";
 import { AuditService } from "../../common/audit/audit.service";
+import { SequenceService } from "../../common/sequence/sequence.service";
 import { NotificationsService } from "../notifications/notifications.service";
 import { PermissionService } from "../rbac/permission.service";
 import type { AuthUser } from "../auth/current-user.decorator";
 import type { CreateDealDto, UpdateDealDto, CreateTaskDto, AddActivityDto } from "./dto/crm.dto";
+
+const asJson = (v: unknown) => v as Prisma.InputJsonValue;
+
+/** حقول الفرصة البيعية المُثراة — تُبنى ديناميكيًا للـPrisma (تجاهل غير المُمرَّر). */
+type LeadInput = Partial<{ exclusivity: string; estimatedPremium: number; expectedCloseDate: string; source: string; producerName: string; currentInsurer: string; lossRatio: number; preferredInsurers: string[]; notes: string }>;
 
 /** مراحل خط أنابيب الصفقات (Pipeline). */
 export const DEAL_STAGES = ["new", "contacted", "quoting", "proposal", "negotiation"] as const;
@@ -18,9 +25,25 @@ export class CrmService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly seq: SequenceService,
     private readonly notifications: NotificationsService,
     private readonly permissions: PermissionService,
   ) {}
+
+  /** يبني حقول الفرصة البيعية للـPrisma — يشمل فقط المُمرَّر (تحويل التاريخ). */
+  private leadData(dto: LeadInput): Record<string, unknown> {
+    const d: Record<string, unknown> = {};
+    if (dto.exclusivity !== undefined) d.exclusivity = dto.exclusivity;
+    if (dto.estimatedPremium !== undefined) d.estimatedPremium = dto.estimatedPremium;
+    if (dto.expectedCloseDate !== undefined) d.expectedCloseDate = dto.expectedCloseDate ? new Date(dto.expectedCloseDate) : null;
+    if (dto.source !== undefined) d.source = dto.source;
+    if (dto.producerName !== undefined) d.producerName = dto.producerName;
+    if (dto.currentInsurer !== undefined) d.currentInsurer = dto.currentInsurer;
+    if (dto.lossRatio !== undefined) d.lossRatio = dto.lossRatio;
+    if (dto.preferredInsurers !== undefined) d.preferredInsurers = dto.preferredInsurers;
+    if (dto.notes !== undefined) d.notes = dto.notes;
+    return d;
+  }
 
   /**
    * رؤية CRM حسب الدور (أفضل معيار وساطة): **المدير** (صلاحية حذف على المبيعات — GM/مدير مبيعات)
@@ -68,9 +91,20 @@ export class CrmService {
     return this.enrich(deals);
   }
 
+  async getDeal(user: AuthUser, id: string) {
+    const deal = await this.prisma.deal.findFirst({ where: { id } });
+    if (!deal) throw new NotFoundException("الصفقة غير موجودة");
+    if (!(await this.isManager(user)) && deal.assigneeId !== user.userId && deal.createdById !== user.userId) {
+      throw new ForbiddenException("لا تملك صلاحية عرض صفقة مُسنَدة لموظف آخر");
+    }
+    const [enriched] = await this.enrich([deal]);
+    const activities = await this.prisma.crmActivity.findMany({ where: { entityType: "deal", entityId: id }, orderBy: { createdAt: "desc" }, take: 30, select: { id: true, type: true, body: true, createdAt: true } });
+    return { ...deal, ...enriched, activities };
+  }
+
   async createDeal(tenantId: string, userId: string, dto: CreateDealDto) {
     const deal = await this.prisma.deal.create({
-      data: { tenantId, title: dto.title, clientId: dto.clientId ?? null, stage: dto.stage ?? "new", value: dto.value ?? null, productLineCode: dto.productLineCode ?? null, assigneeId: dto.assigneeId ?? null, createdById: userId },
+      data: { tenantId, title: dto.title, clientId: dto.clientId ?? null, stage: dto.stage ?? "new", value: dto.value ?? null, productLineCode: dto.productLineCode ?? null, assigneeId: dto.assigneeId ?? null, createdById: userId, ...this.leadData(dto) },
     });
     await this.audit.log({ tenantId, userId, action: "create", entity: "deal", entityId: deal.id, meta: { title: deal.title } });
     await this.logActivity(tenantId, userId, "deal", deal.id, "note", "أُنشئت الصفقة");
@@ -93,8 +127,10 @@ export class CrmService {
         ...(dto.stage !== undefined ? { stage: dto.stage } : {}),
         ...(dto.status !== undefined ? { status: dto.status } : {}),
         ...(dto.value !== undefined ? { value: dto.value } : {}),
+        ...(dto.productLineCode !== undefined ? { productLineCode: dto.productLineCode } : {}),
         ...(dto.assigneeId !== undefined ? { assigneeId: dto.assigneeId } : {}),
         ...(dto.lostReason !== undefined ? { lostReason: dto.lostReason } : {}),
+        ...this.leadData(dto),
       },
     });
     await this.audit.log({ tenantId, userId, action: "update", entity: "deal", entityId: id, meta: { stage: dto.stage, status: dto.status } });
@@ -102,6 +138,42 @@ export class CrmService {
     if (dto.status && dto.status !== before.status) await this.logActivity(tenantId, userId, "deal", id, "note", dto.status === "won" ? "كُسِبت الصفقة" : dto.status === "lost" ? `فُقِدت الصفقة${dto.lostReason ? ` — ${dto.lostReason}` : ""}` : `الحالة: ${dto.status}`);
     if (dto.assigneeId && dto.assigneeId !== before.assigneeId) void this.notifications.notifyUser(tenantId, dto.assigneeId, "staff_deal_assigned", { title: deal.title }).catch(() => undefined);
     return deal;
+  }
+
+  /**
+   * تحويل الفرصة البيعية إلى **طلب تأمين** (Sales Lead ⇒ Request): يربط المبيعات بالاكتتاب.
+   * يشترط عميلًا معتمَدًا وفرعًا؛ يُنشئ طلبًا (DRAFT) مبنيًا على بيانات الصفقة، ويكسب الصفقة ويربطها.
+   */
+  async convertDeal(user: AuthUser, id: string) {
+    const deal = await this.prisma.deal.findFirst({ where: { id } });
+    if (!deal) throw new NotFoundException("الصفقة غير موجودة");
+    if (!(await this.isManager(user)) && deal.assigneeId !== user.userId && deal.createdById !== user.userId) {
+      throw new ForbiddenException("لا تملك صلاحية تحويل صفقة مُسنَدة لموظف آخر");
+    }
+    if (deal.requestId) throw new ConflictException("الصفقة محوّلة إلى طلب بالفعل");
+    if (!deal.clientId) throw new ConflictException("لا يمكن التحويل: الصفقة بلا عميل مرتبط");
+    if (!deal.productLineCode) throw new ConflictException("لا يمكن التحويل: الصفقة بلا فرع منتج");
+    const client = await this.prisma.client.findFirst({ where: { id: deal.clientId }, select: { complianceStatus: true, name: true } });
+    if (!client) throw new NotFoundException("العميل غير موجود");
+    if (client.complianceStatus !== "APPROVED") throw new ConflictException("لا يمكن التحويل: العميل غير معتمد من الالتزام بعد");
+
+    const line = await this.prisma.productLine.findFirst({ where: { code: deal.productLineCode }, include: { class: true } });
+    const sequenceNo = await this.seq.nextRequestSeq(line?.class.code ?? "GEN");
+    const request = await this.prisma.$transaction(async (tx) => {
+      const req = await tx.policyRequest.create({
+        data: {
+          tenantId: user.tenantId, clientId: deal.clientId!, productLineCode: deal.productLineCode!, status: "DRAFT", sequenceNo,
+          // بيانات مبدئية من الفرصة — يُكملها الوسيط قبل بدء عروض الأسعار
+          base: asJson({ estimatedPremium: deal.estimatedPremium ? Number(deal.estimatedPremium) : undefined, preferredInsurers: deal.preferredInsurers, currentInsurer: deal.currentInsurer, notes: deal.notes, fromDeal: deal.id }),
+        },
+        select: { id: true, sequenceNo: true, status: true },
+      });
+      await tx.deal.update({ where: { id }, data: { status: "won", requestId: req.id } });
+      return req;
+    });
+    await this.audit.log({ tenantId: user.tenantId, userId: user.userId, action: "update", entity: "deal_convert", entityId: id, meta: { requestId: request.id, sequenceNo } });
+    await this.logActivity(user.tenantId, user.userId, "deal", id, "note", `حُوِّلت إلى طلب تأمين ${sequenceNo}`);
+    return { request, dealId: id };
   }
 
   // ————————————————— المهام/التذكيرات —————————————————

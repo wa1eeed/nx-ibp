@@ -50,6 +50,26 @@ describe("CRM — E5 (e2e)", () => {
     expect(acts.some((a) => a.type === "stage_change")).toBe(true);
   });
 
+  it("الفرصة البيعية: إثراء الحقول + التحويل إلى طلب تأمين (Lead ⇒ Request)", async () => {
+    const srv = app.getHttpServer();
+    await request(srv).post("/clients/cl-naseej/compliance").set(auth(gm)).send({ decision: "APPROVED" }); // ضمان الاعتماد
+    const deal = (await request(srv).post("/crm/deals").set(auth(gm))
+      .send({ title: "فرصة تحويل", clientId: "cl-naseej", productLineCode: "MCI", estimatedPremium: 120000, exclusivity: "exclusive", source: "direct", lossRatio: 45, preferredInsurers: ["بوبا", "التعاونية"], notes: "أسطول 20 مركبة" }).expect(201)).body;
+    // getDeal يعيد حقول الفرصة المُثراة
+    const got = (await request(srv).get(`/crm/deals/${deal.id}`).set(auth(gm)).expect(200)).body;
+    expect(got.exclusivity).toBe("exclusive");
+    expect(Number(got.estimatedPremium)).toBe(120000);
+    expect(got.preferredInsurers).toEqual(["بوبا", "التعاونية"]);
+    // التحويل ⇒ طلب تأمين + الصفقة مكسوبة ومربوطة
+    const conv = (await request(srv).post(`/crm/deals/${deal.id}/convert`).set(auth(gm)).expect(201)).body;
+    expect(conv.request.sequenceNo).toMatch(/^SL-/);
+    const after = (await request(srv).get(`/crm/deals/${deal.id}`).set(auth(gm)).expect(200)).body;
+    expect(after.status).toBe("won");
+    expect(after.requestId).toBe(conv.request.id);
+    // إعادة التحويل ⇒ 409
+    await request(srv).post(`/crm/deals/${deal.id}/convert`).set(auth(gm)).expect(409);
+  });
+
   it("مهمة: إسناد ⇒ إشعار داخل المنصة للمُسنَد إليه + إكمال", async () => {
     const before = (await request(app.getHttpServer()).get("/notifications/inbox/unread-count").set(auth(assigneeToken)).expect(200)).body.count;
     const task = (await request(app.getHttpServer()).post("/crm/tasks").set(auth(gm)).send({ title: "الاتصال بالعميل لمتابعة العرض", assigneeId, priority: "high", dueDate: "2026-08-01" }).expect(201)).body;

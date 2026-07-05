@@ -449,6 +449,11 @@
     "emptyTasks": "No open tasks",
     "error": "Operation failed",
     "optionalClient": "Select a client (optional)",
+    "product": "Product line", "optionalProduct": "Line (optional)",
+    "detail": "Sales lead details", "edit": "Edit", "close": "Close",
+    "lead": { "estimatedPremium": "Estimated premium", "exclusivity": "Appointment (BOR)", "exclusive": "Exclusive", "non_exclusive": "Non-exclusive", "source": "Source", "direct": "Direct", "producerSrc": "Via producer", "producer": "Producer name", "currentInsurer": "Current insurer", "lossRatio": "Loss ratio %", "preferredInsurers": "Preferred insurers (comma-separated)", "expectedClose": "Expected close", "notes": "Notes / requirements" },
+    "convert": "Convert to request", "converted": "Converted to request", "convertDone": "Lead converted to request {seq}", "convertHint": "An insurance request is created from the lead data and enters the underwriting cycle; the lead is marked Won.",
+    "activityLog": "Activity", "noProduct": "—",
     "stages": { "new": "New", "contacted": "Contacted", "quoting": "Quoting", "proposal": "Proposal", "negotiation": "Negotiation" },
     "priorities": { "low": "Low", "normal": "Normal", "high": "High" }
   },

@@ -137,6 +137,7 @@ export class ClientsService {
           producerName: dto.producerName ?? null,
           businessActivity: dto.businessActivity ?? null,
           iban: dto.iban ?? null,
+          accountManagerId: dto.accountManagerId ?? null,
           contacts: dto.contacts ? (dto.contacts as unknown as Prisma.InputJsonValue) : undefined,
           // يبدأ بانتظار اعتماد الالتزام قبل السماح بطلب الأسعار
           complianceStatus: "PENDING",

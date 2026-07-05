@@ -449,6 +449,11 @@
     "emptyTasks": "لا مهام مفتوحة",
     "error": "تعذّرت العملية",
     "optionalClient": "اختر عميلًا (اختياري)",
+    "product": "فرع المنتج", "optionalProduct": "الفرع (اختياري)",
+    "detail": "تفاصيل الفرصة البيعية", "edit": "تعديل", "close": "إغلاق",
+    "lead": { "estimatedPremium": "القسط التقديري", "exclusivity": "نوع التعيين (BOR)", "exclusive": "حصري", "non_exclusive": "غير حصري", "source": "المصدر", "direct": "مباشر", "producerSrc": "عبر منتِج", "producer": "اسم المنتِج", "currentInsurer": "المؤمِّن الحالي", "lossRatio": "نسبة الخسارة %", "preferredInsurers": "المؤمِّنون المفضّلون (يفصلها فاصلة)", "expectedClose": "الإغلاق المتوقّع", "notes": "ملاحظات/متطلبات" },
+    "convert": "تحويل إلى طلب تأمين", "converted": "محوّلة إلى طلب", "convertDone": "حُوِّلت الفرصة إلى طلب {seq}", "convertHint": "يُنشأ طلب تأمين مبني على بيانات الفرصة ويدخل دورة الاكتتاب، وتُعلَّم الفرصة «مكسوبة».",
+    "activityLog": "النشاط", "noProduct": "—",
     "stages": { "new": "جديدة", "contacted": "تواصل", "quoting": "تسعير", "proposal": "عرض", "negotiation": "تفاوض" },
     "priorities": { "low": "منخفضة", "normal": "عادية", "high": "عالية" }
   },
