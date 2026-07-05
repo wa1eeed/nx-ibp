@@ -596,8 +596,9 @@ curl -X POST http://localhost:4000/staff \
 |---|---|---|---|
 | POST | `/finance/debit-notes/:id/receipt` | finance:create | سند قبض من العميل مقابل إشعار مدين — يزيد `settledAmount`، قيد متوازن (نقد/ذمم)، يمنع تجاوز المستحقّ (409) |
 | POST | `/finance/commissions/:id/receipt` | finance:create | استلام عمولة من المؤمِّن — يضبط `receivedAmount`/الحالة (مستلمة/فرق تحصيل) |
-| GET | `/finance/statement/:clientId` | finance:read | كشف حساب العميل: قيود (إشعارات) + مدفوعات (سندات قبض) برصيد جارٍ |
-| GET | `/finance/receivables` · `/finance/summary` | finance:read | تعيدان الآن **المتبقّي بعد التحصيل** + `collected` (المُحصَّل) + حالة كل إشعار |
+| GET | `/finance/statement/:clientId` | finance:read | كشف حساب العميل: قيود (إشعارات مدين) + إشعارات دائنة + مدفوعات (سندات قبض) برصيد جارٍ |
+| POST | `/finance/policies/:id/cancel` | finance:update | **إلغاء وثيقة** — قسط مُرتجَع نسبةً وتناسبًا + إشعار دائن (CNP) + قيد عكسي + `CANCELLED` (تكرار ⇒ 409) |
+| GET | `/finance/receivables` · `/finance/summary` | finance:read | تعيدان **المتبقّي بعد التحصيل والإشعارات الدائنة** + `collected` + `creditNotes` + حالة كل إشعار |
 
 ### تفاصيل الوثيقة 360° · الاكتتاب المالي
 | الطريقة | المسار | الحماية | الوصف |
