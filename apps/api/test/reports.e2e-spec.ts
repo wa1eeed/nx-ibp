@@ -37,6 +37,14 @@ describe("التقارير والتحليلات (e2e)", () => {
     expect(Array.isArray(res.body.recentActivity)).toBe(true);
   });
 
+  it("اتّساق: «عمولات معلّقة» في اللوحة = «المعلّقة» في صفحة العمولات (لا الإجمالي)", async () => {
+    const srv = app.getHttpServer();
+    const dash = (await request(srv).get("/reports/dashboard").set(auth(gm))).body;
+    const comm = (await request(srv).get("/reports/commissions").set(auth(gm))).body;
+    expect(dash.kpis.commissions).toBe(comm.summary.accrued);
+    expect(dash.kpis.commissions).toBeLessThan(comm.summary.total); // معلّقة < الإجمالي
+  });
+
   it("تقرير العمولات: متوقّع/مستلم/مستحقّ/فرق", async () => {
     const res = await request(app.getHttpServer()).get("/reports/commissions").set(auth(gm)).expect(200);
     // مجاميع على مستوى المستأجر تنمو مع البيانات — نتحقّق من العلاقات لا قيم صلبة.

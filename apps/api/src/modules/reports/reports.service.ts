@@ -25,7 +25,8 @@ export class ReportsService {
       this.prisma.policyRequest.count({ where: { status: { in: ["UNDER_REVIEW", "FINANCE_REVIEW"] } } }),
       this.prisma.policy.count({ where: { status: { in: ["TECHNICAL_REVIEW", "FINANCE_REVIEW"] } } }),
       this.prisma.policy.findMany({ where: { status: "ISSUED", endDate: { gte: now, lte: in60 } }, select: { id: true, sequenceNo: true, totalPremium: true, endDate: true, insurerName: true } }),
-      this.prisma.commission.aggregate({ _sum: { amount: true } }),
+      // «عمولات معلّقة» (لم تُستلم بعد) = المستحقّة فقط — مطابقة لبطاقة «المعلّقة» في صفحة العمولات (لا إجمالي العمولات).
+      this.prisma.commission.aggregate({ where: { status: "accrued" }, _sum: { amount: true } }),
       this.prisma.policy.findMany({ orderBy: { createdAt: "desc" }, take: 5, select: { id: true, sequenceNo: true, insurerName: true, totalPremium: true, createdAt: true } }),
       this.prisma.claim.findMany({ orderBy: { createdAt: "desc" }, take: 5, select: { id: true, sequenceNo: true, status: true, createdAt: true } }),
     ]);
