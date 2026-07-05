@@ -73,7 +73,7 @@ describe("الاكتتاب الفني وعروض الأسعار (e2e)", () => {
 
     // ثلاثة عروض هجينة (حقول معيارية + نص حر)
     const q1 = (await request(app.getHttpServer()).post(`/slips/${slip.id}/quotations`).set(auth(underwriter))
-      .send({ insurerName: "التعاونية", sumInsured: 1000000, rate: 0.5, premium: 5000, policyFees: 100, vat: 750, totalPremium: 5850, commissionRate: 12, commissionAmount: 600, deductible: 500, limit: 1000000, generalRemarks: "تشمل الأمومة" }).expect(201)).body;
+      .send({ insurerName: "التعاونية", sumInsured: 1000000, rate: 0.5, premium: 5000, policyFees: 100, vat: 750, totalPremium: 5850, commissionRate: 12, commissionAmount: 600, commissionVat: 90, deductible: 500, limit: 1000000, generalRemarks: "تشمل الأمومة" }).expect(201)).body;
     const q2 = (await request(app.getHttpServer()).post(`/slips/${slip.id}/quotations`).set(auth(underwriter))
       .send({ insurerName: "بوبا", premium: 4500, vat: 675, totalPremium: 5175, deductible: 750, limit: 1000000 }).expect(201)).body;
     await request(app.getHttpServer()).post(`/slips/${slip.id}/quotations`).set(auth(underwriter))
@@ -88,6 +88,8 @@ describe("الاكتتاب الفني وعروض الأسعار (e2e)", () => {
     expect(rowCoop.sumInsured).toBe(1000000);
     expect(rowCoop.policyFees).toBe(100);
     expect(rowCoop.commissionAmount).toBe(600);
+    expect(rowCoop.commissionVat).toBe(90); // 15% من العمولة
+    expect(cmp.columns.map((c: { key: string }) => c.key)).toContain("commissionVat");
 
     // أمر الإسناد على العرض الأرخص
     const sel = (await request(app.getHttpServer()).post(`/slips/${slip.id}/select`).set(auth(underwriter)).send({ quotationId: q2.id }).expect(200)).body;

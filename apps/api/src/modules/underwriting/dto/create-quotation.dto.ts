@@ -17,6 +17,7 @@ export class CreateQuotationDto {
   @IsOptional() @IsNumber() totalPremium?: number; // الإجمالي = صافي + رسوم + ضريبة
   @IsOptional() @IsNumber() commissionRate?: number; // نسبة عمولة الوسيط %
   @IsOptional() @IsNumber() commissionAmount?: number; // مبلغ عمولة الوسيط (Brokerage)
+  @IsOptional() @IsNumber() commissionVat?: number; // ضريبة العمولة (15% دائمًا)
   @IsOptional() @IsNumber() deductible?: number; // مبلغ التحمل
   @IsOptional() @IsNumber() limit?: number; // حد التغطية
   @IsOptional() @IsString() validUntil?: string;

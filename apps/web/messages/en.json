@@ -586,6 +586,7 @@
     "totalPremium": "Total",
     "commissionRate": "Commission %",
     "commissionAmount": "Brokerage",
+    "commissionVat": "Commission VAT",
     "deductible": "Deductible",
     "limit": "Limit",
     "compute": "Auto-compute derived fields",
@@ -605,6 +606,7 @@
       "totalPremium": "Total due from the client = net premium + policy fees + VAT",
       "commissionRate": "Brokerage commission rate on the net premium (broker revenue)",
       "commissionAmount": "Brokerage commission value = net premium × commission rate",
+      "commissionVat": "VAT (15%) on the brokerage commission — broker output VAT, always taxable even for life policies",
       "deductible": "Amount the client bears on each claim before cover applies",
       "limit": "Maximum insurer liability (the policy's cover ceiling)",
       "remarks": "Free-text conditions, exclusions and add-ons — shown in the comparison sheet"
@@ -618,6 +620,7 @@
       "totalPremium": "net + fees + VAT",
       "commissionRate": "% of net",
       "commissionAmount": "broker revenue",
+      "commissionVat": "15% of commission",
       "deductible": "client bears",
       "limit": "cover ceiling"
     }

@@ -116,6 +116,7 @@ export class SlipsService {
           totalPremium: dto.totalPremium ?? null,
           commissionRate: dto.commissionRate ?? null,
           commissionAmount: dto.commissionAmount ?? null,
+          commissionVat: dto.commissionVat ?? null,
           deductible: dto.deductible ?? null,
           limit: dto.limit ?? null,
           validUntil: dto.validUntil ? new Date(dto.validUntil) : null,
@@ -152,6 +153,7 @@ export class SlipsService {
       { key: "vat", labelAr: "الضريبة", labelEn: "VAT" },
       { key: "totalPremium", labelAr: "الإجمالي", labelEn: "Total premium" },
       { key: "commissionAmount", labelAr: "العمولة", labelEn: "Commission" },
+      { key: "commissionVat", labelAr: "ضريبة العمولة", labelEn: "Commission VAT" },
       { key: "deductible", labelAr: "التحمّل", labelEn: "Deductible" },
       { key: "limit", labelAr: "حد التغطية", labelEn: "Limit" },
     ];
@@ -168,6 +170,7 @@ export class SlipsService {
       totalPremium: num(q.totalPremium),
       commissionRate: num(q.commissionRate),
       commissionAmount: num(q.commissionAmount),
+      commissionVat: num(q.commissionVat),
       deductible: num(q.deductible),
       limit: num(q.limit),
       generalRemarks: q.generalRemarks,

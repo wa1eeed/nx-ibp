@@ -572,6 +572,7 @@ model Quotation {
   totalPremium         Decimal?        @db.Decimal(14, 2) // الإجمالي = صافي + رسوم + ضريبة
   commissionRate       Decimal?        @db.Decimal(6, 3) // نسبة عمولة الوسيط %
   commissionAmount     Decimal?        @db.Decimal(14, 2) // مبلغ عمولة الوسيط (Brokerage)
+  commissionVat        Decimal?        @db.Decimal(14, 2) // ضريبة عمولة الوساطة (15% دائمًا — مخرجات الوسيط)
   deductible           Decimal?        @db.Decimal(14, 2) // مبلغ التحمل
   limit                Decimal?        @db.Decimal(16, 2) // حد التغطية
   validUntil           DateTime?

@@ -165,12 +165,14 @@ function AddQuotation({ slipId, onDone, onError }: { slipId: string; onDone: () 
       const vat = premium != null ? +(premium * 0.15).toFixed(2) : n("vat");
       const total = premium != null ? +(premium + fees + (vat ?? 0)).toFixed(2) : n("totalPremium");
       const commission = premium != null && comRate != null ? +((premium * comRate) / 100).toFixed(2) : n("commissionAmount");
+      const commissionVat = commission != null ? +(commission * 0.15).toFixed(2) : n("commissionVat"); // 15% دائمًا على العمولة
       return {
         ...p,
         ...(premium != null ? { premium: String(premium) } : {}),
         ...(vat != null ? { vat: String(vat) } : {}),
         ...(total != null ? { totalPremium: String(total) } : {}),
         ...(commission != null ? { commissionAmount: String(commission) } : {}),
+        ...(commissionVat != null ? { commissionVat: String(commissionVat) } : {}),
       };
     });
   }
@@ -191,6 +193,7 @@ function AddQuotation({ slipId, onDone, onError }: { slipId: string; onDone: () 
           totalPremium: numField("totalPremium"),
           commissionRate: numField("commissionRate"),
           commissionAmount: numField("commissionAmount"),
+          commissionVat: numField("commissionVat"),
           deductible: numField("deductible"),
           limit: numField("limit"),
           generalRemarks: v.generalRemarks || undefined,
@@ -233,6 +236,7 @@ function AddQuotation({ slipId, onDone, onError }: { slipId: string; onDone: () 
         {F("totalPremium", t("underwriting.totalPremium"), { hint: t("underwriting.hint.totalPremium"), sub: t("underwriting.sub.totalPremium") })}
         {F("commissionRate", t("underwriting.commissionRate"), { hint: t("underwriting.hint.commissionRate"), sub: t("underwriting.sub.commissionRate") })}
         {F("commissionAmount", t("underwriting.commissionAmount"), { hint: t("underwriting.hint.commissionAmount"), sub: t("underwriting.sub.commissionAmount") })}
+        {F("commissionVat", t("underwriting.commissionVat"), { hint: t("underwriting.hint.commissionVat"), sub: t("underwriting.sub.commissionVat") })}
         {F("deductible", t("underwriting.deductible"), { hint: t("underwriting.hint.deductible"), sub: t("underwriting.sub.deductible") })}
         {F("limit", t("underwriting.limit"), { hint: t("underwriting.hint.limit"), sub: t("underwriting.sub.limit") })}
       </div>
