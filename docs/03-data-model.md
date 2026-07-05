@@ -347,9 +347,10 @@ erDiagram
 | `status` | `RequestStatus` | افتراضي `DRAFT` |
 | `base` | Json | الحقول الأساسية المعبّأة (محقّقة ضد FormSchema) |
 | `details` | Json? | حقول خاصة بالفرع |
+| `renewedFromPolicyId` | String? | الوثيقة المنتهية التي بُني عليها هذا الطلب (سلسلة التجديد) — يُملأ عند «بدء التجديد» |
 | `createdAt` | DateTime | |
 
-**العلاقات:** `blockRows` (1:N → RequestBlockRow)، `slips` (1:N → Slip). **الفهارس:** `@@index([tenantId])` · `@@index([clientId])`.
+**العلاقات:** `blockRows` (1:N → RequestBlockRow)، `slips` (1:N → Slip). **الفهارس:** `@@index([tenantId])` · `@@index([clientId])` · `@@index([renewedFromPolicyId])`.
 
 ### `enum RequestStatus`
 `DRAFT · QUOTING · AWARDED · UNDER_REVIEW · FINANCE_REVIEW · APPROVED · REJECTED · ISSUED`

@@ -25,7 +25,7 @@
 | [`underwriting.e2e-spec.ts`](../apps/api/test/underwriting.e2e-spec.ts) | 5 | حوكمة الالتزام على الـ Slip (409)، RBAC production (403)، **جدول المقارنة الآلي** (يحدّد الأرخص)، **Firm Order** ⇒ الطلب AWARDED، العزل |
 | [`finance.e2e-spec.ts`](../apps/api/test/finance.e2e-spec.ts) | 3 | إصدار من طلب AWARDED، **اعتماد مالي يولّد قيد JRV مزدوجاً متوازناً** + فاتورة ضريبية، فصل داخل/خارج الميزانية |
 | [`documents.e2e-spec.ts`](../apps/api/test/documents.e2e-spec.ts) | 6 | **روابط موقّتة فقط** (Presigned)، حدّ الرفع كـ entitlement، فحص MIME (رفض التنفيذي)، عزل المسار `tenant_{id}/` |
-| [`operations.e2e-spec.ts`](../apps/api/test/operations.e2e-spec.ts) | 8 | خدمة العملاء (دورة `RQ-`)، **المطالبات** (`CL-` محكومة بـ entitlement)، التجديدات، RBAC والعزل |
+| [`operations.e2e-spec.ts`](../apps/api/test/operations.e2e-spec.ts) | 9 | خدمة العملاء (دورة `RQ-`)، **المطالبات** (`CL-` محكومة بـ entitlement)، التجديدات، **بدء دورة تجديد** (⇒ 201 طلب تأمين DRAFT + منع تكرار 409)، RBAC والعزل |
 | [`verification.e2e-spec.ts`](../apps/api/test/verification.e2e-spec.ts) | 7 | يقين يعبّئ النموذج و**يخصم عملية**، واثق (UBO)، العنوان مجاني، فحص PEP (low/high)، منع RBAC والعزل |
 | [`platform.e2e-spec.ts`](../apps/api/test/platform.e2e-spec.ts) | 8 | دخول السوبر أدمن، **رؤية كل المستأجرين عابرةً للعزل**، رفض المستأجر من `/platform` ورفض المنصّة من مسارات المستأجر (403)، الاستخدام، ضبط entitlement، تعليق/تفعيل |
 | [`portal.e2e-spec.ts`](../apps/api/test/portal.e2e-spec.ts) | 18 | دخول العميل، الملف/الوثائق/المطالبات/كشف الحساب/المستندات، **العزل المزدوج** (عميل مستأجر آخر، موظف ممنوع، عميل ممنوع من مسارات المستأجر، رابط مستند لا يملكه 404)، **الخدمة الذاتية** (تفاصيل وثيقة · تقديم مطالبة/طلب خدمة/تجديد 201 · عزل التقديم/التفاصيل 403/404) |
@@ -37,7 +37,7 @@
 
 **+ ملفات ما بعد الاكتمال:** `security` · `mfa` · `audit-immutable` · `signup` · `billing` · `org` · `storage-quota` · `storage-s3` · `image-compression` · `broker-fields` · `notifications` · `notification-gateway` · `staff-notifications` (توجيه + in-app) · `vat-branch` (E1) · `approval-chain` (E2 + فصل مهام) · `revert` (E4) · `crm` (7: أنابيب/مهام/نشاط/رؤية حسب الدور/لوحة متابعة/**مجدول التذكيرات: مهمة مستحقّة ⇒ تذكير بلا تكرار**/عزل التشغيل) · `detail-360` (نظرة العميل/الموظف + عزل) · `mfa-staff` (7: إعداد/تفعيل TOTP · تحدّي الدخول من خطوتين · إلزام الشركة + منع الإلغاء · **إعادة تعيين إدارية** · عزل صلاحية) · `retention-dlp` (6: إخفاء الهوية/الآيبان حسب الصلاحية · محو PDPL + عدم تكرار · سجلّ الإتلاف · عزل 403 · حدود مدّة الاحتفاظ · تقرير الاستحقاق) · `plan-seats` (4: سوبر أدمن يعدّل حدّ المقاعد · عرض مقاعد الشركة · **إنشاء مستخدم يُرفَض 403 عند الحدّ وينجح بعد رفعه** · عزل نطاق المنصّة).
 
-**الإجمالي: 212 اختباراً (34 ملفاً).**
+**الإجمالي: 213 اختباراً (34 ملفاً).**
 
 ### قاعدة اختبار منفصلة (`ibp_test`)
 
