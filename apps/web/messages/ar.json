@@ -483,6 +483,8 @@
     "compliance": "حالة الالتزام", "verification": "التحقّق الحكومي",
     "addNote": "أضف ملاحظة…", "add": "إضافة", "emptyTab": "لا بيانات في هذا القسم",
     "risk": "المخاطر", "insurer": "المؤمِّن", "premium": "القسط", "status": "الحالة", "amount": "المبلغ", "date": "التاريخ",
+    "total": "الإجمالي", "settled": "المُحصَّل", "outstanding": "المتبقّي", "collected": "المُحصَّل", "creditNotes": "إشعارات دائنة (قسط مُرتجَع)", "debitNotes": "إشعارات المدين",
+    "dn": { "outstanding": "مستحقّ", "partial": "جزئي", "paid": "مسدَّد" },
     "empty": "لا نشاط بعد"
   },
   "staffDetail": {

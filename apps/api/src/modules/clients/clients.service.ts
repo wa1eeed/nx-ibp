@@ -88,7 +88,7 @@ export class ClientsService {
       this.prisma.debitNote.findMany({ where: { clientId: id }, orderBy: { createdAt: "desc" }, select: { id: true, sequenceNo: true, netAmount: true, vatAmount: true, settledAmount: true, createdAt: true } }),
       this.prisma.crmActivity.findMany({ where: { entityType: "client", entityId: id }, orderBy: { createdAt: "desc" }, take: 50 }),
     ]);
-    const creditNotes = await this.prisma.creditNote.findMany({ where: { clientId: id }, select: { netAmount: true, vatAmount: true } });
+    const creditNotes = await this.prisma.creditNote.findMany({ where: { clientId: id }, orderBy: { createdAt: "desc" }, select: { id: true, sequenceNo: true, netAmount: true, vatAmount: true, createdAt: true } });
     const policyIds = policies.map((p) => p.id);
     const documents = await this.prisma.document.findMany({
       where: { OR: [{ entityType: "client", entityId: id }, ...(policyIds.length ? [{ entityId: { in: policyIds } }] : [])] },
@@ -100,9 +100,18 @@ export class ClientsService {
     const collected = debitNotes.reduce((s, d) => s + num(d.settledAmount), 0);
     const credited = creditNotes.reduce((s, c) => s + num(c.netAmount) + num(c.vatAmount), 0);
     const totalDue = charged - collected - credited;
+    const r2 = (n: number) => +n.toFixed(2);
+    // إشعارات المدين مُثراة بالمُحصَّل/المتبقّي والحالة (كي تعكس صفحة العميل التحصيل)
+    const debitNotesEnriched = debitNotes.map((d) => {
+      const gross = r2(num(d.netAmount) + num(d.vatAmount));
+      const settled = r2(num(d.settledAmount));
+      return { id: d.id, sequenceNo: d.sequenceNo, netAmount: d.netAmount, vatAmount: d.vatAmount, total: gross, settled, outstanding: r2(gross - settled), status: settled <= 0 ? "outstanding" : settled >= gross ? "paid" : "partial", createdAt: d.createdAt };
+    });
     return {
-      client, policies, claims, requests, verifications, debitNotes, documents, activities,
-      summary: { policies: policies.length, claims: claims.length, requests: requests.length, documents: documents.length, totalDue: +totalDue.toFixed(2), collected: +collected.toFixed(2) },
+      client, policies, claims, requests, verifications, debitNotes: debitNotesEnriched,
+      creditNotes: creditNotes.map((c) => ({ ...c, total: r2(num(c.netAmount) + num(c.vatAmount)) })),
+      documents, activities,
+      summary: { policies: policies.length, claims: claims.length, requests: requests.length, documents: documents.length, totalDue: r2(totalDue), collected: r2(collected) },
     };
   }
 

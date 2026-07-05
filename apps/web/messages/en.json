@@ -483,6 +483,8 @@
     "compliance": "Compliance", "verification": "Government verification",
     "addNote": "Add a note…", "add": "Add", "emptyTab": "No data in this section",
     "risk": "Risk", "insurer": "Insurer", "premium": "Premium", "status": "Status", "amount": "Amount", "date": "Date",
+    "total": "Total", "settled": "Collected", "outstanding": "Remaining", "collected": "Collected", "creditNotes": "Credit notes (return premium)", "debitNotes": "Debit notes",
+    "dn": { "outstanding": "Outstanding", "partial": "Partial", "paid": "Paid" },
     "empty": "No activity yet"
   },
   "staffDetail": {

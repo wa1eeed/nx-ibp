@@ -15,11 +15,14 @@ interface Overview {
   claims: Array<{ id: string; sequenceNo: string | null; insurerName: string | null; claimedAmount: string | null; status: string; createdAt: string }>;
   requests: Array<{ id: string; sequenceNo: string | null; productLineCode: string | null; status: string; createdAt: string }>;
   verifications: Array<{ id: string; checkType: string; riskLevel: string | null; createdAt: string }>;
-  debitNotes: Array<{ id: string; sequenceNo: string | null; netAmount: string | null; vatAmount: string | null; createdAt: string }>;
+  debitNotes: Array<{ id: string; sequenceNo: string | null; total: number; settled: number; outstanding: number; status: string; createdAt: string }>;
+  creditNotes: Array<{ id: string; sequenceNo: string | null; total: number; createdAt: string }>;
   documents: Array<{ id: string; fileName: string; docType: string; createdAt: string }>;
   activities: Array<{ id: string; type: string; body: string; createdAt: string }>;
-  summary: { policies: number; claims: number; requests: number; documents: number; totalDue: number };
+  summary: { policies: number; claims: number; requests: number; documents: number; totalDue: number; collected: number };
 }
+
+const DN_TONE: Record<string, "warning" | "info" | "success"> = { outstanding: "warning", partial: "info", paid: "success" };
 
 const TABS = ["overview", "policies", "renewals", "claims", "requests", "documents", "statement", "timeline"] as const;
 const fmt = (n: string | null | number) => (n == null ? "—" : Number(n).toLocaleString("en-US"));
@@ -156,7 +159,25 @@ export default function ClientDetailPage() {
         {tab === "claims" ? (ov.claims.length ? table([t("status"), t("insurer"), t("amount"), "#"], ov.claims.map((c2) => row([<Badge key="s" tone={c2.status === "SETTLED" ? "success" : c2.status === "REJECTED" ? "danger" : "info"}>{c2.status}</Badge>, c2.insurerName ?? "—", fmt(c2.claimedAmount), c2.sequenceNo]))) : empty) : null}
         {tab === "requests" ? (ov.requests.length ? table([t("status"), t("date"), "#"], ov.requests.map((r) => row([<Badge key="s" tone="neutral">{r.status}</Badge>, dt(r.createdAt), r.sequenceNo]))) : empty) : null}
         {tab === "documents" ? (ov.documents.length ? table([t("date"), "—"], ov.documents.map((d) => row([dt(d.createdAt), <span key="f" className="inline-flex items-center gap-1.5"><FolderOpen size={13} className="text-subtle" /> {d.fileName}</span>]))) : empty) : null}
-        {tab === "statement" ? (ov.debitNotes.length ? table([t("date"), t("amount"), "#"], ov.debitNotes.map((d) => row([dt(d.createdAt), fmt(Number(d.netAmount ?? 0) + Number(d.vatAmount ?? 0)), d.sequenceNo]))) : empty) : null}
+        {tab === "statement" ? (
+          <div className="space-y-4">
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div className="rounded-lg bg-surface-2 py-2"><div className="text-[11px] text-subtle">{t("total")}</div><div className="text-[14px] font-bold text-ink tnum">{fmt(ov.debitNotes.reduce((s, d) => s + d.total, 0))}</div></div>
+              <div className="rounded-lg bg-surface-2 py-2"><div className="text-[11px] text-subtle">{t("collected")}</div><div className="text-[14px] font-bold text-success tnum">{fmt(ov.summary.collected)}</div></div>
+              <div className="rounded-lg bg-surface-2 py-2"><div className="text-[11px] text-subtle">{t("kpi.due")}</div><div className="text-[14px] font-bold text-warning tnum">{fmt(ov.summary.totalDue)}</div></div>
+            </div>
+            {ov.debitNotes.length ? (
+              <div><p className="mb-1.5 text-[12px] font-semibold text-subtle">{t("debitNotes")}</p>
+                {table([t("date"), "#", t("total"), t("settled"), t("outstanding"), t("status")], ov.debitNotes.map((d) => row([dt(d.createdAt), d.sequenceNo, fmt(d.total), <span key="s" className="text-success">{d.settled ? fmt(d.settled) : "—"}</span>, <span key="o" className={d.outstanding > 0 ? "font-medium text-warning" : "text-subtle"}>{fmt(d.outstanding)}</span>, <Badge key="b" tone={DN_TONE[d.status] ?? "neutral"}>{t(`dn.${d.status}`)}</Badge>])))}
+              </div>
+            ) : empty}
+            {ov.creditNotes.length ? (
+              <div><p className="mb-1.5 text-[12px] font-semibold text-danger">{t("creditNotes")}</p>
+                {table([t("date"), "#", t("amount")], ov.creditNotes.map((c2) => row([dt(c2.createdAt), c2.sequenceNo, <span key="a" className="text-danger">−{fmt(c2.total)}</span>])))}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
 
         {tab === "timeline" ? (
           <div className="space-y-3">
