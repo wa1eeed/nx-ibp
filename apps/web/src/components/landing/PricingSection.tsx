@@ -72,11 +72,11 @@ export function PricingSection() {
         })}
       </div>
 
-      {/* رابط مقارنة الباقات */}
+      {/* رابط مقارنة الباقات — ينزل للجدول أسفل الصفحة */}
       <div className="mt-6 text-center">
-        <Link href="/compare" className="inline-flex items-center gap-1.5 text-[13.5px] font-semibold text-primary hover:underline">
+        <a href="#compare-table" className="inline-flex items-center gap-1.5 text-[13.5px] font-semibold text-primary hover:underline">
           <ArrowLeftRight size={15} /> {t("landing.pricing.compareLink")}
-        </Link>
+        </a>
       </div>
     </section>
   );

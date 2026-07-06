@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
 import { LocaleSwitcher } from "@/components/layout/LocaleSwitcher";
 import { PricingSection } from "@/components/landing/PricingSection";
+import { PlanComparisonTable } from "@/components/landing/PlanComparisonTable";
 
 const FEATURES = [
   { key: "lifecycle", icon: FileText },
@@ -94,6 +95,13 @@ export default function LandingPage() {
 
       {/* الباقات — ديناميكية من الخادم (سعر لكل مستخدم + شهري/سنوي + توفير + تجربة) */}
       <PricingSection />
+
+      {/* مقارنة الباقات — كامل المميزات في الصفحة نفسها (كمرجع التصميم) */}
+      <section id="compare-table" className="mx-auto max-w-6xl px-5 pb-14">
+        <h2 className="mb-2 text-center text-[22px] font-bold tracking-tight text-ink">{t("compare.heading")}</h2>
+        <p className="mx-auto mb-7 max-w-xl text-center text-[13.5px] text-muted">{t("compare.sub")}</p>
+        <PlanComparisonTable />
+      </section>
 
       {/* الامتثال */}
       <section className="border-t border-line bg-card/50">
