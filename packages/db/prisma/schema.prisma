@@ -78,6 +78,7 @@ model Tenant {
   crmActivities      CrmActivity[]
   crmTasks           CrmTask[]
   producers          Producer[]
+  formTemplates      FormTemplate[]
 }
 
 // إعداد إشعار — NULL tenantId = افتراضي المنصة (يديره سوبر أدمن المنصة)؛
@@ -835,6 +836,25 @@ model DebitNote {
 
   @@index([tenantId])
   @@index([tenantId, clientId])
+}
+
+// قالب نموذج ديناميكي قابل لإعادة الاستخدام — بيانات أساسية + كتل معبّأة مسبقًا لخطّ منتج.
+model FormTemplate {
+  id              String   @id @default(cuid())
+  tenantId        String
+  tenant          Tenant   @relation(fields: [tenantId], references: [id])
+  name            String
+  productLineCode String
+  description     String?
+  base            Json // حقول أساسية معبّأة مسبقًا
+  blocks          Json? // صفوف كتل معبّأة مسبقًا (اختياري)
+  usageCount      Int      @default(0)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([tenantId, productLineCode])
 }
 
 // سجلّ المنتِجين (الوسطاء الفرعيون) — من يجلب الأعمال مقابل حصّة من عمولة الوسيط.

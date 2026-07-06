@@ -1071,6 +1071,23 @@ async function main() {
     li++;
   }
 
+  // ---- مكتبة قوالب النماذج: قوالب تعبئة مسبقة تُسرّع الطلبات المتكرّرة ----
+  const tenantsForTpl = isTestDb ? ["demo-tenant"] : ["demo-tenant", GIB_DEF.id];
+  const templateDefs = [
+    { line: "SME", name: "طبي المنشآت — شبكة قياسية", desc: "حدّ سنوي 500 ألف · شبكة قياسية", base: { network: "standard", annualLimit: 500000, currency: "SAR" }, blocks: null as unknown },
+    { line: "MFL", name: "أسطول مركبات — شامل", desc: "تغطية شاملة لأسطول الشركة", base: { currency: "SAR", coverType: "comprehensive" }, blocks: null as unknown },
+    { line: "PAR", name: "ممتلكات — جميع الأخطار", desc: "قالب جميع أخطار الممتلكات", base: { currency: "SAR" }, blocks: null as unknown },
+  ];
+  for (const T2 of tenantsForTpl) {
+    for (let ti = 0; ti < templateDefs.length; ti++) {
+      const td = templateDefs[ti];
+      await prisma.formTemplate.upsert({
+        where: { id: `tpl-${T2}-${td.line}` }, update: { name: td.name, base: td.base },
+        create: { id: `tpl-${T2}-${td.line}`, tenantId: T2, name: td.name, productLineCode: td.line, description: td.desc, base: td.base, blocks: td.blocks === null ? Prisma.JsonNull : (td.blocks as Prisma.InputJsonValue), usageCount: (ti + 1) * 2, isActive: true },
+      });
+    }
+  }
+
   const [nc, np, ncl] = await Promise.all([prisma.client.count(), prisma.policy.count(), prisma.claim.count()]);
   console.log(`✅ تمّ الزرع: ${TENANTS.length} مستأجر + سوبر أدمن + بيانات شبه واقعية واسعة. كلمة مرور التطوير: ${DEV_PASSWORD}`);
   console.log(`   البيانات: ${nc} عميل · ${np} وثيقة · ${ncl} مطالبة + طلبات/عروض/عمولات/تحقّق/مستندات`);

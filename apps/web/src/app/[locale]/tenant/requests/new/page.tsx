@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Search, UserPlus, X, Check, ChevronDown } from "lucide-react";
+import { Search, UserPlus, X, Check, ChevronDown, BookmarkPlus } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/routing";
 import { api, getToken, ApiError } from "@/lib/api";
@@ -25,6 +25,13 @@ export default function NewRequestPage() {
   const [schema, setSchema] = useState<FormSchemaData | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+
+  // مكتبة القوالب: قوالب الخطّ الحالي + التعبئة الأولية + إصدار لإعادة بناء النموذج + نافذة الحفظ
+  const [templates, setTemplates] = useState<Array<{ id: string; name: string; usageCount: number }>>([]);
+  const [initial, setInitial] = useState<FormPayload | null>(null);
+  const [tplVer, setTplVer] = useState(0);
+  const [saveTpl, setSaveTpl] = useState<FormPayload | null>(null);
+  const [tplMsg, setTplMsg] = useState("");
 
   // اختيار العميل بالبحث + الإضافة السريعة
   const [search, setSearch] = useState("");
@@ -55,10 +62,29 @@ export default function NewRequestPage() {
   }, []);
 
   async function pickLine(code: string) {
-    setLineCode(code); setSchema(null); setError("");
+    setLineCode(code); setSchema(null); setError(""); setInitial(null); setTplVer((v) => v + 1); setTemplates([]);
     if (!code) return;
-    const line = await api<LineSchema>(`/catalog/lines/${code}`);
+    const [line, tpls] = await Promise.all([
+      api<LineSchema>(`/catalog/lines/${code}`),
+      api<Array<{ id: string; name: string; usageCount: number }>>(`/form-templates?line=${code}`).catch(() => []),
+    ]);
     setSchema({ sections: line.formSchema.baseFields, blocks: line.formSchema.blocks });
+    setTemplates(tpls);
+  }
+
+  const refreshTemplates = useCallback((code: string) => {
+    if (!code) return;
+    void api<Array<{ id: string; name: string; usageCount: number }>>(`/form-templates?line=${code}`).then(setTemplates).catch(() => undefined);
+  }, []);
+
+  // تطبيق قالب: يجلب بياناته ويعيد بناء النموذج بها
+  async function applyTemplate(id: string) {
+    if (!id) return;
+    try {
+      const tpl = await api<{ base: Record<string, unknown>; blocks: Record<string, Array<Record<string, unknown>>> | null }>(`/form-templates/${id}/apply`, { method: "POST" });
+      setInitial({ base: tpl.base ?? {}, blocks: tpl.blocks ?? {} });
+      setTplVer((v) => v + 1);
+    } catch { /* تجاهل */ }
   }
 
   async function submit(payload: FormPayload) {
@@ -174,13 +200,71 @@ export default function NewRequestPage() {
         <p className="mb-4 rounded-lg bg-warning-soft px-3 py-2 text-[12.5px] font-medium text-warning">{t("requestForm.clientAdded")}</p>
       ) : null}
 
+      {/* مكتبة القوالب — تظهر عند وجود قوالب للخطّ المختار */}
+      {schema && templates.length ? (
+        <div className="mb-4 flex flex-wrap items-center gap-2 rounded-card border border-line bg-card px-4 py-3 shadow-card">
+          <BookmarkPlus size={15} className="text-primary" />
+          <span className="text-[12.5px] font-medium text-muted">{t("requestForm.loadTemplate")}:</span>
+          {templates.map((tp) => (
+            <button key={tp.id} type="button" onClick={() => applyTemplate(tp.id)}
+              className="inline-flex items-center gap-1 rounded-lg border border-line bg-surface-2/50 px-2.5 py-1 text-[12px] font-medium text-ink hover:border-primary hover:bg-primary/5">
+              {tp.name} {tp.usageCount > 0 ? <span className="text-[10px] text-subtle tnum">·{tp.usageCount}</span> : null}
+            </button>
+          ))}
+        </div>
+      ) : null}
+      {tplMsg ? <p className="mb-4 rounded-lg bg-success-soft px-3 py-2 text-[12.5px] font-medium text-success">{tplMsg}</p> : null}
+
       {schema ? (
-        <DynamicForm key={lineCode} schema={schema} submitting={submitting} error={error} onSubmit={submit} />
+        <DynamicForm key={`${lineCode}:${tplVer}`} schema={schema} submitting={submitting} error={error} onSubmit={submit}
+          initialBase={initial?.base} initialBlocks={initial?.blocks} onSaveTemplate={(p) => { setTplMsg(""); setSaveTpl(p); }} />
       ) : (
         <div className="rounded-card border border-dashed border-line bg-card p-8 text-center text-[13px] text-muted shadow-card">{t("requestForm.selectProduct")}</div>
       )}
 
       {quickAdd ? <QuickAddClient locale={locale} onClose={() => setQuickAdd(false)} onAdded={onClientAdded} initialName={search} /> : null}
+      {saveTpl ? <SaveTemplate lineCode={lineCode} payload={saveTpl} onClose={() => setSaveTpl(null)} onSaved={(name) => { setSaveTpl(null); setTplMsg(t("requestForm.tplSaved", { name })); refreshTemplates(lineCode); }} /> : null}
+    </div>
+  );
+}
+
+/** نافذة حفظ النموذج الحالي كقالب قابل لإعادة الاستخدام. */
+function SaveTemplate({ lineCode, payload, onClose, onSaved }: { lineCode: string; payload: FormPayload; onClose: () => void; onSaved: (name: string) => void }) {
+  const t = useTranslations("requestForm");
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState("");
+  const field = "h-9 w-full rounded-lg border border-line bg-card px-3 text-[13px] text-ink focus:outline-none focus:ring-2 focus:ring-primary/30";
+
+  async function save() {
+    setErr("");
+    if (name.trim().length < 2) { setErr(t("tplNameRequired")); return; }
+    setSaving(true);
+    try {
+      await api("/form-templates", { method: "POST", body: JSON.stringify({ name: name.trim(), productLineCode: lineCode, description: description || undefined, base: payload.base, blocks: payload.blocks }) });
+      onSaved(name.trim());
+    } catch (e) { setErr(e instanceof ApiError ? e.message : "خطأ"); setSaving(false); }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onMouseDown={onClose}>
+      <div className="w-full max-w-md rounded-card border border-line bg-card p-5 shadow-card" onMouseDown={(e) => e.stopPropagation()}>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="inline-flex items-center gap-2 text-[15px] font-bold text-ink"><BookmarkPlus size={17} className="text-primary" /> {t("saveTemplateTitle")}</h2>
+          <button onClick={onClose} className="text-subtle hover:text-ink"><X size={18} /></button>
+        </div>
+        <p className="mb-3 text-[12px] text-subtle">{t("saveTemplateHint")}</p>
+        <div className="space-y-3">
+          <label className="block"><span className="mb-1 block text-[11.5px] font-medium text-muted">{t("tplName")}</span><input value={name} onChange={(e) => setName(e.target.value)} className={field} autoFocus /></label>
+          <label className="block"><span className="mb-1 block text-[11.5px] font-medium text-muted">{t("tplDescription")}</span><input value={description} onChange={(e) => setDescription(e.target.value)} className={field} /></label>
+          {err ? <p className="text-[12px] font-medium text-danger">{err}</p> : null}
+          <div className="flex justify-end gap-2 pt-1">
+            <button onClick={onClose} className="h-9 rounded-lg border border-line px-3 text-[12.5px] font-medium text-muted hover:bg-surface-2">{t("cancel")}</button>
+            <button onClick={save} disabled={saving || name.trim().length < 2} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary-strong px-4 text-[12.5px] font-semibold text-primary-fg hover:bg-primary disabled:opacity-60"><Check size={15} /> {saving ? "…" : t("save")}</button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

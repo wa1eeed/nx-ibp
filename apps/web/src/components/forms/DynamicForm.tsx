@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, type FormEvent } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, BookmarkPlus } from "lucide-react";
 import { useLocale } from "next-intl";
 import type { BlockDef, FieldDef, FieldOption, SectionDef } from "@ibp/shared";
 
@@ -21,21 +21,30 @@ export function DynamicForm({
   submitting,
   error,
   onSubmit,
+  initialBase,
+  initialBlocks,
+  onSaveTemplate,
 }: {
   schema: FormSchemaData;
   submitting?: boolean;
   error?: string;
   onSubmit: (payload: FormPayload) => void;
+  initialBase?: Record<string, unknown>;
+  initialBlocks?: Record<string, Array<Record<string, unknown>>>;
+  onSaveTemplate?: (payload: FormPayload) => void;
 }) {
   const locale = useLocale();
   const ar = locale === "ar";
   const label = (x: { labelAr: string; labelEn: string }) => (ar ? x.labelAr : x.labelEn);
   const optLabel = (o: FieldOption) => (ar ? o.labelAr : o.labelEn);
 
-  const [base, setBase] = useState<Record<string, unknown>>({ currency: "SAR" });
-  const [blocks, setBlocks] = useState<Record<string, Array<Record<string, unknown>>>>(() =>
-    Object.fromEntries(schema.blocks.map((b) => [b.key, Array.from({ length: Math.max(1, b.min ?? 0) }, () => ({}))])),
-  );
+  // القيم الأولية (من قالب محفوظ عند وجوده) — يُعاد بناؤها عند تغيّر مفتاح المكوّن.
+  const [base, setBase] = useState<Record<string, unknown>>(() => ({ currency: "SAR", ...(initialBase ?? {}) }));
+  const [blocks, setBlocks] = useState<Record<string, Array<Record<string, unknown>>>>(() => {
+    const def = Object.fromEntries(schema.blocks.map((b) => [b.key, Array.from({ length: Math.max(1, b.min ?? 0) }, () => ({}))]));
+    if (initialBlocks) for (const b of schema.blocks) { const rows = initialBlocks[b.key]; if (Array.isArray(rows) && rows.length) def[b.key] = rows.map((r) => ({ ...r })); }
+    return def;
+  });
 
   const errorList = useMemo(() => (error ? error.split(" | ") : []), [error]);
 
@@ -146,7 +155,16 @@ export function DynamicForm({
         </div>
       ) : null}
 
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
+        {onSaveTemplate ? (
+          <button
+            type="button"
+            onClick={() => onSaveTemplate({ base, blocks })}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-card px-4 py-2.5 text-[13px] font-medium text-muted transition-colors hover:bg-surface-2"
+          >
+            <BookmarkPlus size={15} /> {label({ labelAr: "حفظ كقالب", labelEn: "Save as template" })}
+          </button>
+        ) : null}
         <button
           type="submit"
           disabled={submitting}

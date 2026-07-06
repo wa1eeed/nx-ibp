@@ -43,6 +43,7 @@ import { RevertModule } from "./modules/revert/revert.module";
 import { CrmModule } from "./modules/crm/crm.module";
 import { RemindersModule } from "./modules/reminders/reminders.module";
 import { ProducersModule } from "./modules/producers/producers.module";
+import { FormTemplatesModule } from "./modules/form-templates/form-templates.module";
 
 /**
  * الوحدة الجذرية. معماري وحدات — module لكل مجال (GUIDELINES.md §5).
@@ -92,6 +93,7 @@ import { ProducersModule } from "./modules/producers/producers.module";
     CrmModule,
     RemindersModule,
     ProducersModule,
+    FormTemplatesModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },
