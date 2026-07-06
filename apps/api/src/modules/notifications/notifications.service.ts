@@ -4,6 +4,7 @@ import { AuditService } from "../../common/audit/audit.service";
 import { RequestContextService } from "../../common/request-context/request-context.service";
 import { NOTIFICATION_TYPES, isNotificationKey, notificationDef } from "./notifications.constants";
 import { NOTIFICATION_GATEWAY, type NotificationGateway, type OutboundMessage } from "./notification.gateway";
+import { TenantEmailService } from "../email/tenant-email.service";
 import type { UpdateNotificationDto } from "./dto/notification.dto";
 
 interface EffectiveSetting {
@@ -30,6 +31,7 @@ export class NotificationsService {
     private readonly audit: AuditService,
     private readonly ctx: RequestContextService,
     @Inject(NOTIFICATION_GATEWAY) private readonly gateway: NotificationGateway,
+    private readonly tenantEmail: TenantEmailService,
   ) {}
 
   /** صفوف الإعداد لنطاق معيّن. نُنهي الاستعلام **داخل** السياق الفارغ (PrismaPromise
@@ -69,11 +71,25 @@ export class NotificationsService {
     return (await this.list(tenantId)).find((s) => s.eventKey === eventKey) ?? null;
   }
 
-  /** يرسل قائمة رسائل عبر البوّابة (لا يرمي — يسجّل الإخفاقات فقط). يعيد عدد ما أُرسل. */
-  private async dispatch(jobs: OutboundMessage[]): Promise<number> {
+  /**
+   * يرسل قائمة رسائل (لا يرمي — يسجّل الإخفاقات فقط). يعيد عدد ما أُرسل.
+   * **البريد** يمرّ عبر `sendTenantEmail` (هوية/نطاق المستأجر + fallback مركزي)؛
+   * **SMS** عبر البوّابة القابلة للتبديل (Taqnyat/Sandbox).
+   */
+  private async dispatch(tenantId: string, jobs: OutboundMessage[]): Promise<number> {
     let sent = 0;
     for (const j of jobs) {
-      try { await this.gateway.send(j); sent += 1; } catch (e) { this.logger.warn(`تعذّر إرسال ${j.channel}: ${(e as Error).message}`); }
+      try {
+        if (j.channel === "email") {
+          const r = await this.tenantEmail.sendTenantEmail(tenantId, j.to, j.subject ?? "", j.body);
+          if (r.ok) sent += 1;
+        } else {
+          await this.gateway.send(j);
+          sent += 1;
+        }
+      } catch (e) {
+        this.logger.warn(`تعذّر إرسال ${j.channel}: ${(e as Error).message}`);
+      }
     }
     return sent;
   }
@@ -94,7 +110,7 @@ export class NotificationsService {
     if (to.clientId && (s.channelEmail || s.channelSms)) {
       await this.persistInApp(tenantId, "client", eventKey, subject ?? s.name, body, [{ clientId: to.clientId }]);
     }
-    return { sent: await this.dispatch(jobs), channels: jobs.map((j) => j.channel) };
+    return { sent: await this.dispatch(tenantId, jobs), channels: jobs.map((j) => j.channel) };
   }
 
   /**
@@ -112,7 +128,7 @@ export class NotificationsService {
     const subject = s.subject ? this.render(s.subject, vars) : undefined;
     await this.persistInApp(tenantId, "staff", eventKey, subject ?? s.name, body, recipients.map((r) => ({ userId: r.userId })));
     const jobs: OutboundMessage[] = recipients.map((r) => ({ channel: "email" as const, to: r.email, subject, body }));
-    return { sent: await this.dispatch(jobs), recipients: recipients.length };
+    return { sent: await this.dispatch(tenantId, jobs), recipients: recipients.length };
   }
 
   /**
@@ -127,7 +143,7 @@ export class NotificationsService {
     await this.persistInApp(tenantId, "staff", eventKey, subject ?? s.name, body, [{ userId }]);
     const user = await this.ctx.run({}, async () => await this.prisma.user.findFirst({ where: { id: userId, tenantId, status: "ACTIVE" }, select: { email: true } }));
     if (!user?.email) return { sent: 0 };
-    return { sent: await this.dispatch([{ channel: "email", to: user.email, subject, body }]) };
+    return { sent: await this.dispatch(tenantId, [{ channel: "email", to: user.email, subject, body }]) };
   }
 
   /** يعبّئ متغيّرات النص {var}؛ يترك المتغيّر كما هو إن لم تُمرَّر قيمته. */

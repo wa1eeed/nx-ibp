@@ -2,6 +2,7 @@ import { BadRequestException, Injectable } from "@nestjs/common";
 import { Prisma } from "@ibp/db";
 import { PrismaService } from "../../prisma/prisma.service";
 import { AuditService } from "../../common/audit/audit.service";
+import { StorageService } from "../../common/storage/storage.service";
 import { RBAC_MODULES, type RbacModule, type RbacAction } from "../rbac/rbac.constants";
 
 /** خطوة اعتماد إضافية قابلة للتهيئة ضمن سلسلة اعتماد الوثيقة (E2). */
@@ -14,6 +15,49 @@ export interface ApprovalStep {
 
 const ACTIONS: RbacAction[] = ["read", "create", "update", "delete"];
 const asJson = (v: unknown) => v as Prisma.InputJsonValue;
+
+/** الهوية البصرية للمستأجر (White-label). القيم null ⇒ استخدام هوية NX-IBP الافتراضية. */
+export interface TenantBranding {
+  primary: string; // اللون الأساسي (hex)
+  displayName: string | null; // اسم المنصة المعروض للمستأجر
+  logoUrl: string | null; // رابط الشعار المرفوع
+  faviconUrl: string | null; // رابط أيقونة التبويب (اختياري)
+  logoText: string | null; // شعار نصّي بديل عند غياب الصورة
+}
+
+const DEFAULT_PRIMARY = "#0d9488";
+const HEX_RE = /^#([0-9a-fA-F]{6})$/;
+
+/** يتحقّق أن اللون بصيغة hex سداسية (#RRGGBB)؛ يرمي 400 وإلا. */
+function validateHex(v: string): string {
+  const s = String(v).trim();
+  if (!HEX_RE.test(s)) throw new BadRequestException("اللون يجب أن يكون بصيغة hex سداسية مثل #0d9488");
+  return s.toLowerCase();
+}
+
+/** مسار تخزين شعار المستأجر (ضمن مساره المعزول). */
+function logoKey(tenantId: string): string {
+  return `tenant_${tenantId}/branding/logo`;
+}
+
+/** العنوان العام للـAPI (لبناء رابط الشعار الثابت المضمَّن في البريد). */
+function publicApiBase(): string {
+  return process.env.API_PUBLIC_URL ?? process.env.NEXT_PUBLIC_API_URL ?? `http://localhost:${process.env.API_PORT ?? 4000}`;
+}
+
+/** يطبّع كائن الهوية من التخزين (JSON) بالقيم الافتراضية. */
+function normalizeBranding(raw: unknown): TenantBranding {
+  const b = (raw ?? {}) as Record<string, unknown>;
+  const primary = typeof b.primary === "string" && HEX_RE.test(b.primary) ? b.primary.toLowerCase() : DEFAULT_PRIMARY;
+  const str = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : null);
+  return {
+    primary,
+    displayName: str(b.displayName),
+    logoUrl: str(b.logoUrl),
+    faviconUrl: str(b.faviconUrl),
+    logoText: str(b.logoText) ?? "IBP",
+  };
+}
 
 /** إعداد سلسلة اعتماد الوثيقة: بوّابة الموافقة الفنية + فصل المهام + خطوات إضافية. */
 export interface PolicyApprovalConfig {
@@ -32,6 +76,7 @@ export class ConfigService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly storage: StorageService,
   ) {}
 
   /** إعداد سلسلة اعتماد الوثيقة: بوّابة فنية (افتراضي مفعّلة) + خطوات إضافية. */
@@ -81,6 +126,67 @@ export class ConfigService {
     else await this.prisma.tenantConfig.create({ data: { tenantId, enabledProducts: [], securityPolicy: asJson(policy) } });
     await this.audit.log({ tenantId, userId, action: "update", entity: "security_policy", entityId: "mfa", meta: { mfaRequired } });
     return { ok: true, mfaRequired };
+  }
+
+  // ————————————————— الهوية البصرية (White-label — P0-B) —————————————————
+
+  /** الهوية البصرية للمستأجر (شعار/لون/اسم عرض). القيم الافتراضية = هوية NX-IBP. */
+  async getBranding(tenantId: string): Promise<TenantBranding> {
+    const cfg = await this.prisma.tenantConfig.findFirst({ where: { tenantId }, select: { branding: true } });
+    return normalizeBranding(cfg?.branding);
+  }
+
+  /** يكتب حقول الهوية (merge على الـJSON الخام كي تبقى الحقول الداخلية مثل logoMime). */
+  private async writeBranding(tenantId: string, patch: Record<string, unknown>): Promise<void> {
+    const cfg = await this.prisma.tenantConfig.findFirst({ where: { tenantId }, select: { id: true, branding: true } });
+    const raw = { ...((cfg?.branding ?? {}) as Record<string, unknown>), ...patch };
+    if (cfg) await this.prisma.tenantConfig.update({ where: { tenantId }, data: { branding: asJson(raw) } });
+    else await this.prisma.tenantConfig.create({ data: { tenantId, enabledProducts: [], branding: asJson(raw) } });
+  }
+
+  /** يحفظ الهوية البصرية بعد التحقّق من صحّة اللون (hex) — ينعكس فورًا على الواجهة/البوّابة/البريد/الوثائق. */
+  async setBranding(tenantId: string, userId: string, input: Partial<TenantBranding>): Promise<{ ok: true } & TenantBranding> {
+    const patch: Record<string, unknown> = {};
+    if (input.primary !== undefined) patch.primary = validateHex(input.primary);
+    if (input.displayName !== undefined) patch.displayName = String(input.displayName).trim() || null;
+    if (input.logoUrl !== undefined) patch.logoUrl = String(input.logoUrl).trim() || null;
+    if (input.faviconUrl !== undefined) patch.faviconUrl = String(input.faviconUrl).trim() || null;
+    if (input.logoText !== undefined) patch.logoText = String(input.logoText).trim().slice(0, 24) || null;
+    await this.writeBranding(tenantId, patch);
+    const next = await this.getBranding(tenantId);
+    await this.audit.log({ tenantId, userId, action: "update", entity: "branding", entityId: "tenant", meta: { primary: next.primary, hasLogo: !!next.logoUrl } });
+    return { ok: true, ...next };
+  }
+
+  /**
+   * رفع شعار المستأجر (data URL base64). يُخزَّن خادميًا ويُخدَم عبر رابط عام ثابت
+   * (لأن الشعار يظهر في بريد يصل لعملاء خارجيين — يلزم رابط دائم لا موقّت).
+   */
+  async uploadLogo(tenantId: string, userId: string, dataUrl: string): Promise<{ ok: true } & TenantBranding> {
+    const m = /^data:(image\/(png|jpeg|jpg|webp|gif|svg\+xml));base64,([A-Za-z0-9+/=]+)$/.exec(dataUrl.trim());
+    if (!m) throw new BadRequestException("صيغة الشعار غير مدعومة (PNG/JPG/WebP/GIF/SVG فقط)");
+    const mime = m[1];
+    const data = Buffer.from(m[3], "base64");
+    if (data.length > 512 * 1024) throw new BadRequestException("حجم الشعار يتجاوز 512 كيلوبايت");
+    await this.storage.put(logoKey(tenantId), data);
+    const url = `${publicApiBase()}/branding/${tenantId}/logo?v=${data.length}`;
+    await this.writeBranding(tenantId, { logoUrl: url, logoMime: mime });
+    const next = await this.getBranding(tenantId);
+    await this.audit.log({ tenantId, userId, action: "update", entity: "branding", entityId: "logo", meta: { bytes: data.length, mime } });
+    return { ok: true, ...next };
+  }
+
+  /** بايتات الشعار + نوعه للخدمة العامة (بلا مصادقة — الشعار ليس سرًّا). */
+  async getLogo(tenantId: string): Promise<{ data: Buffer; mime: string } | null> {
+    const cfg = await this.prisma.tenantConfig.findFirst({ where: { tenantId }, select: { branding: true } });
+    const mime = ((cfg?.branding ?? {}) as { logoMime?: string }).logoMime;
+    if (!mime) return null;
+    try {
+      const data = await this.storage.get(logoKey(tenantId));
+      return { data, mime };
+    } catch {
+      return null;
+    }
   }
 
   // ————————————————— سياسة الاحتفاظ (الإتلاف الآمن — PDPL) —————————————————

@@ -2,6 +2,7 @@ import { Body, Controller, Get, Param, Post, UseGuards } from "@nestjs/common";
 import { HttpCode } from "@nestjs/common";
 import { PortalService } from "./portal.service";
 import { PortalGuard } from "./portal.guard";
+import { ConfigService } from "../config/config.service";
 import { Public } from "../auth/public.decorator";
 import { CurrentUser, type AuthUser } from "../auth/current-user.decorator";
 import { PortalLoginDto, SubmitClaimDto, SubmitServiceDto } from "./dto/portal.dto";
@@ -10,7 +11,10 @@ import { PortalLoginDto, SubmitClaimDto, SubmitServiceDto } from "./dto/portal.d
 @UseGuards(PortalGuard)
 @Controller("portal")
 export class PortalController {
-  constructor(private readonly portal: PortalService) {}
+  constructor(
+    private readonly portal: PortalService,
+    private readonly config: ConfigService,
+  ) {}
 
   @Public()
   @Post("login")
@@ -21,6 +25,12 @@ export class PortalController {
   @Get("me")
   me(@CurrentUser() user: AuthUser) {
     return this.portal.me(user.clientId!);
+  }
+
+  /** هوية شركة الوساطة (White-label) لتلوين بوّابة العميل. */
+  @Get("branding")
+  branding(@CurrentUser() user: AuthUser) {
+    return this.config.getBranding(user.tenantId);
   }
 
   @Get("policies")

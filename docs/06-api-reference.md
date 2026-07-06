@@ -581,6 +581,13 @@ curl -X POST http://localhost:4000/staff \
 | GET/PUT | `/config/approval-chain` | settings | البوّابة الفنية + فصل المهام + الخطوات الإضافية |
 | GET/PUT | `/config/security` | settings | سياسة الأمان — إلزام المصادقة الثنائية لكل الموظفين (`{ mfaRequired }`) |
 | GET/PUT | `/config/retention` | settings | مدّة الاحتفاظ بالبيانات (`{ retentionYears }`، 1–30، افتراضي 10 — PDPL/هيئة التأمين) |
+| GET/PUT | `/config/email` | settings | **بريد المستأجر (BYO Resend)**: `{ fromEmail, fromName, apiKey? }` — يُنشئ النطاق ويعيد DNS/الحالة. المفتاح masked لا خام |
+| POST | `/config/email/verify` | settings:update | «تحقّق الآن» — يستعلم حالة النطاق ويرقّي لوضع `tenant` عند التوثيق |
+| GET/PUT | `/config/branding` | settings | **الهوية البصرية** (لون/اسم/شعار نصّي) — لون hex مُتحقَّق |
+| POST | `/config/branding/logo` | settings:update | رفع شعار (data URL ≤512KB) ⇒ رابط عام ثابت |
+| GET | `/branding` | مصادقة (أي دور) | هوية المستأجر الحالي — لتلوين الواجهة |
+| GET | `/branding/:tenantId/logo` | **Public** | خدمة الشعار برابط عام ثابت (يظهر في البريد) |
+| GET | `/portal/branding` | portal | هوية شركة الوساطة لتلوين بوّابة العميل |
 | POST | `/clients/:id/erase` | clients:delete | **حق المحو (PDPL)** — يُخفي كل PII ويُبقي الهيكل المالي + سجلّ إتلاف ثابت (لا يتكرّر ⇒ 409) |
 | GET | `/clients/erasures` · `/clients/retention/due` | clients:read | سجلّ الإتلاف (الممحوّون) · تقرير الاستحقاق للإتلاف (تجاوز مدّة الاحتفاظ). **DLP**: الهوية/الآيبان مُخفاة لغير الالتزام/المالية |
 | GET | `/auth/mfa/status` | مصادقة | حالة MFA للمستخدم + إلزام الشركة |

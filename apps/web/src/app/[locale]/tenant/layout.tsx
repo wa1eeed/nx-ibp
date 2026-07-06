@@ -3,6 +3,7 @@ import { setRequestLocale } from "next-intl/server";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
 import { MobileNavProvider } from "@/components/layout/MobileNavContext";
+import { BrandingProvider } from "@/components/branding/BrandingProvider";
 
 export default function TenantLayout({
   children,
@@ -14,6 +15,7 @@ export default function TenantLayout({
   setRequestLocale(locale);
   return (
     <MobileNavProvider>
+      <BrandingProvider />
       <div className="flex min-h-screen bg-bg text-ink">
         <Sidebar />
         <div className="flex min-w-0 flex-1 flex-col">

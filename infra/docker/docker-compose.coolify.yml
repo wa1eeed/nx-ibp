@@ -71,6 +71,8 @@ services:
       #     STORAGE_DRIVER=s3|r2 + STORAGE_ENDPOINT/REGION/BUCKET/ACCESS_KEY/SECRET_KEY/FORCE_PATH_STYLE ·
       #     JWT_EXPIRES_IN · LOGIN_MAX_FAILURES · LOGIN_LOCK_WINDOW_SEC · PRESIGNED_URL_EXPIRY_SECONDS ·
       #     APP_PUBLIC_URL · API_PUBLIC_URL — انظر .env.example.
+      #     البريد متعدّد المستأجرين (P0-A): NOTIFY_GATEWAY=live + RESEND_API_KEY (المفتاح المركزي للـfallback) +
+      #     EMAIL_FALLBACK_FROM (افتراضي notifications@mail.nx.sa) · الهوية (P0-B): API_PUBLIC_URL لبناء رابط الشعار في البريد.
     volumes:
       - ibp_storage:/data/storage # التخزين المحلي الدائم
     expose:

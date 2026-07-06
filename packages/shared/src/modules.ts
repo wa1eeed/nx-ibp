@@ -24,6 +24,7 @@ export type ModuleKey =
   | "settings.branding"
   | "settings.staff"
   | "settings.integrations"
+  | "settings.email"
   | "settings.notifications"
   | "settings.approvalChain"
   | "settings.security";
@@ -110,9 +111,10 @@ export const TENANT_NAV: NavGroup[] = [
       { key: "settings.billing", href: "/tenant/settings/billing", icon: "CreditCard" },
       { key: "settings.org", href: "/tenant/settings/org", icon: "Network" },
       { key: "settings.company", href: "/tenant/settings/company", icon: "Building2", comingSoon: true },
-      { key: "settings.branding", href: "/tenant/settings/branding", icon: "Palette", comingSoon: true },
+      { key: "settings.branding", href: "/tenant/settings/branding", icon: "Palette" },
       { key: "settings.staff", href: "/tenant/settings/staff", icon: "UserCog" },
       { key: "settings.integrations", href: "/tenant/settings/integrations", icon: "Plug" },
+      { key: "settings.email", href: "/tenant/settings/email", icon: "Mail" },
       { key: "settings.notifications", href: "/tenant/settings/notifications", icon: "Bell" },
       { key: "settings.approvalChain", href: "/tenant/settings/approval-chain", icon: "ListChecks" },
       { key: "settings.security", href: "/tenant/settings/security", icon: "ShieldCheck" },

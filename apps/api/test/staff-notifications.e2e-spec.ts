@@ -9,6 +9,7 @@ import { INestApplication, ValidationPipe } from "@nestjs/common";
 import request from "supertest";
 import { AppModule } from "../src/app.module";
 import { NOTIFICATION_GATEWAY } from "../src/modules/notifications/notification.gateway";
+import { TenantEmailService } from "../src/modules/email/tenant-email.service";
 
 class CapturingGateway {
   name = "capture";
@@ -17,25 +18,35 @@ class CapturingGateway {
     this.sent.push(msg);
     return { ok: true, id: "cap" };
   }
-  clear() { this.sent = []; }
-  emails() { return this.sent.filter((m) => m.channel === "email").map((m) => m.to); }
+}
+
+/** يلتقط رسائل البريد التي تمرّ عبر دالة الإرسال الموحّدة sendTenantEmail (البريد لم يعد يمرّ بالبوّابة). */
+class CapturingEmail {
+  tos: string[] = [];
+  async sendTenantEmail(_tenantId: string, to: string) {
+    this.tos.push(to);
+    return { ok: true, via: "tenant" as const };
+  }
+  clear() { this.tos = []; }
+  emails() { return this.tos; }
 }
 
 describe("توجيه إشعارات الموظفين — الوحدة + المالك (e2e)", () => {
   let app: INestApplication;
   const gateway = new CapturingGateway();
+  const email = new CapturingEmail();
   let gm: string; // مالك حساب gulf (أوّل مستخدم)
   let withClaimsEmail = ""; // موظف له صلاحية المطالبات (يُنشأ في الاختبار الأول)
 
-  const login = async (email: string, password = "Passw0rd!") =>
-    (await request(app.getHttpServer()).post("/auth/login").send({ email, password })).body.accessToken as string;
+  const login = async (emailAddr: string, password = "Passw0rd!") =>
+    (await request(app.getHttpServer()).post("/auth/login").send({ email: emailAddr, password })).body.accessToken as string;
   const auth = (t: string) => ({ Authorization: `Bearer ${t}` });
   const perm = (module: string, canAccess: boolean) => ({ module, canAccess, canCreate: false, canEdit: false, canDelete: false });
   const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
   async function waitForEmails(min: number, ms = 2500) {
     const start = Date.now();
     while (Date.now() - start < ms) {
-      if (gateway.emails().length >= min) return;
+      if (email.emails().length >= min) return;
       await sleep(40);
     }
   }
@@ -44,6 +55,8 @@ describe("توجيه إشعارات الموظفين — الوحدة + الما
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
       .overrideProvider(NOTIFICATION_GATEWAY)
       .useValue(gateway)
+      .overrideProvider(TenantEmailService)
+      .useValue(email)
       .compile();
     app = moduleRef.createNestApplication();
     app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
@@ -69,12 +82,12 @@ describe("توجيه إشعارات الموظفين — الوحدة + الما
     }).expect(201);
 
     await sleep(300); // ترك إشعارات staff_member_added تُصرّف قبل التصفير
-    gateway.clear();
+    email.clear();
 
     await request(app.getHttpServer()).post("/claims").set(auth(gm)).send({ insurerName: "شركة تأمين", claimedAmount: 1000 }).expect(201);
     await waitForEmails(1);
 
-    const emails = gateway.emails();
+    const emails = email.emails();
     expect(emails).toContain("waleed@gulf-demo.sa"); // مالك الحساب دائمًا
     expect(emails).toContain(withClaims);            // صاحب صلاحية المطالبات
     expect(emails).not.toContain(noClaims);          // بلا صلاحية ⇒ لا يصله

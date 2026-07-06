@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { Link, usePathname, useRouter } from "@/i18n/routing";
 import { getPortalToken, clearPortalToken, cpapi } from "@/lib/api";
 import { NotificationBell } from "@/components/layout/NotificationBell";
+import { BrandingProvider } from "@/components/branding/BrandingProvider";
 
 const NAV = [
   { key: "dashboard", href: "/portal/dashboard", icon: LayoutDashboard },
@@ -31,6 +32,7 @@ export function PortalShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-screen bg-bg text-ink">
+      <BrandingProvider scope="portal" />
       <aside className="sticky top-0 hidden h-screen w-[248px] shrink-0 flex-col border-e border-line bg-card lg:flex">
         <div className="flex items-center gap-2.5 px-5 py-4">
           <div className="grid h-9 w-9 place-items-center rounded-xl bg-primary text-white shadow-sm"><ShieldCheck size={20} /></div>

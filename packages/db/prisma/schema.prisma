@@ -47,6 +47,7 @@ model Tenant {
   clientUsers  ClientUser[]
   branches     Branch[]
   config       TenantConfig?
+  emailSettings TenantEmailSettings?
   wallets      Wallet[]
 
   // العلاقات التشغيلية — كلها مرتبطة بـ tenantId كمفتاح أجنبي لفرض العزل والتكامل المرجعي
@@ -393,6 +394,28 @@ model Branch {
   name     String
 
   @@unique([tenantId, code])
+}
+
+// ============================================================
+// إعدادات البريد لكل مستأجر (BYO Resend + fallback مركزي) — P0-A
+// ============================================================
+// كل مستأجر يرسل من إيميله الرسمي عبر حساب Resend خاص (BYO)، مع fallback مركزي
+// يضمن عدم الانقطاع، وترقية تلقائية إلى وضع المستأجر بعد التحقّق من النطاق (DNS).
+model TenantEmailSettings {
+  id                     String   @id @default(cuid())
+  tenantId               String   @unique
+  tenant                 Tenant   @relation(fields: [tenantId], references: [id])
+  fromEmail              String? // العنوان الرسمي للمرسِل (noreply@broker.sa)
+  fromName               String? // اسم العرض (شركة الوساطة)
+  resendApiKeyEncrypted  String? // مفتاح Resend مشفّر at-rest (AES-256-GCM) — لا plaintext أبداً
+  domain                 String? // يُستخرج من fromEmail
+  resendDomainId         String? // معرّف النطاق في Resend
+  verificationStatus     String   @default("unconfigured") // unconfigured | pending | verified | failed
+  dnsRecords             Json? // سجلّات DNS للعرض (SPF/DKIM/DMARC)
+  sendingMode            String   @default("fallback") // fallback | tenant
+  lastVerifiedAt         DateTime?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
 }
 
 // ============================================================

@@ -44,6 +44,7 @@ import { CrmModule } from "./modules/crm/crm.module";
 import { RemindersModule } from "./modules/reminders/reminders.module";
 import { ProducersModule } from "./modules/producers/producers.module";
 import { FormTemplatesModule } from "./modules/form-templates/form-templates.module";
+import { EmailModule } from "./modules/email/email.module";
 
 /**
  * الوحدة الجذرية. معماري وحدات — module لكل مجال (GUIDELINES.md §5).
@@ -94,6 +95,7 @@ import { FormTemplatesModule } from "./modules/form-templates/form-templates.mod
     RemindersModule,
     ProducersModule,
     FormTemplatesModule,
+    EmailModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

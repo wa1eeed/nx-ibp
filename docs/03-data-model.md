@@ -661,6 +661,27 @@ erDiagram
 
 > نموذج **عابر للمستأجرين** (لا `tenantId`) لأنه يُلتقط قبل التزويد — يُعرَض لاحقًا في لوحة المنصّة.
 
+### `TenantEmailSettings` (بريد المستأجر — BYO Resend · P0-A)
+**الغرض:** إعدادات إرسال بريد المستأجر من نطاقه الرسمي عبر حساب Resend خاص، مع fallback مركزي وترقية تلقائية بعد التحقّق.
+
+| الحقل | النوع | ملاحظة |
+|---|---|---|
+| `id` | String | المفتاح |
+| `tenantId` | String **@unique** (FK→Tenant) | مستأجر واحد ↔ إعداد واحد |
+| `fromEmail` / `fromName` | String? | عنوان/اسم المرسِل الرسمي |
+| `resendApiKeyEncrypted` | String? | **مفتاح Resend مشفّر at-rest** (AES-256-GCM) — لا plaintext/عرض/سجلّ |
+| `domain` / `resendDomainId` | String? | النطاق المُستخرج + معرّفه في Resend |
+| `verificationStatus` | String | `unconfigured` \| `pending` \| `verified` \| `failed` |
+| `dnsRecords` | Json? | سجلّات SPF/DKIM/DMARC للعرض |
+| `sendingMode` | String | `fallback` (افتراضي) \| `tenant` (بعد التحقّق) |
+| `lastVerifiedAt` | DateTime? | وقت آخر تحقّق ناجح |
+| `createdAt` / `updatedAt` | DateTime | |
+
+> دالة `sendTenantEmail` تختار المسار: `tenant` المُتحقَّق ⇒ مفتاح المستأجر؛ وإلا **fallback مركزي** بلا انقطاع. مجدول دوري يرقّي `pending`⇒`verified` آليًا.
+
+### الهوية البصرية (White-label · P0-B)
+تُخزَّن في `TenantConfig.branding` (Json): `{ primary (hex), displayName, logoUrl, faviconUrl, logoText, logoMime }`. الشعار المرفوع يُخزَّن تحت مسار المستأجر ويُخدَم عبر رابط عام ثابت `GET /branding/:tenantId/logo` (يظهر في البريد). القيم الافتراضية = هوية NX-IBP.
+
 ---
 
 ## ط. التحقق الحكومي والأرصدة

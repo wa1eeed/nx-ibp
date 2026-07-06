@@ -25,6 +25,7 @@ import {
   ListChecks,
   KanbanSquare,
   Handshake,
+  Mail,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -63,6 +64,7 @@ const ICONS: Record<string, LucideIcon> = {
   ListChecks,
   KanbanSquare,
   Handshake,
+  Mail,
 };
 
 type Perms = Record<string, { access?: boolean }>;
