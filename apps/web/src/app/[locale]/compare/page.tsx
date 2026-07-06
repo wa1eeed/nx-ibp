@@ -16,6 +16,7 @@ const QUOTA_KEYS = new Set(["seats", "storage.quotaMb", "upload.maxFileMb", "tri
 export default function ComparePage() {
   const t = useTranslations();
   const [d, setD] = useState<CompareData | null>(null);
+  const [yearly, setYearly] = useState(false);
   useEffect(() => { void api<CompareData>("/signup/compare").then(setD).catch(() => undefined); }, []);
 
   const labelKey = (k: string) => {
@@ -49,6 +50,15 @@ export default function ComparePage() {
         <h1 className="text-center text-[24px] font-bold tracking-tight text-ink">{t("compare.heading")}</h1>
         <p className="mx-auto mt-2 max-w-xl text-center text-[13.5px] text-muted">{t("compare.sub")}</p>
 
+        {/* مبدّل شهري/سنوي */}
+        <div className="mt-5 flex items-center justify-center gap-3">
+          <span className={`text-[13px] font-medium ${!yearly ? "text-ink" : "text-subtle"}`}>{t("landing.pricing.monthly")}</span>
+          <button onClick={() => setYearly((v) => !v)} role="switch" aria-checked={yearly} className={`relative h-6 w-11 rounded-full transition-colors ${yearly ? "bg-primary-strong" : "border border-line bg-surface-2"}`}>
+            <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${yearly ? "start-[1.375rem]" : "start-0.5"}`} />
+          </button>
+          <span className={`text-[13px] font-medium ${yearly ? "text-ink" : "text-subtle"}`}>{t("landing.pricing.yearly")}</span>
+        </div>
+
         {d ? (
           <div className="mt-8 overflow-x-auto rounded-card border border-line bg-card shadow-card">
             <table className="w-full min-w-[640px] border-collapse">
@@ -60,9 +70,9 @@ export default function ComparePage() {
                     <th key={p.code} className={`border-b px-3 py-4 text-center ${p.code === HIGHLIGHT ? "border-primary bg-primary/5" : "border-line"}`}>
                       {p.code === HIGHLIGHT ? <div className="mb-1 inline-flex items-center gap-1 rounded-full bg-primary-soft px-2 py-0.5 text-[10px] font-semibold text-primary-strong"><Sparkles size={10} /> {t("landing.pricing.popular")}</div> : null}
                       <div className="text-[14px] font-bold text-ink">{t(`landing.pricing.${p.code}.name`)}</div>
-                      <div className="mt-0.5 text-[15px] font-bold text-primary-strong tnum">{fmt(p.pricePerUserMonthly)}</div>
-                      <div className="text-[10.5px] text-subtle">{t("compare.perUserMo")}</div>
-                      <Link href={`/signup?plan=${p.code}`} className={`mt-2 inline-flex items-center justify-center rounded-lg px-3 py-1.5 text-[11.5px] font-semibold ${p.code === HIGHLIGHT ? "bg-primary-strong text-primary-fg hover:bg-primary" : "border border-line text-ink hover:bg-surface-2"}`}>{t("compare.choose")}</Link>
+                      <div className="mt-0.5 text-[15px] font-bold text-primary-strong tnum">{fmt(yearly ? p.pricePerUserYearly : p.pricePerUserMonthly)}</div>
+                      <div className="text-[10.5px] text-subtle">{yearly ? t("compare.perUserYr") : t("compare.perUserMo")}</div>
+                      <Link href={`/signup?plan=${p.code}&cycle=${yearly ? "yearly" : "monthly"}`} className={`mt-2 inline-flex items-center justify-center rounded-lg px-3 py-1.5 text-[11.5px] font-semibold ${p.code === HIGHLIGHT ? "bg-primary-strong text-primary-fg hover:bg-primary" : "border border-line text-ink hover:bg-surface-2"}`}>{t("compare.choose")}</Link>
                     </th>
                   ))}
                 </tr>

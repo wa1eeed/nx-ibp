@@ -390,7 +390,7 @@
   },
   "compare": {
     "title": "Compare plans", "heading": "Compare plans", "sub": "Every plan includes the operational and IA-compliance essentials. Tiers differ on advanced features and quotas.",
-    "backHome": "Home", "perUserMo": "SAR/user/mo", "choose": "Choose", "upTo": "up to", "days": "days", "addon": "Add-on", "footnote": "Any firm can upgrade anytime. Prices are per user.",
+    "backHome": "Home", "perUserMo": "SAR/user/mo", "perUserYr": "SAR/user/yr", "choose": "Choose", "upTo": "up to", "days": "days", "addon": "Add-on", "footnote": "Any firm can upgrade anytime. Prices are per user.",
     "cat": { "core": "Operations & compliance (core)", "growth": "Growth & efficiency", "enterprise": "Enterprise & governance", "limits": "Limits & quotas" }
   },
   "billing": {
@@ -868,7 +868,7 @@
       "saved": "Changes saved",
       "price": "Price/mo",
       "pricing": "Pricing (per user)",
-      "perUserMo": "SAR/user/mo",
+      "perUserMo": "SAR/user/mo", "perUserYr": "SAR/user/yr",
       "perUserYr": "/user/yr",
       "trialDays": "Trial days",
       "savePricing": "Save pricing",
