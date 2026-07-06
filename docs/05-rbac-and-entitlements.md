@@ -81,14 +81,14 @@ async isFeatureEnabled(tenantId: string, featureKey: string): Promise<boolean> {
 
 | الفئة | الأساسية | الاحترافية | المؤسسات |
 |---|---|---|---|
-| **تشغيل + امتثال** (عملاء · اكتتاب · إصدار · تجديدات · خدمة · **مطالبات** · مالية · **التزام/تدقيق** · تقارير تنظيمية · KYC · ZATCA) | ✓ | ✓ | ✓ |
+| **تشغيل + امتثال** (عملاء · اكتتاب · إصدار · تجديدات · خدمة · **مطالبات** · مالية · **التزام/تدقيق** · تقارير تنظيمية · **`feature.verification` KYC/KYB** · **`feature.zatca`** · **`feature.auditImmutable`**) | ✓ | ✓ | ✓ |
 | **النموّ** (`feature.crm` · `feature.producers` · `feature.formTemplates` · `feature.analytics` · `feature.approvalChains` · `feature.org` · `feature.mfaEnforce`) | — | ✓ | ✓ |
 | **الحوكمة** (`module.hr` · `feature.dlp` · `feature.api` · `feature.whiteLabel` · `feature.prioritySupport`) | — | — | ✓ |
-| **الحدود** (مستخدمون · تخزين) | 5 · 1GB | 25 · 10GB | 100 · 100GB |
+| **الحدود** (مستخدمون · تخزين) | **بلا سقف مستخدمين** (تسعير لكل مستخدم) · 1GB | بلا سقف · 10GB | بلا سقف · 100GB |
 
-- **الإنفاذ الفعلي**: المميزات المتقدمة محكومة بمفاتيح `feature.*` عبر نفس الحارس المزدوج (CRM/المنتِجون/القوالب/التحليلات ⇒ مستأجر خارج باقته يُرفَض 403).
+- **الإنفاذ الفعلي**: المميزات محكومة بمفاتيح `feature.*` عبر نفس الحارس المزدوج (CRM/المنتِجون/القوالب/التحليلات + **نماذج التحقق KYC/KYB `feature.verification`** + **الفوترة الإلكترونية `feature.zatca`** ⇒ مستأجر خارج باقته يُرفَض 403). `feature.verification` يحرس `/verification/*`؛ و`feature.zatca` يحرس تهيئة/تشغيل `/zatca/*`.
 - **المقارنة العامة**: `GET /signup/compare` يبني مصفوفة (فئات × باقات × خلايا) من entitlements كل باقة ⇒ صفحة `/compare` + رابط في اللاندينق.
-- **تحكّم السوبر أدمن**: `POST /platform/plans/:code/entitlements` يفعّل/يعطّل أي ميزة/موديول لأي باقة (شرائح في `/admin/plans`) — **ينعكس فورًا في المقارنة ويُفرَض على الحسابات**.
+- **تحكّم السوبر أدمن**: `POST /platform/plans/:code/entitlements` يفعّل/يعطّل أي ميزة/موديول لأي باقة (شرائح في `/admin/plans` — بما فيها الآن التحقّق/ZATCA/السجل الثابت) — **ينعكس فورًا في المقارنة ويُفرَض على الحسابات**.
 
 ---
 

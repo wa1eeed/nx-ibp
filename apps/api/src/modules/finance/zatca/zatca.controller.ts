@@ -18,53 +18,53 @@ export class ZatcaController {
     private readonly queue: ZatcaReportingQueue,
   ) {}
 
-  @Authorize({ module: "settings", action: "read" })
+  @Authorize({ module: "settings", action: "read", entitlement: "feature.zatca" })
   @Get("config")
   config(@CurrentUser("tenantId") t: string) {
     return this.onboarding.getConfig(t);
   }
 
-  @Authorize({ module: "settings", action: "update" })
+  @Authorize({ module: "settings", action: "update", entitlement: "feature.zatca" })
   @Put("config")
   upsert(@CurrentUser("tenantId") t: string, @Body() dto: ZatcaConfigDto) {
     return this.onboarding.upsertConfig(t, dto);
   }
 
-  @Authorize({ module: "settings", action: "update" })
+  @Authorize({ module: "settings", action: "update", entitlement: "feature.zatca" })
   @HttpCode(200)
   @Post("onboard/generate-csr")
   generateCsr(@CurrentUser("tenantId") t: string, @CurrentUser("userId") u: string) {
     return this.onboarding.generateCsr(t, u);
   }
 
-  @Authorize({ module: "settings", action: "update" })
+  @Authorize({ module: "settings", action: "update", entitlement: "feature.zatca" })
   @HttpCode(200)
   @Post("onboard/exchange-otp")
   exchangeOtp(@CurrentUser("tenantId") t: string, @CurrentUser("userId") u: string, @Body() dto: ExchangeOtpDto) {
     return this.onboarding.exchangeOtp(t, u, dto.otp);
   }
 
-  @Authorize({ module: "settings", action: "update" })
+  @Authorize({ module: "settings", action: "update", entitlement: "feature.zatca" })
   @HttpCode(200)
   @Post("onboard/run-compliance")
   runCompliance(@CurrentUser("tenantId") t: string, @CurrentUser("userId") u: string) {
     return this.onboarding.runCompliance(t, u);
   }
 
-  @Authorize({ module: "settings", action: "update" })
+  @Authorize({ module: "settings", action: "update", entitlement: "feature.zatca" })
   @HttpCode(200)
   @Post("onboard/finalize")
   finalize(@CurrentUser("tenantId") t: string, @CurrentUser("userId") u: string) {
     return this.onboarding.finalize(t, u);
   }
 
-  @Authorize({ module: "finance", action: "read", entitlement: "module.finance" })
+  @Authorize({ module: "finance", action: "read", entitlement: "feature.zatca" })
   @Get("billing-documents")
   billingDocs(@CurrentUser("tenantId") t: string) {
     return this.billing.list(t);
   }
 
-  @Authorize({ module: "finance", action: "update", entitlement: "module.finance" })
+  @Authorize({ module: "finance", action: "update", entitlement: "feature.zatca" })
   @HttpCode(200)
   @Post("reporting/drain")
   drain() {

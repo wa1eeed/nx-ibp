@@ -78,4 +78,25 @@ describe("لوحة السوبر أدمن (e2e)", () => {
     expect(s.body.status).toBe("SUSPENDED");
     await request(app.getHttpServer()).post("/platform/tenants/demo-tenant-2/status").set(auth(platform)).send({ status: "ACTIVE" }).expect(200);
   });
+
+  // تعطيل ميزة «الفوترة الإلكترونية (ZATCA)» من الباقة يمنع الوصول فعليًا (توأم UI: شرائح المقارنة/الباقات)
+  it("تعطيل feature.zatca لباقة ⇒ يُفرَض 403 على مستأجرها؛ إعادة التفعيل ⇒ 200 (توأم شريحة السوبر أدمن)", async () => {
+    // مستأجر جديد على الباقة الأساسية (feature.zatca مشمول افتراضيًا)
+    const email = `zt-${Date.now()}@brk.sa`;
+    const signup = await request(app.getHttpServer()).post("/signup").send({ companyName: "شركة اختبار الميزة", adminName: "المالك", adminEmail: email, password: "Owner1Pass" }).expect(201);
+    const tAuth = { Authorization: `Bearer ${signup.body.accessToken}` };
+
+    // مشمول ⇒ يصل لتهيئة ZATCA
+    await request(app.getHttpServer()).get("/zatca/config").set(tAuth).expect(200);
+    try {
+      // السوبر أدمن يعطّل الميزة للباقة ⇒ يُرفَض فورًا (entitlement)
+      await request(app.getHttpServer()).post("/platform/plans/basic/entitlements").set(auth(platform)).send({ featureKey: "feature.zatca", mode: "DISABLED" }).expect(200);
+      await request(app.getHttpServer()).get("/zatca/config").set(tAuth).expect(403);
+    } finally {
+      // استعادة الحالة (مشمول) كي لا تتأثّر بقيّة الاختبارات
+      await request(app.getHttpServer()).post("/platform/plans/basic/entitlements").set(auth(platform)).send({ featureKey: "feature.zatca", mode: "INCLUDED" });
+    }
+    // بعد الاستعادة ⇒ يعود الوصول
+    await request(app.getHttpServer()).get("/zatca/config").set(tAuth).expect(200);
+  });
 });

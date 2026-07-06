@@ -16,10 +16,11 @@ interface Plan {
 const UPLOAD_KEY = "upload.maxFileMb";
 const STORAGE_KEY = "storage.quotaMb";
 
-// المميزات القابلة للضبط لكل باقة (تظهر في صفحة المقارنة فورًا).
+// المميزات القابلة للضبط لكل باقة (تظهر في صفحة المقارنة فورًا) — مطابقة لصفوف /signup/compare.
 const TOGGLE_FEATURES: Array<{ key: string; group: "module" | "feature" }> = [
   ...["clients", "sales", "underwriting", "production", "renewals", "service", "claims", "finance", "compliance", "reports", "hr"].map((m) => ({ key: `module.${m}`, group: "module" as const })),
-  ...["crm", "producers", "formTemplates", "analytics", "approvalChains", "org", "mfaEnforce", "dlp", "api", "whiteLabel", "prioritySupport"].map((f) => ({ key: `feature.${f}`, group: "feature" as const })),
+  // الجوهر التنظيمي (نماذج التحقق KYC/KYB · الفوترة الإلكترونية ZATCA · السجل الثابت) — قابلة للضبط كبقية الميزات
+  ...["verification", "zatca", "auditImmutable", "crm", "producers", "formTemplates", "analytics", "approvalChains", "org", "mfaEnforce", "dlp", "api", "whiteLabel", "prioritySupport"].map((f) => ({ key: `feature.${f}`, group: "feature" as const })),
 ];
 // دورة أوضاع الميزة (يدوّرها السوبر أدمن بالنقر): مشمول ⇒ إضافة ⇒ حسب الاستخدام ⇒ معطّل.
 const MODE_CYCLE = ["INCLUDED", "ADDON", "METERED", "DISABLED"];
