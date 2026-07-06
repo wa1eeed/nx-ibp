@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Building2, Sparkles, Check, ArrowLeft, ArrowRight, Users, ShieldCheck } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -14,7 +14,7 @@ interface PublicPlan {
 
 const onlyDigits = (s: string, max: number) => s.replace(/\D/g, "").slice(0, max);
 
-export default function SignupPage() {
+function SignupWizard() {
   const t = useTranslations("signup");
   const tg = useTranslations();
   const router = useRouter();
@@ -215,5 +215,14 @@ export default function SignupPage() {
         <p className="mt-4 text-center text-[12px] text-subtle">{t("haveAccount")} <Link href="/login" className="font-semibold text-primary hover:underline">{t("loginLink")}</Link></p>
       </div>
     </div>
+  );
+}
+
+// useSearchParams يتطلّب حدّ Suspense في بناء الإنتاج (Next 14).
+export default function SignupPage() {
+  return (
+    <Suspense fallback={<div className="grid min-h-screen place-items-center bg-bg text-[13px] text-subtle">…</div>}>
+      <SignupWizard />
+    </Suspense>
   );
 }
