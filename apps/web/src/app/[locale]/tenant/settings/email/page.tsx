@@ -69,10 +69,14 @@ export default function TenantEmailPage() {
       {error ? <p className="rounded-lg bg-danger/10 px-3 py-2 text-[12.5px] font-medium text-danger">{error}</p> : null}
       {notice ? <p className="rounded-lg bg-success-soft px-3 py-2 text-[12.5px] font-medium text-success">{notice}</p> : null}
 
-      {/* شريط وضع fallback */}
+      {/* شريط وضع fallback: نطاق قيد التحقّق (مع مفتاح) أو وضع الردود فقط (بلا مفتاح) */}
       {s && inFallback && s.hasApiKey ? (
         <p className="flex items-start gap-2 rounded-lg bg-warning-soft px-3 py-2.5 text-[12.5px] font-medium text-warning">
           <Clock size={16} className="mt-0.5 shrink-0" /> {t("fallbackBanner", { from: s.fallbackFrom })}
+        </p>
+      ) : s && inFallback && s.fromEmail ? (
+        <p className="flex items-start gap-2 rounded-lg bg-info-soft px-3 py-2.5 text-[12.5px] font-medium text-info">
+          <ShieldCheck size={16} className="mt-0.5 shrink-0" /> {t("replyOnlyBanner", { from: s.fallbackFrom, reply: s.fromEmail })}
         </p>
       ) : null}
 

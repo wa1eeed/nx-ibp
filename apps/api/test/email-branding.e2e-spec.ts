@@ -107,10 +107,18 @@ describe("البريد + الهوية البصرية (e2e)", () => {
     expect(Array.isArray(e.dnsRecords) && e.dnsRecords.length).toBeGreaterThan(0);
   });
 
-  it("بريد غير صحيح ⇒ 400؛ وبلا مفتاح لأول مرّة ⇒ 400", async () => {
+  it("بريد غير صحيح ⇒ 400", async () => {
     const { token } = await newOwner();
     await request(srv()).put("/config/email").set(auth(token)).send({ fromEmail: "not-an-email", fromName: "x", apiKey: "re_k" }).expect(400);
-    await request(srv()).put("/config/email").set(auth(token)).send({ fromEmail: "a@b.sa", fromName: "x" }).expect(400);
+  });
+
+  it("وضع الردود فقط: حفظ بلا مفتاح Resend ⇒ 200 (إرسال مركزي + Reply-To بريد الشركة)", async () => {
+    const { token } = await newOwner();
+    const e = (await request(srv()).put("/config/email").set(auth(token)).send({ fromEmail: "office@small-broker.sa", fromName: "مكتب صغير" }).expect(200)).body;
+    expect(e.fromEmail).toBe("office@small-broker.sa");
+    expect(e.hasApiKey).toBe(false); // بلا مفتاح — يبقى الإرسال مركزيًّا
+    expect(e.sendingMode).toBe("fallback");
+    expect(e.verificationStatus).toBe("unconfigured");
   });
 
   it("تحقّق الآن ⇒ الترقية التلقائية لوضع tenant (Sandbox)", async () => {

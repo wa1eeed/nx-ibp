@@ -66,6 +66,14 @@ export class TenantEmailService {
     return this.ctx.run({}, async () => await this.prisma.tenantEmailSettings.findFirst({ where: { tenantId } }));
   }
 
+  /** بريد مالك الحساب (أوّل مستخدم نشط) — يُستخدم كـ Reply-To احتياطي حين لا بريد رسمي مضبوط. */
+  private async ownerEmail(tenantId: string): Promise<string | null> {
+    const owner = await this.ctx.run({}, async () =>
+      await this.prisma.user.findFirst({ where: { tenantId, status: "ACTIVE" }, orderBy: { createdAt: "asc" }, select: { email: true } }),
+    );
+    return owner?.email ?? null;
+  }
+
   /** إعدادات البريد للعرض في الواجهة — بلا مفتاح خام (masked فقط). */
   async get(tenantId: string): Promise<EmailSettingsView> {
     const r = await this.row(tenantId);
@@ -99,7 +107,28 @@ export class TenantEmailService {
     // المفتاح: الجديد إن أُرسِل، وإلا نُبقي المخزَّن (تعديل الاسم/الإيميل دون إعادة إدخال المفتاح)
     let apiKey = dto.apiKey?.trim();
     if (!apiKey && existing?.resendApiKeyEncrypted) apiKey = this.vault.decrypt(existing.resendApiKeyEncrypted);
-    if (!apiKey) throw new BadRequestException("مفتاح Resend مطلوب");
+
+    // وضع الهوية فقط (بلا مفتاح Resend): يرسل عبر المركزي لكن **Reply-To = بريد الشركة** —
+    // فتصل الردود للشركة دون حاجة لضبط Resend. لا نطاق ولا تحقّق.
+    if (!apiKey) {
+      const data = {
+        fromEmail,
+        fromName,
+        verificationStatus: "unconfigured",
+        sendingMode: "fallback",
+        resendApiKeyEncrypted: null,
+        resendDomainId: null,
+        dnsRecords: asJson([]),
+        lastVerifiedAt: null,
+      };
+      await this.ctx.run({}, async () => {
+        if (existing) await this.prisma.tenantEmailSettings.update({ where: { tenantId }, data });
+        else await this.prisma.tenantEmailSettings.create({ data: { tenantId, ...data } });
+      });
+      await this.audit.log({ tenantId, userId, action: "update", entity: "email_settings", entityId: domain, meta: { mode: "reply-only" } });
+      return this.get(tenantId);
+    }
+
     if (!apiKey.startsWith("re_")) throw new BadRequestException("مفتاح Resend يجب أن يبدأ بـ re_");
 
     // أنشئ/اعثر على النطاق في حساب المستأجر عبر مفتاحه
@@ -232,7 +261,9 @@ export class TenantEmailService {
     }
     const displayName = r?.fromName || branding.displayName || branding.logoText || "IBP";
     const from = `${sanitizeName(displayName)} <${this.fallbackFrom()}>`;
-    const res = await this.resend.sendEmail(central, { from, to, subject, html, text: bodyText, replyTo: r?.fromEmail ?? undefined });
+    // Reply-To دائمًا مضبوط كي تصل الردود للشركة لا للمنصّة: بريد الشركة ← وإلا بريد مالك الحساب
+    const replyTo = r?.fromEmail ?? (await this.ownerEmail(tenantId));
+    const res = await this.resend.sendEmail(central, { from, to, subject, html, text: bodyText, replyTo: replyTo ?? undefined });
     if (res.ok) {
       this.logger.log(`بريد عبر fallback → ${to}`);
       return { ok: true, via: "fallback", id: res.data?.id };
