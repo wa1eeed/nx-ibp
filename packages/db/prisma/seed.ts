@@ -127,9 +127,9 @@ const TENANTS: TenantDef[] = [
 async function seedPlans() {
   // التسعير لكل مستخدم (per-user)؛ السنوي = 10× الشهري (شهران مجانًا ≈ توفير 17%). trialDays قابل للضبط من السوبر أدمن.
   const plans: Array<Prisma.PlanCreateInput> = [
-    { code: "basic", name: "الأساسية", seatLimit: 5, priceMonthly: 79, priceYearly: 790, trialDays: 14 },
-    { code: "premium", name: "الاحترافية", seatLimit: 25, priceMonthly: 149, priceYearly: 1490, trialDays: 14 },
-    { code: "enterprise", name: "المؤسسات", seatLimit: 100, priceMonthly: 249, priceYearly: 2490, trialDays: 30 },
+    { code: "basic", name: "الأساسية", seatLimit: 5, priceMonthly: 79, priceYearly: 790, trialDays: 14, slaResponseHours: 24 },
+    { code: "premium", name: "الاحترافية", seatLimit: 25, priceMonthly: 149, priceYearly: 1490, trialDays: 14, slaResponseHours: 4 },
+    { code: "enterprise", name: "المؤسسات", seatLimit: 100, priceMonthly: 249, priceYearly: 2490, trialDays: 30, slaResponseHours: 2 },
   ];
 
   for (const p of plans) {

@@ -414,6 +414,7 @@
     "daysShort": "d",
     "seatCount": "Number of users",
     "perUserNote": "add any number — priced per user",
+    "grow": { "title": "Pay as you grow", "sub": "Start small and scale when you need to — never pay for seats you don't use.", "badge": "Flexible to your team size", "fair": "Transparent breakdown: per-user price × number of users — no hidden fees." },
     "upTo": "up to",
     "onboarding": "Company details",
     "unifiedNumber": "Unified national number",
@@ -448,11 +449,11 @@
     "verification": "KYC / KYB verification forms", "zatca": "E-invoicing (ZATCA)", "auditImmutable": "Immutable audit log",
     "crm": "CRM pipeline", "producers": "Sub-brokers registry", "formTemplates": "Form templates library", "analytics": "Advanced analytics", "approvalChains": "Approval chains", "org": "Org & departments", "mfaEnforce": "Enforced MFA",
     "dlp": "Data governance (DLP + retention)", "api": "API access", "whiteLabel": "White-label branding", "prioritySupport": "Priority support",
-    "seats": "Number of users", "storage": "Storage", "upload": "Upload limit", "trial": "Free trial"
+    "seats": "Number of users", "storage": "Storage", "upload": "Upload limit", "trial": "Free trial", "sla": "Support response (SLA)"
   },
   "compare": {
     "title": "Compare plans", "heading": "Compare plans", "sub": "Every plan includes the operational and IA-compliance essentials. Tiers differ on advanced features and quotas.",
-    "backHome": "Home", "featuresCol": "Features", "billedMonthly": "Billed monthly", "billedYearly": "Billed yearly", "trialShort": "{days}d free", "perUserMo": "SAR/user/mo", "perUserYr": "SAR/user/yr", "choose": "Choose", "upTo": "up to", "days": "days", "addon": "Add-on", "included": "Included", "metered": "Metered", "footnote": "Any firm can upgrade anytime. Prices are per user.",
+    "backHome": "Home", "featuresCol": "Features", "billedMonthly": "Billed monthly", "billedYearly": "Billed yearly", "trialShort": "{days}d free", "perUserMo": "SAR/user/mo", "perUserYr": "SAR/user/yr", "choose": "Choose", "upTo": "up to", "days": "days", "addon": "Add-on", "included": "Included", "metered": "Metered", "slaBusinessDay": "within 1 business day", "slaDays": "within {n} business days", "slaHours": "within {n} hours", "footnote": "Any firm can upgrade anytime. Prices are per user.",
     "cat": { "core": "Operations & compliance (core)", "growth": "Growth & efficiency", "enterprise": "Enterprise & governance", "limits": "Limits & quotas" }
   },
   "billing": {
@@ -933,6 +934,7 @@
       "perUserMo": "SAR/user/mo", "perUserYr": "SAR/user/yr",
       "perUserYr": "/user/yr",
       "trialDays": "Trial days",
+      "slaHours": "Support SLA (hrs)",
       "savePricing": "Save pricing",
       "perUserModel": "Per-user pricing (no user cap)",
       "mode": { "INCLUDED": "Included", "ADDON": "Add-on (paid)", "METERED": "Metered", "DISABLED": "Disabled" },

@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Building2, Sparkles, Check, ArrowLeft, ArrowRight, Users, ShieldCheck } from "lucide-react";
+import { Building2, Sparkles, Check, ArrowLeft, ArrowRight, Users, ShieldCheck, TrendingUp } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/routing";
 import { api, setToken, ApiError } from "@/lib/api";
@@ -133,6 +133,16 @@ function SignupWizard() {
               </div>
             </div>
 
+            {/* تأطير «ادفع بقدر نموّك» — عرض تسويقي فقق دون تغيير منطق التسعير */}
+            <div className="rounded-lg border border-primary/20 bg-primary-soft/60 p-3">
+              <div className="flex items-center gap-2">
+                <TrendingUp size={16} className="text-primary-strong" />
+                <span className="text-[13px] font-bold text-primary-strong">{t("grow.title")}</span>
+                <span className="ms-auto rounded-full bg-white/70 px-2 py-0.5 text-[10px] font-semibold text-primary-strong">{t("grow.badge")}</span>
+              </div>
+              <p className="mt-1 text-[11.5px] text-muted">{t("grow.sub")}</p>
+            </div>
+
             {/* عدد المستخدمين */}
             <label className="block">
               <span className={label}><Users size={12} className="inline" /> {t("seatCount")} <span className="text-subtle">({t("perUserNote")})</span></span>
@@ -200,6 +210,7 @@ function SignupWizard() {
                   <span className="text-[26px] font-bold text-ink tnum">{fmt(total)} <span className="text-[13px] font-normal text-subtle">{tg("common.sar")} {yearly ? t("perYr") : t("perMo")}</span></span>
                 </div>
               )}
+              <p className="mt-2 border-t border-line/70 pt-2 text-[11px] text-subtle">{t("grow.fair")}</p>
             </div>
 
             <div className="flex items-center gap-2 rounded-lg bg-success-soft px-3 py-2 text-[11.5px] text-success"><ShieldCheck size={14} /> {t("noCard")}</div>

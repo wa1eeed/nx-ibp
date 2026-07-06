@@ -10,7 +10,7 @@ interface ComparePlan { code: string; name: string; pricePerUserMonthly: number;
 interface CompareData { categories: Array<{ category: string; features: string[] }>; plans: ComparePlan[] }
 
 const HIGHLIGHT = "premium";
-const QUOTA_KEYS = new Set(["seats", "storage.quotaMb", "upload.maxFileMb", "trialDays"]);
+const QUOTA_KEYS = new Set(["seats", "storage.quotaMb", "upload.maxFileMb", "trialDays", "sla"]);
 
 /** جدول مقارنة الباقات القابل لإعادة الاستخدام (اللاندينق + صفحة /compare). */
 export function PlanComparisonTable() {
@@ -24,14 +24,17 @@ export function PlanComparisonTable() {
     if (k === "storage.quotaMb") return "planFeature.storage";
     if (k === "upload.maxFileMb") return "planFeature.upload";
     if (k === "trialDays") return "planFeature.trial";
+    if (k === "sla") return "planFeature.sla";
     return `planFeature.${k.replace(/^(module|feature)\./, "")}`;
   };
   const fmt = (n: number) => n.toLocaleString("en-US");
+  const slaText = (h: number) => (h === 24 ? t("compare.slaBusinessDay") : h >= 24 ? t("compare.slaDays", { n: Math.round(h / 24) }) : t("compare.slaHours", { n: h }));
 
   function cell(key: string, val: string | number) {
     if (key === "storage.quotaMb") return <span className="text-[12.5px] font-medium text-ink tnum">{val} GB</span>;
     if (key === "upload.maxFileMb") return <span className="text-[12.5px] font-medium text-ink tnum">{val} MB</span>;
     if (key === "trialDays") return Number(val) > 0 ? <span className="text-[12.5px] font-medium text-success tnum">{val} {t("compare.days")}</span> : <Minus size={15} className="mx-auto text-subtle/50" />;
+    if (key === "sla") return Number(val) > 0 ? <span className="text-[12.5px] font-medium text-ink">{slaText(Number(val))}</span> : <Minus size={15} className="mx-auto text-subtle/50" />;
     // قيم وصفية غنية حسب وضع الميزة (يضبطه السوبر أدمن)
     if (val === "INCLUDED") return <span className="inline-flex items-center gap-1 text-[12px] font-semibold text-success"><Check size={14} /> {t("compare.included")}</span>;
     if (val === "ADDON") return <span className="rounded-full bg-warning-soft px-2 py-0.5 text-[10.5px] font-semibold text-warning">{t("compare.addon")}</span>;

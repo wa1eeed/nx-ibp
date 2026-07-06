@@ -66,9 +66,18 @@ export class NotificationsService {
     return { ok: true };
   }
 
-  /** الإعداد الفعّال لنوع (للإرسال). */
-  private async resolve(tenantId: string, eventKey: string) {
-    return (await this.list(tenantId)).find((s) => s.eventKey === eventKey) ?? null;
+  /**
+   * الإعداد الفعّال لنوع (للإرسال). عند `locale=en` والنصّ **افتراضي** (غير مخصّص من الشركة)
+   * يُختار النصّ الإنجليزي من التعريف — ثنائية اللغة لكل حدث. التخصيصات تبقى كما كتبها المستأجر.
+   */
+  private async resolve(tenantId: string, eventKey: string, locale: "ar" | "en" = "ar") {
+    const s = (await this.list(tenantId)).find((x) => x.eventKey === eventKey) ?? null;
+    if (!s) return null;
+    if (locale === "en" && s.source === "default") {
+      const def = notificationDef(eventKey);
+      if (def?.bodyEn) return { ...s, subject: def.subjectEn ?? s.subject, body: def.bodyEn };
+    }
+    return s;
   }
 
   /**
@@ -76,12 +85,12 @@ export class NotificationsService {
    * **البريد** يمرّ عبر `sendTenantEmail` (هوية/نطاق المستأجر + fallback مركزي)؛
    * **SMS** عبر البوّابة القابلة للتبديل (Taqnyat/Sandbox).
    */
-  private async dispatch(tenantId: string, jobs: OutboundMessage[]): Promise<number> {
+  private async dispatch(tenantId: string, jobs: OutboundMessage[], locale: "ar" | "en" = "ar"): Promise<number> {
     let sent = 0;
     for (const j of jobs) {
       try {
         if (j.channel === "email") {
-          const r = await this.tenantEmail.sendTenantEmail(tenantId, j.to, j.subject ?? "", j.body);
+          const r = await this.tenantEmail.sendTenantEmail(tenantId, j.to, j.subject ?? "", j.body, locale);
           if (r.ok) sent += 1;
         } else {
           await this.gateway.send(j);
@@ -98,8 +107,8 @@ export class NotificationsService {
    * إرسال إشعار **لعميل** — يحترم تفعيل القناة، يعبّئ المتغيّرات، يرسل عبر البوّابة (Email/SMS)
    * **ويسجّل نسخة داخل المنصة (in-app)** للعميل ليراها في بوّابته. fire-and-forget عادةً.
    */
-  async notify(tenantId: string, eventKey: string, to: { email?: string; phone?: string; clientId?: string }, vars: Record<string, string> = {}) {
-    const s = await this.resolve(tenantId, eventKey);
+  async notify(tenantId: string, eventKey: string, to: { email?: string; phone?: string; clientId?: string }, vars: Record<string, string> = {}, locale: "ar" | "en" = "ar") {
+    const s = await this.resolve(tenantId, eventKey, locale);
     if (!s) return { sent: 0 };
     const body = this.render(s.body, vars);
     const subject = s.subject ? this.render(s.subject, vars) : undefined;
@@ -110,7 +119,7 @@ export class NotificationsService {
     if (to.clientId && (s.channelEmail || s.channelSms)) {
       await this.persistInApp(tenantId, "client", eventKey, subject ?? s.name, body, [{ clientId: to.clientId }]);
     }
-    return { sent: await this.dispatch(tenantId, jobs), channels: jobs.map((j) => j.channel) };
+    return { sent: await this.dispatch(tenantId, jobs, locale), channels: jobs.map((j) => j.channel) };
   }
 
   /**

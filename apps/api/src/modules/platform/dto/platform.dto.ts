@@ -21,6 +21,7 @@ export class UpdatePlanDto {
   @IsOptional() @IsNumber() @Min(0) priceMonthly?: number; // لكل مستخدم/شهر
   @IsOptional() @IsNumber() @Min(0) priceYearly?: number; // لكل مستخدم/سنة
   @IsOptional() @IsInt() @Min(0) @Max(365) trialDays?: number; // مدة التجربة المجانية (0 = بلا)
+  @IsOptional() @IsInt() @Min(0) @Max(720) slaResponseHours?: number; // زمن استجابة الدعم (ساعات؛ 0 = بلا تعهّد)
 }
 
 export class UpdateEntitlementDto {

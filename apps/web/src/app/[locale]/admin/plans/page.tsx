@@ -9,7 +9,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 
 interface Entitlement { featureKey: string; mode: string; numericValue: number | null; unitFee: number | null }
 interface Plan {
-  id: string; code: string; name: string; seatLimit: number; priceMonthly: number; priceYearly: number; trialDays: number;
+  id: string; code: string; name: string; seatLimit: number; priceMonthly: number; priceYearly: number; trialDays: number; slaResponseHours: number | null;
   entitlements: Entitlement[]; _count: { subscriptions: number };
 }
 
@@ -39,6 +39,7 @@ export default function AdminPlansPage() {
   const [priceM, setPriceM] = useState<Record<string, string>>({});       // السعر/مستخدم/شهر
   const [priceY, setPriceY] = useState<Record<string, string>>({});       // السعر/مستخدم/سنة
   const [trial, setTrial] = useState<Record<string, string>>({});         // أيام التجربة
+  const [sla, setSla] = useState<Record<string, string>>({});             // زمن استجابة الدعم (ساعات)
   const [saved, setSaved] = useState("");   // "<code>:<featureKey>"
   const [error, setError] = useState("");
 
@@ -51,16 +52,17 @@ export default function AdminPlansPage() {
     setPriceM(Object.fromEntries(data.map((p) => [p.code, String(p.priceMonthly)])));
     setPriceY(Object.fromEntries(data.map((p) => [p.code, String(p.priceYearly)])));
     setTrial(Object.fromEntries(data.map((p) => [p.code, String(p.trialDays ?? 0)])));
+    setSla(Object.fromEntries(data.map((p) => [p.code, String(p.slaResponseHours ?? 0)])));
   }, []);
   useEffect(() => { void load().catch(() => undefined); }, [load]);
 
-  // حفظ التسعير (سعر/مستخدم شهري وسنوي + أيام التجربة) عبر PUT /platform/plans/:code
+  // حفظ التسعير (سعر/مستخدم شهري وسنوي + أيام التجربة + زمن استجابة الدعم) عبر PUT /platform/plans/:code
   async function savePricing(code: string) {
     setError(""); setSaved("");
-    const m = Number(priceM[code]), y = Number(priceY[code]), tr = Math.round(Number(trial[code]));
-    if (!Number.isFinite(m) || m < 0 || !Number.isFinite(y) || y < 0 || !Number.isFinite(tr) || tr < 0) { setError(t("admin.login.error")); return; }
+    const m = Number(priceM[code]), y = Number(priceY[code]), tr = Math.round(Number(trial[code])), sh = Math.round(Number(sla[code]));
+    if (!Number.isFinite(m) || m < 0 || !Number.isFinite(y) || y < 0 || !Number.isFinite(tr) || tr < 0 || !Number.isFinite(sh) || sh < 0) { setError(t("admin.login.error")); return; }
     try {
-      await papi(`/platform/plans/${code}`, { method: "PUT", body: JSON.stringify({ priceMonthly: m, priceYearly: y, trialDays: tr }) });
+      await papi(`/platform/plans/${code}`, { method: "PUT", body: JSON.stringify({ priceMonthly: m, priceYearly: y, trialDays: tr, slaResponseHours: sh }) });
       setSaved(`${code}:pricing`);
       await load();
     } catch (e) { setError(e instanceof ApiError ? e.message : "خطأ"); }
@@ -137,10 +139,11 @@ export default function AdminPlansPage() {
                 {/* التسعير: لكل مستخدم شهري/سنوي + التجربة المجانية */}
                 <div>
                   <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-subtle">{t("admin.plans.pricing")}</label>
-                  <div className="grid grid-cols-3 gap-1.5">
+                  <div className="grid grid-cols-2 gap-1.5">
                     <label className="block"><span className="mb-0.5 block text-[10px] text-subtle">{t("admin.plans.perUserMo")}</span><input type="number" min={0} value={priceM[p.code] ?? ""} onChange={(e) => setPriceM((d) => ({ ...d, [p.code]: e.target.value }))} className="h-9 w-full rounded-lg border border-line bg-card px-2 text-[13px] tnum" /></label>
                     <label className="block"><span className="mb-0.5 block text-[10px] text-subtle">{t("admin.plans.perUserYr")}</span><input type="number" min={0} value={priceY[p.code] ?? ""} onChange={(e) => setPriceY((d) => ({ ...d, [p.code]: e.target.value }))} className="h-9 w-full rounded-lg border border-line bg-card px-2 text-[13px] tnum" /></label>
                     <label className="block"><span className="mb-0.5 block text-[10px] text-subtle">{t("admin.plans.trialDays")}</span><input type="number" min={0} value={trial[p.code] ?? ""} onChange={(e) => setTrial((d) => ({ ...d, [p.code]: e.target.value }))} className="h-9 w-full rounded-lg border border-line bg-card px-2 text-[13px] tnum" /></label>
+                    <label className="block"><span className="mb-0.5 block text-[10px] text-subtle">{t("admin.plans.slaHours")}</span><input type="number" min={0} value={sla[p.code] ?? ""} onChange={(e) => setSla((d) => ({ ...d, [p.code]: e.target.value }))} className="h-9 w-full rounded-lg border border-line bg-card px-2 text-[13px] tnum" /></label>
                   </div>
                   <button onClick={() => savePricing(p.code)} className="mt-1.5 inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-lg bg-ink px-3 text-[12.5px] font-semibold text-white hover:opacity-90">
                     {saved === `${p.code}:pricing` ? <Check size={15} /> : <Save size={15} />} {saved === `${p.code}:pricing` ? t("admin.plans.saved") : t("admin.plans.savePricing")}

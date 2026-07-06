@@ -132,7 +132,7 @@ export class BillingService {
   async subscription(tenantId: string) {
     const sub = await this.prisma.subscription.findFirst({
       where: { tenantId },
-      select: { cycle: true, seatsUsed: true, startedAt: true, renewsAt: true, plan: { select: { code: true, name: true, seatLimit: true, priceMonthly: true, priceYearly: true } } },
+      select: { cycle: true, seatsUsed: true, startedAt: true, renewsAt: true, plan: { select: { code: true, name: true, seatLimit: true, priceMonthly: true, priceYearly: true, slaResponseHours: true } } },
     });
     const tenant = await this.prisma.tenant.findFirst({ where: { id: tenantId }, select: { status: true } });
     return { status: tenant?.status, subscription: sub };
