@@ -9,38 +9,38 @@ import { CurrentUser } from "../auth/current-user.decorator";
 export class FormTemplatesController {
   constructor(private readonly templates: FormTemplatesService) {}
 
-  @Authorize({ module: "sales", action: "read", entitlement: "module.sales" })
+  @Authorize({ module: "sales", action: "read", entitlement: "feature.formTemplates" })
   @Get()
   list(@Query("line") line?: string) {
     return this.templates.list(line);
   }
 
-  @Authorize({ module: "sales", action: "read", entitlement: "module.sales" })
+  @Authorize({ module: "sales", action: "read", entitlement: "feature.formTemplates" })
   @Get(":id")
   get(@Param("id") id: string) {
     return this.templates.get(id);
   }
 
-  @Authorize({ module: "sales", action: "create", entitlement: "module.sales" })
+  @Authorize({ module: "sales", action: "create", entitlement: "feature.formTemplates" })
   @Post()
   create(@CurrentUser("tenantId") tenantId: string, @CurrentUser("userId") userId: string, @Body() dto: CreateFormTemplateDto) {
     return this.templates.create(tenantId, userId, dto);
   }
 
-  @Authorize({ module: "sales", action: "update", entitlement: "module.sales" })
+  @Authorize({ module: "sales", action: "update", entitlement: "feature.formTemplates" })
   @Patch(":id")
   update(@CurrentUser("tenantId") tenantId: string, @CurrentUser("userId") userId: string, @Param("id") id: string, @Body() dto: UpdateFormTemplateDto) {
     return this.templates.update(tenantId, userId, id, dto);
   }
 
-  @Authorize({ module: "sales", action: "delete", entitlement: "module.sales" })
+  @Authorize({ module: "sales", action: "delete", entitlement: "feature.formTemplates" })
   @Delete(":id")
   remove(@CurrentUser("tenantId") tenantId: string, @CurrentUser("userId") userId: string, @Param("id") id: string) {
     return this.templates.remove(tenantId, userId, id);
   }
 
   // تطبيق القالب (قراءة + زيادة عدّاد الاستخدام)
-  @Authorize({ module: "sales", action: "read", entitlement: "module.sales" })
+  @Authorize({ module: "sales", action: "read", entitlement: "feature.formTemplates" })
   @Post(":id/apply")
   apply(@Param("id") id: string) {
     return this.templates.apply(id);

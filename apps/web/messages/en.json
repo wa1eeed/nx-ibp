@@ -381,6 +381,18 @@
     "haveAccount": "Already have an account?",
     "loginLink": "Sign in"
   },
+  "planFeature": {
+    "clients": "Clients & onboarding", "sales": "Sales & requests", "underwriting": "Underwriting & RFQ", "production": "Issuance & policies", "renewals": "Renewals", "service": "Client service", "claims": "Claims", "finance": "Finance & collection", "compliance": "Compliance & audit", "reports": "Reports", "hr": "Human resources",
+    "verification": "Government KYC (Yaqeen/Nafath)", "zatca": "E-invoicing (ZATCA)", "auditImmutable": "Immutable audit log",
+    "crm": "CRM pipeline", "producers": "Producers registry", "formTemplates": "Form templates library", "analytics": "Advanced analytics", "approvalChains": "Approval chains", "org": "Org & departments", "mfaEnforce": "Enforced MFA",
+    "dlp": "Data governance (DLP + retention)", "api": "API access", "whiteLabel": "White-label branding", "prioritySupport": "Priority support",
+    "seats": "Number of users", "storage": "Storage", "upload": "Upload limit", "trial": "Free trial"
+  },
+  "compare": {
+    "title": "Compare plans", "heading": "Compare plans", "sub": "Every plan includes the operational and IA-compliance essentials. Tiers differ on advanced features and quotas.",
+    "backHome": "Home", "perUserMo": "SAR/user/mo", "choose": "Choose", "upTo": "up to", "days": "days", "addon": "Add-on", "footnote": "Any firm can upgrade anytime. Prices are per user.",
+    "cat": { "core": "Operations & compliance (core)", "growth": "Growth & efficiency", "enterprise": "Enterprise & governance", "limits": "Limits & quotas" }
+  },
   "billing": {
     "title": "Subscription & Billing",
     "subtitle": "Manage your plan and payments",
@@ -859,7 +871,9 @@
       "perUserMo": "SAR/user/mo",
       "perUserYr": "/user/yr",
       "trialDays": "Trial days",
-      "savePricing": "Save pricing"
+      "savePricing": "Save pricing",
+      "features": "Modules & features",
+      "toggleHint": "click to toggle"
     }
   },
   "portal": {
@@ -980,6 +994,7 @@
       "upToSeats": "Up to {seats} users",
       "popular": "Most popular",
       "cta": "Start with this plan",
+      "compareLink": "Compare all plans",
       "basic": { "name": "Basic", "tagline": "For startups and small firms", "f1": "Up to 5 users", "f2": "Clients, sales and production", "f3": "Core finance and verification" },
       "premium": { "name": "Professional", "tagline": "For growing firms", "f1": "Up to 20 users", "f2": "Everything in Basic + claims and reports", "f3": "Compliance and advanced verification add-ons" },
       "enterprise": { "name": "Enterprise", "tagline": "For large firms", "f1": "Up to 100 users", "f2": "All modules enabled", "f3": "Dedicated support and higher limits" }

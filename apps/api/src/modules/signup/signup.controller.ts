@@ -14,6 +14,13 @@ export class SignupController {
     return this.signup.plans();
   }
 
+  /** مصفوفة مقارنة الباقات العامة (صفحة المقارنة). */
+  @Public()
+  @Get("compare")
+  compare() {
+    return this.signup.compare();
+  }
+
   /** تسجيل ذاتي لشركة وساطة جديدة — عام، يُزوّد المستأجر ويُسجّل الدخول مباشرةً. */
   @Public()
   @Post()

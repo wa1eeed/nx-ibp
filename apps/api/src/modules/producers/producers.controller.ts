@@ -11,32 +11,32 @@ import { CurrentUser } from "../auth/current-user.decorator";
 export class ProducersController {
   constructor(private readonly producers: ProducersService) {}
 
-  @Authorize({ module: "finance", action: "read", entitlement: "module.finance" })
+  @Authorize({ module: "finance", action: "read", entitlement: "feature.producers" })
   @Get()
   list() {
     return this.producers.list();
   }
 
-  @Authorize({ module: "finance", action: "read", entitlement: "module.finance" })
+  @Authorize({ module: "finance", action: "read", entitlement: "feature.producers" })
   @Get(":id")
   get(@Param("id") id: string) {
     return this.producers.get(id);
   }
 
-  @Authorize({ module: "finance", action: "create", entitlement: "module.finance" })
+  @Authorize({ module: "finance", action: "create", entitlement: "feature.producers" })
   @Post()
   create(@CurrentUser("tenantId") tenantId: string, @CurrentUser("userId") userId: string, @Body() dto: CreateProducerDto) {
     return this.producers.create(tenantId, userId, dto);
   }
 
-  @Authorize({ module: "finance", action: "update", entitlement: "module.finance" })
+  @Authorize({ module: "finance", action: "update", entitlement: "feature.producers" })
   @Patch(":id")
   update(@CurrentUser("tenantId") tenantId: string, @CurrentUser("userId") userId: string, @Param("id") id: string, @Body() dto: UpdateProducerDto) {
     return this.producers.update(tenantId, userId, id, dto);
   }
 
   // التسوية = صرف مالي
-  @Authorize({ module: "finance", action: "create", entitlement: "module.finance" })
+  @Authorize({ module: "finance", action: "create", entitlement: "feature.producers" })
   @Post(":id/settle")
   settle(@CurrentUser("tenantId") tenantId: string, @CurrentUser("userId") userId: string, @Param("id") id: string, @Body() dto: SettleProducerDto) {
     return this.producers.settle(tenantId, userId, id, dto);

@@ -68,8 +68,8 @@ describe("التكاملات التنظيمية والمالية (e2e)", () => {
     expect(res.body.riskDistribution.length).toBeGreaterThanOrEqual(1);
   });
 
-  it("بوّابة الباقة: مستأجر بلا module.compliance ⇒ 403", () =>
-    request(app.getHttpServer()).get("/compliance/overview").set(auth(omar)).expect(403));
+  it("الالتزام والتدقيق موديول أساسي (متطلّب هيئة التأمين) ⇒ متاح للأساسية 200", () =>
+    request(app.getHttpServer()).get("/compliance/overview").set(auth(omar)).expect(200));
 
   it("حالة التكاملات التنظيمية (Sandbox)", async () => {
     const res = await request(app.getHttpServer()).get("/regulatory/status").set(auth(gm)).expect(200);

@@ -24,18 +24,20 @@ export class ReportsController {
     return this.reports.commissions();
   }
 
+  // التحليلات المتقدمة — ميزة premium (feature.analytics)
   @Get("production")
-  @Authorize({ module: "reports", action: "read", entitlement: "module.reports" })
+  @Authorize({ module: "reports", action: "read", entitlement: "feature.analytics" })
   production() {
     return this.reports.production();
   }
 
   @Get("claims")
-  @Authorize({ module: "reports", action: "read", entitlement: "module.reports" })
+  @Authorize({ module: "reports", action: "read", entitlement: "feature.analytics" })
   claims() {
     return this.reports.claims();
   }
 
+  // تقرير هيئة التأمين — أساسي (متطلّب تنظيمي، يبقى ضمن module.reports)
   @Get("regulatory")
   @Authorize({ module: "reports", action: "read", entitlement: "module.reports" })
   regulatory() {

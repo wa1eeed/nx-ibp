@@ -59,8 +59,8 @@ describe("الموديولز التشغيلية (e2e)", () => {
     expect(Number(settled.body.settledAmount)).toBe(24500);
   });
 
-  it("الأمان (basic) ممنوع من المطالبات — الموديول خارج الباقة ⇒ 403", () =>
-    request(app.getHttpServer()).get("/claims").set(auth(amanGm)).expect(403));
+  it("الأمان (basic) يصل للمطالبات — موديول أساسي تتطلّبه هيئة التأمين ⇒ 200", () =>
+    request(app.getHttpServer()).get("/claims").set(auth(amanGm)).expect(200));
 
   // ----- التجديدات -----
   it("المكتتب يستعرض التجديدات المستحقّة ⇒ 200", () =>

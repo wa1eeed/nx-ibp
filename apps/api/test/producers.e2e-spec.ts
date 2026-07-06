@@ -109,11 +109,10 @@ describe("سجلّ المنتِجين (e2e)", () => {
     expect(detail.settlements.length).toBeGreaterThanOrEqual(1);
   });
 
-  it("العزل: مستأجر الأمان لا يرى منتِجي الخليج", async () => {
+  it("بوّابة الباقة + العزل: مستأجر الأمان (basic بلا ميزة المنتِجين) ممنوع ⇒ 403", async () => {
     const gulf = (await request(app.getHttpServer()).post("/producers").set(auth(accountant)).send({ name: "منتِج خليجي معزول" }).expect(201)).body;
-    const amanList = (await request(app.getHttpServer()).get("/producers").set(auth(amanGm)).expect(200)).body;
-    expect(amanList.rows.some((r: { id: string }) => r.id === gulf.id)).toBe(false);
-    // الوصول المباشر لمنتِج مستأجر آخر ⇒ 404
-    await request(app.getHttpServer()).get(`/producers/${gulf.id}`).set(auth(amanGm)).expect(404);
+    // الأمان على باقة أساسية لا تشمل feature.producers ⇒ لا وصول للسجلّ إطلاقًا (يمنع رؤية منتِجي الخليج)
+    await request(app.getHttpServer()).get("/producers").set(auth(amanGm)).expect(403);
+    await request(app.getHttpServer()).get(`/producers/${gulf.id}`).set(auth(amanGm)).expect(403);
   });
 });

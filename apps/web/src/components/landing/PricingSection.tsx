@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, Sparkles } from "lucide-react";
+import { Check, Sparkles, ArrowLeftRight } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
 import { api } from "@/lib/api";
@@ -70,6 +70,13 @@ export function PricingSection() {
             </div>
           );
         })}
+      </div>
+
+      {/* رابط مقارنة الباقات */}
+      <div className="mt-6 text-center">
+        <Link href="/compare" className="inline-flex items-center gap-1.5 text-[13.5px] font-semibold text-primary hover:underline">
+          <ArrowLeftRight size={15} /> {t("landing.pricing.compareLink")}
+        </Link>
       </div>
     </section>
   );

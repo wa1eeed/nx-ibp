@@ -76,6 +76,20 @@ async isFeatureEnabled(tenantId: string, featureKey: string): Promise<boolean> {
 
 نموذج بيانات الاشتراك (`Subscription`, `Plan`, `Entitlement`, `Addon`, الوضع `EntitlementMode`) في [03-data-model.md](./03-data-model.md).
 
+### 2ب. هيكلة الباقات (وفق هيئة التأمين) + المقارنة الديناميكية
+**المبدأ:** الباقة **الأساسية تضمّ كل جوهر التشغيل والامتثال** الذي تتطلّبه هيئة التأمين (لا تُحجب الأساسيات)؛ التمايز على المميزات المتقدمة والحصص.
+
+| الفئة | الأساسية | الاحترافية | المؤسسات |
+|---|---|---|---|
+| **تشغيل + امتثال** (عملاء · اكتتاب · إصدار · تجديدات · خدمة · **مطالبات** · مالية · **التزام/تدقيق** · تقارير تنظيمية · KYC · ZATCA) | ✓ | ✓ | ✓ |
+| **النموّ** (`feature.crm` · `feature.producers` · `feature.formTemplates` · `feature.analytics` · `feature.approvalChains` · `feature.org` · `feature.mfaEnforce`) | — | ✓ | ✓ |
+| **الحوكمة** (`module.hr` · `feature.dlp` · `feature.api` · `feature.whiteLabel` · `feature.prioritySupport`) | — | — | ✓ |
+| **الحدود** (مستخدمون · تخزين) | 5 · 1GB | 25 · 10GB | 100 · 100GB |
+
+- **الإنفاذ الفعلي**: المميزات المتقدمة محكومة بمفاتيح `feature.*` عبر نفس الحارس المزدوج (CRM/المنتِجون/القوالب/التحليلات ⇒ مستأجر خارج باقته يُرفَض 403).
+- **المقارنة العامة**: `GET /signup/compare` يبني مصفوفة (فئات × باقات × خلايا) من entitlements كل باقة ⇒ صفحة `/compare` + رابط في اللاندينق.
+- **تحكّم السوبر أدمن**: `POST /platform/plans/:code/entitlements` يفعّل/يعطّل أي ميزة/موديول لأي باقة (شرائح في `/admin/plans`) — **ينعكس فورًا في المقارنة ويُفرَض على الحسابات**.
+
 ---
 
 ## 3. البُعد (ب) — RBAC الدور

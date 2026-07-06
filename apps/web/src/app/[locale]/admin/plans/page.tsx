@@ -6,7 +6,6 @@ import { useTranslations } from "next-intl";
 import { papi, ApiError } from "@/lib/api";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { Badge } from "@/components/ui/Badge";
 
 interface Entitlement { featureKey: string; mode: string; numericValue: number | null; unitFee: number | null }
 interface Plan {
@@ -16,6 +15,12 @@ interface Plan {
 
 const UPLOAD_KEY = "upload.maxFileMb";
 const STORAGE_KEY = "storage.quotaMb";
+
+// المميزات القابلة للتفعيل/التعطيل لكل باقة (تظهر في صفحة المقارنة فورًا).
+const TOGGLE_FEATURES: Array<{ key: string; group: "module" | "feature" }> = [
+  ...["clients", "sales", "underwriting", "production", "renewals", "service", "claims", "finance", "compliance", "reports", "hr"].map((m) => ({ key: `module.${m}`, group: "module" as const })),
+  ...["crm", "producers", "formTemplates", "analytics", "approvalChains", "org", "mfaEnforce", "dlp", "api", "whiteLabel", "prioritySupport"].map((f) => ({ key: `feature.${f}`, group: "feature" as const })),
+];
 
 export default function AdminPlansPage() {
   const t = useTranslations();
@@ -66,6 +71,16 @@ export default function AdminPlansPage() {
   const saveUpload = (code: string) => saveEnt(code, UPLOAD_KEY, Number(drafts[code]));
   const saveStorage = (code: string) => saveEnt(code, STORAGE_KEY, Math.round(Number(storageGb[code]) * 1024)); // GB ⇒ MB
 
+  // تفعيل/تعطيل ميزة (موديول أو ميزة منصّة) لباقة — يظهر فورًا في صفحة المقارنة
+  async function toggleFeature(code: string, featureKey: string, currentMode: string | undefined) {
+    setError("");
+    const next = currentMode === "INCLUDED" ? "DISABLED" : "INCLUDED";
+    try {
+      await papi(`/platform/plans/${code}/entitlements`, { method: "POST", body: JSON.stringify({ featureKey, mode: next }) });
+      await load();
+    } catch (e) { setError(e instanceof ApiError ? e.message : "خطأ"); }
+  }
+
   // حد المستخدمين (المقاعد) — عبر PUT /platform/plans/:code
   async function saveSeats(code: string) {
     setError(""); setSaved("");
@@ -84,7 +99,6 @@ export default function AdminPlansPage() {
       {error ? <p className="mb-3 rounded-lg bg-danger-soft px-3 py-2 text-[12.5px] font-medium text-danger">{error}</p> : null}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         {plans.map((p) => {
-          const modules = p.entitlements.filter((e) => e.featureKey.startsWith("module.") && e.mode !== "DISABLED");
           return (
             <div key={p.id} className="flex flex-col rounded-card border border-line bg-card p-5 shadow-card">
               <div className="mb-3 flex items-start justify-between">
@@ -107,11 +121,19 @@ export default function AdminPlansPage() {
               </div>
 
               <div className="mb-3">
-                <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-subtle">{t("admin.plans.modules")}</div>
+                <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-subtle">{t("admin.plans.features")} <span className="text-[10px] normal-case text-subtle/70">— {t("admin.plans.toggleHint")}</span></div>
                 <div className="flex flex-wrap gap-1.5">
-                  {modules.map((m) => (
-                    <Badge key={m.featureKey} tone={m.mode === "ADDON" ? "warning" : "neutral"}>{m.featureKey.replace("module.", "")}</Badge>
-                  ))}
+                  {TOGGLE_FEATURES.map((f) => {
+                    const mode = p.entitlements.find((e) => e.featureKey === f.key)?.mode;
+                    const on = mode === "INCLUDED";
+                    const shortKey = f.key.replace(/^(module|feature)\./, "");
+                    return (
+                      <button key={f.key} onClick={() => toggleFeature(p.code, f.key, mode)} title={f.key}
+                        className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium transition-colors ${on ? "border-success/40 bg-success-soft text-success" : "border-line bg-surface-2 text-subtle hover:bg-surface-2/70"}`}>
+                        {on ? <Check size={11} /> : <span className="text-[13px] leading-none">·</span>} {t(`planFeature.${shortKey}`)}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 

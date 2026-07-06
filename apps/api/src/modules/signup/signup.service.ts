@@ -59,6 +59,33 @@ export class SignupService {
     });
   }
 
+  /** مصفوفة مقارنة الباقات (عام): تُبنى من مميزات كل باقة، مجمّعة بالفئات — تعكس تغييرات السوبر أدمن فورًا. */
+  async compare() {
+    const categories: Array<{ category: string; features: string[] }> = [
+      { category: "core", features: ["module.clients", "module.sales", "module.underwriting", "module.production", "module.renewals", "module.service", "module.claims", "module.finance", "feature.verification", "feature.zatca", "module.compliance", "feature.auditImmutable", "module.reports"] },
+      { category: "growth", features: ["feature.crm", "feature.producers", "feature.formTemplates", "feature.analytics", "feature.approvalChains", "feature.org", "feature.mfaEnforce"] },
+      { category: "enterprise", features: ["module.hr", "feature.dlp", "feature.api", "feature.whiteLabel", "feature.prioritySupport"] },
+      { category: "limits", features: ["seats", "storage.quotaMb", "upload.maxFileMb", "trialDays"] },
+    ];
+    const plans = await this.prisma.plan.findMany({
+      orderBy: { priceMonthly: "asc" },
+      select: { code: true, name: true, seatLimit: true, priceMonthly: true, priceYearly: true, trialDays: true, entitlements: { select: { featureKey: true, mode: true, numericValue: true } } },
+    });
+    const rows = plans.map((p) => {
+      const ent = new Map(p.entitlements.map((e) => [e.featureKey, e]));
+      const cells: Record<string, string | number> = {};
+      for (const cat of categories) for (const key of cat.features) {
+        if (key === "seats") cells[key] = p.seatLimit;
+        else if (key === "trialDays") cells[key] = p.trialDays;
+        else if (key === "storage.quotaMb") cells[key] = Math.round((Number(ent.get(key)?.numericValue ?? 0) / 1024) * 10) / 10; // GB
+        else if (key === "upload.maxFileMb") cells[key] = Number(ent.get(key)?.numericValue ?? 0);
+        else cells[key] = (ent.get(key)?.mode ?? "DISABLED"); // INCLUDED | ADDON | DISABLED
+      }
+      return { code: p.code, name: p.name, pricePerUserMonthly: Number(p.priceMonthly), pricePerUserYearly: Number(p.priceYearly), trialDays: p.trialDays, cells };
+    });
+    return { categories, plans: rows };
+  }
+
   async signup(dto: SignupDto) {
     const email = dto.adminEmail.toLowerCase().trim();
     await this.rateLimit.assertNotLocked("signup", email); // كبح إساءة التسجيل

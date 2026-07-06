@@ -37,8 +37,8 @@ describe("الصلاحيات RBAC + Entitlements (e2e)", () => {
   });
 
   // ----- بوابة الـ Entitlement (الباقة) -----
-  it("الأمان (basic) ممنوع من /claims — الموديول خارج الباقة ⇒ 403", () =>
-    request(app.getHttpServer()).get("/claims").set("Authorization", `Bearer ${tokens.gmAman}`).expect(403));
+  it("بوّابة الباقة: الأمان (basic) ممنوع من التحليلات المتقدمة (feature.analytics) خارج باقته ⇒ 403", () =>
+    request(app.getHttpServer()).get("/reports/production").set("Authorization", `Bearer ${tokens.gmAman}`).expect(403));
 
   it("الخليج (premium + addon) مسموح بـ /claims لمسؤول المطالبات ⇒ 200", () =>
     request(app.getHttpServer()).get("/claims").set("Authorization", `Bearer ${tokens.claimsGulf}`).expect(200));

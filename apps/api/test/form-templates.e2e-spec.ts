@@ -73,10 +73,10 @@ describe("مكتبة قوالب النماذج (e2e)", () => {
     await request(app.getHttpServer()).get(`/form-templates/${tpl.id}`).set(auth(gm)).expect(404);
   });
 
-  it("العزل: مستأجر الأمان لا يرى قوالب الخليج", async () => {
+  it("بوّابة الباقة + العزل: مستأجر الأمان (basic بلا ميزة القوالب) ممنوع ⇒ 403", async () => {
     const gulf = (await request(app.getHttpServer()).post("/form-templates").set(auth(gm)).send(TPL).expect(201)).body;
-    const amanList = (await request(app.getHttpServer()).get("/form-templates?line=SME").set(auth(amanGm)).expect(200)).body;
-    expect(amanList.some((t: { id: string }) => t.id === gulf.id)).toBe(false);
-    await request(app.getHttpServer()).post(`/form-templates/${gulf.id}/apply`).set(auth(amanGm)).expect(404);
+    // الأمان على باقة أساسية لا تشمل feature.formTemplates ⇒ لا وصول (يمنع رؤية قوالب الخليج)
+    await request(app.getHttpServer()).get("/form-templates?line=SME").set(auth(amanGm)).expect(403);
+    await request(app.getHttpServer()).post(`/form-templates/${gulf.id}/apply`).set(auth(amanGm)).expect(403);
   });
 });

@@ -18,30 +18,38 @@ const DEV_PASSWORD = "Passw0rd!";
 
 type EntMode = "INCLUDED" | "QUOTA" | "METERED" | "ADDON" | "DISABLED";
 
-// مصفوفة الموديولز لكل باقة (entitlement: module.<x>)
+// مصفوفة الموديولز لكل باقة (entitlement: module.<x>).
+// المبدأ: الأساسية تضمّ **كل موديولات التشغيل والامتثال** التي تتطلّبها هيئة التأمين (لا تُحجب الأساسيات)؛
+// التمايز على المميزات المتقدمة (النموّ/الحوكمة) والحصص، لا على الجوهر التشغيلي.
 const PLAN_MODULES: Record<string, Record<string, EntMode>> = {
-  basic: { clients: "INCLUDED", sales: "INCLUDED", production: "INCLUDED", service: "INCLUDED", finance: "INCLUDED", claims: "DISABLED", reports: "DISABLED", compliance: "DISABLED", hr: "DISABLED" },
-  premium: { clients: "INCLUDED", sales: "INCLUDED", production: "INCLUDED", service: "INCLUDED", finance: "INCLUDED", claims: "ADDON", reports: "ADDON", compliance: "ADDON", hr: "DISABLED" },
-  enterprise: { clients: "INCLUDED", sales: "INCLUDED", production: "INCLUDED", service: "INCLUDED", finance: "INCLUDED", claims: "INCLUDED", reports: "INCLUDED", compliance: "INCLUDED", hr: "INCLUDED" },
+  basic: { clients: "INCLUDED", sales: "INCLUDED", underwriting: "INCLUDED", production: "INCLUDED", renewals: "INCLUDED", service: "INCLUDED", claims: "INCLUDED", finance: "INCLUDED", compliance: "INCLUDED", reports: "INCLUDED", hr: "DISABLED" },
+  premium: { clients: "INCLUDED", sales: "INCLUDED", underwriting: "INCLUDED", production: "INCLUDED", renewals: "INCLUDED", service: "INCLUDED", claims: "INCLUDED", finance: "INCLUDED", compliance: "INCLUDED", reports: "INCLUDED", hr: "DISABLED" },
+  enterprise: { clients: "INCLUDED", sales: "INCLUDED", underwriting: "INCLUDED", production: "INCLUDED", renewals: "INCLUDED", service: "INCLUDED", claims: "INCLUDED", finance: "INCLUDED", compliance: "INCLUDED", reports: "INCLUDED", hr: "INCLUDED" },
 };
 
-// ميزات غير الموديولز لكل باقة
+// مميزات المنصّة (غير الموديولز) لكل باقة — قابلة للتفعيل/التعطيل من السوبر أدمن وتظهر في صفحة المقارنة.
+const F = (key: string, mode: EntMode, extra: { numericValue?: number; unitFee?: number } = {}) => ({ key, mode, ...extra });
 const PLAN_FEATURES: Record<string, Array<{ key: string; mode: EntMode; numericValue?: number; unitFee?: number }>> = {
   basic: [
-    { key: "upload.maxFileMb", mode: "QUOTA", numericValue: 10 },
-    { key: "storage.quotaMb", mode: "QUOTA", numericValue: 1024 }, // 1GB
+    F("upload.maxFileMb", "QUOTA", { numericValue: 10 }), F("storage.quotaMb", "QUOTA", { numericValue: 1024 }), // 1GB
+    F("feature.verification", "INCLUDED"), F("feature.zatca", "INCLUDED"), F("feature.auditImmutable", "INCLUDED"), // إلزامي هيئة التأمين
+    F("feature.crm", "DISABLED"), F("feature.producers", "DISABLED"), F("feature.formTemplates", "DISABLED"),
+    F("feature.analytics", "DISABLED"), F("feature.approvalChains", "DISABLED"), F("feature.org", "DISABLED"), F("feature.mfaEnforce", "DISABLED"),
+    F("feature.dlp", "DISABLED"), F("feature.api", "DISABLED"), F("feature.whiteLabel", "DISABLED"), F("feature.prioritySupport", "DISABLED"),
   ],
   premium: [
-    { key: "upload.maxFileMb", mode: "QUOTA", numericValue: 25 },
-    { key: "storage.quotaMb", mode: "QUOTA", numericValue: 10240 }, // 10GB
-    { key: "dynamic_form", mode: "METERED", unitFee: 1.5 },
-    { key: "verification.yaqeen", mode: "METERED", unitFee: 3.0 },
+    F("upload.maxFileMb", "QUOTA", { numericValue: 25 }), F("storage.quotaMb", "QUOTA", { numericValue: 10240 }), // 10GB
+    F("feature.verification", "INCLUDED"), F("feature.zatca", "INCLUDED"), F("feature.auditImmutable", "INCLUDED"),
+    F("feature.crm", "INCLUDED"), F("feature.producers", "INCLUDED"), F("feature.formTemplates", "INCLUDED"),
+    F("feature.analytics", "INCLUDED"), F("feature.approvalChains", "INCLUDED"), F("feature.org", "INCLUDED"), F("feature.mfaEnforce", "INCLUDED"),
+    F("feature.dlp", "DISABLED"), F("feature.api", "DISABLED"), F("feature.whiteLabel", "DISABLED"), F("feature.prioritySupport", "DISABLED"),
   ],
   enterprise: [
-    { key: "upload.maxFileMb", mode: "QUOTA", numericValue: 100 },
-    { key: "storage.quotaMb", mode: "QUOTA", numericValue: 102400 }, // 100GB
-    { key: "dynamic_form", mode: "INCLUDED" },
-    { key: "verification.yaqeen", mode: "INCLUDED" },
+    F("upload.maxFileMb", "QUOTA", { numericValue: 100 }), F("storage.quotaMb", "QUOTA", { numericValue: 102400 }), // 100GB
+    F("feature.verification", "INCLUDED"), F("feature.zatca", "INCLUDED"), F("feature.auditImmutable", "INCLUDED"),
+    F("feature.crm", "INCLUDED"), F("feature.producers", "INCLUDED"), F("feature.formTemplates", "INCLUDED"),
+    F("feature.analytics", "INCLUDED"), F("feature.approvalChains", "INCLUDED"), F("feature.org", "INCLUDED"), F("feature.mfaEnforce", "INCLUDED"),
+    F("feature.dlp", "INCLUDED"), F("feature.api", "INCLUDED"), F("feature.whiteLabel", "INCLUDED"), F("feature.prioritySupport", "INCLUDED"),
   ],
 };
 
