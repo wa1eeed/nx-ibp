@@ -1,4 +1,4 @@
-import { IsEmail, IsOptional, IsString, Matches, MaxLength, MinLength } from "class-validator";
+import { IsEmail, IsIn, IsInt, IsOptional, IsString, Matches, Max, MaxLength, Min, MinLength } from "class-validator";
 
 /**
  * تسجيل ذاتي لشركة وساطة جديدة (مستأجر جديد). عام بلا مصادقة — يُزوّد المستأجر
@@ -38,4 +38,36 @@ export class SignupDto {
   @IsOptional()
   @IsString()
   planCode?: string;
+
+  // ——— بيانات الـOnboarding (التحقّق بعدد خانات دقيق للمعايير السعودية) ———
+
+  /** الرقم الموحد للمنشأة — 10 أرقام (700-series). */
+  @IsOptional()
+  @IsString()
+  @Matches(/^\d{10}$/, { message: "الرقم الموحد للمنشأة 10 أرقام" })
+  unifiedNumber?: string;
+
+  /** الرقم الضريبي — 15 رقمًا. */
+  @IsOptional()
+  @IsString()
+  @Matches(/^\d{15}$/, { message: "الرقم الضريبي 15 رقمًا" })
+  vatNumber?: string;
+
+  /** رقم التواصل — جوال سعودي 05XXXXXXXX (10 أرقام). */
+  @IsOptional()
+  @IsString()
+  @Matches(/^05\d{8}$/, { message: "رقم الجوال يجب أن يبدأ بـ05 ويتكوّن من 10 أرقام" })
+  phone?: string;
+
+  /** عدد المستخدمين المطلوب (التسعير لكل مستخدم). افتراضي 1، ولا يتجاوز حدّ الباقة. */
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(100000)
+  seatCount?: number;
+
+  /** دورة الفوترة. */
+  @IsOptional()
+  @IsIn(["MONTHLY", "YEARLY"])
+  cycle?: "MONTHLY" | "YEARLY";
 }

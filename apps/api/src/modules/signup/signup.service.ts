@@ -26,7 +26,9 @@ const COA_TEMPLATE: Array<{ path: number[]; name: string; type: string; onBal: b
   { path: [3], name: "حقوق الملكية", type: "equity", onBal: true },
   { path: [4], name: "الإيرادات", type: "revenue", onBal: true },
   { path: [4, 1], name: "عمولات الوساطة", type: "revenue", onBal: true },
+  { path: [4, 2], name: "رسوم خدمات وإصدار الوثائق", type: "revenue", onBal: true },
   { path: [5], name: "المصروفات", type: "expense", onBal: true },
+  { path: [5, 1], name: "عمولات المنتِجين (الوسطاء الفرعيون)", type: "expense", onBal: true },
 ];
 const coa17 = (path: number[]): string => path.map((p) => String(p).padStart(2, "0")).join("").padEnd(17, "0");
 
@@ -40,6 +42,22 @@ export class SignupService {
     private readonly rateLimit: RateLimitService,
     private readonly ctx: RequestContextService,
   ) {}
+
+  /** كتالوج الباقات العام (للاندينق + معالج التسجيل): سعر لكل مستخدم شهري/سنوي + التجربة + نسبة التوفير + الموديولز. */
+  async plans() {
+    const plans = await this.prisma.plan.findMany({
+      orderBy: { priceMonthly: "asc" },
+      select: { code: true, name: true, seatLimit: true, priceMonthly: true, priceYearly: true, trialDays: true, entitlements: { select: { featureKey: true, mode: true } } },
+    });
+    return plans.map((p) => {
+      const monthly = Number(p.priceMonthly);
+      const yearly = Number(p.priceYearly);
+      const yearlyPerMonth = yearly / 12;
+      const savingsPct = monthly > 0 ? Math.round((1 - yearlyPerMonth / monthly) * 100) : 0; // توفير الاشتراك السنوي
+      const modules = p.entitlements.filter((e) => e.featureKey.startsWith("module.") && e.mode !== "DISABLED").map((e) => e.featureKey.replace("module.", ""));
+      return { code: p.code, name: p.name, seatLimit: p.seatLimit, pricePerUserMonthly: monthly, pricePerUserYearly: yearly, trialDays: p.trialDays, savingsPct: Math.max(0, savingsPct), modules };
+    });
+  }
 
   async signup(dto: SignupDto) {
     const email = dto.adminEmail.toLowerCase().trim();
@@ -62,7 +80,7 @@ export class SignupService {
     const passwordHash = await bcrypt.hash(dto.password, 10);
 
     // التزويد كامل بلا سياق مستأجر (سياق فارغ) ⇒ guard العزل يُتخطّى ونمرّر tenantId صراحةً.
-    const result = await this.ctx.run({}, () => this.provision(dto, email, plan.id, passwordHash));
+    const result = await this.ctx.run({}, () => this.provision(dto, email, plan, passwordHash));
 
     await this.rateLimit.clear("signup", email);
     const accessToken = await this.jwt.signAsync({ sub: result.userId, tenantId: result.tenantId, roleId: result.roleId, email });
@@ -77,19 +95,22 @@ export class SignupService {
   }
 
   /** ينشئ المستأجر وكل سقالته ذرّياً (transaction). يفترض غياب سياق المستأجر. */
-  private async provision(dto: SignupDto, email: string, planId: string, passwordHash: string) {
+  private async provision(dto: SignupDto, email: string, plan: { id: string; seatLimit: number; trialDays: number }, passwordHash: string) {
     const productLines = await this.prisma.productLine.findMany({ select: { code: true } });
     const enabledProducts = productLines.map((l) => l.code);
+    const seats = Math.min(Math.max(1, dto.seatCount ?? 1), plan.seatLimit); // عدد المستخدمين، لا يتجاوز حدّ الباقة
+    const cycle = dto.cycle === "YEARLY" ? "YEARLY" : "MONTHLY";
+    const trialDays = plan.trialDays > 0 ? plan.trialDays : TRIAL_DAYS; // تجربة الباقة، أو الافتراضي
 
     return this.prisma.$transaction(async (tx) => {
       const tenant = await tx.tenant.create({
-        data: { name: dto.companyName, nameEn: dto.companyNameEn ?? null, crNumber: dto.crNumber ?? null, status: "TRIAL", billingModel: "PASS_THROUGH" },
+        data: { name: dto.companyName, nameEn: dto.companyNameEn ?? null, crNumber: dto.crNumber ?? null, unifiedNumber: dto.unifiedNumber ?? null, vatNumber: dto.vatNumber ?? null, phone: dto.phone ?? null, status: "TRIAL", billingModel: "PASS_THROUGH" },
         select: { id: true },
       });
       const tenantId = tenant.id;
-      const renewsAt = new Date(Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000);
+      const renewsAt = new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000);
 
-      await tx.subscription.create({ data: { tenantId, planId, cycle: "MONTHLY", seatsUsed: 1, renewsAt } });
+      await tx.subscription.create({ data: { tenantId, planId: plan.id, cycle, seatsUsed: seats, renewsAt } });
 
       await tx.tenantConfig.create({
         data: {

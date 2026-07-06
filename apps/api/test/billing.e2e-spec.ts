@@ -37,7 +37,7 @@ describe("فوترة الاشتراكات (e2e)", () => {
     const co = await request(srv()).post("/billing/checkout").set(auth(t)).send({ planCode: "premium", cycle: "YEARLY" }).expect(201);
     expect(co.body.status).toBe("PENDING");
     expect(co.body.redirectUrl).toBeTruthy();
-    expect(co.body.amount).toBe(14990); // سعر premium السنوي
+    expect(co.body.amount).toBe(1490); // premium السنوي لكل مستخدم (1490) × مقعد واحد
     const sub = await request(srv()).get("/billing/subscription").set(auth(t)).expect(200);
     expect(sub.body.status).toBe("TRIAL");
   });

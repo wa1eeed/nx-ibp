@@ -42,6 +42,21 @@ describe("حدّ مقاعد الباقة (e2e)", () => {
     expect(plans.find((p) => p.code === "basic")?.seatLimit).toBe(9);
   });
 
+  it("سوبر أدمن يعدّل سعر الباقة (شهري/سنوي) ومدة التجربة ⇒ يظهر في الكتالوج العام", async () => {
+    const r = await request(srv()).put("/platform/plans/basic").set(auth(admin)).send({ priceMonthly: 88, priceYearly: 880, trialDays: 21 }).expect(200);
+    expect(Number(r.body.priceMonthly)).toBe(88);
+    expect(Number(r.body.priceYearly)).toBe(880);
+    expect(r.body.trialDays).toBe(21);
+    // الكتالوج العام (اللاندينق/التسجيل) يعكس التغيير + يحسب نسبة التوفير
+    const pub = (await request(srv()).get("/signup/plans").expect(200)).body as Array<{ code: string; pricePerUserMonthly: number; pricePerUserYearly: number; trialDays: number; savingsPct: number }>;
+    const basic = pub.find((p) => p.code === "basic")!;
+    expect(basic.pricePerUserMonthly).toBe(88);
+    expect(basic.trialDays).toBe(21);
+    expect(basic.savingsPct).toBe(Math.round((1 - 880 / 12 / 88) * 100)); // ≈17%
+    // استعادة الافتراضي
+    await request(srv()).put("/platform/plans/basic").set(auth(admin)).send({ priceMonthly: 79, priceYearly: 790, trialDays: 14 }).expect(200);
+  });
+
   it("الشركة ترى مقاعدها المستخدَمة/الحدّ حسب باقتها", async () => {
     const s = (await request(srv()).get("/staff/seats").set(auth(omar)).expect(200)).body as { used: number; limit: number | null; planName: string | null };
     expect(typeof s.used).toBe("number");

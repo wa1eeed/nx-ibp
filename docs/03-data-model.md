@@ -126,6 +126,8 @@ erDiagram
 | `@@unique([tenantId, counter])` | عدّاد تسلسلي معزول بالمستأجر |
 | `@@unique([tenantId, serialNumber])` | رقم تسلسلي فريد لكل مستأجر |
 
+> **الباقات — تسعير لكل مستخدم:** `Plan.priceMonthly/priceYearly` سعرٌ **لكل مستخدم**؛ الإجمالي = السعر × `Subscription.seatsUsed`. `Plan.trialDays` مدة التجربة المجانية (قابلة للضبط من السوبر أدمن). `Tenant.unifiedNumber` (الرقم الموحد، 10 أرقام) · `vatNumber` (15) · `phone` (05XXXXXXXX) تُجمع في معالج الـonboarding عند التسجيل.
+
 ### `Plan`
 **الغرض:** باقة اشتراك مرجعية على مستوى المنصة (يعرّفها السوبر أدمن).
 

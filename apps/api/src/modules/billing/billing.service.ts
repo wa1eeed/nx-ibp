@@ -31,7 +31,10 @@ export class BillingService {
     const cycle = dto.cycle ?? "MONTHLY";
     const plan = await this.prisma.plan.findUnique({ where: { code: dto.planCode } });
     if (!plan) throw new UnprocessableEntityException("باقة غير معروفة");
-    const amount = Number(cycle === "YEARLY" ? plan.priceYearly : plan.priceMonthly);
+    // التسعير لكل مستخدم: الإجمالي = سعر المستخدم × عدد المقاعد المشترَك بها
+    const seats = (await this.prisma.subscription.findFirst({ where: { tenantId }, select: { seatsUsed: true } }))?.seatsUsed ?? 1;
+    const perUser = Number(cycle === "YEARLY" ? plan.priceYearly : plan.priceMonthly);
+    const amount = Math.round(perUser * Math.max(1, seats) * 100) / 100;
 
     const invoice = await this.prisma.subscriptionInvoice.create({
       data: { tenantId, planCode: plan.code, cycle, amount, currency: this.currency, status: "PENDING", gateway: this.gateway.name },

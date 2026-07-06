@@ -702,6 +702,14 @@ curl -X POST http://localhost:4000/staff \
 | `GET` | `/zatca/billing-documents` | `finance:read` + `module.finance` | 200 |
 | `POST` | `/zatca/reporting/drain` | `finance:update` + `module.finance` | 200 |
 
+### التسجيل الذاتي والباقات (عام)
+| الطريقة | المسار | الحماية | الوصف |
+|---|---|---|---|
+| GET | `/signup/plans` | **عام** | كتالوج الباقات: **سعر لكل مستخدم** شهري/سنوي + `trialDays` + **نسبة التوفير** المحسوبة + الموديولز + حدّ المقاعد (لِلاندينق والمعالج) |
+| POST | `/signup` | **عام** | تسجيل ذاتي — يقبل `planCode`/`cycle`/`seatCount` + **onboarding**: `unifiedNumber` (10 أرقام) · `vatNumber` (15) · `phone` (`05XXXXXXXX`). يزوّد المستأجر (اشتراك بالدورة والمقاعد + تجربة الباقة) ويُسجّل الدخول |
+| PUT | `/platform/plans/:code` | سوبر أدمن | يعدّل `seatLimit` + **`priceMonthly`/`priceYearly` (لكل مستخدم)** + **`trialDays`** |
+| POST | `/billing/checkout` | مصادقة | الإجمالي = سعر المستخدم × المقاعد المشترَك بها |
+
 > **نطاق المنصّة (Platform):** مسارات `/platform/*` لا تخضع لعزل المستأجر بل لبوّابة `PlatformGuard` المستقلّة (نطاق `scope:platform` عابر للمستأجرين). تفصيلها الكامل في [24 — لوحة السوبر أدمن](./24-platform-super-admin.md).
 
 > **نطاق العميل (Portal):** مسارات `/portal/*` بنطاق `scope:client` — عزل مزدوج (مستأجر + عميل) عبر `PortalGuard`. تفصيلها في [25 — بوّابة العميل](./25-client-portal.md).

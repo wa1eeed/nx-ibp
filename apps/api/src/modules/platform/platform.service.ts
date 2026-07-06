@@ -121,7 +121,7 @@ export class PlatformService {
     return this.prisma.plan.findMany({
       orderBy: { priceMonthly: "asc" },
       select: {
-        id: true, code: true, name: true, seatLimit: true, priceMonthly: true, priceYearly: true,
+        id: true, code: true, name: true, seatLimit: true, priceMonthly: true, priceYearly: true, trialDays: true,
         entitlements: { orderBy: { featureKey: "asc" }, select: { featureKey: true, mode: true, numericValue: true, unitFee: true } },
         _count: { select: { subscriptions: true } },
       },
@@ -132,16 +132,17 @@ export class PlatformService {
   async updatePlan(planCode: string, dto: UpdatePlanDto, adminId: string) {
     const plan = await this.prisma.plan.findFirst({ where: { code: planCode }, select: { id: true } });
     if (!plan) throw new NotFoundException("الباقة غير موجودة");
-    const data: { seatLimit?: number; name?: string; priceMonthly?: number; priceYearly?: number } = {};
+    const data: { seatLimit?: number; name?: string; priceMonthly?: number; priceYearly?: number; trialDays?: number } = {};
     if (dto.seatLimit !== undefined) data.seatLimit = dto.seatLimit;
     if (dto.name !== undefined) data.name = dto.name;
     if (dto.priceMonthly !== undefined) data.priceMonthly = dto.priceMonthly;
     if (dto.priceYearly !== undefined) data.priceYearly = dto.priceYearly;
+    if (dto.trialDays !== undefined) data.trialDays = dto.trialDays;
     if (Object.keys(data).length === 0) throw new BadRequestException("لا حقول للتحديث");
     const updated = await this.prisma.plan.update({
       where: { id: plan.id },
       data,
-      select: { code: true, name: true, seatLimit: true, priceMonthly: true, priceYearly: true },
+      select: { code: true, name: true, seatLimit: true, priceMonthly: true, priceYearly: true, trialDays: true },
     });
     await this.audit.log({ tenantId: "platform", userId: adminId, action: "update", entity: "plan", entityId: planCode, meta: { ...data } });
     return updated;

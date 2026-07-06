@@ -18,8 +18,9 @@ export class TenantStatusDto {
 export class UpdatePlanDto {
   @IsOptional() @IsInt() @Min(1) @Max(100000) seatLimit?: number; // الحد الأقصى للمستخدمين
   @IsOptional() @IsString() name?: string;
-  @IsOptional() @IsNumber() priceMonthly?: number;
-  @IsOptional() @IsNumber() priceYearly?: number;
+  @IsOptional() @IsNumber() @Min(0) priceMonthly?: number; // لكل مستخدم/شهر
+  @IsOptional() @IsNumber() @Min(0) priceYearly?: number; // لكل مستخدم/سنة
+  @IsOptional() @IsInt() @Min(0) @Max(365) trialDays?: number; // مدة التجربة المجانية (0 = بلا)
 }
 
 export class UpdateEntitlementDto {

@@ -4,6 +4,7 @@ import { ShieldCheck, ArrowLeft, Users, FileText, Landmark, ClipboardList, Badge
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
 import { LocaleSwitcher } from "@/components/layout/LocaleSwitcher";
+import { PricingSection } from "@/components/landing/PricingSection";
 
 const FEATURES = [
   { key: "lifecycle", icon: FileText },
@@ -12,12 +13,6 @@ const FEATURES = [
   { key: "claims", icon: ClipboardList },
   { key: "verification", icon: Users },
   { key: "multitenant", icon: BarChart3 },
-];
-
-const PLANS = [
-  { code: "basic", price: "499", highlight: false },
-  { code: "premium", price: "1,499", highlight: true },
-  { code: "enterprise", price: "4,999", highlight: false },
 ];
 
 export default function LandingPage() {
@@ -97,32 +92,8 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* الباقات */}
-      <section id="pricing" className="mx-auto max-w-6xl px-5 py-14">
-        <h2 className="text-center text-[26px] font-bold tracking-tight text-ink">{t("landing.pricing.title")}</h2>
-        <p className="mx-auto mt-2 max-w-xl text-center text-[14px] text-muted">{t("landing.pricing.subtitle")}</p>
-        <div className="mt-8 grid grid-cols-1 gap-5 lg:grid-cols-3">
-          {PLANS.map((p) => (
-            <div key={p.code} className={["flex flex-col rounded-card border bg-card p-6 shadow-card", p.highlight ? "border-primary ring-2 ring-primary/30" : "border-line"].join(" ")}>
-              {p.highlight ? <span className="mb-2 self-start rounded-full bg-primary-soft px-2.5 py-0.5 text-[11px] font-semibold text-primary-strong">{t("landing.pricing.popular")}</span> : null}
-              <h3 className="text-[17px] font-bold text-ink">{t(`landing.pricing.${p.code}.name`)}</h3>
-              <p className="mt-1 text-[12.5px] text-muted">{t(`landing.pricing.${p.code}.tagline`)}</p>
-              <div className="mt-4 flex items-end gap-1">
-                <span className="text-[32px] font-bold tracking-tight text-ink tnum">{p.price}</span>
-                <span className="mb-1.5 text-[12.5px] text-subtle">{t("landing.pricing.perMonth")}</span>
-              </div>
-              <ul className="mt-5 flex-1 space-y-2.5">
-                {["f1", "f2", "f3"].map((f) => (
-                  <li key={f} className="flex items-start gap-2 text-[13px] text-muted"><Check size={15} className="mt-0.5 shrink-0 text-success" /> {t(`landing.pricing.${p.code}.${f}`)}</li>
-                ))}
-              </ul>
-              <Link href="/signup" className={["mt-6 inline-flex items-center justify-center rounded-lg px-4 py-2.5 text-[13.5px] font-semibold", p.highlight ? "bg-primary-strong text-primary-fg hover:bg-primary" : "border border-line bg-card text-ink hover:bg-surface-2"].join(" ")}>
-                {t("landing.pricing.cta")}
-              </Link>
-            </div>
-          ))}
-        </div>
-      </section>
+      {/* الباقات — ديناميكية من الخادم (سعر لكل مستخدم + شهري/سنوي + توفير + تجربة) */}
+      <PricingSection />
 
       {/* الامتثال */}
       <section className="border-t border-line bg-card/50">

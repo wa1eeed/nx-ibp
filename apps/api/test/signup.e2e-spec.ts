@@ -65,4 +65,44 @@ describe("التسجيل الذاتي (e2e)", () => {
 
   it("اسم شركة قصير ⇒ 400", () =>
     request(srv()).post("/signup").send(payload({ companyName: "ا" })).expect(400));
+
+  // ——— كتالوج الباقات العام + الـOnboarding ———
+
+  it("GET /signup/plans عام ⇒ سعر لكل مستخدم شهري/سنوي + التجربة + نسبة التوفير", async () => {
+    const res = await request(srv()).get("/signup/plans").expect(200);
+    expect(Array.isArray(res.body)).toBe(true);
+    const premium = res.body.find((p: { code: string }) => p.code === "premium");
+    expect(premium).toBeTruthy();
+    expect(typeof premium.pricePerUserMonthly).toBe("number");
+    expect(typeof premium.pricePerUserYearly).toBe("number");
+    expect(typeof premium.trialDays).toBe("number");
+    expect(premium.savingsPct).toBeGreaterThan(0); // السنوي أوفر من الشهري×12
+    expect(premium.seatLimit).toBeGreaterThan(0);
+  });
+
+  it("تسجيل مع بيانات onboarding صحيحة (رقم موحّد/ضريبي/جوال + عدد مستخدمين + سنوي) ⇒ 201", async () => {
+    const res = await request(srv()).post("/signup").send(payload({
+      planCode: "premium", cycle: "YEARLY", seatCount: 8,
+      unifiedNumber: "7001234567", vatNumber: "300012345600003", phone: "0551234567",
+    })).expect(201);
+    expect(res.body.tenant.plan).toBe("premium");
+    // الاشتراك يعكس الدورة والمقاعد المختارة
+    const auth = { Authorization: `Bearer ${res.body.accessToken}` };
+    const sub = await request(srv()).get("/billing/subscription").set(auth).expect(200);
+    expect(sub.body.subscription.cycle).toBe("YEARLY");
+    expect(sub.body.subscription.seatsUsed).toBe(8);
+  });
+
+  it("الرقم الموحّد بغير 10 أرقام ⇒ 400", () =>
+    request(srv()).post("/signup").send(payload({ unifiedNumber: "12345" })).expect(400));
+
+  it("رقم جوال غير صحيح (لا يبدأ بـ05) ⇒ 400", () =>
+    request(srv()).post("/signup").send(payload({ phone: "0491234567" })).expect(400));
+
+  it("عدد مستخدمين يتجاوز حدّ الباقة يُقصَر على الحدّ (basic=5)", async () => {
+    const res = await request(srv()).post("/signup").send(payload({ planCode: "basic", seatCount: 999 })).expect(201);
+    const auth = { Authorization: `Bearer ${res.body.accessToken}` };
+    const sub = await request(srv()).get("/billing/subscription").set(auth).expect(200);
+    expect(sub.body.subscription.seatsUsed).toBeLessThanOrEqual(5);
+  });
 });
