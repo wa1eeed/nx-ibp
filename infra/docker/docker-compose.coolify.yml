@@ -60,6 +60,8 @@ services:
       STORAGE_LOCAL_DIR: /data/storage # مرفقات على الـ volume الدائم (السائق local افتراضيًا في الكود)
       # ——— البذرة + سوبر أدمن (لأمر seed:demo/seed:prod/admin:set من طرفية الحاوية) ———
       SEED_MODE: ${SEED_MODE:-}
+      # بذرة آلية عند الإقلاع (بعد الهجرات): اضبط SEED_ON_START=demo (staging) أو =production، أعد النشر مرّة، ثم أزِلها.
+      SEED_ON_START: ${SEED_ON_START:-}
       PLATFORM_ADMIN_EMAIL: ${PLATFORM_ADMIN_EMAIL:-}
       PLATFORM_ADMIN_PASSWORD: ${PLATFORM_ADMIN_PASSWORD:-}
       PLATFORM_ADMIN_NAME: ${PLATFORM_ADMIN_NAME:-}
