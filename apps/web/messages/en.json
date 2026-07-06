@@ -9,6 +9,12 @@
     "search": "Search",
     "sar": "SAR"
   },
+  "pagination": {
+    "showing": "Showing {from}–{to} of {total}",
+    "prev": "Previous",
+    "next": "Next",
+    "page": "Page {page} of {pages}"
+  },
   "confirm": {
     "confirm": "Confirm",
     "cancel": "Cancel",
@@ -45,7 +51,7 @@
     "verification": "Verification",
     "requests": "Requests",
     "policies": "Policies",
-    "producers": "Producers",
+    "producers": "Sub-brokers",
     "service": "Service",
     "renewals": "Renewals",
     "premiums": "Premiums",
@@ -148,26 +154,27 @@
     "trialBalanceSub": "Voucher entries aggregated by account — debit must equal credit",
     "balanced": "Balanced",
     "notBalanced": "Not balanced",
-    "tcol": { "account": "Account", "debit": "Debit", "credit": "Credit", "balance": "Balance" }
+    "tcol": { "account": "Account", "debit": "Debit", "credit": "Credit", "balance": "Balance" },
+    "tab": { "coa": "Chart of accounts", "invoices": "Tax invoices", "payables": "Insurer payables", "trial": "Trial balance" }
   },
   "producers": {
-    "title": "Producers (sub-brokers)",
+    "title": "Sub-brokers",
     "subtitle": "Registry of those who bring business for a share of the brokerage commission — with their owed and settled commission ledger",
-    "add": "New producer",
+    "add": "New sub-broker",
     "registry": "Registry",
-    "empty": "No producers yet — add the first one",
-    "created": "Producer {name} added",
+    "empty": "No sub-brokers yet — add the first one",
+    "created": "Sub-broker {name} added",
     "noLicense": "No license",
     "theirPolicies": "Their policies",
     "noPolicies": "No linked policies",
     "settlements": "Payout vouchers",
-    "kpi": { "count": "Producers", "active": "active", "owed": "Commission owed", "paid": "Settled", "outstanding": "Outstanding" },
+    "kpi": { "count": "Sub-brokers", "active": "active", "owed": "Commission owed", "paid": "Settled", "outstanding": "Outstanding" },
     "col": { "code": "Code", "name": "Name", "license": "License", "rate": "Rate", "policies": "Policies", "owed": "Owed", "outstanding": "Outstanding", "status": "Status", "policy": "Policy", "client": "Client", "premium": "Premium", "share": "Share" },
     "status": { "active": "Active", "suspended": "Suspended" },
     "type": { "individual": "Individual", "company": "Company" },
     "field": { "name": "Name", "type": "Type", "rate": "Commission rate (%)", "license": "IA license no.", "cr": "CR", "nid": "ID", "phone": "Phone", "email": "Email", "iban": "IBAN" },
     "save": "Save",
-    "settle": { "action": "Pay commission", "title": "Pay producer commission", "outstanding": "Outstanding", "amount": "Amount", "reference": "Reference / transfer no.", "submit": "Confirm payout", "cancel": "Cancel" }
+    "settle": { "action": "Pay commission", "title": "Pay sub-broker commission", "outstanding": "Outstanding", "amount": "Amount", "reference": "Reference / transfer no.", "submit": "Confirm payout", "cancel": "Cancel" }
   },
   "premiums": {
     "title": "Premiums & collections",
@@ -392,7 +399,7 @@
   "planFeature": {
     "clients": "Clients & onboarding", "sales": "Sales & requests", "underwriting": "Underwriting & RFQ", "production": "Issuance & policies", "renewals": "Renewals", "service": "Client service", "claims": "Claims", "finance": "Finance & collection", "compliance": "Compliance & audit", "reports": "Reports", "hr": "Human resources",
     "verification": "KYC / KYB verification forms", "zatca": "E-invoicing (ZATCA)", "auditImmutable": "Immutable audit log",
-    "crm": "CRM pipeline", "producers": "Producers registry", "formTemplates": "Form templates library", "analytics": "Advanced analytics", "approvalChains": "Approval chains", "org": "Org & departments", "mfaEnforce": "Enforced MFA",
+    "crm": "CRM pipeline", "producers": "Sub-brokers registry", "formTemplates": "Form templates library", "analytics": "Advanced analytics", "approvalChains": "Approval chains", "org": "Org & departments", "mfaEnforce": "Enforced MFA",
     "dlp": "Data governance (DLP + retention)", "api": "API access", "whiteLabel": "White-label branding", "prioritySupport": "Priority support",
     "seats": "Number of users", "storage": "Storage", "upload": "Upload limit", "trial": "Free trial"
   },
@@ -519,7 +526,7 @@
     "optionalClient": "Select a client (optional)",
     "product": "Product line", "optionalProduct": "Line (optional)",
     "detail": "Sales lead details", "edit": "Edit", "close": "Close",
-    "lead": { "estimatedPremium": "Estimated premium", "exclusivity": "Appointment (BOR)", "exclusive": "Exclusive", "non_exclusive": "Non-exclusive", "source": "Source", "direct": "Direct", "producerSrc": "Via producer", "producer": "Producer name", "currentInsurer": "Current insurer", "lossRatio": "Loss ratio %", "preferredInsurers": "Preferred insurers (comma-separated)", "expectedClose": "Expected close", "notes": "Notes / requirements" },
+    "lead": { "estimatedPremium": "Estimated premium", "exclusivity": "Appointment (BOR)", "exclusive": "Exclusive", "non_exclusive": "Non-exclusive", "source": "Source", "direct": "Direct", "producerSrc": "Via sub-broker", "producer": "Sub-broker name", "currentInsurer": "Current insurer", "lossRatio": "Loss ratio %", "preferredInsurers": "Preferred insurers (comma-separated)", "expectedClose": "Expected close", "notes": "Notes / requirements" },
     "convert": "Convert to request", "converted": "Converted to request", "convertDone": "Lead converted to request {seq}", "convertHint": "An insurance request is created from the lead data and enters the underwriting cycle; the lead is marked Won.",
     "activityLog": "Activity", "noProduct": "—",
     "stages": { "new": "New", "contacted": "Contacted", "quoting": "Quoting", "proposal": "Proposal", "negotiation": "Negotiation" },
@@ -530,9 +537,9 @@
     "insurerPolicyNo": "Insurer policy no.",
     "kpi": { "gross": "Total", "commission": "Commission", "claims": "Claims", "endorsements": "Endorsements" },
     "tabs": { "financial": "Financials & cover", "endorsements": "Endorsements", "claims": "Claims", "invoices": "Invoices", "documents": "Documents", "timeline": "Timeline" },
-    "financialTitle": "Financial breakdown", "commissionTitle": "Commission & producer", "coverageTitle": "Cover & period",
+    "financialTitle": "Financial breakdown", "commissionTitle": "Commission & sub-broker", "coverageTitle": "Cover & period",
     "sumInsured": "Sum insured", "premium": "Net premium", "policyFees": "Policy fees", "vat": "VAT", "totalPremium": "Total due",
-    "commissionRate": "Brokerage", "producer": "Producer", "period": "Cover period", "paymentTerms": "Payment terms",
+    "commissionRate": "Brokerage", "producer": "Sub-broker", "period": "Cover period", "paymentTerms": "Payment terms",
     "debitNotes": "Debit notes", "taxInvoices": "Tax invoices", "emptyTab": "No data in this section",
     "addEndorsement": "Add endorsement",
     "creditNotes": "Credit notes (return premium)",
@@ -553,7 +560,7 @@
     "endDate": "Ends", "daysLeft": "left", "days": "days", "expired": "Expired", "noRenewals": "No policies nearing expiry",
     "kpi": { "policies": "Policies", "claims": "Claims", "requests": "Requests", "due": "Due (SAR)" },
     "info": "Client info",
-    "cr": "CR", "nid": "ID", "phone": "Phone", "email": "Email", "city": "City", "activity": "Activity", "vat": "VAT no.", "iban": "IBAN", "producer": "Producer",
+    "cr": "CR", "nid": "ID", "phone": "Phone", "email": "Email", "city": "City", "activity": "Activity", "vat": "VAT no.", "iban": "IBAN", "producer": "Sub-broker",
     "compliance": "Compliance", "verification": "Government verification",
     "addNote": "Add a note…", "add": "Add", "emptyTab": "No data in this section",
     "risk": "Risk", "insurer": "Insurer", "premium": "Premium", "status": "Status", "amount": "Amount", "date": "Date",

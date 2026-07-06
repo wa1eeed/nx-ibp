@@ -458,7 +458,7 @@ erDiagram
 | `premium` / `vat` / `totalPremium` / `commissionRate` / `commissionAmount` | Decimal? | المالية |
 | `startDate` / `endDate` / `issueDate` | DateTime? | فترة التغطية + تاريخ الإصدار (للإلغاء نسبةً وتناسبًا) |
 | `policyFees` / `sumInsured` / `insurerPolicyNo` / `paymentTerms` | — | حقول معيارية (E0) — الرسوم إيراد مُفوتَر (04020) |
-| `producerName` / `producerId` / `producerCommission` | — | المنتِج (الوسيط الفرعي) وحصّته من العمولة |
+| `producerName` / `producerId` / `producerCommission` | — | الوسيط الفرعي (الوسيط الفرعي) وحصّته من العمولة |
 
 **العلاقات:** `endorsements` (1:N). **الفهارس:** `@@index([tenantId])` · `@@index([tenantId, status, endDate])` · `@@index([tenantId, producerId])`.
 
@@ -608,7 +608,7 @@ erDiagram
 **الفهرس:** `@@index([tenantId])`.
 
 ### `Producer`
-**الغرض:** سجلّ المنتِجين (الوسطاء الفرعيون) — من يجلب الأعمال مقابل حصّة من عمولة الوسيط.
+**الغرض:** سجلّ الوسطاء الفرعيين (الوسطاء الفرعيون) — من يجلب الأعمال مقابل حصّة من عمولة الوسيط.
 
 | الحقل | النوع | ملاحظة |
 |---|---|---|
@@ -617,9 +617,9 @@ erDiagram
 | `code` | String? | رمز `PRD-` |
 | `name` | String | الاسم |
 | `type` | String? | `INDIVIDUAL` \| `COMPANY` |
-| `licenseNo` | String? | رقم ترخيص هيئة التأمين (منتِج مرخّص) |
+| `licenseNo` | String? | رقم ترخيص هيئة التأمين (وسيط فرعي مرخّص) |
 | `crNumber` / `nationalId` / `email` / `phone` / `iban` | String? | التعريف/التواصل/التسوية |
-| `commissionRate` | Decimal(6,3)? | نسبة عمولة المنتِج من عمولة الوسيط (%) |
+| `commissionRate` | Decimal(6,3)? | نسبة عمولة الوسيط الفرعي من عمولة الوسيط (%) |
 | `status` | String? | `active` \| `suspended` |
 | `createdAt` | DateTime | |
 

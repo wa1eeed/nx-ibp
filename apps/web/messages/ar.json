@@ -9,6 +9,12 @@
     "search": "بحث",
     "sar": "ريال"
   },
+  "pagination": {
+    "showing": "عرض {from}–{to} من {total}",
+    "prev": "السابق",
+    "next": "التالي",
+    "page": "صفحة {page} من {pages}"
+  },
   "confirm": {
     "confirm": "تأكيد",
     "cancel": "إلغاء",
@@ -45,7 +51,7 @@
     "verification": "التحقّق",
     "requests": "الطلبات",
     "policies": "الوثائق",
-    "producers": "المنتِجون",
+    "producers": "الوسطاء الفرعيون",
     "service": "خدمة العملاء",
     "renewals": "التجديدات",
     "premiums": "الأقساط",
@@ -148,26 +154,27 @@
     "trialBalanceSub": "تجميع أطراف القيود حسب الحساب — يجب أن يتوازن المدين مع الدائن",
     "balanced": "متوازن",
     "notBalanced": "غير متوازن",
-    "tcol": { "account": "الحساب", "debit": "مدين", "credit": "دائن", "balance": "الرصيد" }
+    "tcol": { "account": "الحساب", "debit": "مدين", "credit": "دائن", "balance": "الرصيد" },
+    "tab": { "coa": "شجرة الحسابات", "invoices": "الفواتير الضريبية", "payables": "المستحقّ للمؤمِّنين", "trial": "ميزان المراجعة" }
   },
   "producers": {
-    "title": "المنتِجون (الوسطاء الفرعيون)",
+    "title": "الوسطاء الفرعيون",
     "subtitle": "سجلّ من يجلب الأعمال مقابل حصّة من عمولة الوسيط — مع دفتر عمولاتهم المستحقّة والمُسوّاة",
-    "add": "منتِج جديد",
+    "add": "وسيط فرعي جديد",
     "registry": "السجلّ",
-    "empty": "لا منتِجون بعد — أضِف أول منتِج",
-    "created": "أُضيف المنتِج {name}",
+    "empty": "لا وسطاء فرعيون بعد — أضِف أول وسيط فرعي",
+    "created": "أُضيف الوسيط الفرعي {name}",
     "noLicense": "بلا ترخيص",
     "theirPolicies": "وثائقه",
     "noPolicies": "لا وثائق مرتبطة",
     "settlements": "سندات الصرف",
-    "kpi": { "count": "المنتِجون", "active": "نشط", "owed": "العمولة المستحقّة", "paid": "المُسوّى", "outstanding": "المتبقّي" },
+    "kpi": { "count": "الوسطاء الفرعيون", "active": "نشط", "owed": "العمولة المستحقّة", "paid": "المُسوّى", "outstanding": "المتبقّي" },
     "col": { "code": "الرمز", "name": "الاسم", "license": "الترخيص", "rate": "النسبة", "policies": "الوثائق", "owed": "المستحقّ", "outstanding": "المتبقّي", "status": "الحالة", "policy": "الوثيقة", "client": "العميل", "premium": "القسط", "share": "حصّته" },
     "status": { "active": "نشط", "suspended": "موقوف" },
     "type": { "individual": "فرد", "company": "شركة" },
     "field": { "name": "الاسم", "type": "النوع", "rate": "نسبة العمولة (%)", "license": "رقم ترخيص الهيئة", "cr": "السجل التجاري", "nid": "الهوية", "phone": "الجوال", "email": "البريد", "iban": "الآيبان" },
     "save": "حفظ",
-    "settle": { "action": "صرف العمولة", "title": "صرف عمولة المنتِج", "outstanding": "المتبقّي", "amount": "المبلغ", "reference": "المرجع/رقم التحويل", "submit": "تأكيد الصرف", "cancel": "إلغاء" }
+    "settle": { "action": "صرف العمولة", "title": "صرف عمولة الوسيط الفرعي", "outstanding": "المتبقّي", "amount": "المبلغ", "reference": "المرجع/رقم التحويل", "submit": "تأكيد الصرف", "cancel": "إلغاء" }
   },
   "premiums": {
     "title": "الأقساط والتحصيل",
@@ -392,7 +399,7 @@
   "planFeature": {
     "clients": "العملاء والتأهيل", "sales": "المبيعات والطلبات", "underwriting": "الاكتتاب وعروض الأسعار", "production": "الإصدار والوثائق", "renewals": "التجديدات", "service": "خدمة العملاء", "claims": "المطالبات", "finance": "المالية والتحصيل", "compliance": "الالتزام والتدقيق", "reports": "التقارير", "hr": "الموارد البشرية",
     "verification": "نماذج التحقق KYC / KYB", "zatca": "الفوترة الإلكترونية (ZATCA)", "auditImmutable": "سجل تدقيق ثابت",
-    "crm": "إدارة العلاقات (CRM)", "producers": "سجلّ المنتِجين", "formTemplates": "مكتبة قوالب النماذج", "analytics": "التحليلات المتقدمة", "approvalChains": "سلاسل الاعتماد", "org": "الهيكل الإداري والأقسام", "mfaEnforce": "إلزام المصادقة الثنائية",
+    "crm": "إدارة العلاقات (CRM)", "producers": "سجلّ الوسطاء الفرعيين", "formTemplates": "مكتبة قوالب النماذج", "analytics": "التحليلات المتقدمة", "approvalChains": "سلاسل الاعتماد", "org": "الهيكل الإداري والأقسام", "mfaEnforce": "إلزام المصادقة الثنائية",
     "dlp": "حوكمة البيانات (DLP + احتفاظ)", "api": "الوصول البرمجي (API)", "whiteLabel": "العلامة البيضاء (White-label)", "prioritySupport": "دعم ذو أولوية",
     "seats": "عدد المستخدمين", "storage": "سعة التخزين", "upload": "حد رفع الملف", "trial": "التجربة المجانية"
   },
@@ -519,7 +526,7 @@
     "optionalClient": "اختر عميلًا (اختياري)",
     "product": "فرع المنتج", "optionalProduct": "الفرع (اختياري)",
     "detail": "تفاصيل الفرصة البيعية", "edit": "تعديل", "close": "إغلاق",
-    "lead": { "estimatedPremium": "القسط التقديري", "exclusivity": "نوع التعيين (BOR)", "exclusive": "حصري", "non_exclusive": "غير حصري", "source": "المصدر", "direct": "مباشر", "producerSrc": "عبر منتِج", "producer": "اسم المنتِج", "currentInsurer": "المؤمِّن الحالي", "lossRatio": "نسبة الخسارة %", "preferredInsurers": "المؤمِّنون المفضّلون (يفصلها فاصلة)", "expectedClose": "الإغلاق المتوقّع", "notes": "ملاحظات/متطلبات" },
+    "lead": { "estimatedPremium": "القسط التقديري", "exclusivity": "نوع التعيين (BOR)", "exclusive": "حصري", "non_exclusive": "غير حصري", "source": "المصدر", "direct": "مباشر", "producerSrc": "عبر وسيط فرعي", "producer": "اسم الوسيط الفرعي", "currentInsurer": "المؤمِّن الحالي", "lossRatio": "نسبة الخسارة %", "preferredInsurers": "المؤمِّنون المفضّلون (يفصلها فاصلة)", "expectedClose": "الإغلاق المتوقّع", "notes": "ملاحظات/متطلبات" },
     "convert": "تحويل إلى طلب تأمين", "converted": "محوّلة إلى طلب", "convertDone": "حُوِّلت الفرصة إلى طلب {seq}", "convertHint": "يُنشأ طلب تأمين مبني على بيانات الفرصة ويدخل دورة الاكتتاب، وتُعلَّم الفرصة «مكسوبة».",
     "activityLog": "النشاط", "noProduct": "—",
     "stages": { "new": "جديدة", "contacted": "تواصل", "quoting": "تسعير", "proposal": "عرض", "negotiation": "تفاوض" },
@@ -530,9 +537,9 @@
     "insurerPolicyNo": "رقم وثيقة المؤمِّن",
     "kpi": { "gross": "الإجمالي", "commission": "العمولة", "claims": "المطالبات", "endorsements": "الملاحق" },
     "tabs": { "financial": "المالية والتغطية", "endorsements": "الملاحق", "claims": "المطالبات", "invoices": "الفواتير", "documents": "المستندات", "timeline": "الخط الزمني" },
-    "financialTitle": "التفصيل المالي", "commissionTitle": "العمولة والمنتِج", "coverageTitle": "التغطية والمدّة",
+    "financialTitle": "التفصيل المالي", "commissionTitle": "العمولة والوسيط الفرعي", "coverageTitle": "التغطية والمدّة",
     "sumInsured": "مبلغ التأمين", "premium": "القسط الصافي", "policyFees": "رسوم الوثيقة", "vat": "الضريبة", "totalPremium": "الإجمالي المستحق",
-    "commissionRate": "عمولة الوسيط", "producer": "المنتِج", "period": "مدّة التغطية", "paymentTerms": "شروط السداد",
+    "commissionRate": "عمولة الوسيط", "producer": "الوسيط الفرعي", "period": "مدّة التغطية", "paymentTerms": "شروط السداد",
     "debitNotes": "إشعارات المدين", "taxInvoices": "الفواتير الضريبية", "emptyTab": "لا بيانات في هذا القسم",
     "addEndorsement": "إضافة ملحق",
     "creditNotes": "الإشعارات الدائنة (قسط مُرتجَع)",
@@ -553,7 +560,7 @@
     "endDate": "تنتهي", "daysLeft": "متبقٍّ", "days": "يوم", "expired": "منتهية", "noRenewals": "لا وثائق قاربت على الانتهاء",
     "kpi": { "policies": "الوثائق", "claims": "المطالبات", "requests": "الطلبات", "due": "مستحق (ريال)" },
     "info": "بيانات العميل",
-    "cr": "السجل التجاري", "nid": "الهوية", "phone": "الهاتف", "email": "البريد", "city": "المدينة", "activity": "النشاط", "vat": "الرقم الضريبي", "iban": "الآيبان", "producer": "المنتِج",
+    "cr": "السجل التجاري", "nid": "الهوية", "phone": "الهاتف", "email": "البريد", "city": "المدينة", "activity": "النشاط", "vat": "الرقم الضريبي", "iban": "الآيبان", "producer": "الوسيط الفرعي",
     "compliance": "حالة الالتزام", "verification": "التحقّق الحكومي",
     "addNote": "أضف ملاحظة…", "add": "إضافة", "emptyTab": "لا بيانات في هذا القسم",
     "risk": "المخاطر", "insurer": "المؤمِّن", "premium": "القسط", "status": "الحالة", "amount": "المبلغ", "date": "التاريخ",

@@ -224,10 +224,10 @@ export default function ClientsPage() {
             <select value={source} onChange={(e) => setSource(e.target.value)} className="h-9 w-full rounded-lg border border-line bg-card px-2 text-[13px]">
               <option value="">—</option>
               <option value="direct">مباشر</option>
-              <option value="producer">منتِج/وسيط فرعي</option>
+              <option value="producer">وسيط فرعي</option>
             </select>
           </label>
-          {source === "producer" ? <Field label="اسم المنتِج" value={producerName} onChange={setProducerName} /> : null}
+          {source === "producer" ? <Field label="اسم الوسيط الفرعي" value={producerName} onChange={setProducerName} /> : null}
           <Field label="النشاط التجاري" value={businessActivity} onChange={setBusinessActivity} />
           <Field label="العنوان الوطني" value={nationalAddress} onChange={setNationalAddress} />
           <div className="flex items-end">

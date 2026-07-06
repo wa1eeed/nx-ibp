@@ -7,6 +7,9 @@ import { api, ApiError } from "@/lib/api";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatCard } from "@/components/ui/StatCard";
 import { Badge } from "@/components/ui/Badge";
+import { usePaged, Pagination } from "@/components/ui/Pagination";
+
+type FinanceTab = "coa" | "invoices" | "payables" | "trial";
 
 interface Summary { grossPremium: number; netPremium: number; vat: number; commission: number; serviceFees: number; offBalanceTrust: number; receivables: number; collected: number; invoiceCount: number; voucherCount: number }
 interface Coa { id: string; code: string; name: string; level: number; isOnBalance: boolean; isLocked: boolean; accountType: string | null }
@@ -26,6 +29,7 @@ export default function FinancePage() {
   const [settle, setSettle] = useState<PayRow | null>(null);
   const [done, setDone] = useState("");
   const [open, setOpen] = useState("");
+  const [tab, setTab] = useState<FinanceTab>("coa");
 
   const load = useCallback(() => {
     void api<Summary>("/finance/summary").then(setS).catch(() => undefined);
@@ -36,7 +40,20 @@ export default function FinancePage() {
   }, []);
   useEffect(() => { load(); }, [load]);
 
+  // ترقيم صفحات (50/صفحة) لكل جدول — يظهر الشريط تلقائيًا عند تجاوز البيانات الحدّ
+  const coaPage = usePaged(coa);
+  const invPage = usePaged(invoices);
+  const payPage = usePaged(pay?.rows ?? []);
+  const trialPage = usePaged(trial?.rows ?? []);
+
   const fmt = (n: string | number | null) => (n == null ? "—" : Number(n).toLocaleString("en-US"));
+
+  const TABS: Array<{ key: FinanceTab; icon: typeof Landmark; label: string; count: number }> = [
+    { key: "coa", icon: Landmark, label: t("finance.tab.coa"), count: coa.length },
+    { key: "invoices", icon: QrCode, label: t("finance.tab.invoices"), count: invoices.length },
+    { key: "payables", icon: Building2, label: t("finance.tab.payables"), count: pay?.rows.length ?? 0 },
+    { key: "trial", icon: Scale, label: t("finance.tab.trial"), count: trial?.rows.length ?? 0 },
+  ];
 
   return (
     <div className="space-y-6">
@@ -49,7 +66,26 @@ export default function FinancePage() {
         <StatCard tone="warning" icon={<FileText size={18} />} title={t("finance.receivables")} value={<span className="tnum">{s ? fmt(s.receivables) : "…"}</span>} sub={t("common.sar")} />
       </div>
 
+      {/* شريط التبويبات للتنقّل بين بلوكات المالية */}
+      <div className="flex flex-wrap gap-1.5 rounded-card border border-line bg-card p-1.5 shadow-card">
+        {TABS.map((tb) => {
+          const Icon = tb.icon;
+          const active = tab === tb.key;
+          return (
+            <button key={tb.key} type="button" onClick={() => setTab(tb.key)}
+              className={`inline-flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-xl px-3 py-2.5 text-[13px] font-semibold transition-colors ${active ? "bg-primary-strong text-primary-fg shadow-sm" : "text-muted hover:bg-surface-2 hover:text-ink"}`}>
+              <Icon size={16} />
+              <span>{tb.label}</span>
+              <span className={`hidden rounded-full px-1.5 py-0.5 text-[10.5px] tnum sm:inline ${active ? "bg-white/20 text-primary-fg" : "bg-surface-2 text-subtle"}`}>{tb.count}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {done ? <p className="rounded-lg bg-success-soft px-3 py-2 text-[12.5px] font-medium text-success">{done}</p> : null}
+
       {/* شجرة الحسابات */}
+      {tab === "coa" ? (
       <section className="overflow-hidden rounded-card border border-line bg-card shadow-card">
         <div className="border-b border-line px-5 py-3.5">
           <h2 className="text-[15px] font-semibold text-ink">{t("finance.coa")}</h2>
@@ -64,7 +100,7 @@ export default function FinancePage() {
               <th className="px-5 py-3 text-start font-semibold">{t("finance.col.balance")}</th>
             </tr></thead>
             <tbody className="divide-y divide-line">
-              {coa.map((a) => (
+              {coaPage.pageItems.map((a) => (
                 <tr key={a.id} className="hover:bg-surface-2/60">
                   <td className="px-5 py-2.5 text-[12px] font-medium text-ink tnum">{a.code}</td>
                   <td className="px-5 py-2.5 text-[13px] text-ink">{a.name} {a.isLocked ? <span className="text-[10px] text-subtle">🔒</span> : null}</td>
@@ -75,9 +111,12 @@ export default function FinancePage() {
             </tbody>
           </table>
         </div>
+        <Pagination page={coaPage.page} pageCount={coaPage.pageCount} total={coaPage.total} from={coaPage.from} to={coaPage.to} onPage={coaPage.setPage} />
       </section>
+      ) : null}
 
       {/* الفواتير الضريبية + ZATCA */}
+      {tab === "invoices" ? (
       <section className="overflow-hidden rounded-card border border-line bg-card shadow-card">
         <div className="flex items-center gap-2 border-b border-line px-5 py-3.5">
           <QrCode size={17} className="text-success" />
@@ -102,7 +141,7 @@ export default function FinancePage() {
               <th className="px-5 py-3"></th>
             </tr></thead>
             <tbody className="divide-y divide-line">
-              {invoices.map((inv) => (
+              {invPage.pageItems.map((inv) => (
                 <Fragment key={inv.id}>
                   <tr className="hover:bg-surface-2/60">
                     <td className="px-5 py-3 text-[12.5px] font-medium text-ink tnum">{inv.sequenceNo ?? "—"}</td>
@@ -132,11 +171,12 @@ export default function FinancePage() {
             </tbody>
           </table>
         </div>
+        <Pagination page={invPage.page} pageCount={invPage.pageCount} total={invPage.total} from={invPage.from} to={invPage.to} onPage={invPage.setPage} />
       </section>
-
-      {done ? <p className="rounded-lg bg-success-soft px-3 py-2 text-[12.5px] font-medium text-success">{done}</p> : null}
+      ) : null}
 
       {/* المستحقّ للمؤمِّنين (أمانات) + التسوية */}
+      {tab === "payables" ? (
       <section className="overflow-hidden rounded-card border border-line bg-card shadow-card">
         <div className="flex items-center gap-2 border-b border-line px-5 py-3.5">
           <Building2 size={17} className="text-info" />
@@ -153,7 +193,7 @@ export default function FinancePage() {
               <th className="px-5 py-3 text-end font-semibold" />
             </tr></thead>
             <tbody className="divide-y divide-line">
-              {pay?.rows.map((r) => (
+              {payPage.pageItems.map((r) => (
                 <tr key={r.insurer} className="hover:bg-surface-2/60">
                   <td className="px-5 py-3 text-[13px] font-medium text-ink">{r.insurer} <span className="text-[11px] text-subtle">({r.count})</span></td>
                   <td className="px-5 py-3 text-end text-[13px] text-ink tnum">{fmt(r.payable)}</td>
@@ -165,9 +205,12 @@ export default function FinancePage() {
             </tbody>
           </table>
         </div>
+        <Pagination page={payPage.page} pageCount={payPage.pageCount} total={payPage.total} from={payPage.from} to={payPage.to} onPage={payPage.setPage} />
       </section>
+      ) : null}
 
       {/* ميزان المراجعة */}
+      {tab === "trial" ? (
       <section className="overflow-hidden rounded-card border border-line bg-card shadow-card">
         <div className="flex items-center gap-2 border-b border-line px-5 py-3.5">
           <Scale size={17} className="text-primary" />
@@ -183,7 +226,7 @@ export default function FinancePage() {
               <th className="px-5 py-3 text-end font-semibold">{t("finance.tcol.balance")}</th>
             </tr></thead>
             <tbody className="divide-y divide-line">
-              {trial?.rows.map((r) => (
+              {trialPage.pageItems.map((r) => (
                 <tr key={r.account} className="hover:bg-surface-2/60">
                   <td className="px-5 py-2.5 text-[12.5px] text-ink">{r.name} <span className="text-[11px] text-subtle tnum">{r.account.slice(0, 4)}</span></td>
                   <td className="px-5 py-2.5 text-end text-[12.5px] text-ink tnum">{r.debit ? fmt(r.debit) : "—"}</td>
@@ -202,7 +245,9 @@ export default function FinancePage() {
             ) : null}
           </table>
         </div>
+        <Pagination page={trialPage.page} pageCount={trialPage.pageCount} total={trialPage.total} from={trialPage.from} to={trialPage.to} onPage={trialPage.setPage} />
       </section>
+      ) : null}
 
       {settle ? <SettleInsurer row={settle} onClose={() => setSettle(null)} onDone={(seq) => { setSettle(null); setDone(t("finance.settleModal.done", { seq })); load(); }} /> : null}
     </div>

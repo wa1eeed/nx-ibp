@@ -282,6 +282,15 @@ async function seedTenant(def: TenantDef, passwordHash: string) {
     });
   }
 
+  // نظافة: أزِل أي أقسام قديمة غير قياسية (بقايا اختبارات) كي تبقى الشجرة القياسية جذرًا واحدًا نظيفًا
+  const stale = await prisma.department.findMany({ where: { tenantId: def.id, NOT: { id: { startsWith: `dept-${def.id}-` } } }, select: { id: true } });
+  if (stale.length) {
+    const ids = stale.map((d) => d.id);
+    await prisma.user.updateMany({ where: { departmentId: { in: ids } }, data: { departmentId: null } });
+    await prisma.department.updateMany({ where: { id: { in: ids } }, data: { parentId: null } }); // اكسر روابط الأبوّة الذاتية قبل الحذف
+    await prisma.department.deleteMany({ where: { id: { in: ids } } });
+  }
+
   let ci = 0;
   for (const c of def.clients) {
     ci++;
