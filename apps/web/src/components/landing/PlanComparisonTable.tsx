@@ -29,12 +29,13 @@ export function PlanComparisonTable() {
   const fmt = (n: number) => n.toLocaleString("en-US");
 
   function cell(key: string, val: string | number) {
-    if (key === "seats") return <span className="text-[12.5px] font-medium text-ink tnum">{t("compare.upTo")} {val}</span>;
     if (key === "storage.quotaMb") return <span className="text-[12.5px] font-medium text-ink tnum">{val} GB</span>;
     if (key === "upload.maxFileMb") return <span className="text-[12.5px] font-medium text-ink tnum">{val} MB</span>;
     if (key === "trialDays") return Number(val) > 0 ? <span className="text-[12.5px] font-medium text-success tnum">{val} {t("compare.days")}</span> : <Minus size={15} className="mx-auto text-subtle/50" />;
-    if (val === "INCLUDED") return <Check size={17} className="mx-auto text-success" />;
+    // قيم وصفية غنية حسب وضع الميزة (يضبطه السوبر أدمن)
+    if (val === "INCLUDED") return <span className="inline-flex items-center gap-1 text-[12px] font-semibold text-success"><Check size={14} /> {t("compare.included")}</span>;
     if (val === "ADDON") return <span className="rounded-full bg-warning-soft px-2 py-0.5 text-[10.5px] font-semibold text-warning">{t("compare.addon")}</span>;
+    if (val === "METERED") return <span className="rounded-full bg-info-soft px-2 py-0.5 text-[10.5px] font-semibold text-info">{t("compare.metered")}</span>;
     return <Minus size={15} className="mx-auto text-subtle/50" />;
   }
 

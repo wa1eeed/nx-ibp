@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, Sparkles, ArrowLeftRight } from "lucide-react";
+import { Check, Sparkles, ArrowLeftRight, Headset } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
 import { api } from "@/lib/api";
+import { ContactSalesModal } from "./ContactSalesModal";
 
 interface PublicPlan {
   code: string; name: string; seatLimit: number;
@@ -12,12 +13,14 @@ interface PublicPlan {
 }
 
 const HIGHLIGHT = "premium";
+const CONTACT_PLANS = new Set(["enterprise"]); // الباقات الكبيرة: تواصل مبيعات بدل التسجيل الذاتي
 
 /** قسم الباقات في اللاندينق — ديناميكي من `/signup/plans` مع تبديل شهري/سنوي + التوفير + التجربة + التسعير لكل مستخدم. */
 export function PricingSection() {
   const t = useTranslations();
   const [plans, setPlans] = useState<PublicPlan[]>([]);
   const [yearly, setYearly] = useState(false);
+  const [contact, setContact] = useState<{ open: boolean; plan?: string }>({ open: false });
 
   useEffect(() => { void api<PublicPlan[]>("/signup/plans").then(setPlans).catch(() => undefined); }, []);
 
@@ -57,27 +60,39 @@ export function PricingSection() {
                 {yearly && p.savingsPct > 0 ? <span className="rounded-full bg-success-soft px-2 py-0.5 text-[11px] font-semibold text-success">{t("landing.pricing.save", { pct: p.savingsPct })}</span> : null}
                 {p.trialDays > 0 ? <span className="inline-flex items-center gap-1 rounded-full bg-primary-soft px-2 py-0.5 text-[11px] font-semibold text-primary-strong"><Sparkles size={11} /> {t("landing.pricing.trial", { days: p.trialDays })}</span> : null}
               </div>
-              <p className="mt-2 text-[11.5px] text-subtle">{t("landing.pricing.upToSeats", { seats: p.seatLimit })}</p>
+              <p className="mt-2 text-[11.5px] text-subtle">{t("landing.pricing.anyUsers")}</p>
 
               <ul className="mt-4 flex-1 space-y-2.5">
                 {["f1", "f2", "f3"].map((f) => (
                   <li key={f} className="flex items-start gap-2 text-[13px] text-muted"><Check size={15} className="mt-0.5 shrink-0 text-success" /> {t(`landing.pricing.${p.code}.${f}`)}</li>
                 ))}
               </ul>
-              <Link href={`/signup?plan=${p.code}&cycle=${yearly ? "yearly" : "monthly"}`} className={["mt-6 inline-flex items-center justify-center rounded-lg px-4 py-2.5 text-[13.5px] font-semibold", highlight ? "bg-primary-strong text-primary-fg hover:bg-primary" : "border border-line bg-card text-ink hover:bg-surface-2"].join(" ")}>
-                {t("landing.pricing.cta")}
-              </Link>
+              {CONTACT_PLANS.has(p.code) ? (
+                <button onClick={() => setContact({ open: true, plan: p.code })} className={["mt-6 inline-flex items-center justify-center gap-1.5 rounded-lg px-4 py-2.5 text-[13.5px] font-semibold", highlight ? "bg-primary-strong text-primary-fg hover:bg-primary" : "border border-line bg-card text-ink hover:bg-surface-2"].join(" ")}>
+                  <Headset size={15} /> {t("landing.pricing.contactCta")}
+                </button>
+              ) : (
+                <Link href={`/signup?plan=${p.code}&cycle=${yearly ? "yearly" : "monthly"}`} className={["mt-6 inline-flex items-center justify-center rounded-lg px-4 py-2.5 text-[13.5px] font-semibold", highlight ? "bg-primary-strong text-primary-fg hover:bg-primary" : "border border-line bg-card text-ink hover:bg-surface-2"].join(" ")}>
+                  {t("landing.pricing.cta")}
+                </Link>
+              )}
             </div>
           );
         })}
       </div>
 
-      {/* رابط مقارنة الباقات — ينزل للجدول أسفل الصفحة */}
-      <div className="mt-6 text-center">
+      {/* روابط: مقارنة الباقات + تواصل مبيعات */}
+      <div className="mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
         <a href="#compare-table" className="inline-flex items-center gap-1.5 text-[13.5px] font-semibold text-primary hover:underline">
           <ArrowLeftRight size={15} /> {t("landing.pricing.compareLink")}
         </a>
+        <button onClick={() => setContact({ open: true })} className="inline-flex items-center gap-1.5 text-[13.5px] font-semibold text-primary hover:underline">
+          <Headset size={15} /> {t("landing.pricing.contactSales")}
+        </button>
       </div>
+
+      {/* نافذة تواصل المبيعات */}
+      {contact.open ? <ContactSalesModal planCode={contact.plan} onClose={() => setContact({ open: false })} /> : null}
     </section>
   );
 }

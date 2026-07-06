@@ -382,6 +382,13 @@
     "haveAccount": "Already have an account?",
     "loginLink": "Sign in"
   },
+  "contact": {
+    "title": "Talk to sales",
+    "sub": "Leave your details and our team will reach out to tailor an enterprise plan and quote for your size.",
+    "name": "Name", "company": "Company", "email": "Email", "phone": "Contact number", "message": "Your message (optional)",
+    "cancel": "Cancel", "submit": "Send request", "close": "Close",
+    "thanks": "Request received ✅", "thanksSub": "Our sales team will contact you shortly.", "error": "Could not send"
+  },
   "planFeature": {
     "clients": "Clients & onboarding", "sales": "Sales & requests", "underwriting": "Underwriting & RFQ", "production": "Issuance & policies", "renewals": "Renewals", "service": "Client service", "claims": "Claims", "finance": "Finance & collection", "compliance": "Compliance & audit", "reports": "Reports", "hr": "Human resources",
     "verification": "Government KYC (Yaqeen/Nafath)", "zatca": "E-invoicing (ZATCA)", "auditImmutable": "Immutable audit log",
@@ -391,7 +398,7 @@
   },
   "compare": {
     "title": "Compare plans", "heading": "Compare plans", "sub": "Every plan includes the operational and IA-compliance essentials. Tiers differ on advanced features and quotas.",
-    "backHome": "Home", "featuresCol": "Features", "billedMonthly": "Billed monthly", "billedYearly": "Billed yearly", "trialShort": "{days}d free", "perUserMo": "SAR/user/mo", "perUserYr": "SAR/user/yr", "choose": "Choose", "upTo": "up to", "days": "days", "addon": "Add-on", "footnote": "Any firm can upgrade anytime. Prices are per user.",
+    "backHome": "Home", "featuresCol": "Features", "billedMonthly": "Billed monthly", "billedYearly": "Billed yearly", "trialShort": "{days}d free", "perUserMo": "SAR/user/mo", "perUserYr": "SAR/user/yr", "choose": "Choose", "upTo": "up to", "days": "days", "addon": "Add-on", "included": "Included", "metered": "Metered", "footnote": "Any firm can upgrade anytime. Prices are per user.",
     "cat": { "core": "Operations & compliance (core)", "growth": "Growth & efficiency", "enterprise": "Enterprise & governance", "limits": "Limits & quotas" }
   },
   "billing": {
@@ -874,6 +881,8 @@
       "trialDays": "Trial days",
       "savePricing": "Save pricing",
       "perUserModel": "Per-user pricing (no user cap)",
+      "mode": { "INCLUDED": "Included", "ADDON": "Add-on (paid)", "METERED": "Metered", "DISABLED": "Disabled" },
+      "modeShort": { "ADDON": "+", "METERED": "~", "DISABLED": "·" },
       "features": "Modules & features",
       "toggleHint": "click to toggle"
     }
@@ -996,7 +1005,7 @@
       "upToSeats": "Up to {seats} users",
       "popular": "Most popular",
       "cta": "Start with this plan",
-      "compareLink": "Compare all plans",
+      "compareLink": "Compare all plans", "anyUsers": "Add any number of users — priced per user", "contactCta": "Contact us", "contactSales": "Talk to sales",
       "basic": { "name": "Basic", "tagline": "For startups and small firms", "f1": "Up to 5 users", "f2": "Clients, sales and production", "f3": "Core finance and verification" },
       "premium": { "name": "Professional", "tagline": "For growing firms", "f1": "Up to 20 users", "f2": "Everything in Basic + claims and reports", "f3": "Compliance and advanced verification add-ons" },
       "enterprise": { "name": "Enterprise", "tagline": "For large firms", "f1": "Up to 100 users", "f2": "All modules enabled", "f3": "Dedicated support and higher limits" }

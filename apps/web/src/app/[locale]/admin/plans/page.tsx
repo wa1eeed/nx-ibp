@@ -16,11 +16,19 @@ interface Plan {
 const UPLOAD_KEY = "upload.maxFileMb";
 const STORAGE_KEY = "storage.quotaMb";
 
-// المميزات القابلة للتفعيل/التعطيل لكل باقة (تظهر في صفحة المقارنة فورًا).
+// المميزات القابلة للضبط لكل باقة (تظهر في صفحة المقارنة فورًا).
 const TOGGLE_FEATURES: Array<{ key: string; group: "module" | "feature" }> = [
   ...["clients", "sales", "underwriting", "production", "renewals", "service", "claims", "finance", "compliance", "reports", "hr"].map((m) => ({ key: `module.${m}`, group: "module" as const })),
   ...["crm", "producers", "formTemplates", "analytics", "approvalChains", "org", "mfaEnforce", "dlp", "api", "whiteLabel", "prioritySupport"].map((f) => ({ key: `feature.${f}`, group: "feature" as const })),
 ];
+// دورة أوضاع الميزة (يدوّرها السوبر أدمن بالنقر): مشمول ⇒ إضافة ⇒ حسب الاستخدام ⇒ معطّل.
+const MODE_CYCLE = ["INCLUDED", "ADDON", "METERED", "DISABLED"];
+const MODE_STYLE: Record<string, string> = {
+  INCLUDED: "border-success/40 bg-success-soft text-success",
+  ADDON: "border-warning/40 bg-warning-soft text-warning",
+  METERED: "border-info/40 bg-info-soft text-info",
+  DISABLED: "border-line bg-surface-2 text-subtle",
+};
 
 export default function AdminPlansPage() {
   const t = useTranslations();
@@ -69,10 +77,11 @@ export default function AdminPlansPage() {
   const saveUpload = (code: string) => saveEnt(code, UPLOAD_KEY, Number(drafts[code]));
   const saveStorage = (code: string) => saveEnt(code, STORAGE_KEY, Math.round(Number(storageGb[code]) * 1024)); // GB ⇒ MB
 
-  // تفعيل/تعطيل ميزة (موديول أو ميزة منصّة) لباقة — يظهر فورًا في صفحة المقارنة
-  async function toggleFeature(code: string, featureKey: string, currentMode: string | undefined) {
+  // تدوير وضع الميزة لباقة: مشمول ⇒ إضافة ⇒ حسب الاستخدام ⇒ معطّل — يظهر فورًا في صفحة المقارنة
+  async function cycleFeature(code: string, featureKey: string, currentMode: string | undefined) {
     setError("");
-    const next = currentMode === "INCLUDED" ? "DISABLED" : "INCLUDED";
+    const idx = MODE_CYCLE.indexOf(currentMode ?? "DISABLED");
+    const next = MODE_CYCLE[(idx + 1) % MODE_CYCLE.length];
     try {
       await papi(`/platform/plans/${code}/entitlements`, { method: "POST", body: JSON.stringify({ featureKey, mode: next }) });
       await load();
@@ -111,13 +120,12 @@ export default function AdminPlansPage() {
                 <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-subtle">{t("admin.plans.features")} <span className="text-[10px] normal-case text-subtle/70">— {t("admin.plans.toggleHint")}</span></div>
                 <div className="flex flex-wrap gap-1.5">
                   {TOGGLE_FEATURES.map((f) => {
-                    const mode = p.entitlements.find((e) => e.featureKey === f.key)?.mode;
-                    const on = mode === "INCLUDED";
+                    const mode = p.entitlements.find((e) => e.featureKey === f.key)?.mode ?? "DISABLED";
                     const shortKey = f.key.replace(/^(module|feature)\./, "");
                     return (
-                      <button key={f.key} onClick={() => toggleFeature(p.code, f.key, mode)} title={f.key}
-                        className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium transition-colors ${on ? "border-success/40 bg-success-soft text-success" : "border-line bg-surface-2 text-subtle hover:bg-surface-2/70"}`}>
-                        {on ? <Check size={11} /> : <span className="text-[13px] leading-none">·</span>} {t(`planFeature.${shortKey}`)}
+                      <button key={f.key} onClick={() => cycleFeature(p.code, f.key, mode)} title={`${f.key} — ${t(`admin.plans.mode.${mode}`)}`}
+                        className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium transition-colors hover:opacity-80 ${MODE_STYLE[mode] ?? MODE_STYLE.DISABLED}`}>
+                        {mode === "INCLUDED" ? <Check size={11} /> : <span className="text-[9px] font-bold">{t(`admin.plans.modeShort.${mode}`)}</span>} {t(`planFeature.${shortKey}`)}
                       </button>
                     );
                   })}

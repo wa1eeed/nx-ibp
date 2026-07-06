@@ -99,6 +99,14 @@ describe("التسجيل الذاتي (e2e)", () => {
   it("رقم جوال غير صحيح (لا يبدأ بـ05) ⇒ 400", () =>
     request(srv()).post("/signup").send(payload({ phone: "0491234567" })).expect(400));
 
+  it("طلب تواصل مبيعات (Lead) عام ⇒ 201 + معرّف؛ بيانات ناقصة ⇒ 400", async () => {
+    const r = await request(srv()).post("/signup/lead").send({ name: "شركة كبيرة", email: `lead-${uniq()}@corp.sa`, company: "مؤسسة الوساطة الكبرى", phone: "0559876543", planCode: "enterprise", seats: 120, message: "نحتاج عرضًا للمؤسسات" }).expect(201);
+    expect(r.body.ok).toBe(true);
+    expect(r.body.id).toBeTruthy();
+    await request(srv()).post("/signup/lead").send({ name: "بلا بريد" }).expect(400); // بريد مطلوب
+    await request(srv()).post("/signup/lead").send({ name: "ج", email: "not-an-email" }).expect(400);
+  });
+
   it("عدد المستخدمين بلا سقف من الباقة (تسعير لكل مستخدم) — يُحفَظ كما اختاره العميل", async () => {
     const res = await request(srv()).post("/signup").send(payload({ planCode: "basic", seatCount: 40 })).expect(201);
     const auth = { Authorization: `Bearer ${res.body.accessToken}` };

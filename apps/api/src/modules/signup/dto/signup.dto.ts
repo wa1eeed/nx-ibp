@@ -71,3 +71,14 @@ export class SignupDto {
   @IsIn(["MONTHLY", "YEARLY"])
   cycle?: "MONTHLY" | "YEARLY";
 }
+
+/** طلب تواصل مبيعات (Lead) للباقات الكبيرة — عام بلا مصادقة. */
+export class LeadDto {
+  @IsString() @MinLength(2, { message: "الاسم مطلوب" }) @MaxLength(120) name!: string;
+  @IsEmail({}, { message: "بريد إلكتروني غير صالح" }) email!: string;
+  @IsOptional() @IsString() @MaxLength(120) company?: string;
+  @IsOptional() @IsString() @Matches(/^05\d{8}$/, { message: "رقم الجوال 05XXXXXXXX" }) phone?: string;
+  @IsOptional() @IsString() @MaxLength(20) planCode?: string;
+  @IsOptional() @IsInt() @Min(1) @Max(100000) seats?: number;
+  @IsOptional() @IsString() @MaxLength(1000) message?: string;
+}

@@ -42,7 +42,7 @@ const PLAN_FEATURES: Record<string, Array<{ key: string; mode: EntMode; numericV
     F("feature.verification", "INCLUDED"), F("feature.zatca", "INCLUDED"), F("feature.auditImmutable", "INCLUDED"),
     F("feature.crm", "INCLUDED"), F("feature.producers", "INCLUDED"), F("feature.formTemplates", "INCLUDED"),
     F("feature.analytics", "INCLUDED"), F("feature.approvalChains", "INCLUDED"), F("feature.org", "INCLUDED"), F("feature.mfaEnforce", "INCLUDED"),
-    F("feature.dlp", "DISABLED"), F("feature.api", "DISABLED"), F("feature.whiteLabel", "DISABLED"), F("feature.prioritySupport", "DISABLED"),
+    F("feature.dlp", "ADDON"), F("feature.api", "METERED", { unitFee: 0.02 }), F("feature.whiteLabel", "DISABLED"), F("feature.prioritySupport", "DISABLED"),
   ],
   enterprise: [
     F("upload.maxFileMb", "QUOTA", { numericValue: 100 }), F("storage.quotaMb", "QUOTA", { numericValue: 102400 }), // 100GB

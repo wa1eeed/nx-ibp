@@ -842,6 +842,22 @@ model DebitNote {
   @@index([tenantId, clientId])
 }
 
+// طلب تواصل مبيعات (Lead) قبل التسجيل — للباقات الكبيرة/المؤسسات. مستوى منصّة (بلا tenantId).
+model Lead {
+  id        String   @id @default(cuid())
+  name      String
+  company   String?
+  email     String
+  phone     String?
+  planCode  String?
+  seats     Int?
+  message   String?
+  status    String?  @default("new") // new | contacted | closed
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
 // قالب نموذج ديناميكي قابل لإعادة الاستخدام — بيانات أساسية + كتل معبّأة مسبقًا لخطّ منتج.
 model FormTemplate {
   id              String   @id @default(cuid())
