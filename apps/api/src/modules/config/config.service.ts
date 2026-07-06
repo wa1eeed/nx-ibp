@@ -85,7 +85,7 @@ export class ConfigService {
 
   // ————————————————— سياسة الاحتفاظ (الإتلاف الآمن — PDPL) —————————————————
 
-  /** مدّة الاحتفاظ بالبيانات (سنوات). الافتراضي 10 (سجلّات التأمين — SAMA/هيئة التأمين). */
+  /** مدّة الاحتفاظ بالبيانات (سنوات). الافتراضي 10 (سجلّات التأمين — هيئة التأمين IA). */
   async getRetentionConfig(tenantId: string): Promise<{ retentionYears: number }> {
     const cfg = await this.prisma.tenantConfig.findFirst({ where: { tenantId }, select: { securityPolicy: true } });
     const y = ((cfg?.securityPolicy ?? {}) as { retentionYears?: number }).retentionYears;

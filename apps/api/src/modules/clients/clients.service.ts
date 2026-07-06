@@ -8,7 +8,7 @@ import { maskClientSensitive } from "../../common/security/dlp";
 import type { AuthUser } from "../auth/current-user.decorator";
 import type { CreateClientDto } from "./dto/create-client.dto";
 
-const RETENTION_DEFAULT_YEARS = 10; // احتفاظ افتراضي (سجلّات التأمين — SAMA/هيئة التأمين)
+const RETENTION_DEFAULT_YEARS = 10; // احتفاظ افتراضي (سجلّات التأمين — هيئة التأمين IA)
 
 const CLIENT_FIELDS = {
   id: true,

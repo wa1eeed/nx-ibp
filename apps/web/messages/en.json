@@ -555,7 +555,7 @@
     "technicalGate": "Technical approval (underwriter)",
     "technicalGateHint": "A technical review layer before finance approval — can be disabled",
     "segregation": "Segregation of duties",
-    "segregationHint": "The policy issuer cannot approve it financially — regulatory recommendation (SAMA/NCA)",
+    "segregationHint": "The policy issuer cannot approve it financially — regulatory recommendation (Insurance Authority / NCA)",
     "complianceTag": "Regulatory",
     "actions": { "read": "View", "create": "Create", "update": "Edit", "delete": "Delete" },
     "modules": { "dashboard": "Dashboard", "sales": "Sales", "clients": "Clients", "underwriting": "Underwriting (RFQ)", "production": "Production / Issuance", "renewals": "Renewals", "service": "Service", "claims": "Claims", "finance": "Finance", "reports": "Reports", "compliance": "Compliance", "hr": "HR", "settings": "Settings" }
