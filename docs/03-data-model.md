@@ -453,8 +453,12 @@ erDiagram
 | `id` | String | المفتاح |
 | `tenantId` | String (FK→Tenant) | المستأجر |
 | `sequenceNo` | String? | رقم الوثيقة |
+| `premium` / `vat` / `totalPremium` / `commissionRate` / `commissionAmount` | Decimal? | المالية |
+| `startDate` / `endDate` / `issueDate` | DateTime? | فترة التغطية + تاريخ الإصدار (للإلغاء نسبةً وتناسبًا) |
+| `policyFees` / `sumInsured` / `insurerPolicyNo` / `paymentTerms` | — | حقول معيارية (E0) — الرسوم إيراد مُفوتَر (04020) |
+| `producerName` / `producerId` / `producerCommission` | — | المنتِج (الوسيط الفرعي) وحصّته من العمولة |
 
-**العلاقات:** `endorsements` (1:N). **الفهرس:** `@@index([tenantId])`.
+**العلاقات:** `endorsements` (1:N). **الفهارس:** `@@index([tenantId])` · `@@index([tenantId, status, endDate])` · `@@index([tenantId, producerId])`.
 
 ### `ServiceRequest`
 **الغرض:** طلب خدمة عميل (إضافة/حذف/تعديل) — يُفصّل في المرحلة 6.
@@ -539,21 +543,23 @@ erDiagram
 `JRV` (قيد يومية) · `PYV` (صرف) · `RCV` (قبض) · `DPV` (دفع مباشر).
 
 ### `Invoice`
-**الغرض:** فاتورة ضريبية صادرة لشركة التأمين (تحصيل العمولة) — بنية ممهّدة لـ ZATCA.
+**الغرض:** فاتورة ضريبية صادرة من الوسيط — **عمولة على المؤمِّن** أو **رسوم خدمة على العميل** (تصويب اتجاه الفاتورة). بنية ممهّدة لـ ZATCA.
 
 | الحقل | النوع | ملاحظة |
 |---|---|---|
 | `id` | String | المفتاح |
 | `tenantId` | String (FK→Tenant) | المستأجر |
-| `sequenceNo` | String? | الرقم |
-| `insurerName` | String? | شركة التأمين |
+| `sequenceNo` | String? | الرقم (فاتورة الرسوم بلاحقة `-F`) |
+| `kind` | String? | **`COMMISSION`** (على المؤمِّن) \| **`FEES`** (رسوم خدمة على العميل) — افتراضي COMMISSION |
+| `insurerName` | String? | للفاتورة على المؤمِّن (عمولة) |
+| `clientId` | String? | للفاتورة على العميل (رسوم خدمة) |
 | `policyId` | String? | الوثيقة |
 | `netAmount` / `vatAmount` / `totalAmount` | Decimal(14,2)? | المبالغ |
 | `status` | String? | افتراضي `draft` |
 | `zatcaUuid` / `zatcaHash` / `qrPayload` | String? | تمهيد ZATCA (Fatoora) |
 | `createdAt` | DateTime | |
 
-**الفهرس:** `@@index([tenantId])`.
+**الفهارس:** `@@index([tenantId])` · `@@index([tenantId, clientId])`.
 
 ### `DebitNote`
 **الغرض:** إشعار مدين للعميل (يُولَّد عند الاعتماد المالي).
@@ -572,18 +578,21 @@ erDiagram
 **الفهارس:** `@@index([tenantId])` · `@@index([tenantId, clientId])`. **الحالة** مُشتقّة: `outstanding`/`partial`/`paid`. سندات القبض مُخزَّنة كـ`Voucher` نوع `RCV` بـ`reference = debitNoteId`.
 
 ### `CreditNote`
-**الغرض:** إشعار دائن للعميل (نفس بنية `DebitNote`).
+**الغرض:** إشعار دائن — **CNP** على العميل (قسط مُرتجَع عند الإلغاء) أو **CNC** على المؤمِّن (عكس العمولة المستردّة).
 
 | الحقل | النوع | ملاحظة |
 |---|---|---|
 | `id` | String | المفتاح |
 | `tenantId` | String (FK→Tenant) | المستأجر |
-| `sequenceNo` | String? | الرقم |
-| `clientId` / `policyId` | String? | المراجع |
+| `sequenceNo` | String? | الرقم (`CN-` للعميل · `CNC-` للمؤمِّن) |
+| `kind` | String? | **`CNP`** (على العميل) \| **`CNC`** (على المؤمِّن) — افتراضي CNP |
+| `clientId` | String? | للإشعار على العميل |
+| `insurerName` | String? | للإشعار على المؤمِّن (عكس العمولة) |
+| `policyId` | String? | الوثيقة |
 | `netAmount` / `vatAmount` | Decimal(14,2)? | المبالغ |
 | `createdAt` | DateTime | |
 
-**الفهرس:** `@@index([tenantId])`.
+**الفهرس:** `@@index([tenantId])`. تُجمَّع الإشعارات على العملاء (`clientId` غير فارغ) في مستحقّات العميل؛ CNC (على المؤمِّن) تُستثنى.
 
 ### `Commission`
 **الغرض:** عمولة (مبسّط الآن، يُفصّل في المالية).
@@ -595,6 +604,42 @@ erDiagram
 | `amount` | Decimal(12,2) | المبلغ |
 
 **الفهرس:** `@@index([tenantId])`.
+
+### `Producer`
+**الغرض:** سجلّ المنتِجين (الوسطاء الفرعيون) — من يجلب الأعمال مقابل حصّة من عمولة الوسيط.
+
+| الحقل | النوع | ملاحظة |
+|---|---|---|
+| `id` | String | المفتاح |
+| `tenantId` | String (FK→Tenant) | المستأجر |
+| `code` | String? | رمز `PRD-` |
+| `name` | String | الاسم |
+| `type` | String? | `INDIVIDUAL` \| `COMPANY` |
+| `licenseNo` | String? | رقم ترخيص هيئة التأمين (منتِج مرخّص) |
+| `crNumber` / `nationalId` / `email` / `phone` / `iban` | String? | التعريف/التواصل/التسوية |
+| `commissionRate` | Decimal(6,3)? | نسبة عمولة المنتِج من عمولة الوسيط (%) |
+| `status` | String? | `active` \| `suspended` |
+| `createdAt` | DateTime | |
+
+**الفهرس:** `@@index([tenantId])`. تُربط الوثيقة عبر `Policy.producerId`؛ الدفتر مشتقّ (Σ `producerCommission`)، والتسوية سند `PYV` بمرجع `prd:{id}` وقيد مصروف COA `05010`.
+
+### `FormTemplate`
+**الغرض:** قالب نموذج ديناميكي قابل لإعادة الاستخدام — تعبئة مسبقة لخطّ منتج تُسرّع الطلبات المتكرّرة.
+
+| الحقل | النوع | ملاحظة |
+|---|---|---|
+| `id` | String | المفتاح |
+| `tenantId` | String (FK→Tenant) | المستأجر |
+| `name` | String | اسم القالب |
+| `productLineCode` | String | خطّ المنتج |
+| `description` | String? | وصف |
+| `base` | Json | حقول أساسية معبّأة مسبقًا |
+| `blocks` | Json? | صفوف كتل معبّأة مسبقًا |
+| `usageCount` | Int | عدّاد الاستخدام (يزيد عند التطبيق) — افتراضي 0 |
+| `isActive` | Boolean | افتراضي true |
+| `createdAt` / `updatedAt` | DateTime | |
+
+**الفهارس:** `@@index([tenantId])` · `@@index([tenantId, productLineCode])`.
 
 ---
 

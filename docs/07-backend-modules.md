@@ -38,7 +38,7 @@
 | **الجذر** | [`app.module.ts`](../apps/api/src/app.module.ts) | تركيب الوحدات + حارسان عالميان (`JwtAuthGuard`, `AuthorizationGuard`) + middleware السياق |
 | **common المشتركة** | [`src/common/`](../apps/api/src/common) | خدمات أفقية عابرة للمجالات: سياق الطلب، التدقيق، التسلسل |
 | **البنية التحتية** | [`src/prisma/`](../apps/api/src/prisma) · [`src/redis/`](../apps/api/src/redis) | عملاء قاعدة البيانات والكاش كـ Providers |
-| **المجالية** | [`src/modules/`](../apps/api/src/modules) | منطق الأعمال: auth, rbac, catalog, clients, requests, underwriting, production, finance, documents, service, claims, renewals, verification, **platform**, **portal**, **reports**, **compliance**, **regulatory**, **finance/zatca**, staff, health |
+| **المجالية** | [`src/modules/`](../apps/api/src/modules) | منطق الأعمال: auth, rbac, catalog, clients, requests, underwriting, production, finance, **producers**, **form-templates**, documents, service, claims, renewals, verification, **platform**, **portal**, **reports**, **compliance**, **regulatory**, **finance/zatca**, **crm**, **reminders**, staff, health |
 
 ```mermaid
 flowchart TB
@@ -434,9 +434,11 @@ flowchart TB
 | `reminders` | مجدول تذكيرات دوري (`@nestjs/schedule`، cron يومي) — مهام CRM مستحقّة + تجديد الوثائق، بلا تكرار؛ تشغيل يدوي معزول `POST /reminders/run` |
 | `config` | تهيئة المستأجر — سلسلة اعتماد الوثيقة (E2) + سياسة الأمان (إلزام MFA) |
 | `revert` | التراجع خطوة للوراء (E4) بصلاحية `canRevert` وحواجز امتثالية |
+| `producers` | سجلّ المنتِجين (الوسطاء الفرعيون) + دفتر عمولاتهم وتسويتها (PYV، COA `05010`) — تحت المالية |
+| `form-templates` | مكتبة قوالب النماذج الديناميكية (تعبئة `base`+`blocks` مسبقة، تطبيق يزيد العدّاد) — تحت المبيعات |
 | `signup` · `billing` · `org` | تسجيل ذاتي · فوترة اشتراكات (Tap) · الهيكل الإداري |
 
-> **الحالة الفعلية:** كل المراحل 0–9 + ZATCA P2 + مسارات ما بعد الاكتمال (E1–E5/الإشعارات/الأمن) **مبنية ومُختبَرة** (e2e 188/188). راجع [`docs/00`](./00-project-status.md) و[`docs/29`](./29-roadmap-next.md).
+> **الحالة الفعلية:** كل المراحل 0–9 + ZATCA P2 + مسارات ما بعد الاكتمال (E1–E5/الإشعارات/الأمن) + **خارطة تجاوز أويسس 8/8** + سجلّ المنتِجين + مكتبة قوالب النماذج **مبنية ومُختبَرة** (e2e 233/233). راجع [`docs/00`](./00-project-status.md) و[`docs/29`](./29-roadmap-next.md).
 
 ---
 

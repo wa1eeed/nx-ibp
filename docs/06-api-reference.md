@@ -554,7 +554,7 @@ curl -X POST http://localhost:4000/staff \
 
 ---
 
-## 10ب. مسارات ما بعد الاكتمال (الإشعارات · CRM · التهيئة · التراجع · 360°)
+## 10ب. مسارات ما بعد الاكتمال (الإشعارات · CRM · التهيئة · التراجع · 360° · المالية · المنتِجون · القوالب)
 
 ### الإشعارات
 | الطريقة | المسار | الحماية | الوصف |
@@ -598,11 +598,30 @@ curl -X POST http://localhost:4000/staff \
 | POST | `/finance/debit-notes/:id/receipt` | finance:create | سند قبض من العميل مقابل إشعار مدين — يزيد `settledAmount`، قيد متوازن (نقد/ذمم)، يمنع تجاوز المستحقّ (409) |
 | POST | `/finance/commissions/:id/receipt` | finance:create | استلام عمولة من المؤمِّن — يضبط `receivedAmount`/الحالة (مستلمة/فرق تحصيل) |
 | GET | `/finance/statement/:clientId` | finance:read | كشف حساب العميل: قيود (إشعارات مدين) + إشعارات دائنة + مدفوعات (سندات قبض) برصيد جارٍ |
-| POST | `/finance/policies/:id/cancel` | finance:update | **إلغاء وثيقة** — قسط مُرتجَع نسبةً وتناسبًا + إشعار دائن (CNP) + قيد عكسي + `CANCELLED` (تكرار ⇒ 409) |
+| POST | `/finance/policies/:id/cancel` | finance:update | **إلغاء وثيقة** — قسط مُرتجَع نسبةً وتناسبًا + إشعار دائن للعميل (CNP) + **إشعار دائن للمؤمِّن (CNC)** يعكس العمولة + قيد عكسي + `CANCELLED` (تكرار ⇒ 409) |
 | GET | `/finance/payables` | finance:read | المستحقّ للمؤمِّنين (أمانات) لكل مؤمِّن + أعمار الدَّين + المُسوّى + المتبقّي |
 | POST | `/finance/insurers/settle` | finance:create | سند صرف (PYV) لتسوية مستحقّ مؤمِّن (يمنع التجاوز ⇒ 409) |
 | GET | `/finance/trial-balance` | finance:read | ميزان المراجعة — أطراف القيود مجمّعة حسب الحساب + مؤشّر توازن |
-| GET | `/finance/receivables` · `/finance/summary` | finance:read | تعيدان **المتبقّي بعد التحصيل والإشعارات الدائنة** + `collected` + `creditNotes` + حالة كل إشعار |
+| GET | `/finance/receivables` · `/finance/summary` | finance:read | تعيدان **المتبقّي بعد التحصيل والإشعارات الدائنة** + `collected` + `creditNotes` + `serviceFees` + حالة كل إشعار |
+| GET | `/finance/invoices` | finance:read | الفواتير الضريبية مع `kind` (COMMISSION على المؤمِّن / FEES على العميل) + `party` (الطرف) + حزمة ZATCA |
+
+**تصويب اتجاه الفاتورة:** الاعتماد المالي يُصدِر فاتورة **العمولة على المؤمِّن** (`kind=COMMISSION`) و—عند وجود `policyFees`—فاتورة **رسوم الخدمة على العميل** (`kind=FEES`، إيراد COA `04020` + ضريبة مخرجات 15%)، وتُضاف الرسوم لإشعار مدين العميل. بوّابة العميل تعرض فواتير رسومه فقط.
+
+### المنتِجون (الوسطاء الفرعيون)
+| الطريقة | المسار | الحماية | الوصف |
+|---|---|---|---|
+| GET | `/producers` | finance:read | دفتر المنتِجين: لكل منتِج عدد وثائقه + القسط + العمولة المستحقّة + المُسوّى + المتبقّي |
+| GET | `/producers/:id` | finance:read | تفصيل منتِج: بياناته + وثائقه + سندات صرفه + الدفتر |
+| POST/PATCH | `/producers` · `/producers/:id` | finance:create / finance:update | إنشاء/تعديل منتِج (رمز `PRD-` + ترخيص الهيئة + نسبة عمولة) |
+| POST | `/producers/:id/settle` | finance:create | **صرف عمولة المنتِج** (PYV، قيد مصروف `05010` ⇒ نقد) — يمنع تجاوز المستحقّ (409) |
+
+### مكتبة قوالب النماذج
+| الطريقة | المسار | الحماية | الوصف |
+|---|---|---|---|
+| GET | `/form-templates` (`?line=CODE`) | sales:read | القوالب الفعّالة (اختيارياً حسب الخطّ)، الأكثر استخدامًا أولًا |
+| GET | `/form-templates/:id` | sales:read | قالب واحد |
+| POST/PATCH/DELETE | `/form-templates` · `/form-templates/:id` | sales:create/update/delete | إنشاء/تعديل/حذف قالب (خطّ منتج مجهول ⇒ 400) |
+| POST | `/form-templates/:id/apply` | sales:read | **تطبيق قالب** — يزيد عدّاد الاستخدام ويعيد `base`+`blocks` للتعبئة |
 
 ### تفاصيل الوثيقة 360° · الاكتتاب المالي
 | الطريقة | المسار | الحماية | الوصف |
