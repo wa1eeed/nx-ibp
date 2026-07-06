@@ -248,11 +248,37 @@ async function seedTenant(def: TenantDef, passwordHash: string) {
     }
   }
 
+  // الهيكل التنظيمي الافتراضي (مطابق لأقسام شركة الوساطة): الإدارة العليا + 6 أقسام، لكلٍّ دوره الافتراضي.
+  const DEPTS: Array<{ key: string; name: string; role: string; parent: string | null }> = [
+    { key: "mgmt", name: "الإدارة العليا", role: "general_manager", parent: null },
+    { key: "sales", name: "المبيعات وتطوير الأعمال", role: "sales_rep", parent: "mgmt" },
+    { key: "compliance", name: "الالتزام والمطابقة", role: "compliance_manager", parent: "mgmt" },
+    { key: "underwriting", name: "الاكتتاب الفني", role: "pricing_officer", parent: "mgmt" },
+    { key: "finance", name: "الإدارة المالية والمحاسبة", role: "accountant", parent: "mgmt" },
+    { key: "service", name: "خدمة العملاء", role: "customer_care_manager", parent: "mgmt" },
+    { key: "claims", name: "إدارة المطالبات", role: "claims_officer", parent: "mgmt" },
+  ];
+  for (const d of DEPTS) {
+    await prisma.department.upsert({
+      where: { id: `dept-${def.id}-${d.key}` },
+      update: { name: d.name, defaultRoleId: `role-${def.id}-${d.role}` },
+      create: { id: `dept-${def.id}-${d.key}`, tenantId: def.id, name: d.name, parentId: d.parent ? `dept-${def.id}-${d.parent}` : null, defaultRoleId: `role-${def.id}-${d.role}` },
+    });
+  }
+  // إسناد كل موظف لقسمه حسب دوره (يُظهر أعضاء كل قسم في المخطط)
+  const ROLE_TO_DEPT: Record<string, string> = {
+    general_manager: "mgmt", hr_manager: "mgmt", admin_assistant: "mgmt",
+    sales_manager: "sales", sales_rep: "sales", compliance_manager: "compliance",
+    pricing_officer: "underwriting", policy_admin: "underwriting",
+    accountant: "finance", collector: "finance", customer_care_manager: "service", claims_officer: "claims",
+  };
+
   for (const u of def.users) {
+    const deptId = `dept-${def.id}-${ROLE_TO_DEPT[u.role] ?? "mgmt"}`;
     await prisma.user.upsert({
       where: { tenantId_email: { tenantId: def.id, email: u.email } },
-      update: { fullName: u.name, roleId: `role-${def.id}-${u.role}`, passwordHash },
-      create: { tenantId: def.id, email: u.email, fullName: u.name, status: "ACTIVE", roleId: `role-${def.id}-${u.role}`, passwordHash },
+      update: { fullName: u.name, roleId: `role-${def.id}-${u.role}`, departmentId: deptId, passwordHash },
+      create: { tenantId: def.id, email: u.email, fullName: u.name, status: "ACTIVE", roleId: `role-${def.id}-${u.role}`, departmentId: deptId, passwordHash },
     });
   }
 

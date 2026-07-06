@@ -114,7 +114,7 @@ async can(roleId: string | null, module: RbacModule, action: RbacAction): Promis
 
 المصدر: [`rbac.constants.ts`](../apps/api/src/modules/rbac/rbac.constants.ts) (مطابق لـ [`packages/shared/src/rbac.ts`](../packages/shared/src/rbac.ts) و[BLUEPRINT.md](../BLUEPRINT.md) §4).
 
-**الموديولز الـ12** (`RBAC_MODULES`):
+**الموديولز الـ13** (`RBAC_MODULES` — بعد فصل الاكتتاب عن الإصدار):
 
 `dashboard` · `sales` · `clients` · `underwriting` (الاكتتاب/RFQ) · `production` (الإصدار) · `renewals` · `service` · `claims` · `finance` · `reports` · `compliance` · `hr` · `settings`
 
@@ -203,28 +203,30 @@ return true;
 
 ## 6. مصفوفة الأدوار الـ12 الجاهزة
 
-القوالب الجاهزة (Preset Roles) منقولة حرفياً من [BLUEPRINT.md](../BLUEPRINT.md) §4 ومعرّفة في [`packages/shared/src/rbac.ts`](../packages/shared/src/rbac.ts). تُزرع كأدوار `isPreset` وتملأ مصفوفة شاشة إنشاء الموظف.
+القوالب الجاهزة (Preset Roles) منقولة حرفياً من [BLUEPRINT.md](../BLUEPRINT.md) §4 ومعرّفة في [`packages/shared/src/rbac.ts`](../packages/shared/src/rbac.ts) (ومرآتها المستقلّة عن الحزم في [`rbac.constants.ts`](../apps/api/src/modules/rbac/rbac.constants.ts)). تُزرع كأدوار `isPreset` وتملأ مصفوفة شاشة إنشاء الموظف.
 
-**مفتاح الرموز:** **A** = وصول (`read`/`canAccess`) · **C** = إضافة (`create`/`canCreate`) · **E** = تعديل (`update`/`canEdit`) · **D** = حذف (`delete`/`canDelete`) · **—** = بلا صلاحية.
+> **التزويد التلقائي عند التسجيل:** كل حساب وساطة جديد (عبر `POST /signup`) يُزوَّد فورًا بـ **الأدوار الـ12 كلها** + **الهيكل التنظيمي الافتراضي** (الإدارة العليا + 6 أقسام تشغيلية، كل قسم مربوط بدوره الافتراضي)، ويُسنَد المالك دورَ **المدير العام** في الإدارة العليا — فالحساب جاهز للتشغيل بلا إعداد يدوي. التفاصيل في [التزويد الآلي §B1](./00-project-status.md) وربط القسم↔الدور في [الهيكل الإداري](../apps/api/src/modules/org).
 
-ترتيب الأعمدة كما في `RBAC_MODULES`: `dashboard, sales, clients, production, renewals, service, claims, finance, reports, compliance, hr, settings`.
+**مفتاح الرموز:** **A** = وصول (`read`/`canAccess`) · **C** = إضافة (`create`/`canCreate`) · **E** = تعديل (`update`/`canEdit`) · **D** = حذف (`delete`/`canDelete`) · **R** = تراجع خطوة (`revert`/`canRevert`) · **—** = بلا صلاحية.
 
-| الدور (`code`) | الاسم | dashboard | sales | clients | production | renewals | service | claims | finance | reports | compliance | hr | settings |
-|---|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| `general_manager` | المدير العام | A | ACED | ACED | ACED | ACED | ACED | ACED | ACED | ACED | ACED | ACED | ACED |
-| `sales_manager` | مدير المبيعات | A | ACED | ACE | — | ACE | — | — | — | A | — | — | — |
-| `sales_rep` | ممثل مبيعات | A | ACE | ACE | — | — | — | — | — | — | — | — | — |
-| `pricing_officer` | مسؤول التسعير | A | AE | — | ACE | ACE | — | — | — | A | — | — | — |
-| `policy_admin` | مسؤول إدارة الوثائق | A | — | A | ACE | — | A | — | — | — | — | — | — |
-| `customer_care_manager` | مدير عناية العملاء | A | — | AE | — | — | ACED | A | — | A | — | — | — |
-| `claims_officer` | مسؤول المطالبات | A | — | A | — | — | A | ACE | — | — | — | — | — |
-| `accountant` | المحاسب / مدير مالي | A | — | — | — | — | — | — | ACED | A | — | — | — |
-| `collector` | محصّل | A | — | A | — | — | — | — | AE | — | — | — | — |
-| `compliance_manager` | مدير الالتزام | A | A | — | A | — | — | A | A | A | ACED | — | — |
-| `hr_manager` | مدير الموارد البشرية | A | — | — | — | — | — | — | — | — | — | ACED | — |
-| `admin_assistant` | مساعد إداري | A | — | — | — | — | — | — | — | — | — | A | — |
+ترتيب الأعمدة كما في `RBAC_MODULES` (**13 موديولاً** بعد فصل **الاكتتاب** عن **الإصدار/الإنتاج**): `dashboard, sales, clients, underwriting, production, renewals, service, claims, finance, reports, compliance, hr, settings`.
 
-> الأدوار كلها تملك **A** على `dashboard` (لوحة البيانات متاحة للجميع). فقط **المدير العام** يملك صلاحية كاملة على كل الموديولز (ACED شاملة)، ووحده مع **مدير الالتزام** يملكان `compliance`. الدالة `parsePerm(code)` في [`packages/shared/src/rbac.ts`](../packages/shared/src/rbac.ts) تحوّل رمزاً مثل `"ACED"` إلى مجموعة الأعلام المنطقية.
+| الدور (`code`) | الاسم | dash | sales | clients | underwriting | production | renewals | service | claims | finance | reports | compliance | hr | settings |
+|---|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| `general_manager` | المدير العام | A | ACED | ACED | ACED | ACEDR | ACEDR | ACEDR | ACEDR | ACED | ACED | ACED | ACED | ACED |
+| `sales_manager` | مدير المبيعات | A | ACED | ACE | — | — | ACE | — | — | — | A | — | — | — |
+| `sales_rep` | ممثل مبيعات | A | ACE | ACE | — | — | — | — | — | — | — | — | — | — |
+| `pricing_officer` | مكتتب (مسؤول التسعير) | A | AE | — | ACE | ACE | ACE | — | — | — | A | — | — | — |
+| `policy_admin` | مسؤول العمليات والإصدار | A | — | A | A | ACE | — | A | — | — | — | — | — | — |
+| `customer_care_manager` | مدير عناية العملاء | A | — | AE | — | — | — | ACED | A | — | A | — | — | — |
+| `claims_officer` | مسؤول المطالبات | A | — | A | — | — | — | A | ACE | — | — | — | — | — |
+| `accountant` | المحاسب / مدير مالي | A | — | — | — | — | — | — | — | ACED | A | — | — | — |
+| `collector` | محصّل | A | — | A | — | — | — | — | — | AE | — | — | — | — |
+| `compliance_manager` | مدير الالتزام | A | A | — | A | A | — | — | A | A | A | ACED | — | — |
+| `hr_manager` | مدير الموارد البشرية | A | — | — | — | — | — | — | — | — | — | — | ACED | — |
+| `admin_assistant` | مساعد إداري | A | — | — | — | — | — | — | — | — | — | — | A | — |
+
+> الأدوار كلها تملك **A** على `dashboard` (لوحة البيانات متاحة للجميع). فقط **المدير العام** يملك صلاحية كاملة على كل الموديولز — بما فيها **R** (التراجع خطوة، صلاحية إشرافية) على `renewals/service/claims/finance`؛ ووحده مع **مدير الالتزام** يملكان `compliance`. **فصل الاكتتاب عن الإصدار**: **المكتتب** يُنشئ/يعدّل في `underwriting` (RFQ/عروض/مقارنة/أمر إسناد) بينما **مسؤول العمليات والإصدار** يُصدر في `production` — فصل مهام مطابق لمعيار الوساطة. الدالة `parsePerm(code)` تحوّل رمزاً مثل `"ACEDR"` إلى مجموعة الأعلام المنطقية.
 
 ---
 
@@ -234,7 +236,7 @@ return true;
 
 ```ts
 export class PermissionRowDto {
-  @IsIn(RBAC_MODULES) module!: string;   // أحد الموديولز الـ12
+  @IsIn(RBAC_MODULES) module!: string;   // أحد الموديولز الـ13
   @IsBoolean() canAccess!: boolean;       // A
   @IsBoolean() canCreate!: boolean;       // C
   @IsBoolean() canEdit!: boolean;         // E

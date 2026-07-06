@@ -705,9 +705,12 @@ curl -X POST http://localhost:4000/staff \
 ### التسجيل الذاتي والباقات (عام)
 | الطريقة | المسار | الحماية | الوصف |
 |---|---|---|---|
-| GET | `/signup/plans` | **عام** | كتالوج الباقات: **سعر لكل مستخدم** شهري/سنوي + `trialDays` + **نسبة التوفير** المحسوبة + الموديولز + حدّ المقاعد (لِلاندينق والمعالج) |
-| POST | `/signup` | **عام** | تسجيل ذاتي — يقبل `planCode`/`cycle`/`seatCount` + **onboarding**: `unifiedNumber` (10 أرقام) · `vatNumber` (15) · `phone` (`05XXXXXXXX`). يزوّد المستأجر (اشتراك بالدورة والمقاعد + تجربة الباقة) ويُسجّل الدخول |
-| PUT | `/platform/plans/:code` | سوبر أدمن | يعدّل `seatLimit` + **`priceMonthly`/`priceYearly` (لكل مستخدم)** + **`trialDays`** |
+| GET | `/signup/plans` | **عام** | كتالوج الباقات: **سعر لكل مستخدم** شهري/سنوي + `trialDays` + **نسبة التوفير** المحسوبة + الموديولز (لِلاندينق والمعالج) — **بلا سقف مستخدمين** (التسعير لكل مستخدم) |
+| GET | `/signup/compare` | **عام** | مصفوفة **مقارنة الباقات**: (فئات × باقات × خلايا) مشتقّة من entitlements كل باقة (مشمول/إضافة/حسب الاستخدام/حصّة) — لصفحة `/compare` والقسم المدمج باللاندينق. تنعكس فيها تغييرات السوبر أدمن فورًا |
+| POST | `/signup` | **عام** | تسجيل ذاتي — يقبل `planCode`/`cycle`/`seatCount` (بلا سقف) + **onboarding**: `unifiedNumber` (10 أرقام) · `vatNumber` (15) · `phone` (`05XXXXXXXX`). يزوّد المستأجر (اشتراك بالدورة والمقاعد + تجربة الباقة + **الأقسام السبعة + 12 دورًا مُعدًّا مسبقًا** + شجرة الحسابات) ويُسجّل الدخول |
+| POST | `/signup/lead` | **عام** | **طلب «تواصل معنا» (Lead)** للمؤسسات الكبيرة — `name`/`email` (مطلوبان) + `company`/`phone`/`planCode`/`seats`/`message`. يُنشئ `Lead` لمتابعة المبيعات |
+| PUT | `/platform/plans/:code` | سوبر أدمن | يعدّل **`priceMonthly`/`priceYearly` (لكل مستخدم)** + **`trialDays`** (بلا حدّ مقاعد — التسعير لكل مستخدم) |
+| POST | `/platform/plans/:code/entitlements` | سوبر أدمن | يفعّل/يعطّل أي ميزة/موديول لباقة (`INCLUDED`/`ADDON`/`METERED`/`QUOTA`/`DISABLED`) — ينعكس فورًا في `/signup/compare` |
 | POST | `/billing/checkout` | مصادقة | الإجمالي = سعر المستخدم × المقاعد المشترَك بها |
 
 > **نطاق المنصّة (Platform):** مسارات `/platform/*` لا تخضع لعزل المستأجر بل لبوّابة `PlatformGuard` المستقلّة (نطاق `scope:platform` عابر للمستأجرين). تفصيلها الكامل في [24 — لوحة السوبر أدمن](./24-platform-super-admin.md).

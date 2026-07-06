@@ -391,7 +391,7 @@
   },
   "planFeature": {
     "clients": "Clients & onboarding", "sales": "Sales & requests", "underwriting": "Underwriting & RFQ", "production": "Issuance & policies", "renewals": "Renewals", "service": "Client service", "claims": "Claims", "finance": "Finance & collection", "compliance": "Compliance & audit", "reports": "Reports", "hr": "Human resources",
-    "verification": "Government KYC (Yaqeen/Nafath)", "zatca": "E-invoicing (ZATCA)", "auditImmutable": "Immutable audit log",
+    "verification": "KYC / KYB verification forms", "zatca": "E-invoicing (ZATCA)", "auditImmutable": "Immutable audit log",
     "crm": "CRM pipeline", "producers": "Producers registry", "formTemplates": "Form templates library", "analytics": "Advanced analytics", "approvalChains": "Approval chains", "org": "Org & departments", "mfaEnforce": "Enforced MFA",
     "dlp": "Data governance (DLP + retention)", "api": "API access", "whiteLabel": "White-label branding", "prioritySupport": "Priority support",
     "seats": "Number of users", "storage": "Storage", "upload": "Upload limit", "trial": "Free trial"

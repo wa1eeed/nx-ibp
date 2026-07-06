@@ -391,7 +391,7 @@
   },
   "planFeature": {
     "clients": "العملاء والتأهيل", "sales": "المبيعات والطلبات", "underwriting": "الاكتتاب وعروض الأسعار", "production": "الإصدار والوثائق", "renewals": "التجديدات", "service": "خدمة العملاء", "claims": "المطالبات", "finance": "المالية والتحصيل", "compliance": "الالتزام والتدقيق", "reports": "التقارير", "hr": "الموارد البشرية",
-    "verification": "التحقّق الحكومي (يقين/نفاذ)", "zatca": "الفوترة الإلكترونية (ZATCA)", "auditImmutable": "سجل تدقيق ثابت",
+    "verification": "نماذج التحقق KYC / KYB", "zatca": "الفوترة الإلكترونية (ZATCA)", "auditImmutable": "سجل تدقيق ثابت",
     "crm": "إدارة العلاقات (CRM)", "producers": "سجلّ المنتِجين", "formTemplates": "مكتبة قوالب النماذج", "analytics": "التحليلات المتقدمة", "approvalChains": "سلاسل الاعتماد", "org": "الهيكل الإداري والأقسام", "mfaEnforce": "إلزام المصادقة الثنائية",
     "dlp": "حوكمة البيانات (DLP + احتفاظ)", "api": "الوصول البرمجي (API)", "whiteLabel": "العلامة البيضاء (White-label)", "prioritySupport": "دعم ذو أولوية",
     "seats": "عدد المستخدمين", "storage": "سعة التخزين", "upload": "حد رفع الملف", "trial": "التجربة المجانية"
