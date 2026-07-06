@@ -1,17 +1,16 @@
 /**
- * اختبار حدّ مقاعد الباقة (عدد المستخدمين) — تحقّق:
- *  - سوبر أدمن المنصّة يعدّل `seatLimit` للباقة، ويظهر في قائمة الباقات.
- *  - الشركة ترى مقاعدها المستخدَمة/الحدّ حسب باقتها (`GET /staff/seats`).
- *  - إضافة مستخدم تُرفَض (403) عند بلوغ الحدّ، وتنجح بعد رفعه.
- *  - عزل: مستخدم الشركة لا يعدّل حدّ الباقات (نطاق المنصّة فقط).
- * يُجرى على مستأجر الأمان (باقة basic) لعزله عن بقيّة الاختبارات.
+ * اختبار نموذج التسعير **لكل مستخدم** (بلا سقف من الباقة) + تحكّم السوبر أدمن بالأسعار:
+ *  - السوبر أدمن يعدّل السعر الشهري/السنوي ومدّة التجربة ⇒ يظهر في الكتالوج العام مع نسبة التوفير.
+ *  - `GET /staff/seats` يعيد `limit=null` (بلا حدّ) — التسعير لكل مستخدم.
+ *  - إضافة مستخدم **تنجح بلا سقف** ويتزامن العدّاد المستخدَم (أساس الفوترة).
+ *  - عزل: مستخدم الشركة لا يعدّل الباقات (نطاق المنصّة فقط).
  */
 import { Test } from "@nestjs/testing";
 import { INestApplication, ValidationPipe } from "@nestjs/common";
 import request from "supertest";
 import { AppModule } from "../src/app.module";
 
-describe("حدّ مقاعد الباقة (e2e)", () => {
+describe("التسعير لكل مستخدم (e2e)", () => {
   let app: INestApplication;
   let admin: string; // سوبر أدمن المنصّة
   let omar: string; // مدير عام الأمان (باقة basic)
@@ -31,15 +30,8 @@ describe("حدّ مقاعد الباقة (e2e)", () => {
   });
 
   afterAll(async () => {
-    await request(srv()).put("/platform/plans/basic").set(auth(admin)).send({ seatLimit: 5 }); // استعادة الافتراضي
+    await request(srv()).put("/platform/plans/basic").set(auth(admin)).send({ priceMonthly: 79, priceYearly: 790, trialDays: 14 }); // استعادة الافتراضي
     await app?.close();
-  });
-
-  it("سوبر أدمن المنصّة يعدّل حدّ مستخدمي الباقة ويظهر في الباقات", async () => {
-    const r = await request(srv()).put("/platform/plans/basic").set(auth(admin)).send({ seatLimit: 9 }).expect(200);
-    expect(r.body.seatLimit).toBe(9);
-    const plans = (await request(srv()).get("/platform/plans").set(auth(admin)).expect(200)).body as Array<{ code: string; seatLimit: number }>;
-    expect(plans.find((p) => p.code === "basic")?.seatLimit).toBe(9);
   });
 
   it("سوبر أدمن يعدّل سعر الباقة (شهري/سنوي) ومدة التجربة ⇒ يظهر في الكتالوج العام", async () => {
@@ -47,37 +39,29 @@ describe("حدّ مقاعد الباقة (e2e)", () => {
     expect(Number(r.body.priceMonthly)).toBe(88);
     expect(Number(r.body.priceYearly)).toBe(880);
     expect(r.body.trialDays).toBe(21);
-    // الكتالوج العام (اللاندينق/التسجيل) يعكس التغيير + يحسب نسبة التوفير
-    const pub = (await request(srv()).get("/signup/plans").expect(200)).body as Array<{ code: string; pricePerUserMonthly: number; pricePerUserYearly: number; trialDays: number; savingsPct: number }>;
+    const pub = (await request(srv()).get("/signup/plans").expect(200)).body as Array<{ code: string; pricePerUserMonthly: number; trialDays: number; savingsPct: number }>;
     const basic = pub.find((p) => p.code === "basic")!;
     expect(basic.pricePerUserMonthly).toBe(88);
     expect(basic.trialDays).toBe(21);
     expect(basic.savingsPct).toBe(Math.round((1 - 880 / 12 / 88) * 100)); // ≈17%
-    // استعادة الافتراضي
     await request(srv()).put("/platform/plans/basic").set(auth(admin)).send({ priceMonthly: 79, priceYearly: 790, trialDays: 14 }).expect(200);
   });
 
-  it("الشركة ترى مقاعدها المستخدَمة/الحدّ حسب باقتها", async () => {
+  it("المقاعد بلا سقف من الباقة: /staff/seats يعيد limit=null (تسعير لكل مستخدم)", async () => {
     const s = (await request(srv()).get("/staff/seats").set(auth(omar)).expect(200)).body as { used: number; limit: number | null; planName: string | null };
     expect(typeof s.used).toBe("number");
-    expect(s.limit).toBe(9); // ضُبط في الاختبار السابق
+    expect(s.limit).toBeNull(); // بلا حدّ — التسعير لكل مستخدم
     expect(s.planName).toBeTruthy();
   });
 
-  it("إضافة مستخدم تُرفَض عند بلوغ الحدّ (403)، وتنجح بعد رفعه", async () => {
+  it("إضافة مستخدم تنجح بلا سقف، ويتزامن العدّاد المستخدَم (أساس الفوترة)", async () => {
     const before = (await request(srv()).get("/staff/seats").set(auth(omar)).expect(200)).body as { used: number };
     const uniq = String(Date.now()).slice(-8);
-    // اضبط الحدّ = المستخدَم الحالي ⇒ عند الحدّ تمامًا
-    await request(srv()).put("/platform/plans/basic").set(auth(admin)).send({ seatLimit: before.used }).expect(200);
-    await request(srv()).post("/staff").set(auth(omar)).send(newUser(`seat-block-${uniq}@aman-demo.sa`)).expect(403);
-    // ارفع الحدّ ⇒ تنجح الإضافة
-    await request(srv()).put("/platform/plans/basic").set(auth(admin)).send({ seatLimit: before.used + 3 }).expect(200);
-    await request(srv()).post("/staff").set(auth(omar)).send(newUser(`seat-ok-${uniq}@aman-demo.sa`)).expect(201);
-    // المقاعد المستخدَمة زادت واحدًا
+    await request(srv()).post("/staff").set(auth(omar)).send(newUser(`seat-${uniq}@aman-demo.sa`)).expect(201);
     const after = (await request(srv()).get("/staff/seats").set(auth(omar)).expect(200)).body as { used: number };
-    expect(after.used).toBe(before.used + 1);
+    expect(after.used).toBe(before.used + 1); // الفوترة تتبع العدد الفعلي
   });
 
-  it("عزل: مستخدم الشركة لا يعدّل حدّ الباقات (نطاق المنصّة فقط) ⇒ 403", () =>
-    request(srv()).put("/platform/plans/basic").set(auth(omar)).send({ seatLimit: 50 }).expect(403));
+  it("عزل: مستخدم الشركة لا يعدّل الباقات (نطاق المنصّة فقط) ⇒ 403", () =>
+    request(srv()).put("/platform/plans/basic").set(auth(omar)).send({ priceMonthly: 1 }).expect(403));
 });

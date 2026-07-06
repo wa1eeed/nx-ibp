@@ -359,6 +359,7 @@
     "perUserYr": "per user/yr",
     "daysShort": "d",
     "seatCount": "Number of users",
+    "perUserNote": "add any number — priced per user",
     "upTo": "up to",
     "onboarding": "Company details",
     "unifiedNumber": "Unified national number",
@@ -390,7 +391,7 @@
   },
   "compare": {
     "title": "Compare plans", "heading": "Compare plans", "sub": "Every plan includes the operational and IA-compliance essentials. Tiers differ on advanced features and quotas.",
-    "backHome": "Home", "perUserMo": "SAR/user/mo", "perUserYr": "SAR/user/yr", "choose": "Choose", "upTo": "up to", "days": "days", "addon": "Add-on", "footnote": "Any firm can upgrade anytime. Prices are per user.",
+    "backHome": "Home", "featuresCol": "Features", "billedMonthly": "Billed monthly", "billedYearly": "Billed yearly", "trialShort": "{days}d free", "perUserMo": "SAR/user/mo", "perUserYr": "SAR/user/yr", "choose": "Choose", "upTo": "up to", "days": "days", "addon": "Add-on", "footnote": "Any firm can upgrade anytime. Prices are per user.",
     "cat": { "core": "Operations & compliance (core)", "growth": "Growth & efficiency", "enterprise": "Enterprise & governance", "limits": "Limits & quotas" }
   },
   "billing": {
@@ -872,6 +873,7 @@
       "perUserYr": "/user/yr",
       "trialDays": "Trial days",
       "savePricing": "Save pricing",
+      "perUserModel": "Per-user pricing (no user cap)",
       "features": "Modules & features",
       "toggleHint": "click to toggle"
     }

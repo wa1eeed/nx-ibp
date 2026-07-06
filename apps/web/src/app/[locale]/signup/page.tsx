@@ -45,7 +45,7 @@ export default function SignupPage() {
   const unifiedValid = ob.unifiedNumber.length === 10;
   const phoneValid = /^05\d{8}$/.test(ob.phone);
   const vatValid = ob.vatNumber === "" || ob.vatNumber.length === 15;
-  const seatValid = plan ? seatCount >= 1 && seatCount <= plan.seatLimit : false;
+  const seatValid = seatCount >= 1; // تسعير لكل مستخدم، بلا سقف من الباقة
   const step2Valid = !!plan && seatValid && unifiedValid && phoneValid && vatValid;
 
   async function submit() {
@@ -121,7 +121,7 @@ export default function SignupPage() {
                 {plans.map((p) => {
                   const pu = yearly ? p.pricePerUserYearly : p.pricePerUserMonthly;
                   return (
-                    <button key={p.code} onClick={() => { setPlanCode(p.code); if (seatCount > p.seatLimit) setSeatCount(p.seatLimit); }} className={`rounded-lg border p-2.5 text-start transition-colors ${planCode === p.code ? "border-primary ring-1 ring-primary/30 bg-primary/5" : "border-line hover:bg-surface-2"}`}>
+                    <button key={p.code} onClick={() => setPlanCode(p.code)} className={`rounded-lg border p-2.5 text-start transition-colors ${planCode === p.code ? "border-primary ring-1 ring-primary/30 bg-primary/5" : "border-line hover:bg-surface-2"}`}>
                       <div className="text-[12.5px] font-bold text-ink">{t(`plan${p.code.charAt(0).toUpperCase()}${p.code.slice(1)}`)}</div>
                       <div className="text-[13px] font-bold text-primary-strong tnum">{fmt(pu)} <span className="text-[10px] font-normal text-subtle">{tg("common.sar")}</span></div>
                       <div className="text-[10px] text-subtle">{yearly ? t("perUserYr") : t("perUserMo")}</div>
@@ -135,8 +135,8 @@ export default function SignupPage() {
 
             {/* عدد المستخدمين */}
             <label className="block">
-              <span className={label}><Users size={12} className="inline" /> {t("seatCount")} {plan ? <span className="text-subtle">({t("upTo")} {plan.seatLimit})</span> : null}</span>
-              <input type="number" min={1} max={plan?.seatLimit ?? 1} value={seatCount} onChange={(e) => setSeatCount(Math.max(1, Math.min(plan?.seatLimit ?? 1, Math.round(Number(e.target.value) || 1))))} className={`${field} tnum`} />
+              <span className={label}><Users size={12} className="inline" /> {t("seatCount")} <span className="text-subtle">({t("perUserNote")})</span></span>
+              <input type="number" min={1} value={seatCount} onChange={(e) => setSeatCount(Math.max(1, Math.round(Number(e.target.value) || 1)))} className={`${field} tnum`} />
             </label>
 
             {/* onboarding — بيانات المنشأة (تحقّق بعدد الخانات) */}

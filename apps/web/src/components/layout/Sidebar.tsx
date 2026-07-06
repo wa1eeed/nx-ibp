@@ -25,6 +25,7 @@ import {
   ListChecks,
   KanbanSquare,
   Handshake,
+  X,
   type LucideIcon,
 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -32,6 +33,7 @@ import { useTranslations } from "next-intl";
 import { TENANT_NAV, type NavItem } from "@ibp/shared";
 import { Link, usePathname } from "@/i18n/routing";
 import { api, getToken } from "@/lib/api";
+import { useMobileNav } from "./MobileNavContext";
 
 // شارة «وضع التجربة» تظهر في التطوير المحلي فقط — تُخفى في الإنتاج/staging.
 const DEV_ONLY = process.env.NODE_ENV !== "production";
@@ -90,9 +92,10 @@ export function Sidebar() {
   // قبل تحميل الصلاحيات لا نُظهر شيئًا (تفاديًا لوميض أقسام غير مخوّلة).
   const canSee = (item: NavItem) => perms !== null && perms[requiredModule(item)]?.access === true;
   const groups = TENANT_NAV.map((g) => ({ ...g, items: g.items.filter(canSee) })).filter((g) => g.items.length > 0);
+  const { open, setOpen } = useMobileNav();
 
-  return (
-    <aside className="sticky top-0 hidden h-screen w-[248px] shrink-0 flex-col border-e border-line bg-card lg:flex">
+  const content = (
+    <>
       {/* العلامة */}
       <div className="flex items-center gap-2.5 px-5 py-4">
         <div className="grid h-9 w-9 place-items-center rounded-xl bg-primary text-primary-fg shadow-sm">
@@ -135,6 +138,7 @@ export function Sidebar() {
                   <li key={item.key}>
                     <Link
                       href={item.href}
+                      onClick={() => setOpen(false)}
                       className={[
                         "flex items-center gap-3 rounded-lg px-3 py-2 text-[13.5px] transition-colors",
                         active
@@ -163,6 +167,24 @@ export function Sidebar() {
           <p className="mt-0.5 ps-4 text-[11px] leading-snug text-subtle">{t("demo.subtitle")}</p>
         </div>
       ) : null}
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* سطح المكتب: قائمة جانبية ثابتة */}
+      <aside className="sticky top-0 hidden h-screen w-[248px] shrink-0 flex-col border-e border-line bg-card lg:flex">{content}</aside>
+
+      {/* الموبايل: درج منزلق مع تعتيم — يُفتح من زر Topbar */}
+      {open ? (
+        <div className="fixed inset-0 z-40 lg:hidden">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setOpen(false)} />
+          <aside className="absolute inset-y-0 start-0 flex w-[268px] max-w-[82%] flex-col overflow-hidden bg-card shadow-2xl">
+            <button onClick={() => setOpen(false)} aria-label="close" className="absolute end-3 top-3.5 z-10 grid h-8 w-8 place-items-center rounded-lg text-subtle hover:bg-surface-2 hover:text-ink"><X size={18} /></button>
+            {content}
+          </aside>
+        </div>
+      ) : null}
+    </>
   );
 }

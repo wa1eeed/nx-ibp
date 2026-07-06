@@ -65,7 +65,7 @@ export class SignupService {
       { category: "core", features: ["module.clients", "module.sales", "module.underwriting", "module.production", "module.renewals", "module.service", "module.claims", "module.finance", "feature.verification", "feature.zatca", "module.compliance", "feature.auditImmutable", "module.reports"] },
       { category: "growth", features: ["feature.crm", "feature.producers", "feature.formTemplates", "feature.analytics", "feature.approvalChains", "feature.org", "feature.mfaEnforce"] },
       { category: "enterprise", features: ["module.hr", "feature.dlp", "feature.api", "feature.whiteLabel", "feature.prioritySupport"] },
-      { category: "limits", features: ["seats", "storage.quotaMb", "upload.maxFileMb", "trialDays"] },
+      { category: "limits", features: ["storage.quotaMb", "upload.maxFileMb", "trialDays"] },
     ];
     const plans = await this.prisma.plan.findMany({
       orderBy: { priceMonthly: "asc" },
@@ -125,7 +125,7 @@ export class SignupService {
   private async provision(dto: SignupDto, email: string, plan: { id: string; seatLimit: number; trialDays: number }, passwordHash: string) {
     const productLines = await this.prisma.productLine.findMany({ select: { code: true } });
     const enabledProducts = productLines.map((l) => l.code);
-    const seats = Math.min(Math.max(1, dto.seatCount ?? 1), plan.seatLimit); // عدد المستخدمين، لا يتجاوز حدّ الباقة
+    const seats = Math.max(1, dto.seatCount ?? 1); // عدد المستخدمين (تسعير لكل مستخدم، بلا سقف من الباقة)
     const cycle = dto.cycle === "YEARLY" ? "YEARLY" : "MONTHLY";
     const trialDays = plan.trialDays > 0 ? plan.trialDays : TRIAL_DAYS; // تجربة الباقة، أو الافتراضي
 

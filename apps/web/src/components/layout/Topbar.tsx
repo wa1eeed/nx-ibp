@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Search, LogOut, ChevronDown } from "lucide-react";
+import { Search, LogOut, ChevronDown, Menu } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { LocaleSwitcher } from "./LocaleSwitcher";
 import { NotificationBell } from "./NotificationBell";
+import { useMobileNav } from "./MobileNavContext";
 import { api, clearToken, getToken } from "@/lib/api";
 import { useRouter } from "@/i18n/routing";
 
@@ -15,6 +16,7 @@ export function Topbar() {
   const router = useRouter();
   const [me, setMe] = useState<Me | null>(null);
   const [open, setOpen] = useState(false);
+  const mobileNav = useMobileNav();
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -40,6 +42,11 @@ export function Topbar() {
 
   return (
     <header className="sticky top-0 z-10 flex h-16 items-center gap-3 border-b border-line bg-topbar/95 px-5 backdrop-blur sm:px-7">
+      {/* زر القائمة للموبايل */}
+      <button type="button" onClick={() => mobileNav.setOpen(true)} aria-label="menu" className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-line bg-card text-muted hover:bg-surface-2 hover:text-ink lg:hidden">
+        <Menu size={18} />
+      </button>
+
       {/* بحث */}
       <div className="relative hidden max-w-xl flex-1 sm:block">
         <Search

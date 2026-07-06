@@ -27,7 +27,6 @@ export default function AdminPlansPage() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [drafts, setDrafts] = useState<Record<string, string>>({});      // حد الرفع (MB)
   const [storageGb, setStorageGb] = useState<Record<string, string>>({}); // حصّة التخزين (GB)
-  const [seats, setSeats] = useState<Record<string, string>>({});         // حد المستخدمين (المقاعد)
   const [priceM, setPriceM] = useState<Record<string, string>>({});       // السعر/مستخدم/شهر
   const [priceY, setPriceY] = useState<Record<string, string>>({});       // السعر/مستخدم/سنة
   const [trial, setTrial] = useState<Record<string, string>>({});         // أيام التجربة
@@ -40,7 +39,6 @@ export default function AdminPlansPage() {
     const num = (p: Plan, key: string, fallback: number) => p.entitlements.find((e) => e.featureKey === key)?.numericValue ?? fallback;
     setDrafts(Object.fromEntries(data.map((p) => [p.code, String(num(p, UPLOAD_KEY, 10))])));
     setStorageGb(Object.fromEntries(data.map((p) => [p.code, String(Math.round((num(p, STORAGE_KEY, 1024) / 1024) * 10) / 10)])));
-    setSeats(Object.fromEntries(data.map((p) => [p.code, String(p.seatLimit)])));
     setPriceM(Object.fromEntries(data.map((p) => [p.code, String(p.priceMonthly)])));
     setPriceY(Object.fromEntries(data.map((p) => [p.code, String(p.priceYearly)])));
     setTrial(Object.fromEntries(data.map((p) => [p.code, String(p.trialDays ?? 0)])));
@@ -81,17 +79,6 @@ export default function AdminPlansPage() {
     } catch (e) { setError(e instanceof ApiError ? e.message : "خطأ"); }
   }
 
-  // حد المستخدمين (المقاعد) — عبر PUT /platform/plans/:code
-  async function saveSeats(code: string) {
-    setError(""); setSaved("");
-    const n = Math.round(Number(seats[code]));
-    if (!Number.isFinite(n) || n < 1) { setError(t("admin.login.error")); return; }
-    try {
-      await papi(`/platform/plans/${code}`, { method: "PUT", body: JSON.stringify({ seatLimit: n }) });
-      setSaved(`${code}:seatLimit`);
-      await load();
-    } catch (e) { setError(e instanceof ApiError ? e.message : "خطأ"); }
-  }
 
   return (
     <AdminShell>
@@ -116,7 +103,7 @@ export default function AdminPlansPage() {
               </div>
 
               <div className="mb-3 flex items-center gap-4 text-[12px] text-muted">
-                <span className="inline-flex items-center gap-1.5"><Users size={14} /> {p.seatLimit} {t("admin.tenants.col.seats")}</span>
+                <span className="inline-flex items-center gap-1.5"><Users size={14} /> {t("admin.plans.perUserModel")}</span>
                 <span>{p._count.subscriptions} {t("admin.usage.tenants")}</span>
               </div>
 
@@ -149,15 +136,6 @@ export default function AdminPlansPage() {
                   <button onClick={() => savePricing(p.code)} className="mt-1.5 inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-lg bg-ink px-3 text-[12.5px] font-semibold text-white hover:opacity-90">
                     {saved === `${p.code}:pricing` ? <Check size={15} /> : <Save size={15} />} {saved === `${p.code}:pricing` ? t("admin.plans.saved") : t("admin.plans.savePricing")}
                   </button>
-                </div>
-                <div>
-                  <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-subtle">{t("admin.plans.seatLimit")}</label>
-                  <div className="flex items-center gap-2">
-                    <input type="number" min={1} value={seats[p.code] ?? ""} onChange={(e) => setSeats((d) => ({ ...d, [p.code]: e.target.value }))} className="h-9 w-24 rounded-lg border border-line bg-card px-3 text-[13px] tnum" />
-                    <button onClick={() => saveSeats(p.code)} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-ink px-3 text-[12.5px] font-semibold text-white hover:opacity-90">
-                      {saved === `${p.code}:seatLimit` ? <Check size={15} /> : <Save size={15} />} {saved === `${p.code}:seatLimit` ? t("admin.plans.saved") : t("admin.plans.save")}
-                    </button>
-                  </div>
                 </div>
                 <div>
                   <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-subtle">{t("admin.plans.uploadLimit")}</label>

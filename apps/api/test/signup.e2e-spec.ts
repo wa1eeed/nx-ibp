@@ -99,10 +99,10 @@ describe("التسجيل الذاتي (e2e)", () => {
   it("رقم جوال غير صحيح (لا يبدأ بـ05) ⇒ 400", () =>
     request(srv()).post("/signup").send(payload({ phone: "0491234567" })).expect(400));
 
-  it("عدد مستخدمين يتجاوز حدّ الباقة يُقصَر على الحدّ (basic=5)", async () => {
-    const res = await request(srv()).post("/signup").send(payload({ planCode: "basic", seatCount: 999 })).expect(201);
+  it("عدد المستخدمين بلا سقف من الباقة (تسعير لكل مستخدم) — يُحفَظ كما اختاره العميل", async () => {
+    const res = await request(srv()).post("/signup").send(payload({ planCode: "basic", seatCount: 40 })).expect(201);
     const auth = { Authorization: `Bearer ${res.body.accessToken}` };
     const sub = await request(srv()).get("/billing/subscription").set(auth).expect(200);
-    expect(sub.body.subscription.seatsUsed).toBeLessThanOrEqual(5);
+    expect(sub.body.subscription.seatsUsed).toBe(40); // لا يُقصَر — التسعير لكل مستخدم
   });
 });
