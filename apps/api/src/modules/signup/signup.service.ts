@@ -5,8 +5,18 @@ import { PrismaService } from "../../prisma/prisma.service";
 import { AuditService } from "../../common/audit/audit.service";
 import { RateLimitService } from "../../common/security/rate-limit.service";
 import { RequestContextService } from "../../common/request-context/request-context.service";
-import { RBAC_MODULES } from "../rbac/rbac.constants";
+import { RBAC_MODULES, PRESET_ROLES, parsePerm } from "../rbac/rbac.constants";
 import type { SignupDto } from "./dto/signup.dto";
+
+/** الأقسام الافتراضية لشركة الوساطة (هيكل تنظيمي جاهز) + دورها الافتراضي الموروَّث عند إسناد موظف. */
+const DEFAULT_DEPARTMENTS: Array<{ name: string; role: string }> = [
+  { name: "المبيعات وتطوير الأعمال", role: "sales_rep" },
+  { name: "الالتزام والمطابقة", role: "compliance_manager" },
+  { name: "الاكتتاب الفني", role: "pricing_officer" },
+  { name: "الإدارة المالية والمحاسبة", role: "accountant" },
+  { name: "خدمة العملاء", role: "customer_care_manager" },
+  { name: "إدارة المطالبات", role: "claims_officer" },
+];
 
 const DEFAULT_PLAN = "basic";
 const TRIAL_DAYS = 14;
@@ -160,14 +170,23 @@ export class SignupService {
 
       await tx.branch.create({ data: { tenantId, code: "HQ", name: "الفرع الرئيسي" } });
 
-      // دور المالك: وصول كامل لكل الموديولز (المدير ينشئ بقية الأدوار/الأقسام لاحقاً)
-      const role = await tx.role.create({ data: { tenantId, name: "مالك الحساب", isPreset: true }, select: { id: true } });
-      await tx.permission.createMany({
-        data: RBAC_MODULES.map((m) => ({ roleId: role.id, module: m, canAccess: true, canCreate: true, canEdit: true, canDelete: true, canRevert: true })),
-      });
+      // كل الأدوار المُعدّة مسبقًا (مصفوفة الصلاحيات المطابقة لأقسام شركة الوساطة السعودية) جاهزة للحساب الجديد.
+      const roleIdByCode: Record<string, string> = {};
+      for (const r of PRESET_ROLES) {
+        const role = await tx.role.create({ data: { tenantId, name: r.nameAr, isPreset: true }, select: { id: true } });
+        roleIdByCode[r.code] = role.id;
+        await tx.permission.createMany({ data: RBAC_MODULES.map((m) => ({ roleId: role.id, module: m, ...parsePerm(r.matrix[m]) })) });
+      }
 
+      // الهيكل التنظيمي الافتراضي: «الإدارة العليا» جذرًا + الأقسام الستة فروعًا، لكلٍّ دوره الافتراضي الموروَّث عند إسناد موظف.
+      const mgmt = await tx.department.create({ data: { tenantId, name: "الإدارة العليا", defaultRoleId: roleIdByCode.general_manager }, select: { id: true } });
+      for (const d of DEFAULT_DEPARTMENTS) {
+        await tx.department.create({ data: { tenantId, name: d.name, parentId: mgmt.id, defaultRoleId: roleIdByCode[d.role] ?? null } });
+      }
+
+      // المدير (المالك) = دور المدير العام (وصول كامل) ضمن قسم الإدارة العليا.
       const user = await tx.user.create({
-        data: { tenantId, email, fullName: dto.adminName, status: "ACTIVE", roleId: role.id, passwordHash },
+        data: { tenantId, email, fullName: dto.adminName, status: "ACTIVE", roleId: roleIdByCode.general_manager, departmentId: mgmt.id, passwordHash },
         select: { id: true },
       });
 
@@ -191,7 +210,7 @@ export class SignupService {
       }
       await tx.costCenter.create({ data: { tenantId, code: "HQ", name: "الفرع الرئيسي", level: 1 } });
 
-      return { tenantId, userId: user.id, roleId: role.id };
+      return { tenantId, userId: user.id, roleId: roleIdByCode.general_manager };
     });
   }
 }

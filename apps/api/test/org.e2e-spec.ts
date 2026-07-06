@@ -29,15 +29,19 @@ describe("الهيكل الإداري (e2e)", () => {
   });
   afterAll(async () => { await app?.close(); });
 
-  it("ينشئ أقسامًا هرمية ويعيد شجرة", async () => {
+  it("الحساب الجديد مزوّد بهيكل افتراضي (الإدارة العليا + 6 أقسام) + إضافة قسم فرعي", async () => {
     const { token } = await newOwner();
-    const parent = await request(srv()).post("/org/departments").set(auth(token)).send({ name: "الإدارة العامة" }).expect(201);
-    await request(srv()).post("/org/departments").set(auth(token)).send({ name: "قسم المبيعات", parentId: parent.body.id }).expect(201);
+    // هيكل تنظيمي افتراضي جاهز عند التسجيل: جذر «الإدارة العليا» + 6 أقسام تشغيلية
+    const initial = await request(srv()).get("/org/departments").set(auth(token)).expect(200);
+    expect(initial.body.length).toBe(1); // جذر واحد
+    expect(initial.body[0].name).toBe("الإدارة العليا");
+    expect(initial.body[0].children.length).toBe(6);
+    // إضافة قسم فرعي جديد تحت الجذر
+    const rootId = initial.body[0].id as string;
+    await request(srv()).post("/org/departments").set(auth(token)).send({ name: "قسم جديد", parentId: rootId }).expect(201);
     const tree = await request(srv()).get("/org/departments").set(auth(token)).expect(200);
-    expect(tree.body.length).toBe(1); // جذر واحد
-    expect(tree.body[0].name).toBe("الإدارة العامة");
-    expect(tree.body[0].children.length).toBe(1);
-    expect(tree.body[0].children[0].name).toBe("قسم المبيعات");
+    expect(tree.body[0].children.length).toBe(7);
+    expect(tree.body[0].children.some((c: { name: string }) => c.name === "قسم جديد")).toBe(true);
   });
 
   it("إسناد موظف لقسم بدور افتراضي ⇒ يرث الدور", async () => {

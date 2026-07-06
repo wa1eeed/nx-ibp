@@ -52,7 +52,7 @@ describe("لوحة السوبر أدمن (e2e)", () => {
     const detail = await request(app.getHttpServer()).get(`/platform/tenants/${tenantId}`).set(auth(platform)).expect(200);
     expect(detail.body.owner.email).toBe(email);
     expect(detail.body.users[0].email).toBe(email);
-    expect(detail.body.users[0].role.name).toBe("مالك الحساب"); // سوبر أدمن الشركة
+    expect(detail.body.users[0].role.name).toBe("المدير العام"); // مالك الشركة = المدير العام (كل الصلاحيات)
   });
 
   it("مستخدم المستأجر ممنوع من لوحة المنصّة ⇒ 403", () =>

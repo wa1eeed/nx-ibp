@@ -51,6 +51,27 @@ describe("التسجيل الذاتي (e2e)", () => {
     expect(clients.body.length).toBe(0);
   });
 
+  it("الحساب الجديد مزوّد بالأقسام السبعة + كل الأدوار المُعدّة مسبقًا (جاهز للتشغيل)", async () => {
+    const res = await request(srv()).post("/signup").send(payload()).expect(201);
+    const auth = { Authorization: `Bearer ${res.body.accessToken}` };
+
+    // الأدوار المُعدّة مسبقًا (12) جاهزة بمصفوفة صلاحيات كل قسم
+    const roles = (await request(srv()).get("/staff/roles").set(auth).expect(200)).body as Array<{ name: string; permissions: Array<{ module: string; canAccess: boolean; canCreate: boolean }> }>;
+    expect(roles.length).toBeGreaterThanOrEqual(12);
+    for (const nm of ["المدير العام", "مدير الالتزام", "مكتتب (مسؤول التسعير)", "المحاسب / مدير مالي", "مسؤول المطالبات"])
+      expect(roles.some((r) => r.name === nm)).toBe(true);
+    // صلاحيات القسم مضبوطة فعليًا: مكتتب لديه إنشاء الاكتتاب، وليس المالية
+    const uw = roles.find((r) => r.name.includes("مكتتب"))!;
+    expect(uw.permissions.find((p) => p.module === "underwriting")?.canCreate).toBe(true);
+    expect(uw.permissions.find((p) => p.module === "finance")?.canAccess).toBe(false);
+
+    // الهيكل التنظيمي: الإدارة العليا + الأقسام الستة جاهزة
+    const tree = (await request(srv()).get("/org/departments").set(auth).expect(200)).body;
+    const json = JSON.stringify(tree);
+    for (const dept of ["الإدارة العليا", "المبيعات وتطوير الأعمال", "الالتزام والمطابقة", "الاكتتاب الفني", "الإدارة المالية والمحاسبة", "خدمة العملاء", "إدارة المطالبات"])
+      expect(json.includes(dept)).toBe(true);
+  });
+
   it("البريد المكرّر ⇒ 409", async () => {
     const p = payload();
     await request(srv()).post("/signup").send(p).expect(201);
