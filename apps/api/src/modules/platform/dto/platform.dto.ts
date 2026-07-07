@@ -6,6 +6,11 @@ export class PlatformLoginDto {
   @IsOptional() @IsString() mfaCode?: string; // مطلوب إن كانت المصادقة الثنائية مفعّلة
 }
 
+/** تحديث حالة طلب تواصل مبيعات (Lead). */
+export class LeadStatusDto {
+  @IsIn(["new", "contacted", "closed"]) status!: "new" | "contacted" | "closed";
+}
+
 export class MfaCodeDto {
   @IsString() code!: string; // رمز TOTP المكوّن من 6 أرقام
 }

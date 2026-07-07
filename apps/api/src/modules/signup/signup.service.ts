@@ -97,12 +97,19 @@ export class SignupService {
     return { categories, plans: rows };
   }
 
-  /** يسجّل طلب تواصل مبيعات (Lead) للباقات الكبيرة — مع كبح إساءة الإرسال. */
+  /**
+   * يسجّل طلب تواصل مبيعات (Lead). يُسمح بطلبات متعدّدة من نفس البريد (استفسارات مختلفة/صفحات
+   * مختلفة)؛ نمنع فقط **الإرسال المزدوج السريع** (نقرة مكرّرة خلال 60 ثانية) بإعادة الطلب نفسه.
+   */
   async createLead(dto: { name: string; email: string; company?: string; phone?: string; planCode?: string; seats?: number; message?: string }) {
     const email = dto.email.toLowerCase().trim();
-    await this.rateLimit.assertNotLocked("lead", email);
+    const recent = await this.prisma.lead.findFirst({
+      where: { email, createdAt: { gte: new Date(Date.now() - 60_000) } },
+      orderBy: { createdAt: "desc" },
+      select: { id: true },
+    });
+    if (recent) return { ok: true, id: recent.id }; // idempotent — لا تُنشئ نسخة مكرّرة عند النقر السريع
     const lead = await this.prisma.lead.create({ data: { name: dto.name.trim(), email, company: dto.company ?? null, phone: dto.phone ?? null, planCode: dto.planCode ?? null, seats: dto.seats ?? null, message: dto.message ?? null } });
-    await this.rateLimit.recordFailure("lead", email); // عدّاد بسيط لكبح التكرار
     this.logger.log(`طلب تواصل مبيعات جديد: ${dto.name} (${email})${dto.company ? ` — ${dto.company}` : ""}`);
     return { ok: true, id: lead.id };
   }

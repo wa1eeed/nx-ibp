@@ -696,6 +696,8 @@ curl -X POST http://localhost:4000/staff \
 | `GET` | `/platform/tenants` · `/tenants/:id` | PlatformGuard (نطاق المنصّة) | 200 |
 | `POST` | `/platform/tenants/:id/status` | PlatformGuard | 200 |
 | `GET` | `/platform/plans` · `/usage` | PlatformGuard | 200 |
+| `GET` | `/platform/leads` | PlatformGuard | **طلبات التواصل مع المبيعات** (Lead) — أحدث أولًا (لصفحة `/admin/leads`) |
+| `POST` | `/platform/leads/:id/status` | PlatformGuard | تحديث حالة الطلب (`new`/`contacted`/`closed`) — حالة خاطئة ⇒ 400 |
 | `POST` | `/platform/plans/:code/entitlements` | PlatformGuard | 201 |
 | `PUT` | `/platform/plans/:code` | PlatformGuard | **حدّ المقاعد (`seatLimit`)** + الاسم/الأسعار |
 | `GET` | `/staff/seats` | settings:read | مقاعد الشركة `{ used, limit, planName }` — الإنشاء يُرفَض 403 عند الحدّ |

@@ -3,7 +3,7 @@ import { PlatformService } from "./platform.service";
 import { PlatformGuard } from "./platform.guard";
 import { NotificationsService } from "../notifications/notifications.service";
 import { UpdateNotificationDto } from "../notifications/dto/notification.dto";
-import { MfaCodeDto, PlatformLoginDto, TenantStatusDto, UpdateEntitlementDto, UpdatePlanDto } from "./dto/platform.dto";
+import { LeadStatusDto, MfaCodeDto, PlatformLoginDto, TenantStatusDto, UpdateEntitlementDto, UpdatePlanDto } from "./dto/platform.dto";
 import { Public } from "../auth/public.decorator";
 import { CurrentUser } from "../auth/current-user.decorator";
 
@@ -84,6 +84,18 @@ export class PlatformController {
   @Get("usage")
   usage() {
     return this.platform.usage();
+  }
+
+  // ----- طلبات التواصل مع المبيعات (Leads) -----
+  @Get("leads")
+  leads() {
+    return this.platform.leads();
+  }
+
+  @HttpCode(200)
+  @Post("leads/:id/status")
+  updateLeadStatus(@CurrentUser("userId") adminId: string, @Param("id") id: string, @Body() dto: LeadStatusDto) {
+    return this.platform.updateLeadStatus(id, dto.status, adminId);
   }
 
   /** مراجعة/تصدير سجل التدقيق (لمفتّشي الهيئة). */

@@ -955,7 +955,16 @@
     "brand": "IBP Platform",
     "subtitle": "Platform control panel",
     "logout": "Sign out",
-    "nav": { "usage": "Usage", "tenants": "Accounts", "plans": "Plans", "notifications": "Notifications", "security": "Security" },
+    "nav": { "usage": "Usage", "tenants": "Accounts", "leads": "Leads", "plans": "Plans", "notifications": "Notifications", "security": "Security" },
+    "leads": {
+      "title": "Sales contact requests",
+      "subtitle": "“Contact us” requests from large plans and the ownership page — for follow-up.",
+      "empty": "No requests yet",
+      "name": "Name", "email": "Email", "company": "Company", "phone": "Phone", "plan": "Plan", "seats": "Users", "message": "Message", "date": "Date", "status": "Status",
+      "new": "New", "contacted": "Contacted", "closed": "Closed",
+      "markContacted": "Mark contacted", "markClosed": "Close", "reopen": "Reopen",
+      "error": "Operation failed"
+    },
     "login": {
       "title": "Super Admin sign-in",
       "submit": "Sign in",

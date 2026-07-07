@@ -186,4 +186,24 @@ export class PlatformService {
     ]);
     return { tenants, users, clients, policies, requests, claims, verificationChecks };
   }
+
+  /** طلبات التواصل مع المبيعات (Leads) — عابرة للمستأجرين، أحدث أولًا. */
+  leads() {
+    return this.prisma.lead.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 500,
+      select: { id: true, name: true, email: true, company: true, phone: true, planCode: true, seats: true, message: true, status: true, createdAt: true },
+    });
+  }
+
+  /** تحديث حالة طلب تواصل (new | contacted | closed). */
+  async updateLeadStatus(id: string, status: string, adminId: string) {
+    const allowed = ["new", "contacted", "closed"];
+    if (!allowed.includes(status)) throw new BadRequestException("حالة غير معروفة");
+    const lead = await this.prisma.lead.findFirst({ where: { id }, select: { id: true } });
+    if (!lead) throw new NotFoundException("الطلب غير موجود");
+    await this.prisma.lead.update({ where: { id }, data: { status } });
+    await this.audit.log({ tenantId: "platform", userId: adminId, action: "update", entity: "lead", entityId: id, meta: { status } });
+    return { id, status };
+  }
 }

@@ -73,6 +73,27 @@ describe("لوحة السوبر أدمن (e2e)", () => {
     expect(Number(res.body.numericValue)).toBe(15);
   });
 
+  it("طلبات التواصل (Leads): السوبر أدمن يراها ويحدّث حالتها؛ والإرسال المتكرّر لا يُقفَل", async () => {
+    const email = `lead-plat-${Date.now()}@corp.sa`;
+    // إرسالان سريعان بنفس البريد ⇒ لا يُقفَل، ويُعاد نفس المعرّف (idempotent خلال 60 ثانية)
+    const a = await request(app.getHttpServer()).post("/signup/lead").send({ name: "مؤسسة كبيرة", email, company: "شركة", planCode: "enterprise", seats: 120 }).expect(201);
+    const b = await request(app.getHttpServer()).post("/signup/lead").send({ name: "مؤسسة كبيرة", email, company: "شركة", planCode: "enterprise", seats: 120 }).expect(201);
+    expect(b.body.id).toBe(a.body.id);
+    // السوبر أدمن يرى الطلب
+    const leads = (await request(app.getHttpServer()).get("/platform/leads").set(auth(platform)).expect(200)).body as Array<{ id: string; email: string; status: string }>;
+    const row = leads.find((l) => l.id === a.body.id);
+    expect(row).toBeTruthy();
+    expect(row!.status).toBe("new");
+    // تحديث الحالة ⇒ contacted
+    await request(app.getHttpServer()).post(`/platform/leads/${a.body.id}/status`).set(auth(platform)).send({ status: "contacted" }).expect(200);
+    const after = (await request(app.getHttpServer()).get("/platform/leads").set(auth(platform)).expect(200)).body as Array<{ id: string; status: string }>;
+    expect(after.find((l) => l.id === a.body.id)!.status).toBe("contacted");
+    // مستخدم مستأجر ممنوع من طلبات المنصّة ⇒ 403
+    await request(app.getHttpServer()).get("/platform/leads").set(auth(tenantUser)).expect(403);
+    // حالة غير معروفة ⇒ 400
+    await request(app.getHttpServer()).post(`/platform/leads/${a.body.id}/status`).set(auth(platform)).send({ status: "nope" }).expect(400);
+  });
+
   it("السوبر أدمن يعلّق ويعيد تفعيل مستأجر", async () => {
     const s = await request(app.getHttpServer()).post("/platform/tenants/demo-tenant-2/status").set(auth(platform)).send({ status: "SUSPENDED" }).expect(200);
     expect(s.body.status).toBe("SUSPENDED");
