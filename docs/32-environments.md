@@ -38,7 +38,21 @@
 | البيانات | seed وهمية | `seed:demo` (وهمية واقعية) | `seed:prod` ثم GIB حقيقي عبر `/signup` |
 
 ### تفعيل البريد والتخزين على staging (متغيّرات Coolify)
-كل هذه تُضبط في **متغيّرات بيئة الـAPI في Coolify** (لا في الريبو — أسرار). الحاوية تمرّرها عبر [compose](../infra/docker/docker-compose.coolify.yml):
+كل هذه تُضبط في **متغيّرات بيئة الـAPI في Coolify** (لا في الريبو — أسرار). الحاوية تمرّرها عبر [compose](../infra/docker/docker-compose.coolify.yml).
+
+#### من أين تأخذ قيم R2 (Cloudflare)
+1. لوحة Cloudflare → **R2** → **Create bucket** (مثلاً `ibp-staging`).
+2. **R2 → Manage R2 API Tokens → Create API Token** → صلاحية **Object Read & Write** (يُفضّل حصرها بالدلو) → تُنشأ **Access Key ID** + **Secret Access Key** (يظهران مرّة واحدة — انسخهما فورًا).
+3. **الـEndpoint**: في نظرة R2 العامة تجد **Account ID** ⇒ العنوان = `https://<account_id>.r2.cloudflarestorage.com`.
+4. اضبط: `STORAGE_DRIVER=r2` · `STORAGE_ENDPOINT` · `STORAGE_BUCKET` · `STORAGE_ACCESS_KEY` · `STORAGE_SECRET_KEY` (المنطقة `auto` والـpath-style مضبوطان افتراضيًا).
+
+#### من أين تأخذ قيم Resend (البريد المركزي)
+1. لوحة Resend → **Domains** → (إن لم يكن موثّقًا) **Add Domain** لنطاقك (مثلاً `mail.nx.sa`) → أضِف سجلّات DNS المعروضة (SPF/DKIM/DMARC) لدى مزوّد نطاقك → انتظر **Verified**.
+2. **API Keys → Create API Key** (Sending access يكفي) → انسخ المفتاح `re_...`.
+3. اختر عنوان المُرسِل على **النطاق الموثّق**: `notifications@<نطاقك الموثّق>` ⇒ هذا هو `EMAIL_FALLBACK_FROM`.
+4. اضبط: `NOTIFY_GATEWAY=live` · `RESEND_API_KEY` · `EMAIL_FALLBACK_FROM` · `API_PUBLIC_URL=https://api.ibp.nx.sa`.
+
+> **ملاحظة:** الـ`RESEND_API_KEY` المركزي هو **حساب المنصّة** للـ fallback فقط؛ كل شركة وساطة تربط لاحقًا **حساب Resend الخاص بها** من `/tenant/settings/email` (BYO) فترسل من نطاقها.
 
 **التخزين — Cloudflare R2** (مجلد معزول لكل شركة تلقائيًا؛ المفاتيح بادئتها `tenant_<id>/`):
 ```
