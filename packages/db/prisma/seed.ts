@@ -1132,6 +1132,35 @@ async function main() {
     }
   }
 
+  // ---- بيانات ديمو للميزات الجديدة (طلبات تواصل + أهداف أداء + هوية بصرية) — ديمو فقط ----
+  if (!isTestDb) {
+    // طلبات تواصل مبيعات (Leads) — تظهر في لوحة السوبر أدمن /admin/leads
+    const demoLeads = [
+      { id: "lead-demo-1", name: "شركة نجم القابضة", email: "procurement@najm-holding.sa", company: "نجم القابضة", phone: "0555112233", planCode: "enterprise", seats: 85, message: "نبحث عن حلّ وساطة لمجموعتنا (5 كيانات).", status: "new" },
+      { id: "lead-demo-2", name: "مجموعة البحر الأحمر", email: "it@redsea-group.sa", company: "مجموعة البحر الأحمر", phone: "0544667788", planCode: "ownership_full", seats: null as number | null, message: "مهتمون بخيار التملّك الكامل ونقل الملكية.", status: "contacted" },
+      { id: "lead-demo-3", name: "خالد المطيري", email: "khaled@broker-startup.sa", company: "وساطة ناشئة", phone: "0500998877", planCode: "premium", seats: 12, message: "استفسار عن الأسعار والتجربة المجانية.", status: "new" },
+    ];
+    for (const l of demoLeads) {
+      await prisma.lead.upsert({ where: { id: l.id }, update: { status: l.status }, create: { id: l.id, name: l.name, email: l.email, company: l.company, phone: l.phone, planCode: l.planCode, seats: l.seats, message: l.message, status: l.status } });
+    }
+
+    // أهداف أداء لحساب GIB (محسوبة من الإنتاج) — تظهر في /tenant/targets
+    const yearStart = new Date("2026-01-01T00:00:00.000Z");
+    const demoTargets = [
+      { id: "tgt-gib-1", scope: "producer", scopeRefId: "prd-gib-1", metric: "premium", targetValue: 2_000_000 },
+      { id: "tgt-gib-2", scope: "producer", scopeRefId: "prd-gib-2", metric: "commissions", targetValue: 150_000 },
+    ];
+    for (const tg of demoTargets) {
+      await prisma.target.upsert({ where: { id: tg.id }, update: { targetValue: tg.targetValue }, create: { id: tg.id, tenantId: GIB_DEF.id, scope: tg.scope, scopeRefId: tg.scopeRefId, metric: tg.metric, period: "year", periodStart: yearStart, targetValue: tg.targetValue, createdBy: "seed" } });
+    }
+
+    // هوية بصرية مميّزة لحساب GIB (White-label) — لون كحلي بدل الافتراضي، لعرض الميزة حيًّا
+    const gibCfg = await prisma.tenantConfig.findFirst({ where: { tenantId: GIB_DEF.id }, select: { id: true, branding: true } });
+    const gibBranding = { ...((gibCfg?.branding ?? {}) as Record<string, unknown>), primary: "#1e3a8a", displayName: "Gulf Insurance Brokers", logoText: "GIB" };
+    if (gibCfg) await prisma.tenantConfig.update({ where: { tenantId: GIB_DEF.id }, data: { branding: gibBranding as Prisma.InputJsonValue } });
+    else await prisma.tenantConfig.create({ data: { tenantId: GIB_DEF.id, enabledProducts: [], branding: gibBranding as Prisma.InputJsonValue } });
+  }
+
   const [nc, np, ncl] = await Promise.all([prisma.client.count(), prisma.policy.count(), prisma.claim.count()]);
   console.log(`✅ تمّ الزرع: ${TENANTS.length} مستأجر + سوبر أدمن + بيانات شبه واقعية واسعة. كلمة مرور التطوير: ${DEV_PASSWORD}`);
   console.log(`   البيانات: ${nc} عميل · ${np} وثيقة · ${ncl} مطالبة + طلبات/عروض/عمولات/تحقّق/مستندات`);
