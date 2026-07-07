@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, Sparkles, ArrowLeftRight, Headset } from "lucide-react";
+import { Check, Sparkles, ArrowLeftRight, Headset, KeyRound } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
 import { api } from "@/lib/api";
@@ -89,6 +89,9 @@ export function PricingSection() {
         <button onClick={() => setContact({ open: true })} className="inline-flex items-center gap-1.5 text-[13.5px] font-semibold text-primary hover:underline">
           <Headset size={15} /> {t("landing.pricing.contactSales")}
         </button>
+        <Link href="/ownership" className="inline-flex items-center gap-1.5 text-[13.5px] font-semibold text-primary hover:underline">
+          <KeyRound size={15} /> {t("landing.pricing.ownershipLink")}
+        </Link>
       </div>
 
       {/* نافذة تواصل المبيعات */}
