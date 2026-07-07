@@ -578,6 +578,7 @@ curl -X POST http://localhost:4000/staff \
 ### سلسلة الاعتماد (E2) · التراجع (E4) · 360°
 | الطريقة | المسار | الحماية | الوصف |
 |---|---|---|---|
+| GET/PUT | `/config/company` | settings | **بيانات الشركة** (اسم عربي/إنجليزي · سجل تجاري · رقم موحّد 10 · ضريبي 15 · جوال) — أرقام مُتحقَّقة الطول ⇒ 400 |
 | GET/PUT | `/config/approval-chain` | settings | البوّابة الفنية + فصل المهام + الخطوات الإضافية |
 | GET/PUT | `/config/security` | settings | سياسة الأمان — إلزام المصادقة الثنائية لكل الموظفين (`{ mfaRequired }`) |
 | GET/PUT | `/config/retention` | settings | مدّة الاحتفاظ بالبيانات (`{ retentionYears }`، 1–30، افتراضي 10 — PDPL/هيئة التأمين) |

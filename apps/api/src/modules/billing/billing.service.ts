@@ -132,9 +132,16 @@ export class BillingService {
   async subscription(tenantId: string) {
     const sub = await this.prisma.subscription.findFirst({
       where: { tenantId },
-      select: { cycle: true, seatsUsed: true, startedAt: true, renewsAt: true, plan: { select: { code: true, name: true, seatLimit: true, priceMonthly: true, priceYearly: true, slaResponseHours: true } } },
+      select: { cycle: true, seatsUsed: true, startedAt: true, renewsAt: true, plan: { select: { code: true, name: true, seatLimit: true, priceMonthly: true, priceYearly: true, trialDays: true, slaResponseHours: true } } },
     });
     const tenant = await this.prisma.tenant.findFirst({ where: { id: tenantId }, select: { status: true } });
-    return { status: tenant?.status, subscription: sub };
+    // نهاية الفترة التجريبية = بداية الاشتراك + أيام التجربة (يُعرَض للعميل ليعرف موعد استحقاق الدفع)
+    let trialEndsAt: Date | null = null;
+    const trialDays = sub?.plan?.trialDays ?? 0;
+    if (sub?.startedAt && trialDays > 0) {
+      trialEndsAt = new Date(sub.startedAt);
+      trialEndsAt.setDate(trialEndsAt.getDate() + trialDays);
+    }
+    return { status: tenant?.status, trialEndsAt, subscription: sub };
   }
 }

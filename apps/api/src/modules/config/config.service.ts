@@ -16,6 +16,33 @@ export interface ApprovalStep {
 const ACTIONS: RbacAction[] = ["read", "create", "update", "delete"];
 const asJson = (v: unknown) => v as Prisma.InputJsonValue;
 
+/** بيانات شركة الوساطة (Tenant) القابلة للعرض/التعديل في صفحة الشركة. */
+export interface CompanyInfo {
+  name: string;
+  nameEn: string | null;
+  crNumber: string | null;
+  unifiedNumber: string | null; // 10 أرقام
+  vatNumber: string | null; // 15 رقمًا
+  phone: string | null; // 05XXXXXXXX
+  createdAt: Date | null;
+}
+
+/** يتحقّق أن الرقم بعدد الخانات المطلوب (فارغ ⇒ null). */
+function validateDigits(v: unknown, len: number, label: string): string | null {
+  const s = String(v ?? "").trim();
+  if (!s) return null;
+  if (!new RegExp(`^\\d{${len}}$`).test(s)) throw new BadRequestException(`${label} يجب أن يكون ${len} أرقام`);
+  return s;
+}
+
+/** يتحقّق من صيغة جوال سعودي 05XXXXXXXX (فارغ ⇒ null). */
+function validatePhone(v: unknown): string | null {
+  const s = String(v ?? "").trim();
+  if (!s) return null;
+  if (!/^05\d{8}$/.test(s)) throw new BadRequestException("رقم الجوال يجب أن يكون بصيغة 05XXXXXXXX");
+  return s;
+}
+
 /** الهوية البصرية للمستأجر (White-label). القيم null ⇒ استخدام هوية NX-IBP الافتراضية. */
 export interface TenantBranding {
   primary: string; // اللون الأساسي (hex)
@@ -126,6 +153,43 @@ export class ConfigService {
     else await this.prisma.tenantConfig.create({ data: { tenantId, enabledProducts: [], securityPolicy: asJson(policy) } });
     await this.audit.log({ tenantId, userId, action: "update", entity: "security_policy", entityId: "mfa", meta: { mfaRequired } });
     return { ok: true, mfaRequired };
+  }
+
+  // ————————————————— بيانات الشركة (Company) —————————————————
+
+  /** بيانات شركة الوساطة (للعرض/التعديل في صفحة الشركة). */
+  async getCompany(tenantId: string): Promise<CompanyInfo> {
+    const t = await this.prisma.tenant.findFirst({
+      where: { id: tenantId },
+      select: { name: true, nameEn: true, crNumber: true, unifiedNumber: true, vatNumber: true, phone: true, createdAt: true },
+    });
+    return {
+      name: t?.name ?? "",
+      nameEn: t?.nameEn ?? null,
+      crNumber: t?.crNumber ?? null,
+      unifiedNumber: t?.unifiedNumber ?? null,
+      vatNumber: t?.vatNumber ?? null,
+      phone: t?.phone ?? null,
+      createdAt: t?.createdAt ?? null,
+    };
+  }
+
+  /** يحفظ بيانات الشركة بعد التحقّق (الاسم مطلوب؛ الأرقام بأطوالها الصحيحة إن أُدخلت). */
+  async setCompany(tenantId: string, userId: string, input: Partial<CompanyInfo>): Promise<{ ok: true } & CompanyInfo> {
+    const data: Record<string, string | null> = {};
+    if (input.name !== undefined) {
+      const name = String(input.name).trim();
+      if (name.length < 2) throw new BadRequestException("اسم الشركة مطلوب (حرفان على الأقل)");
+      data.name = name;
+    }
+    if (input.nameEn !== undefined) data.nameEn = String(input.nameEn).trim() || null;
+    if (input.crNumber !== undefined) data.crNumber = String(input.crNumber).trim() || null;
+    if (input.unifiedNumber !== undefined) data.unifiedNumber = validateDigits(input.unifiedNumber, 10, "الرقم الموحّد");
+    if (input.vatNumber !== undefined) data.vatNumber = validateDigits(input.vatNumber, 15, "الرقم الضريبي");
+    if (input.phone !== undefined) data.phone = validatePhone(input.phone);
+    if (Object.keys(data).length) await this.prisma.tenant.update({ where: { id: tenantId }, data });
+    await this.audit.log({ tenantId, userId, action: "update", entity: "company", entityId: tenantId, meta: { fields: Object.keys(data) } });
+    return { ok: true, ...(await this.getCompany(tenantId)) };
   }
 
   // ————————————————— الهوية البصرية (White-label — P0-B) —————————————————

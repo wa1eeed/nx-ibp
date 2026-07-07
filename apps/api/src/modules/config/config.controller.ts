@@ -27,6 +27,16 @@ class UploadLogoDto {
   @IsString() @MaxLength(950_000) dataUrl!: string;
 }
 
+/** بيانات الشركة. كل الحقول اختيارية — يُحدَّث المُرسَل فقط. */
+class SetCompanyDto {
+  @IsOptional() @IsString() @MaxLength(120) name?: string;
+  @IsOptional() @IsString() @MaxLength(120) nameEn?: string;
+  @IsOptional() @IsString() @MaxLength(30) crNumber?: string;
+  @IsOptional() @IsString() @MaxLength(10) unifiedNumber?: string;
+  @IsOptional() @IsString() @MaxLength(15) vatNumber?: string;
+  @IsOptional() @IsString() @MaxLength(10) phone?: string;
+}
+
 /** إعدادات المستأجر القابلة للتهيئة — سلسلة اعتماد الوثيقة (E2). تحت الإعدادات. */
 @Controller("config")
 export class ConfigController {
@@ -55,6 +65,19 @@ export class ConfigController {
   @Put("security")
   setSecurity(@CurrentUser("tenantId") tenantId: string, @CurrentUser("userId") userId: string, @Body() dto: SetSecurityDto) {
     return this.config.setSecurityConfig(tenantId, userId, { mfaRequired: dto.mfaRequired });
+  }
+
+  // ——— بيانات الشركة ———
+  @Authorize({ module: "settings", action: "read" })
+  @Get("company")
+  getCompany(@CurrentUser("tenantId") tenantId: string) {
+    return this.config.getCompany(tenantId);
+  }
+
+  @Authorize({ module: "settings", action: "update" })
+  @Put("company")
+  setCompany(@CurrentUser("tenantId") tenantId: string, @CurrentUser("userId") userId: string, @Body() dto: SetCompanyDto) {
+    return this.config.setCompany(tenantId, userId, dto);
   }
 
   // ——— الهوية البصرية (White-label — P0-B) ———

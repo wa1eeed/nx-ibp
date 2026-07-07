@@ -1,14 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CreditCard, CheckCircle2, Loader2 } from "lucide-react";
+import { CreditCard, CheckCircle2, Loader2, Clock, CalendarClock } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { api, ApiError } from "@/lib/api";
 
 type Cycle = "MONTHLY" | "YEARLY";
 interface Plan { code: string; name: string; seatLimit: number; priceMonthly: string; priceYearly: string }
 interface Invoice { id: string; planCode: string; cycle: Cycle; amount: string; currency: string; status: string; paidAt: string | null; createdAt: string }
-interface SubInfo { status?: string; subscription?: { cycle: Cycle; seatsUsed: number; renewsAt: string | null; plan: { code: string; name: string; seatLimit: number } } | null }
+interface SubInfo { status?: string; trialEndsAt?: string | null; subscription?: { cycle: Cycle; seatsUsed: number; renewsAt: string | null; plan: { code: string; name: string; seatLimit: number } } | null }
 interface StorageUsage { usedBytes: number; quotaBytes: number; quotaMb: number; percentUsed: number }
 
 const STATUS_TONE: Record<string, string> = {
@@ -53,7 +53,11 @@ export default function BillingPage() {
   const price = (p: Plan) => (cycle === "YEARLY" ? p.priceYearly : p.priceMonthly);
   const planName = (code: string) => ({ basic: t("planBasic"), premium: t("planPremium"), enterprise: t("planEnterprise") }[code] ?? code);
   const fmt = (n: string) => Number(n).toLocaleString();
-  const date = (d: string | null) => (d ? new Date(d).toLocaleDateString() : "—");
+  const date = (d: string | null) => (d ? new Date(d).toLocaleDateString("en-GB") : "—");
+  const daysUntil = (d: string | null) => (d ? Math.ceil((new Date(d).getTime() - Date.now()) / 86400000) : null);
+
+  const isTrial = sub?.status === "TRIAL";
+  const trialDaysLeft = daysUntil(sub?.trialEndsAt ?? null);
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -67,6 +71,14 @@ export default function BillingPage() {
 
       {error ? <p className="rounded-lg bg-danger/10 px-3 py-2 text-[12.5px] font-medium text-danger">{error}</p> : null}
 
+      {/* شريط الفترة التجريبية — متى يُستحقّ الدفع */}
+      {isTrial && sub?.trialEndsAt ? (
+        <p className={["flex items-start gap-2 rounded-lg px-3 py-2.5 text-[12.5px] font-medium", (trialDaysLeft ?? 99) <= 3 ? "bg-danger/10 text-danger" : "bg-warning-soft text-warning"].join(" ")}>
+          <Clock size={16} className="mt-0.5 shrink-0" />
+          {t("trialBanner", { date: date(sub.trialEndsAt), days: Math.max(0, trialDaysLeft ?? 0) })}
+        </p>
+      ) : null}
+
       {/* الاشتراك الحالي */}
       <section className="rounded-card border border-line bg-card p-5">
         <h2 className="mb-3 text-[13px] font-bold text-ink">{t("current")}</h2>
@@ -78,7 +90,11 @@ export default function BillingPage() {
           </div>
           <div><div className="text-[11.5px] text-subtle">{t("plan")}</div><div className="mt-1 font-semibold text-ink">{planName(sub?.subscription?.plan.code ?? "")}</div></div>
           <div><div className="text-[11.5px] text-subtle">{t("seats")}</div><div className="mt-1 font-semibold text-ink">{sub?.subscription?.seatsUsed ?? 0} / {sub?.subscription?.plan.seatLimit ?? "—"}</div></div>
-          <div><div className="text-[11.5px] text-subtle">{t("renewsAt")}</div><div className="mt-1 font-semibold text-ink">{date(sub?.subscription?.renewsAt ?? null)}</div></div>
+          {isTrial && sub?.trialEndsAt ? (
+            <div><div className="inline-flex items-center gap-1 text-[11.5px] text-subtle"><CalendarClock size={12} /> {t("trialEndsAt")}</div><div className="mt-1 font-semibold text-warning tnum">{date(sub.trialEndsAt)}</div></div>
+          ) : (
+            <div><div className="inline-flex items-center gap-1 text-[11.5px] text-subtle"><CalendarClock size={12} /> {t("renewsAt")}</div><div className="mt-1 font-semibold text-ink tnum">{date(sub?.subscription?.renewsAt ?? null)}</div></div>
+          )}
         </div>
         {storage ? (
           <div className="mt-4 border-t border-line pt-4">

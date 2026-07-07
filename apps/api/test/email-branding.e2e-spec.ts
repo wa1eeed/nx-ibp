@@ -138,4 +138,31 @@ describe("البريد + الهوية البصرية (e2e)", () => {
     await request(srv()).get("/config/email").set(auth(staff)).expect(403);
     await request(srv()).put("/config/email").set(auth(staff)).send({ fromEmail: "a@b.sa", fromName: "x", apiKey: "re_k" }).expect(403);
   });
+
+  // ————————————————— بيانات الشركة (Company) —————————————————
+
+  it("بيانات الشركة: قراءة الاسم من التسجيل ثم حفظ حقول مُتحقَّقة", async () => {
+    const email = `co-${uniq()}@brk.sa`;
+    const signup = await request(srv()).post("/signup").send({ companyName: "شركة الاسم الأصلي", adminName: "المالك", adminEmail: email, password: "Owner1Pass" }).expect(201);
+    const token = signup.body.accessToken;
+    const before = (await request(srv()).get("/config/company").set(auth(token)).expect(200)).body;
+    expect(before.name).toBe("شركة الاسم الأصلي");
+    const saved = (await request(srv()).put("/config/company").set(auth(token)).send({ nameEn: "New Broker Co", unifiedNumber: "7001234567", vatNumber: "300012345600003", phone: "0551234567" }).expect(200)).body;
+    expect(saved.nameEn).toBe("New Broker Co");
+    expect(saved.unifiedNumber).toBe("7001234567");
+    expect(saved.vatNumber).toBe("300012345600003");
+  });
+
+  it("بيانات الشركة: رقم موحّد بغير 10 أرقام ⇒ 400", async () => {
+    const { token } = await newOwner();
+    await request(srv()).put("/config/company").set(auth(token)).send({ unifiedNumber: "123" }).expect(400);
+  });
+
+  it("موظف بلا صلاحية الإعدادات ⇒ 403 على تعديل بيانات الشركة", async () => {
+    const { token } = await newOwner();
+    const email = `coemp-${uniq()}@brk.sa`;
+    await request(srv()).post("/staff").set(auth(token)).send({ fullName: "موظف", email, password: "Worker1Pass", roleName: `بلا إعدادات ${uniq()}`, permissions: [{ module: "clients", canAccess: true, canCreate: false, canEdit: false, canDelete: false }] }).expect(201);
+    const staff = (await request(srv()).post("/auth/login").send({ email, password: "Worker1Pass" })).body.accessToken;
+    await request(srv()).put("/config/company").set(auth(staff)).send({ nameEn: "X" }).expect(403);
+  });
 });

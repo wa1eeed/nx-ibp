@@ -111,12 +111,15 @@ export const TENANT_NAV: NavGroup[] = [
   {
     key: "settings",
     items: [
-      { key: "addons", href: "/tenant/add-ons", icon: "Blocks" },
+      // الاشتراك أولًا
       { key: "settings.billing", href: "/tenant/settings/billing", icon: "CreditCard" },
+      { key: "addons", href: "/tenant/add-ons", icon: "Blocks" },
+      // الشركة والهيكل الإداري تحته
+      { key: "settings.company", href: "/tenant/settings/company", icon: "Building2" },
       { key: "settings.org", href: "/tenant/settings/org", icon: "Network" },
-      { key: "settings.company", href: "/tenant/settings/company", icon: "Building2", comingSoon: true },
-      { key: "settings.branding", href: "/tenant/settings/branding", icon: "Palette" },
       { key: "settings.staff", href: "/tenant/settings/staff", icon: "UserCog" },
+      { key: "settings.branding", href: "/tenant/settings/branding", icon: "Palette" },
+      // التكاملات والبريد والأمان
       { key: "settings.integrations", href: "/tenant/settings/integrations", icon: "Plug" },
       { key: "settings.email", href: "/tenant/settings/email", icon: "Mail" },
       { key: "settings.notifications", href: "/tenant/settings/notifications", icon: "Bell" },
