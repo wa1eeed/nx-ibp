@@ -48,6 +48,7 @@ model Tenant {
   branches     Branch[]
   config       TenantConfig?
   emailSettings TenantEmailSettings?
+  targets      Target[]
   wallets      Wallet[]
 
   // العلاقات التشغيلية — كلها مرتبطة بـ tenantId كمفتاح أجنبي لفرض العزل والتكامل المرجعي
@@ -395,6 +396,26 @@ model Branch {
   name     String
 
   @@unique([tenantId, code])
+}
+
+// ============================================================
+// أهداف الأداء (Targets) — أهداف إنتاج للمنتِجين/فروع التأمين — P1-B
+// ============================================================
+// «الفعلي» يُحسب من بيانات الإنتاج القائمة (الوثائق المُصدَرة) — لا بيانات جديدة.
+model Target {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  scope       String // producer | line (فرع التأمين)
+  scopeRefId  String // معرّف المنتِج أو كود فرع المنتج
+  metric      String // premium | policies | commissions
+  period      String // month | quarter | year
+  periodStart DateTime // بداية الفترة (يُحسب المدى منها)
+  targetValue Decimal  @db.Decimal(14, 2)
+  createdBy   String
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId])
 }
 
 // ============================================================

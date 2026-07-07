@@ -15,6 +15,7 @@ export type ModuleKey =
   | "commissions"
   | "claims"
   | "reports"
+  | "targets"
   | "compliance"
   | "finance"
   | "addons"
@@ -101,7 +102,10 @@ export const TENANT_NAV: NavGroup[] = [
   // التقارير والتحليلات
   {
     key: "insights",
-    items: [{ key: "reports", href: "/tenant/reports", icon: "BarChart3", entitlement: "module.reports" }],
+    items: [
+      { key: "reports", href: "/tenant/reports", icon: "BarChart3", entitlement: "module.reports" },
+      { key: "targets", href: "/tenant/targets", icon: "Target", entitlement: "module.reports" },
+    ],
   },
   // الإعدادات والاشتراك
   {
