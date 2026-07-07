@@ -588,6 +588,8 @@ curl -X POST http://localhost:4000/staff \
 | GET | `/branding` | مصادقة (أي دور) | هوية المستأجر الحالي — لتلوين الواجهة |
 | GET | `/branding/:tenantId/logo` | **Public** | خدمة الشعار برابط عام ثابت (يظهر في البريد) |
 | GET | `/portal/branding` | portal | هوية شركة الوساطة لتلوين بوّابة العميل |
+| GET | `/targets` · `/targets/options` | reports:read + module.reports | **أهداف الأداء** (P1-B): القائمة مع **الفعلي المحسوب و% الإنجاز** (فلترة `?period=`) · خيارات الإنشاء (منتِجون/فروع/مقاييس) |
+| POST · DELETE | `/targets` · `/targets/:id` | reports:create/delete + module.reports | إنشاء هدف (وسيط فرعي/فرع · مقياس · فترة · قيمة) · حذف — قيمة غير موجبة ⇒ 400 |
 | POST | `/clients/:id/erase` | clients:delete | **حق المحو (PDPL)** — يُخفي كل PII ويُبقي الهيكل المالي + سجلّ إتلاف ثابت (لا يتكرّر ⇒ 409) |
 | GET | `/clients/erasures` · `/clients/retention/due` | clients:read | سجلّ الإتلاف (الممحوّون) · تقرير الاستحقاق للإتلاف (تجاوز مدّة الاحتفاظ). **DLP**: الهوية/الآيبان مُخفاة لغير الالتزام/المالية |
 | GET | `/auth/mfa/status` | مصادقة | حالة MFA للمستخدم + إلزام الشركة |
@@ -611,10 +613,11 @@ curl -X POST http://localhost:4000/staff \
 | GET | `/finance/trial-balance` | finance:read | ميزان المراجعة — أطراف القيود مجمّعة حسب الحساب + مؤشّر توازن |
 | GET | `/finance/receivables` · `/finance/summary` | finance:read | تعيدان **المتبقّي بعد التحصيل والإشعارات الدائنة** + `collected` + `creditNotes` + `serviceFees` + حالة كل إشعار |
 | GET | `/finance/invoices` | finance:read | الفواتير الضريبية مع `kind` (COMMISSION على المؤمِّن / FEES على العميل) + `party` (الطرف) + حزمة ZATCA |
+| GET | `/finance/invoices/:id/document` | finance:read | **بيانات وثيقة الفاتورة المطبوعة** (بائع/طرف/بنود/ZATCA) لتوليد فاتورة PDF بهوية المستأجر — مجهولة ⇒ 404 |
 
 **تصويب اتجاه الفاتورة:** الاعتماد المالي يُصدِر فاتورة **العمولة على المؤمِّن** (`kind=COMMISSION`) و—عند وجود `policyFees`—فاتورة **رسوم الخدمة على العميل** (`kind=FEES`، إيراد COA `04020` + ضريبة مخرجات 15%)، وتُضاف الرسوم لإشعار مدين العميل. بوّابة العميل تعرض فواتير رسومه فقط.
 
-### الوسطاء الفرعيون (الوسطاء الفرعيون)
+### الوسطاء الفرعيون
 | الطريقة | المسار | الحماية | الوصف |
 |---|---|---|---|
 | GET | `/producers` | finance:read | دفتر الوسطاء الفرعيين: لكل وسيط فرعي عدد وثائقه + القسط + العمولة المستحقّة + المُسوّى + المتبقّي |
@@ -712,11 +715,11 @@ curl -X POST http://localhost:4000/staff \
 ### التسجيل الذاتي والباقات (عام)
 | الطريقة | المسار | الحماية | الوصف |
 |---|---|---|---|
-| GET | `/signup/plans` | **عام** | كتالوج الباقات: **سعر لكل مستخدم** شهري/سنوي + `trialDays` + **نسبة التوفير** المحسوبة + الموديولز (لِلاندينق والمعالج) — **بلا سقف مستخدمين** (التسعير لكل مستخدم) |
+| GET | `/signup/plans` | **عام** | كتالوج الباقات: **سعر لكل مستخدم** شهري/سنوي + `trialDays` + **`slaResponseHours` (زمن استجابة الدعم)** + **نسبة التوفير** المحسوبة + الموديولز — **بلا سقف مستخدمين** |
 | GET | `/signup/compare` | **عام** | مصفوفة **مقارنة الباقات**: (فئات × باقات × خلايا) مشتقّة من entitlements كل باقة (مشمول/إضافة/حسب الاستخدام/حصّة) — لصفحة `/compare` والقسم المدمج باللاندينق. تنعكس فيها تغييرات السوبر أدمن فورًا |
 | POST | `/signup` | **عام** | تسجيل ذاتي — يقبل `planCode`/`cycle`/`seatCount` (بلا سقف) + **onboarding**: `unifiedNumber` (10 أرقام) · `vatNumber` (15) · `phone` (`05XXXXXXXX`). يزوّد المستأجر (اشتراك بالدورة والمقاعد + تجربة الباقة + **الأقسام السبعة + 12 دورًا مُعدًّا مسبقًا** + شجرة الحسابات) ويُسجّل الدخول |
 | POST | `/signup/lead` | **عام** | **طلب «تواصل معنا» (Lead)** للمؤسسات الكبيرة — `name`/`email` (مطلوبان) + `company`/`phone`/`planCode`/`seats`/`message`. يُنشئ `Lead` لمتابعة المبيعات |
-| PUT | `/platform/plans/:code` | سوبر أدمن | يعدّل **`priceMonthly`/`priceYearly` (لكل مستخدم)** + **`trialDays`** (بلا حدّ مقاعد — التسعير لكل مستخدم) |
+| PUT | `/platform/plans/:code` | سوبر أدمن | يعدّل **`priceMonthly`/`priceYearly` (لكل مستخدم)** + **`trialDays`** + **`slaResponseHours` (SLA)** (بلا حدّ مقاعد — التسعير لكل مستخدم) |
 | POST | `/platform/plans/:code/entitlements` | سوبر أدمن | يفعّل/يعطّل أي ميزة/موديول لباقة (`INCLUDED`/`ADDON`/`METERED`/`QUOTA`/`DISABLED`) — ينعكس فورًا في `/signup/compare` |
 | POST | `/billing/checkout` | مصادقة | الإجمالي = سعر المستخدم × المقاعد المشترَك بها |
 

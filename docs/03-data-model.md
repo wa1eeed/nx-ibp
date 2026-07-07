@@ -137,7 +137,9 @@ erDiagram
 | `code` | String **@unique** | `basic` \| `premium` \| `enterprise` |
 | `name` | String | الاسم المعروض |
 | `seatLimit` | Int | الحد الأقصى للمقاعد |
-| `priceMonthly` / `priceYearly` | Decimal(12,2) | السعر |
+| `priceMonthly` / `priceYearly` | Decimal(12,2) | السعر لكل مستخدم |
+| `trialDays` | Int | مدة التجربة المجانية (0 = بلا) |
+| `slaResponseHours` | Int? | **زمن استجابة الدعم المتعهَّد به** (ساعات؛ 24=يوم عمل) — P1-A، قابل للضبط من السوبر أدمن ويظهر في المقارنة |
 
 **العلاقات:** `entitlements` (1:N)، `subscriptions` (1:N).
 **العزل:** مرجعي على مستوى المنصة (بلا `tenantId`).
@@ -682,6 +684,23 @@ erDiagram
 ### الهوية البصرية (White-label · P0-B)
 تُخزَّن في `TenantConfig.branding` (Json): `{ primary (hex), displayName, logoUrl, faviconUrl, logoText, logoMime }`. الشعار المرفوع يُخزَّن تحت مسار المستأجر ويُخدَم عبر رابط عام ثابت `GET /branding/:tenantId/logo` (يظهر في البريد). القيم الافتراضية = هوية NX-IBP.
 
+### `Target` (أهداف الأداء · P1-B)
+**الغرض:** أهداف إنتاج للوسطاء الفرعيين/فروع التأمين — **الفعلي محسوب من الوثائق المُصدَرة** (لا بيانات جديدة).
+
+| الحقل | النوع | ملاحظة |
+|---|---|---|
+| `id` | String | المفتاح |
+| `tenantId` | String (FK→Tenant) | المستأجر |
+| `scope` | String | `producer` (وسيط فرعي) \| `line` (فرع تأمين) |
+| `scopeRefId` | String | معرّف المنتِج أو كود فرع المنتج |
+| `metric` | String | `premium` \| `policies` \| `commissions` |
+| `period` | String | `month` \| `quarter` \| `year` |
+| `periodStart` | DateTime | بداية الفترة (يُحسب المدى منها) |
+| `targetValue` | Decimal(14,2) | قيمة الهدف |
+| `createdBy` / `createdAt` | String / DateTime | |
+
+**الفهرس:** `@@index([tenantId])`. نسبة الإنجاز = الفعلي (Σ من `Policy` المُصدَرة ضمن الفترة) ÷ الهدف.
+
 ---
 
 ## ط. التحقق الحكومي والأرصدة
@@ -788,7 +807,7 @@ erDiagram
 > أُضيفت في مسار ما بعد الاكتمال. كلها معزولة بالمستأجر (FK `tenantId` + Prisma `$use`).
 
 ### الإشعارات
-- **`NotificationSetting`** — إعداد نوع إشعار بمستويين: `tenantId = NULL` ⇒ **افتراضي المنصة** (يديره سوبر أدمن المنصة، يرثه الجميع)؛ قيمة ⇒ **تخصيص شركة**. حقول: `eventKey` · `channelEmail`/`channelSms` · `subject`/`body`. (18 نوعًا مُعرّفة في `notifications.constants.ts`: 7 عملاء + 11 موظفين.)
+- **`NotificationSetting`** — إعداد نوع إشعار بمستويين: `tenantId = NULL` ⇒ **افتراضي المنصة** (يديره سوبر أدمن المنصة، يرثه الجميع)؛ قيمة ⇒ **تخصيص شركة**. حقول: `eventKey` · `channelEmail`/`channelSms` · `subject`/`body`. (21 نوعًا (ثنائية اللغة) في `notifications.constants.ts`: 7 عملاء + 14 موظفين.)
 - **`Notification`** — إشعار داخل المنصة (in-app) لمستقبِل واحد: `userId` (موظف) أو `clientId` (عميل بوّابة) · `eventKey` · `audience` (client/staff) · `title`/`body` · `readAt` (NULL = غير مقروء). فهارس `[tenantId, userId, readAt]` و`[tenantId, clientId, readAt]`.
 
 ### CRM (إدارة العلاقات)
