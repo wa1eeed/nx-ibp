@@ -31,11 +31,33 @@
 | `JWT_SECRET` / `ZATCA_ENC_KEY` | تطوير فقط | سرّ مستقلّ (`openssl rand`) | سرّ مستقلّ (KMS لاحقًا) |
 | `CORS_ORIGINS` | localhost:3000 | `https://ibp.nx.sa` | دومين الإنتاج |
 | `NEXT_PUBLIC_API_URL` (build arg) | localhost:4000 | `https://api.ibp.nx.sa` | دومين API الإنتاج |
-| `STORAGE_DRIVER` | local | local (volume) | s3/r2 (**دلو داخل المملكة**) |
+| `STORAGE_DRIVER` | local | **r2** (Cloudflare R2) | r2 (**دلو داخل المملكة**) |
 | `ZATCA_DEFAULT_ENV` | SANDBOX | SANDBOX | Production (بعد الاعتماد داخل المملكة) |
-| `NOTIFY_GATEWAY` / `BILLING_GATEWAY` | sandbox | sandbox | live (مفاتيح Taqnyat/Resend/Tap) |
+| `NOTIFY_GATEWAY` / `BILLING_GATEWAY` | sandbox | **live** (Resend) | live (مفاتيح Taqnyat/Resend/Tap) |
 | `SEED_MODE` | (فارغ = ديمو محلي) | `demo` | `production` (مرجعيات + سوبر أدمن فقط) |
 | البيانات | seed وهمية | `seed:demo` (وهمية واقعية) | `seed:prod` ثم GIB حقيقي عبر `/signup` |
+
+### تفعيل البريد والتخزين على staging (متغيّرات Coolify)
+كل هذه تُضبط في **متغيّرات بيئة الـAPI في Coolify** (لا في الريبو — أسرار). الحاوية تمرّرها عبر [compose](../infra/docker/docker-compose.coolify.yml):
+
+**التخزين — Cloudflare R2** (مجلد معزول لكل شركة تلقائيًا؛ المفاتيح بادئتها `tenant_<id>/`):
+```
+STORAGE_DRIVER=r2
+STORAGE_ENDPOINT=https://<account_id>.r2.cloudflarestorage.com
+STORAGE_BUCKET=<bucket>
+STORAGE_ACCESS_KEY=<r2_access_key_id>
+STORAGE_SECRET_KEY=<r2_secret>
+STORAGE_REGION=auto            # افتراضي
+STORAGE_FORCE_PATH_STYLE=true  # افتراضي
+```
+**البريد — Resend (fallback مركزي)** + رابط الشعار العام في البريد:
+```
+NOTIFY_GATEWAY=live
+RESEND_API_KEY=<المفتاح المركزي>
+EMAIL_FALLBACK_FROM=notifications@<نطاقك الموثّق في Resend>
+API_PUBLIC_URL=https://api.ibp.nx.sa
+```
+> بعد ضبطها **أعد النشر مرّة**. تحقّق من السجلّ: `تخزين سحابي مفعّل (r2)`. اختبر البريد: أنشئ إشعارًا (مثلاً أضِف موظفًا) وتأكّد من وصول بريد `From: <اسم الشركة> <EMAIL_FALLBACK_FROM>` مع `Reply-To` بريد الشركة. كل مستأجر يستطيع لاحقًا ربط نطاقه الخاص من `/tenant/settings/email`.
 
 ### تحصين مطابقة الإنتاج (Dev-only UI)
 عناصر مساعِدة للتطوير **تُخفى تلقائيًا** عندما `NODE_ENV=production` (staging والإنتاج) وتظهر في dev فقط — عبر الثابت `DEV_PREFILL`/`DEV_ONLY = process.env.NODE_ENV !== "production"` (يُدمَج وقت البناء):

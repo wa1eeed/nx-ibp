@@ -57,7 +57,20 @@ services:
       CORS_ORIGINS: ${CORS_ORIGINS:?CORS_ORIGINS مطلوب (دومين الواجهة)}
       ZATCA_ENC_KEY: ${ZATCA_ENC_KEY:?ZATCA_ENC_KEY مطلوب (base64 32 بايت)}
       ZATCA_DEFAULT_ENV: ${ZATCA_DEFAULT_ENV:-SANDBOX}
-      STORAGE_LOCAL_DIR: /data/storage # مرفقات على الـ volume الدائم (السائق local افتراضيًا في الكود)
+      STORAGE_LOCAL_DIR: /data/storage # يُستخدم فقط عند STORAGE_DRIVER=local
+      # ——— التخزين السحابي (Cloudflare R2) — مجلد معزول لكل شركة تلقائيًا (المفاتيح بادئتها tenant_<id>/) ———
+      STORAGE_DRIVER: ${STORAGE_DRIVER:-local}   # اضبط r2 للإنتاج/staging
+      STORAGE_ENDPOINT: ${STORAGE_ENDPOINT:-}    # https://<account_id>.r2.cloudflarestorage.com
+      STORAGE_REGION: ${STORAGE_REGION:-auto}    # R2 = auto
+      STORAGE_BUCKET: ${STORAGE_BUCKET:-}
+      STORAGE_ACCESS_KEY: ${STORAGE_ACCESS_KEY:-}
+      STORAGE_SECRET_KEY: ${STORAGE_SECRET_KEY:-}
+      STORAGE_FORCE_PATH_STYLE: ${STORAGE_FORCE_PATH_STYLE:-true}
+      # ——— البريد (P0-A): fallback مركزي عبر Resend + رابط الشعار العام في البريد ———
+      NOTIFY_GATEWAY: ${NOTIFY_GATEWAY:-sandbox}  # اضبط live لتفعيل Resend/Taqnyat فعليًا
+      RESEND_API_KEY: ${RESEND_API_KEY:-}         # المفتاح المركزي للـ fallback
+      EMAIL_FALLBACK_FROM: ${EMAIL_FALLBACK_FROM:-notifications@mail.nx.sa}
+      API_PUBLIC_URL: ${API_PUBLIC_URL:-}         # https://api.ibp.nx.sa — لبناء رابط الشعار في البريد
       # ——— البذرة + سوبر أدمن (لأمر seed:demo/seed:prod/admin:set من طرفية الحاوية) ———
       SEED_MODE: ${SEED_MODE:-}
       # بذرة آلية عند الإقلاع (بعد الهجرات): اضبط SEED_ON_START=demo (staging) أو =production، أعد النشر مرّة، ثم أزِلها.
@@ -65,14 +78,8 @@ services:
       PLATFORM_ADMIN_EMAIL: ${PLATFORM_ADMIN_EMAIL:-}
       PLATFORM_ADMIN_PASSWORD: ${PLATFORM_ADMIN_PASSWORD:-}
       PLATFORM_ADMIN_NAME: ${PLATFORM_ADMIN_NAME:-}
-      # ——— اختيارية: حُذفت لأنّ لها قيم افتراضية آمنة في الكود (Sandbox/local) — فلا تُثقِل قائمة
-      #     المتغيّرات في Coolify. **للإنتاج**، أضِف ما تحتاجه منها **هنا** بصيغة تمرير البيئة، ثم اضبط قيمته:
-      #     NOTIFY_GATEWAY=live + TAQNYAT_*/RESEND_* · BILLING_GATEWAY=tap + TAP_* ·
-      #     STORAGE_DRIVER=s3|r2 + STORAGE_ENDPOINT/REGION/BUCKET/ACCESS_KEY/SECRET_KEY/FORCE_PATH_STYLE ·
-      #     JWT_EXPIRES_IN · LOGIN_MAX_FAILURES · LOGIN_LOCK_WINDOW_SEC · PRESIGNED_URL_EXPIRY_SECONDS ·
-      #     APP_PUBLIC_URL · API_PUBLIC_URL — انظر .env.example.
-      #     البريد متعدّد المستأجرين (P0-A): NOTIFY_GATEWAY=live + RESEND_API_KEY (المفتاح المركزي للـfallback) +
-      #     EMAIL_FALLBACK_FROM (افتراضي notifications@mail.nx.sa) · الهوية (P0-B): API_PUBLIC_URL لبناء رابط الشعار في البريد.
+      # ——— اختيارية أخرى (قيم افتراضية آمنة في الكود): TAQNYAT_* (SMS) · BILLING_GATEWAY=tap + TAP_* ·
+      #     JWT_EXPIRES_IN · LOGIN_MAX_FAILURES · LOGIN_LOCK_WINDOW_SEC · PRESIGNED_URL_EXPIRY_SECONDS · APP_PUBLIC_URL — انظر .env.example.
     volumes:
       - ibp_storage:/data/storage # التخزين المحلي الدائم
     expose:
