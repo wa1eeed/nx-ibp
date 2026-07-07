@@ -80,6 +80,38 @@ export class FinanceService {
     }));
   }
 
+  /**
+   * تفاصيل فاتورة لتوليد **وثيقة مطبوعة بهوية المستأجر** (فاتورة ضريبية) — P0+.
+   * يجمع بيانات البائع (شركة الوساطة) والطرف والمبالغ وحزمة ZATCA للعرض في وثيقة قابلة للطباعة/PDF.
+   */
+  async invoiceDocument(tenantId: string, id: string) {
+    const inv = await this.prisma.invoice.findFirst({
+      where: { id },
+      select: { id: true, sequenceNo: true, kind: true, insurerName: true, clientId: true, policyId: true, netAmount: true, vatAmount: true, totalAmount: true, status: true, createdAt: true },
+    });
+    if (!inv) throw new NotFoundException("الفاتورة غير موجودة");
+    const tenant = await this.prisma.tenant.findFirst({ where: { id: tenantId }, select: { name: true, crNumber: true, vatNumber: true, unifiedNumber: true, phone: true } });
+    const kind = inv.kind ?? "COMMISSION";
+    let party = inv.insurerName ?? "—";
+    if (kind === "FEES" && inv.clientId) {
+      const client = await this.prisma.client.findFirst({ where: { id: inv.clientId }, select: { name: true } });
+      party = client?.name ?? "—";
+    }
+    const policy = inv.policyId ? await this.prisma.policy.findFirst({ where: { id: inv.policyId }, select: { sequenceNo: true, productLineCode: true } }) : null;
+    const sellerVat = tenant?.vatNumber ?? this.vatNumber(tenant?.crNumber ?? null);
+    return {
+      invoice: {
+        id: inv.id, sequenceNo: inv.sequenceNo, kind, status: inv.status,
+        net: num(inv.netAmount), vat: num(inv.vatAmount), total: num(inv.totalAmount),
+        issuedAt: new Date(inv.createdAt).toISOString(),
+      },
+      seller: { name: tenant?.name ?? "—", vatNumber: sellerVat, crNumber: tenant?.crNumber ?? null, unifiedNumber: tenant?.unifiedNumber ?? null, phone: tenant?.phone ?? null },
+      party: { name: party, type: kind === "FEES" ? "client" : "insurer" },
+      policy: policy ? { sequenceNo: policy.sequenceNo, productLineCode: policy.productLineCode } : null,
+      zatca: zatcaPackage({ sellerName: tenant?.name ?? "—", vatNumber: sellerVat, timestamp: new Date(inv.createdAt).toISOString(), total: num(inv.totalAmount), vat: num(inv.vatAmount) }),
+    };
+  }
+
   /** الذمم المدينة (المستحقّ على العملاء) من إشعارات المدين، مُجمّعة حسب العميل. */
   async receivables() {
     const [notes, credits] = await Promise.all([

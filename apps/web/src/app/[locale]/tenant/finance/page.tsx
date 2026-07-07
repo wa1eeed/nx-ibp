@@ -1,8 +1,9 @@
 "use client";
 
 import { Fragment, useCallback, useEffect, useState } from "react";
-import { Landmark, Wallet2, ShieldCheck, FileText, QrCode, Building2, Scale, Banknote, X, Check } from "lucide-react";
+import { Landmark, Wallet2, ShieldCheck, FileText, QrCode, Building2, Scale, Banknote, X, Check, Printer } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/routing";
 import { api, ApiError } from "@/lib/api";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatCard } from "@/components/ui/StatCard";
@@ -152,7 +153,10 @@ export default function FinancePage() {
                     <td className="px-5 py-3 text-end text-[13px] font-medium text-ink tnum">{fmt(inv.totalAmount)} <span className="text-[11px] text-subtle">{t("common.sar")}</span></td>
                     <td className="px-5 py-3"><Badge tone="success"><ShieldCheck size={12} /> {t("finance.zatcaOk")}</Badge></td>
                     <td className="px-5 py-3 text-end">
-                      <button onClick={() => setOpen(open === inv.id ? "" : inv.id)} className="rounded-lg border border-line bg-card px-2.5 py-1.5 text-[12px] font-medium text-muted hover:bg-surface-2 hover:text-ink">{t("finance.zatcaShow")}</button>
+                      <div className="inline-flex items-center gap-1.5">
+                        <Link href={`/tenant/documents/invoice/${inv.id}`} title={t("finance.printDoc")} className="inline-flex items-center gap-1 rounded-lg border border-line bg-card px-2.5 py-1.5 text-[12px] font-medium text-muted hover:bg-surface-2 hover:text-ink"><Printer size={13} /> {t("finance.printDoc")}</Link>
+                        <button onClick={() => setOpen(open === inv.id ? "" : inv.id)} className="rounded-lg border border-line bg-card px-2.5 py-1.5 text-[12px] font-medium text-muted hover:bg-surface-2 hover:text-ink">{t("finance.zatcaShow")}</button>
+                      </div>
                     </td>
                   </tr>
                   {open === inv.id ? (

@@ -234,4 +234,20 @@ describe("الإصدار والاعتماد المالي (e2e)", () => {
     expect(tb.totals.balanced).toBe(true);
     expect(tb.totals.debit).toBe(tb.totals.credit);
   });
+
+  it("وثيقة الفاتورة المطبوعة (بهوية المستأجر) تجمع البائع والطرف والمبالغ وZATCA", async () => {
+    const srv = app.getHttpServer();
+    const invs = (await request(srv).get("/finance/invoices").set(auth(gm)).expect(200)).body as Array<{ id: string; kind: string }>;
+    expect(invs.length).toBeGreaterThan(0);
+    const inv = invs[0];
+    const doc = (await request(srv).get(`/finance/invoices/${inv.id}/document`).set(auth(gm)).expect(200)).body;
+    expect(doc.invoice.id).toBe(inv.id);
+    expect(doc.invoice.total).toBeGreaterThan(0);
+    expect(Number((doc.invoice.net + doc.invoice.vat).toFixed(2))).toBe(doc.invoice.total); // صافي + ضريبة = الإجمالي
+    expect(doc.seller.name).toBeTruthy();
+    expect(doc.party.name).toBeTruthy();
+    expect(doc.zatca.uuid).toBeTruthy();
+    // فاتورة مجهولة ⇒ 404
+    await request(srv).get("/finance/invoices/nope-xyz/document").set(auth(gm)).expect(404);
+  });
 });

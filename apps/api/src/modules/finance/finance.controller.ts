@@ -56,6 +56,12 @@ export class FinanceController {
   }
 
   @Authorize({ module: "finance", action: "read", entitlement: "module.finance" })
+  @Get("invoices/:id/document")
+  invoiceDocument(@CurrentUser("tenantId") tenantId: string, @Param("id") id: string) {
+    return this.finance.invoiceDocument(tenantId, id);
+  }
+
+  @Authorize({ module: "finance", action: "read", entitlement: "module.finance" })
   @Get("receivables")
   receivables() {
     return this.finance.receivables();
