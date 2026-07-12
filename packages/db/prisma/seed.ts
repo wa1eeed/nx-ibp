@@ -588,7 +588,7 @@ async function seedRichData(passwordHash: string) {
     ci++;
     nameOf[c.id] = c.name;
     await prisma.client.upsert({
-      where: { id: c.id }, update: { name: c.name, city: c.city, email: c.email, complianceStatus: c.compliance },
+      where: { id: c.id }, update: { name: c.name, city: c.city, email: c.email, complianceStatus: c.compliance, collectionModel: (c as { collect?: string }).collect ?? "collect_full" },
       create: { id: c.id, tenantId: c.t, type: c.type, name: c.name, crNumber: c.type === "CORPORATE" ? c.id2 : null, nationalId: c.type === "INDIVIDUAL" ? c.id2 : null, email: c.email, phone: c.phone, city: c.city, code: `CLI-2026-${ci}`, status: "active", complianceStatus: c.compliance },
     });
   }
@@ -779,7 +779,7 @@ async function seedGibDemo(passwordHash: string) {
 
   // ---- عملاء واقعيون ----
   const clients: Array<{ id: string; name: string; id2: string; type: "CORPORATE" | "INDIVIDUAL"; city: string; email: string; phone: string; compliance: "APPROVED" | "PENDING" | "REJECTED" }> = [
-    { id: "gib-cl-maaden", name: "شركة معادن الخليج للتعدين", id2: "1010445501", type: "CORPORATE", city: "الرياض", email: "insurance@gulf-maaden.sa", phone: "0114567001", compliance: "APPROVED" },
+    { id: "gib-cl-maaden", name: "شركة معادن الخليج للتعدين", id2: "1010445501", type: "CORPORATE", city: "الرياض", email: "insurance@gulf-maaden.sa", phone: "0114567001", compliance: "APPROVED", collect: "direct" }, // حساب مؤسسي كبير يدفع للمؤمِّن مباشرةً
     { id: "gib-cl-noor", name: "مجموعة النور الطبية", id2: "4030556602", type: "CORPORATE", city: "جدة", email: "admin@alnoor-medical.sa", phone: "0126678002", compliance: "APPROVED" },
     { id: "gib-cl-bina", name: "شركة البناء المتكامل للمقاولات", id2: "1010667703", type: "CORPORATE", city: "الرياض", email: "pm@integrated-const.sa", phone: "0114550003", compliance: "APPROVED" },
     { id: "gib-cl-shael", name: "أسطول الشعّال للنقل البري", id2: "2050778804", type: "CORPORATE", city: "الدمام", email: "fleet@alshaal-transport.sa", phone: "0138990004", compliance: "APPROVED" },
@@ -796,8 +796,8 @@ async function seedGibDemo(passwordHash: string) {
     ci++;
     nameOf[c.id] = c.name;
     await prisma.client.upsert({
-      where: { id: c.id }, update: { name: c.name, city: c.city, email: c.email, complianceStatus: c.compliance },
-      create: { id: c.id, tenantId: T, type: c.type, name: c.name, crNumber: c.type === "CORPORATE" ? c.id2 : null, nationalId: c.type === "INDIVIDUAL" ? c.id2 : null, email: c.email, phone: c.phone, city: c.city, code: `CLI-2026-${ci}`, status: "active", complianceStatus: c.compliance },
+      where: { id: c.id }, update: { name: c.name, city: c.city, email: c.email, complianceStatus: c.compliance, collectionModel: (c as { collect?: string }).collect ?? "collect_full" },
+      create: { id: c.id, tenantId: T, type: c.type, name: c.name, crNumber: c.type === "CORPORATE" ? c.id2 : null, nationalId: c.type === "INDIVIDUAL" ? c.id2 : null, email: c.email, phone: c.phone, city: c.city, code: `CLI-2026-${ci}`, status: "active", complianceStatus: c.compliance, collectionModel: (c as { collect?: string }).collect ?? "collect_full" },
     });
   }
 
