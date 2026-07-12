@@ -24,7 +24,7 @@ describe("الإصدار والاعتماد المالي (e2e)", () => {
   const auth = (t: string) => ({ Authorization: `Bearer ${t}` });
 
   async function createAwardedRequest(collectionModel = "collect_full"): Promise<string> {
-    const cr = String(Date.now()).slice(-9) + Math.floor(Math.random() * 90);
+    const cr = String(Date.now()).slice(-8) + String(10 + Math.floor(Math.random() * 89));
     const client = await request(app.getHttpServer()).post("/clients").set(auth(gm)).send({ type: "CORPORATE", name: "عميل إصدار", crNumber: cr, collectionModel });
     await request(app.getHttpServer()).post(`/clients/${client.body.id}/compliance`).set(auth(gm)).send({ decision: "APPROVED" });
     const req = await request(app.getHttpServer()).post("/requests").set(auth(gm)).send({

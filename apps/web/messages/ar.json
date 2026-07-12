@@ -566,7 +566,7 @@
     },
     "code": "الكود",
     "nationalId": "الهوية الوطنية",
-    "email": "البريد",
+    "email": "البريد الإلكتروني",
     "compliance": "حالة الالتزام",
     "complianceStatus": {
       "PENDING": "بانتظار الالتزام",
@@ -594,6 +594,14 @@
       "activePolicies": "وثائق فعّالة",
       "kyc": "حالة التحقق",
       "lastInteraction": "آخر تفاعل"
+    },
+    "name": "اسم العميل",
+    "crNumber": "السجل التجاري (CR)",
+    "vatNumber": "الرقم الضريبي (VAT)",
+    "hint": {
+      "cr": "10 أرقام",
+      "nationalId": "10 أرقام",
+      "vat": "15 رقمًا"
     }
   },
   "commissions": {

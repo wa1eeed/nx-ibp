@@ -26,7 +26,7 @@ describe("سجلّ المنتِجين (e2e)", () => {
 
   async function issueLinkedPolicy(producerId: string): Promise<{ policyId: string }> {
     const srv = app.getHttpServer();
-    const cr = String(Date.now()).slice(-9) + Math.floor(Math.random() * 90);
+    const cr = String(Date.now()).slice(-8) + String(10 + Math.floor(Math.random() * 89));
     const client = await request(srv).post("/clients").set(auth(gm)).send({ type: "CORPORATE", name: "عميل منتِج", crNumber: cr });
     await request(srv).post(`/clients/${client.body.id}/compliance`).set(auth(gm)).send({ decision: "APPROVED" });
     const req = await request(srv).post("/requests").set(auth(gm)).send({

@@ -594,6 +594,14 @@
       "activePolicies": "Active policies",
       "kyc": "KYC status",
       "lastInteraction": "Last interaction"
+    },
+    "name": "Client name",
+    "crNumber": "CR number",
+    "vatNumber": "VAT number",
+    "hint": {
+      "cr": "10 digits",
+      "nationalId": "10 digits",
+      "vat": "15 digits"
     }
   },
   "commissions": {

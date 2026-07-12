@@ -23,7 +23,7 @@ describe("الاكتتاب الفني وعروض الأسعار (e2e)", () => {
   const auth = (t: string) => ({ Authorization: `Bearer ${t}` });
 
   async function createApprovedRequest(): Promise<{ clientId: string; requestId: string }> {
-    const cr = String(Date.now()).slice(-10) + Math.floor(Math.random() * 9);
+    const cr = String(Date.now()).slice(-8) + String(10 + Math.floor(Math.random() * 89));
     const client = await request(app.getHttpServer()).post("/clients").set(auth(gm)).send({ type: "CORPORATE", name: "عميل اكتتاب", crNumber: cr });
     const clientId = client.body.id;
     await request(app.getHttpServer()).post(`/clients/${clientId}/compliance`).set(auth(gm)).send({ decision: "APPROVED" });

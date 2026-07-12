@@ -24,7 +24,7 @@ describe("الضريبة حسب فرع التأمين — E1 (e2e)", () => {
 
   /** ينشئ طلبًا مُسندًا (AWARDED) لفرعٍ مُعطى، مع عرضٍ بضريبة مُدخَلة (لاختبار فرض الإعفاء). */
   async function awardedRequest(productLineCode: string, base: Record<string, unknown>, blocks: Record<string, unknown>): Promise<string> {
-    const cr = String(Date.now()).slice(-9) + Math.floor(Math.random() * 90);
+    const cr = String(Date.now()).slice(-8) + String(10 + Math.floor(Math.random() * 89));
     const client = await request(app.getHttpServer()).post("/clients").set(auth(gm)).send({ type: "CORPORATE", name: "عميل ضريبة", crNumber: cr });
     await request(app.getHttpServer()).post(`/clients/${client.body.id}/compliance`).set(auth(gm)).send({ decision: "APPROVED" });
     const req = await request(app.getHttpServer()).post("/requests").set(auth(gm)).send({

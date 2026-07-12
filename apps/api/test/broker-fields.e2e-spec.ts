@@ -55,6 +55,16 @@ describe("إثراء حقول العميل (e2e)", () => {
     await request(srv()).post("/clients").set(auth(token)).send({ ...fullClient, crNumber: undefined, relationStatus: "خطأ" }).expect(400);
   });
 
+  it("طول السجل التجاري/الرقم الضريبي/الهوية مُتحقَّق (ضمان صحّة المدخل)", async () => {
+    const token = await newOwner();
+    const goodCr = () => `10${uniq().replace(/\D/g, "").slice(0, 8)}`;
+    await request(srv()).post("/clients").set(auth(token)).send({ type: "CORPORATE", name: "منشأة", crNumber: "12345" }).expect(400); // CR < 10 أرقام
+    await request(srv()).post("/clients").set(auth(token)).send({ type: "CORPORATE", name: "منشأة", crNumber: "10AB567890" }).expect(400); // CR بحروف
+    await request(srv()).post("/clients").set(auth(token)).send({ type: "CORPORATE", name: "منشأة", crNumber: goodCr(), vatNumber: "12345" }).expect(400); // ض.ق.م ≠ 15
+    await request(srv()).post("/clients").set(auth(token)).send({ type: "INDIVIDUAL", name: "فرد", nationalId: "123" }).expect(400); // هوية ≠ 10
+    await request(srv()).post("/clients").set(auth(token)).send({ type: "CORPORATE", name: "منشأة صحيحة", crNumber: goodCr(), vatNumber: "300000000000003" }).expect(201); // صحيح
+  });
+
   it("شكل قانوني غير معروف ⇒ 400", async () => {
     const token = await newOwner();
     await request(srv()).post("/clients").set(auth(token)).send({ type: "CORPORATE", name: "منشأة", legalForm: "unknown" }).expect(400);

@@ -189,16 +189,16 @@ export default function ClientsPage() {
               <option value="INDIVIDUAL">{t("clients.type.individual")}</option>
             </select>
           </label>
-          <Field label={t("clients.table.client")} value={name} onChange={setName} required />
+          <Field label={t("clients.name")} value={name} onChange={setName} required />
           {type === "CORPORATE" ? (
-            <Field label="CR" value={crNumber} onChange={setCrNumber} />
+            <Field label={t("clients.crNumber")} value={crNumber} onChange={setCrNumber} numeric maxLength={10} placeholder="1010XXXXXX" hint={t("clients.hint.cr")} />
           ) : (
-            <Field label={t("clients.nationalId")} value={nationalId} onChange={setNationalId} />
+            <Field label={t("clients.nationalId")} value={nationalId} onChange={setNationalId} numeric maxLength={10} placeholder="10XXXXXXXX" hint={t("clients.hint.nationalId")} />
           )}
           <Field label={t("clients.email")} value={email} onChange={setEmail} type="email" />
           <Field label={t("clients.table.city")} value={city} onChange={setCity} />
           {/* حقول معيارية لوساطة التأمين */}
-          {type === "CORPORATE" ? <Field label="الرقم الضريبي (VAT)" value={vatNumber} onChange={setVatNumber} /> : null}
+          {type === "CORPORATE" ? <Field label={t("clients.vatNumber")} value={vatNumber} onChange={setVatNumber} numeric maxLength={15} placeholder="3XXXXXXXXXXXXX3" hint={t("clients.hint.vat")} /> : null}
           <label className="block">
             <span className="mb-1 block text-[12px] font-medium text-muted">العلاقة</span>
             <select value={relationStatus} onChange={(e) => setRelationStatus(e.target.value)} className="h-9 w-full rounded-lg border border-line bg-card px-2 text-[13px]">
@@ -336,11 +336,17 @@ export default function ClientsPage() {
   );
 }
 
-function Field({ label, value, onChange, type = "text", required }: { label: string; value: string; onChange: (v: string) => void; type?: string; required?: boolean }) {
+function Field({ label, value, onChange, type = "text", required, numeric, maxLength, placeholder, hint }: { label: string; value: string; onChange: (v: string) => void; type?: string; required?: boolean; numeric?: boolean; maxLength?: number; placeholder?: string; hint?: string }) {
+  // للحقول الرقمية (السجل التجاري/الرقم الضريبي/الهوية): إدخال أرقام فقط بطول محدّد لضمان صحّة المدخل
+  const handle = (v: string) => onChange(numeric ? v.replace(/\D/g, "").slice(0, maxLength) : v);
+  const invalid = numeric && maxLength != null && value.length > 0 && value.length < maxLength;
   return (
     <label className="block">
       <span className="mb-1 block text-[12px] font-medium text-muted">{label}</span>
-      <input type={type} value={value} required={required} onChange={(e) => onChange(e.target.value)} className="h-9 w-full rounded-lg border border-line bg-card px-3 text-[13px] text-ink focus:outline-none focus:ring-2 focus:ring-primary/30" />
+      <input type={type} inputMode={numeric ? "numeric" : undefined} dir={numeric ? "ltr" : undefined} value={value} required={required} maxLength={maxLength} placeholder={placeholder}
+        onChange={(e) => handle(e.target.value)}
+        className={["h-9 w-full rounded-lg border bg-card px-3 text-[13px] text-ink focus:outline-none focus:ring-2", numeric ? "tnum" : "", invalid ? "border-danger/60 focus:ring-danger/30" : "border-line focus:ring-primary/30"].join(" ")} />
+      {hint ? <span className={["mt-1 block text-[10.5px] leading-tight", invalid ? "text-danger" : "text-subtle"].join(" ")}>{invalid ? `${hint} — مطلوب ${maxLength} أرقام` : hint}</span> : null}
     </label>
   );
 }
