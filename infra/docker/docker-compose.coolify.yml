@@ -54,6 +54,7 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER:-ibp}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-ibp}?schema=public
       REDIS_URL: redis://redis:6379
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET مطلوب}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-8h} # مدّة الجلسة (افتراضي 8 ساعات) — لا تجعلها قصيرة كي لا يُسجَّل خروج تلقائي
       CORS_ORIGINS: ${CORS_ORIGINS:?CORS_ORIGINS مطلوب (دومين الواجهة)}
       ZATCA_ENC_KEY: ${ZATCA_ENC_KEY:?ZATCA_ENC_KEY مطلوب (base64 32 بايت)}
       ZATCA_DEFAULT_ENV: ${ZATCA_DEFAULT_ENV:-SANDBOX}
