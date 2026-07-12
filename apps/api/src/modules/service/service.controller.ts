@@ -2,7 +2,7 @@ import { Body, Controller, Get, HttpCode, Param, Post, Query } from "@nestjs/com
 import { ServiceService } from "./service.service";
 import { CreateServiceRequestDto, UpdateServiceStatusDto, AssignServiceDto, ServicePriorityDto, ServiceNoteDto } from "./dto/service.dto";
 import { Authorize } from "../rbac/authorize.decorator";
-import { CurrentUser } from "../auth/current-user.decorator";
+import { CurrentUser, type AuthUser } from "../auth/current-user.decorator";
 
 @Controller("service-requests")
 export class ServiceController {
@@ -27,8 +27,8 @@ export class ServiceController {
 
   @Authorize({ module: "service", action: "read", entitlement: "module.service" })
   @Get(":id")
-  detail(@Param("id") id: string) {
-    return this.service.detail(id);
+  detail(@CurrentUser() user: AuthUser, @Param("id") id: string) {
+    return this.service.detail(id, user);
   }
 
   @Authorize({ module: "service", action: "create", entitlement: "module.service" })
@@ -86,6 +86,6 @@ export class ServiceController {
     @Param("id") id: string,
     @Body() dto: ServiceNoteDto,
   ) {
-    return this.service.addNote(tenantId, userId, id, dto.body);
+    return this.service.addNote(tenantId, userId, id, dto.body, dto.visibility ?? "internal");
   }
 }

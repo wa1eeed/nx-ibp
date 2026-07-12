@@ -31,6 +31,7 @@
 | `..._user_product_scope` | صلاحيات | `User.allowedProductLines String[]` (صلاحيات على مستوى المنتج، متوافقة رجعيًا) |
 | `..._collection_model` | مالية | `Client.collectionModel` (افتراضي `collect_full`) + `Policy.collectionModel` (مبصوم) — نموذج التحصيل #32 |
 | `..._client_contact_fields` | عملاء | `Client.landline` (هاتف ثابت) + `Client.contactName` (اسم شخص التواصل) |
+| `..._crm_activity_visibility` | خدمة/CRM | `CrmActivity.visibility` (`internal`/`client`) — يميّز الملاحظات الداخلية عن الردود الظاهرة للعميل في تفاصيل طلب الخدمة |
 
 > في البيئات غير التفاعلية، تُولَّد بعض الترحيلات بـ `prisma migrate diff` ثم تُطبَّق بـ `prisma migrate deploy`. **كل الترحيلات الأخيرة إضافية بقيَم افتراضية** (آمنة على بيانات قائمة).
 

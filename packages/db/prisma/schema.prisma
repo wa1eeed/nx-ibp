@@ -166,9 +166,10 @@ model CrmActivity {
   id         String   @id @default(cuid())
   tenantId   String
   tenant     Tenant   @relation(fields: [tenantId], references: [id])
-  entityType String // deal | client | policy | claim | request
+  entityType String // deal | client | policy | claim | request | service
   entityId   String
-  type       String   @default("note") // note | call | email | meeting | stage_change | task
+  type       String   @default("note") // note | call | email | meeting | stage_change | task | reply
+  visibility String   @default("internal") // internal (staff-only) | client (shown in client portal)
   body       String   @db.Text
   authorId   String?
   createdAt  DateTime @default(now())

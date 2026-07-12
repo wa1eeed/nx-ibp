@@ -807,12 +807,12 @@ erDiagram
 > أُضيفت في مسار ما بعد الاكتمال. كلها معزولة بالمستأجر (FK `tenantId` + Prisma `$use`).
 
 ### الإشعارات
-- **`NotificationSetting`** — إعداد نوع إشعار بمستويين: `tenantId = NULL` ⇒ **افتراضي المنصة** (يديره سوبر أدمن المنصة، يرثه الجميع)؛ قيمة ⇒ **تخصيص شركة**. حقول: `eventKey` · `channelEmail`/`channelSms` · `subject`/`body`. (22 نوعًا (ثنائية اللغة) في `notifications.constants.ts`: 7 عملاء + 15 موظفين.)
+- **`NotificationSetting`** — إعداد نوع إشعار بمستويين: `tenantId = NULL` ⇒ **افتراضي المنصة** (يديره سوبر أدمن المنصة، يرثه الجميع)؛ قيمة ⇒ **تخصيص شركة**. حقول: `eventKey` · `channelEmail`/`channelSms` · `subject`/`body`. (23 نوعًا (ثنائية اللغة) في `notifications.constants.ts`: 8 عملاء + 15 موظفين.)
 - **`Notification`** — إشعار داخل المنصة (in-app) لمستقبِل واحد: `userId` (موظف) أو `clientId` (عميل بوّابة) · `eventKey` · `audience` (client/staff) · `title`/`body` · `readAt` (NULL = غير مقروء). فهارس `[tenantId, userId, readAt]` و`[tenantId, clientId, readAt]`.
 
 ### CRM (إدارة العلاقات)
 - **`Deal`** — صفقة/فرصة في خطّ الأنابيب: `title` · `stage` (new/contacted/quoting/proposal/negotiation) · `status` (open/won/lost) · `value` · `clientId` · **`assigneeId`** (الموظف المُسنَد) · `createdById` · `requestId` (عند التحويل). فهارس `[tenantId, stage]` و`[tenantId, assigneeId]`.
-- **`CrmActivity`** — نشاط/ملاحظة **polymorphic**: `entityType` (deal/client/policy/claim/request) · `entityId` · `type` (note/call/email/meeting/stage_change) · `body` · `authorId`. يخدم الخط الزمني في صفحات 360°.
+- **`CrmActivity`** — نشاط/ملاحظة **polymorphic**: `entityType` (deal/client/policy/claim/request/**service**) · `entityId` · `type` (note/call/email/meeting/stage_change/**reply**) · **`visibility`** (`internal` افتراضي = موظفون فقط · `client` = يظهر في بوّابة العميل — migration `crm_activity_visibility`) · `body` · `authorId`. يخدم الخط الزمني في صفحات 360° وفي **تفاصيل طلب الخدمة** (ملاحظات داخلية + ردود ظاهرة للعميل).
 - **`CrmTask`** — مهمة/تذكير: `title` · `assigneeId` · `dueDate` · `priority` (low/normal/high) · `status` (open/done) · ربط اختياري `entityType/entityId` · **`reminderSentAt`** (وسم تذكير الاستحقاق — idempotency للمجدول). إسنادها يُطلق إشعار `notifyUser`.
 
 ### إضافات على نماذج قائمة

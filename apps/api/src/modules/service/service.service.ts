@@ -3,7 +3,10 @@ import { Prisma } from "@ibp/db";
 import { PrismaService } from "../../prisma/prisma.service";
 import { SequenceService } from "../../common/sequence/sequence.service";
 import { AuditService } from "../../common/audit/audit.service";
+import { PermissionService } from "../rbac/permission.service";
+import { maskClientSensitive } from "../../common/security/dlp";
 import { NotificationsService } from "../notifications/notifications.service";
+import type { AuthUser } from "../auth/current-user.decorator";
 import type { CreateServiceRequestDto } from "./dto/service.dto";
 
 const asJson = (v: unknown) => v as Prisma.InputJsonValue;
@@ -11,6 +14,13 @@ const FIELDS = {
   id: true, sequenceNo: true, type: true, subject: true, status: true,
   priority: true, assigneeId: true, clientId: true, policyId: true, tenantId: true,
   createdAt: true, updatedAt: true, details: true,
+} as const;
+
+/** حقول العميل الكاملة لصندوق «بيانات العميل» في تفاصيل الطلب (الهوية تُخفى بـDLP لغير المخوّلين). */
+const CLIENT_FIELDS = {
+  id: true, code: true, name: true, type: true, crNumber: true, nationalId: true,
+  vatNumber: true, email: true, phone: true, landline: true, contactName: true,
+  city: true, nationalAddress: true, complianceStatus: true, createdAt: true,
 } as const;
 
 interface ListFilter { status?: string; assigneeId?: string; mine?: boolean }
@@ -26,8 +36,26 @@ export class ServiceService {
     private readonly prisma: PrismaService,
     private readonly seq: SequenceService,
     private readonly audit: AuditService,
+    private readonly permissions: PermissionService,
     private readonly notifications: NotificationsService,
   ) {}
+
+  /** يرى الهوية/الآيبان كاملةً فقط من له صلاحية الالتزام أو المالية (DLP — أقلّ امتياز). */
+  private async canViewSensitive(user: AuthUser) {
+    const [compliance, finance] = await Promise.all([
+      this.permissions.can(user.roleId, "compliance", "read"),
+      this.permissions.can(user.roleId, "finance", "read"),
+    ]);
+    return compliance || finance;
+  }
+
+  /** يُرفق اسم كاتب كل عنصر في الخطّ الزمني (موظفو المستأجر؛ ردود العميل تُوسم «العميل»). */
+  private async attachAuthors<T extends { authorId: string | null }>(rows: T[]) {
+    const ids = [...new Set(rows.map((r) => r.authorId).filter(Boolean) as string[])];
+    const users = ids.length ? await this.prisma.user.findMany({ where: { id: { in: ids } }, select: { id: true, fullName: true } }) : [];
+    const un = new Map(users.map((u) => [u.id, u.fullName]));
+    return rows.map((r) => ({ ...r, authorName: r.authorId ? un.get(r.authorId) ?? null : null }));
+  }
 
   /** إثراء الطلبات بأسماء العميل والموظف المُسنَد (assigneeId/clientId مجرّد نصوص لا علاقات). */
   private async enrich<T extends { clientId: string | null; assigneeId: string | null }>(rows: T[]) {
@@ -56,15 +84,18 @@ export class ServiceService {
     return this.enrich(rows);
   }
 
-  async detail(id: string) {
+  async detail(id: string, user: AuthUser) {
     const sr = await this.prisma.serviceRequest.findFirst({ where: { id }, select: FIELDS });
     if (!sr) throw new NotFoundException("طلب الخدمة غير موجود");
     const [enriched] = await this.enrich([sr]);
-    const [policy, timeline] = await Promise.all([
-      sr.policyId ? this.prisma.policy.findFirst({ where: { id: sr.policyId }, select: { id: true, sequenceNo: true } }) : Promise.resolve(null),
-      this.prisma.crmActivity.findMany({ where: { entityType: "service", entityId: id }, orderBy: { createdAt: "desc" }, take: 100, select: { id: true, type: true, body: true, createdAt: true } }),
+    const [canView, client, policy, activities] = await Promise.all([
+      this.canViewSensitive(user),
+      sr.clientId ? this.prisma.client.findFirst({ where: { id: sr.clientId }, select: CLIENT_FIELDS }) : Promise.resolve(null),
+      sr.policyId ? this.prisma.policy.findFirst({ where: { id: sr.policyId }, select: { id: true, sequenceNo: true, productLineCode: true, insurerName: true, status: true } }) : Promise.resolve(null),
+      this.prisma.crmActivity.findMany({ where: { entityType: "service", entityId: id }, orderBy: { createdAt: "desc" }, take: 200, select: { id: true, type: true, visibility: true, body: true, authorId: true, createdAt: true } }),
     ]);
-    return { ...enriched, policy, timeline };
+    const timeline = await this.attachAuthors(activities);
+    return { ...enriched, client: client ? maskClientSensitive(client, canView) : null, policy, timeline };
   }
 
   async create(tenantId: string, userId: string, dto: CreateServiceRequestDto) {
@@ -133,10 +164,21 @@ export class ServiceService {
     return enriched;
   }
 
-  async addNote(tenantId: string, userId: string, id: string, body: string) {
-    const exists = await this.prisma.serviceRequest.findFirst({ where: { id }, select: { id: true } });
+  /**
+   * إضافة عنصر للخطّ الزمني: **ملاحظة داخلية** (visibility=internal، للموظفين فقط) أو
+   * **رد ظاهر للعميل** (visibility=client، يظهر في بوّابة العميل + يُشعِر العميل).
+   */
+  async addNote(tenantId: string, userId: string, id: string, body: string, visibility: "internal" | "client" = "internal") {
+    const exists = await this.prisma.serviceRequest.findFirst({ where: { id }, select: { id: true, sequenceNo: true, clientId: true } });
     if (!exists) throw new NotFoundException("طلب الخدمة غير موجود");
-    await this.logActivity(tenantId, userId, id, "note", body);
+    const isClient = visibility === "client";
+    await this.logActivity(tenantId, userId, id, isClient ? "reply" : "note", body, visibility);
+    await this.audit.log({ tenantId, userId, action: "update", entity: "service_request", entityId: id, meta: { activity: isClient ? "reply" : "note" } });
+    // رد ظاهر للعميل ⇒ إشعار العميل (in-app + بريد)؛ لا يُفشِل العملية عند تعذّره
+    if (isClient && exists.clientId) {
+      const client = await this.prisma.client.findFirst({ where: { id: exists.clientId }, select: { email: true, phone: true } });
+      if (client) void this.notifications.notify(tenantId, "service_reply", { email: client.email ?? undefined, phone: client.phone ?? undefined, clientId: exists.clientId }, { ref: exists.sequenceNo ?? id }).catch(() => undefined);
+    }
     return { ok: true };
   }
 
@@ -144,7 +186,7 @@ export class ServiceService {
     return this.notifications.notifyUser(tenantId, assigneeId, "staff_service_assigned", { ref: ref ?? "—", subject: subject ?? "—" }).catch(() => undefined);
   }
 
-  private logActivity(tenantId: string, userId: string, entityId: string, type: string, body: string) {
-    return this.prisma.crmActivity.create({ data: { tenantId, entityType: "service", entityId, type, body, authorId: userId } });
+  private logActivity(tenantId: string, userId: string, entityId: string, type: string, body: string, visibility: "internal" | "client" = "internal") {
+    return this.prisma.crmActivity.create({ data: { tenantId, entityType: "service", entityId, type, visibility, body, authorId: userId } });
   }
 }

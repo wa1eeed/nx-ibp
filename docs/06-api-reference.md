@@ -758,8 +758,8 @@ curl -X POST http://localhost:4000/staff \
 | `GET /catalog/stats` | مصادَق | الكتالوج + إحصاءات إنتاج المستأجر لكل فرع + جاهزية النموذج + نسبة الضريبة |
 | `GET /documents/all` | مصادَق | المستودع المركزي لكل مستندات المستأجر (فلاتر: التصنيف/نوع الكيان/بحث) |
 | `POST /staff/:id/product-scope` | `settings:update` | ضبط `allowedProductLines` للموظف (صلاحيات على مستوى المنتج) |
-| `GET /service-requests/:id` · `/staff` | `service:read` | تفاصيل طلب الخدمة (+ الخطّ الزمني) · الموظفون القابلون للإسناد |
-| `POST /service-requests/:id/assign` · `/priority` · `/notes` | `service:update` | إسناد · أولوية · ملاحظة (خطّ زمني) |
+| `GET /service-requests/:id` · `/staff` | `service:read` | تفاصيل طلب الخدمة: **بيانات العميل الكاملة** (مُخفاة PII بـDLP) + الوثيقة + **خطّ زمني بأسماء الكُتّاب وطوابع زمنية تفصيلية** · الموظفون القابلون للإسناد |
+| `POST /service-requests/:id/assign` · `/priority` · `/notes` | `service:update` | إسناد · أولوية · **ملاحظة**: `{ body, visibility? }` — `internal` (داخلي، الافتراضي) أو `client` (رد ظاهر للعميل في البوّابة + يُشعِره `service_reply`) |
 | `GET/POST/PATCH/DELETE /insurers` | `finance:*` | سجلّ شركات التأمين + إحصاءات الإنتاج |
 | `GET/POST/DELETE /targets` · `/targets/options` | `reports:*` | الأهداف والأداء |
 | `GET/PUT /branding` · `GET /branding/:tenantId/logo` | مصادَق/عام | الهوية البصرية + الشعار العام |

@@ -72,7 +72,19 @@ describe("الموديولز التشغيلية (e2e)", () => {
     expect(detail.assigneeName).toBeTruthy();
     expect(detail.priority).toBe("urgent");
     expect(detail.timeline.length).toBeGreaterThanOrEqual(3); // إنشاء + إسناد + أولوية + ملاحظة
-    expect((detail.timeline as Array<{ body: string }>).some((a) => a.body.includes("اتصلت بالمؤمِّن"))).toBe(true);
+    // الملاحظة الداخلية: visibility=internal + اسم الكاتب مُرفق في الخطّ الزمني
+    const note = (detail.timeline as Array<{ body: string; visibility: string; authorName: string | null }>).find((a) => a.body.includes("اتصلت بالمؤمِّن"));
+    expect(note).toBeTruthy();
+    expect(note!.visibility).toBe("internal");
+    expect(note!.authorName).toBeTruthy();
+
+    // رد ظاهر للعميل: visibility=client + type=reply (يظهر في بوّابة العميل ويُشعِره)
+    await request(srv).post(`/service-requests/${sr.id}/notes`).set(auth(care)).send({ body: "رد يظهر للعميل", visibility: "client" }).expect(201);
+    const detail2 = (await request(srv).get(`/service-requests/${sr.id}`).set(auth(care)).expect(200)).body;
+    const reply = (detail2.timeline as Array<{ body: string; visibility: string; type: string }>).find((a) => a.body === "رد يظهر للعميل");
+    expect(reply).toBeTruthy();
+    expect(reply!.visibility).toBe("client");
+    expect(reply!.type).toBe("reply");
 
     // فلترة بالحالة تعمل
     const open = (await request(srv).get("/service-requests?status=OPEN").set(auth(care)).expect(200)).body as Array<{ status: string }>;

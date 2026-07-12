@@ -29,5 +29,7 @@ export class ServicePriorityDto {
 }
 
 export class ServiceNoteDto {
-  @IsString() @MinLength(1) @MaxLength(1000) body!: string;
+  @IsString() @MinLength(1) @MaxLength(2000) body!: string;
+  /** internal = ملاحظة داخلية (موظفون فقط، الافتراضي) · client = رد ظاهر للعميل في البوّابة. */
+  @IsOptional() @IsIn(["internal", "client"]) visibility?: "internal" | "client";
 }

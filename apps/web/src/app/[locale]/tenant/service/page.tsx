@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { Plus, X, Headset, Send, StickyNote, ArrowRight, UserCheck, Check, Flame } from "lucide-react";
+import { Plus, X, Headset, UserCheck, Flame } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/routing";
 import { api, getToken, ApiError } from "@/lib/api";
@@ -14,18 +14,12 @@ interface SR {
   createdAt: string; updatedAt: string;
 }
 interface Staff { id: string; fullName: string }
-interface Activity { id: string; type: string; body: string; createdAt: string }
-interface SRDetail extends SR { policy: { id: string; sequenceNo: string | null } | null; timeline: Activity[] }
 
 const TONE: Record<string, BadgeTone> = { OPEN: "warning", IN_PROGRESS: "info", SENT_TO_INSURER: "info", CLOSED: "success" };
 const STATUSES = ["OPEN", "IN_PROGRESS", "SENT_TO_INSURER", "CLOSED"];
 const TYPES = ["addition", "deletion", "amendment", "inquiry", "renewal"];
 const PRIORITIES = ["low", "normal", "high", "urgent"];
 const PRIO_TONE: Record<string, string> = { urgent: "bg-danger/10 text-danger", high: "bg-warning-soft text-warning", normal: "bg-surface-2 text-subtle", low: "bg-surface-2 text-subtle" };
-const ACT_META: Record<string, { Icon: typeof StickyNote; tone: string }> = {
-  note: { Icon: StickyNote, tone: "text-subtle" },
-  stage_change: { Icon: ArrowRight, tone: "text-warning" },
-};
 
 const daysSince = (d: string) => Math.floor((Date.now() - new Date(d).getTime()) / 864e5);
 
@@ -38,7 +32,6 @@ export default function ServicePage() {
   const [error, setError] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [mine, setMine] = useState(false);
-  const [detailId, setDetailId] = useState<string | null>(null);
   // نموذج الإنشاء
   const [type, setType] = useState("amendment");
   const [subject, setSubject] = useState("");
@@ -135,7 +128,7 @@ export default function ServicePage() {
                 const age = daysSince(r.createdAt);
                 const stale = r.status !== "CLOSED" && age >= 3;
                 return (
-                  <tr key={r.id} onClick={() => setDetailId(r.id)} className="cursor-pointer hover:bg-surface-2/60">
+                  <tr key={r.id} onClick={() => router.push(`/tenant/service/${r.id}`)} className="cursor-pointer hover:bg-surface-2/60">
                     <td className="px-5 py-3 text-[12.5px] font-medium text-ink tnum">{r.sequenceNo ?? "—"}</td>
                     <td className="px-4 py-3 text-[13px] text-muted">{t(`service.types.${r.type}`)}</td>
                     <td className="px-4 py-3 text-[13px] text-ink">{r.subject ?? "—"}</td>
@@ -156,86 +149,6 @@ export default function ServicePage() {
           </div>
         </div>
       )}
-
-      {detailId ? <ServiceDetail id={detailId} staff={staff} onClose={() => setDetailId(null)} onChanged={() => void load()} /> : null}
-    </div>
-  );
-}
-
-function ServiceDetail({ id, staff, onClose, onChanged }: { id: string; staff: Staff[]; onClose: () => void; onChanged: () => void }) {
-  const t = useTranslations();
-  const [d, setD] = useState<SRDetail | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState("");
-  const [note, setNote] = useState("");
-
-  const load = useCallback(() => { void api<SRDetail>(`/service-requests/${id}`).then(setD).catch(() => undefined); }, [id]);
-  useEffect(() => { load(); }, [load]);
-
-  async function act(fn: () => Promise<unknown>) {
-    setBusy(true); setErr("");
-    try { await fn(); load(); onChanged(); }
-    catch (e) { setErr(e instanceof ApiError ? e.message : "خطأ"); }
-    finally { setBusy(false); }
-  }
-  const setStatus = (status: string) => act(() => api(`/service-requests/${id}/status`, { method: "POST", body: JSON.stringify({ status }) }));
-  const setPriority = (priority: string) => act(() => api(`/service-requests/${id}/priority`, { method: "POST", body: JSON.stringify({ priority }) }));
-  const assign = (assigneeId: string) => act(() => api(`/service-requests/${id}/assign`, { method: "POST", body: JSON.stringify({ assigneeId: assigneeId || null }) }));
-  async function addNote() {
-    if (note.trim().length < 1) return;
-    await act(() => api(`/service-requests/${id}/notes`, { method: "POST", body: JSON.stringify({ body: note.trim() }) }));
-    setNote("");
-  }
-
-  const field = "h-9 w-full rounded-lg border border-line bg-card px-2 text-[12.5px] text-ink focus:outline-none focus:ring-2 focus:ring-primary/30";
-
-  return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onMouseDown={onClose}>
-      <div className="max-h-[88vh] w-full max-w-2xl overflow-auto rounded-card border border-line bg-card p-5 shadow-card" onMouseDown={(e) => e.stopPropagation()}>
-        {!d ? <p className="py-8 text-center text-subtle">…</p> : (
-          <>
-            <div className="mb-3 flex items-start justify-between gap-2">
-              <div>
-                <h2 className="text-[16px] font-bold text-ink">{d.sequenceNo ?? "—"} · {t(`service.types.${d.type}`)}</h2>
-                <p className="text-[12px] text-subtle">{d.subject ?? "—"}{d.clientName ? ` · ${d.clientName}` : ""}{d.policy?.sequenceNo ? ` · ${d.policy.sequenceNo}` : ""}</p>
-              </div>
-              <button onClick={onClose} className="text-subtle hover:text-ink"><X size={18} /></button>
-            </div>
-            {err ? <p className="mb-3 rounded-lg bg-danger/10 px-3 py-2 text-[12px] font-medium text-danger">{err}</p> : null}
-
-            {/* الإجراءات: الحالة · الأولوية · الإسناد */}
-            <div className="mb-4 grid grid-cols-1 gap-3 rounded-card border border-line bg-surface-2/30 p-3 sm:grid-cols-3">
-              <label className="block"><span className="mb-1 block text-[11px] text-muted">{t("service.col.status")}</span>
-                <select value={d.status} onChange={(e) => setStatus(e.target.value)} disabled={busy} className={field}>{STATUSES.map((s) => <option key={s} value={s}>{t(`service.statuses.${s}`)}</option>)}</select></label>
-              <label className="block"><span className="mb-1 block text-[11px] text-muted">{t("service.priority")}</span>
-                <select value={d.priority} onChange={(e) => setPriority(e.target.value)} disabled={busy} className={field}>{PRIORITIES.map((p) => <option key={p} value={p}>{t(`service.priorities.${p}`)}</option>)}</select></label>
-              <label className="block"><span className="mb-1 block text-[11px] text-muted">{t("service.assignee")}</span>
-                <select value={d.assigneeId ?? ""} onChange={(e) => assign(e.target.value)} disabled={busy} className={field}><option value="">{t("service.unassigned")}</option>{staff.map((s) => <option key={s.id} value={s.id}>{s.fullName}</option>)}</select></label>
-            </div>
-
-            {/* مُدوِّن الملاحظات */}
-            <div className="mb-4 flex items-end gap-2">
-              <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder={t("service.notePlaceholder")} rows={2} className="min-h-[38px] flex-1 rounded-lg border border-line bg-card px-2.5 py-1.5 text-[12.5px] text-ink focus:outline-none focus:ring-2 focus:ring-primary/30" />
-              <button onClick={addNote} disabled={busy || note.trim().length < 1} className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg bg-ink px-3 text-[12px] font-semibold text-white hover:opacity-90 disabled:opacity-50"><Send size={13} /> {t("service.logNote")}</button>
-            </div>
-
-            {/* الخطّ الزمني */}
-            {d.timeline?.length ? (
-              <div><p className="mb-1.5 text-[12px] font-semibold text-subtle">{t("service.timeline")}</p>
-                <ol className="space-y-1.5">{d.timeline.map((a) => {
-                  const meta = ACT_META[a.type] ?? ACT_META.note;
-                  return (
-                    <li key={a.id} className="flex items-start justify-between gap-2 rounded-lg bg-surface-2/40 px-3 py-2">
-                      <span className="flex min-w-0 items-start gap-2"><meta.Icon size={13} className={`mt-0.5 shrink-0 ${meta.tone}`} /><span className="text-[12px] text-ink">{a.body}</span></span>
-                      <span className="shrink-0 text-[10.5px] text-subtle tnum">{new Date(a.createdAt).toLocaleDateString("en-GB")}</span>
-                    </li>
-                  );
-                })}</ol>
-              </div>
-            ) : null}
-          </>
-        )}
-      </div>
     </div>
   );
 }
