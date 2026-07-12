@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState, type FormEvent } from "react";
-import { Plus, Trash2, BookmarkPlus } from "lucide-react";
+import { useMemo, useRef, useState, type FormEvent } from "react";
+import { Plus, Trash2, BookmarkPlus, Upload, Download } from "lucide-react";
 import { useLocale } from "next-intl";
 import type { BlockDef, FieldDef, FieldOption, SectionDef } from "@ibp/shared";
+import { blockTemplateCsv, parseBlockCsv, type CsvImportResult } from "@/lib/block-csv";
 
 export interface FormSchemaData {
   sections: SectionDef[];
@@ -67,6 +68,34 @@ export function DynamicForm({
     setBlocks((prev) => ({ ...prev, [key]: (prev[key] ?? []).filter((_, i) => i !== idx) }));
   }
 
+  // ——— الاستيراد الجماعي من CSV (للأساطيل/المجموعات الكبيرة) ———
+  const fileRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const [imports, setImports] = useState<Record<string, CsvImportResult>>({});
+
+  function downloadTemplate(block: BlockDef) {
+    const blob = new Blob([blockTemplateCsv(block, ar)], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${block.key}-template.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function onImportFile(block: BlockDef, file: File) {
+    const text = await file.text();
+    const result = parseBlockCsv(block, text, ar);
+    if (result.rows.length) {
+      setBlocks((prev) => {
+        const existing = prev[block.key] ?? [];
+        // استبدل الصفوف الأولية الفارغة؛ وإلا ألحِق الصفوف المستوردة
+        const nonEmpty = existing.filter((r) => Object.keys(r).length > 0);
+        return { ...prev, [block.key]: [...nonEmpty, ...result.rows] };
+      });
+    }
+    setImports((prev) => ({ ...prev, [block.key]: result }));
+  }
+
   function renderField(f: FieldDef, value: unknown, onChange: (v: unknown) => void, keyPrefix: string) {
     const common = "h-9 w-full rounded-lg border border-line bg-card px-3 text-[13px] text-ink focus:outline-none focus:ring-2 focus:ring-primary/30";
     const id = `${keyPrefix}.${f.key}`;
@@ -119,16 +148,38 @@ export function DynamicForm({
       {/* الكتل المتكررة */}
       {schema.blocks.map((b) => (
         <section key={b.key} className="rounded-card border border-line bg-card p-5 shadow-card">
-          <div className="mb-3 flex items-center justify-between">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <h3 className="text-[14px] font-semibold text-ink">{label({ labelAr: b.titleAr, labelEn: b.titleEn })}</h3>
-            <button
-              type="button"
-              onClick={() => addRow(b.key)}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-card px-2.5 py-1.5 text-[12px] font-medium text-primary transition-colors hover:bg-surface-2"
-            >
-              <Plus size={14} /> {label({ labelAr: `إضافة ${b.itemLabelAr}`, labelEn: `Add ${b.itemLabelEn}` })}
-            </button>
+            <div className="flex items-center gap-1.5">
+              {/* استيراد جماعي: تنزيل قالب CSV ثم رفعه (للأساطيل/المجموعات) */}
+              <button type="button" onClick={() => downloadTemplate(b)} title={label({ labelAr: "تنزيل قالب CSV", labelEn: "Download CSV template" })}
+                className="inline-flex items-center gap-1 rounded-lg border border-line bg-card px-2 py-1.5 text-[11.5px] font-medium text-muted transition-colors hover:bg-surface-2">
+                <Download size={13} /> {label({ labelAr: "قالب", labelEn: "Template" })}
+              </button>
+              <input ref={(el) => { fileRefs.current[b.key] = el; }} type="file" accept=".csv,text/csv" className="hidden"
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) void onImportFile(b, f); e.target.value = ""; }} />
+              <button type="button" onClick={() => fileRefs.current[b.key]?.click()} title={label({ labelAr: "استيراد من CSV", labelEn: "Import from CSV" })}
+                className="inline-flex items-center gap-1 rounded-lg border border-line bg-card px-2 py-1.5 text-[11.5px] font-medium text-muted transition-colors hover:bg-surface-2">
+                <Upload size={13} /> {label({ labelAr: "استيراد CSV", labelEn: "Import CSV" })}
+              </button>
+              <button type="button" onClick={() => addRow(b.key)}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-card px-2.5 py-1.5 text-[12px] font-medium text-primary transition-colors hover:bg-surface-2">
+                <Plus size={14} /> {label({ labelAr: `إضافة ${b.itemLabelAr}`, labelEn: `Add ${b.itemLabelEn}` })}
+              </button>
+            </div>
           </div>
+          {/* نتيجة الاستيراد الجماعي */}
+          {imports[b.key] ? (
+            <div className="mb-3 rounded-lg border border-line bg-surface-2/40 px-3 py-2 text-[12px]">
+              {imports[b.key].rows.length ? <p className="font-medium text-success">{ar ? `أُضيف ${imports[b.key].rows.length} صفًّا من الملف` : `Imported ${imports[b.key].rows.length} rows`}</p> : null}
+              {imports[b.key].errors.length ? (
+                <details className="mt-1">
+                  <summary className="cursor-pointer font-medium text-danger">{ar ? `${imports[b.key].errors.length} صفًّا به أخطاء (لم تُضَف)` : `${imports[b.key].errors.length} rows with errors (skipped)`}</summary>
+                  <ul className="mt-1 max-h-40 list-disc space-y-0.5 overflow-y-auto ps-4 text-[11px] text-danger">{imports[b.key].errors.map((e, i) => <li key={i}>{e}</li>)}</ul>
+                </details>
+              ) : null}
+            </div>
+          ) : null}
           <div className="space-y-3">
             {(blocks[b.key] ?? []).map((row, idx) => (
               <div key={idx} className="rounded-lg border border-line bg-surface-2/40 p-3">
