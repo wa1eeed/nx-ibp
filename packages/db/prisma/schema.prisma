@@ -321,6 +321,9 @@ model User {
   role         Role?      @relation(fields: [roleId], references: [id])
   departmentId String?
   department   Department? @relation(fields: [departmentId], references: [id])
+  // نطاق المنتجات: أكواد فروع التأمين المسموح بها لهذا المستخدم. فارغة = بلا تقييد (كل الفروع)
+  // — متوافق رجعيًا: السلوك الافتراضي بلا تغيير ولا يتأثّر أي مستخدم قائم.
+  allowedProductLines String[] @default([])
   createdAt    DateTime   @default(now())
 
   @@unique([tenantId, email])

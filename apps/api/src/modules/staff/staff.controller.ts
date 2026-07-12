@@ -1,8 +1,13 @@
 import { Body, Controller, Get, HttpCode, Param, Post } from "@nestjs/common";
+import { IsArray, IsString } from "class-validator";
 import { StaffService } from "./staff.service";
 import { CreateStaffDto } from "./dto/create-staff.dto";
 import { Authorize } from "../rbac/authorize.decorator";
 import { CurrentUser, type AuthUser } from "../auth/current-user.decorator";
+
+class ProductScopeDto {
+  @IsArray() @IsString({ each: true }) lines!: string[];
+}
 
 /**
  * إدارة الموظفين — محصورة بصلاحية موديول "settings" (الأدمن فقط في القوالب).
@@ -49,5 +54,13 @@ export class StaffController {
   @Post(":id/mfa/reset")
   resetMfa(@CurrentUser() user: AuthUser, @Param("id") id: string) {
     return this.staff.resetMfa(user, id);
+  }
+
+  // نطاق المنتجات: يحصر رؤية/إنشاء الموظف بفروع تأمين محدّدة (فارغ = كل الفروع)
+  @Authorize({ module: "settings", action: "update" })
+  @HttpCode(200)
+  @Post(":id/product-scope")
+  setProductScope(@CurrentUser() user: AuthUser, @Param("id") id: string, @Body() dto: ProductScopeDto) {
+    return this.staff.setProductScope(user, id, dto.lines);
   }
 }

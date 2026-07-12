@@ -1442,7 +1442,19 @@
       "deal": "Deal"
     },
     "activity": "Employee activity log",
-    "empty": "No activity recorded"
+    "empty": "No activity recorded",
+    "scope": {
+      "title": "Product scope (line-level access)",
+      "hint": "Restricts this employee’s view & creation of requests/policies to specific insurance lines. None = all lines.",
+      "edit": "Edit",
+      "all": "All lines",
+      "clear": "Clear selection",
+      "selected": "{n} lines selected",
+      "save": "Save",
+      "cancel": "Cancel",
+      "saved": "Product scope saved",
+      "error": "Save failed"
+    }
   },
   "notifCenter": {
     "title": "Notifications",

@@ -4,6 +4,7 @@ import { PrismaService } from "../../prisma/prisma.service";
 import { SequenceService } from "../../common/sequence/sequence.service";
 import { AuditService } from "../../common/audit/audit.service";
 import { NotificationsService } from "../notifications/notifications.service";
+import { ProductScopeService } from "../../common/scope/product-scope.service";
 import { ConfigService } from "../config/config.service";
 import { PermissionService } from "../rbac/permission.service";
 import { vatTreatmentForClass } from "../../common/tax/vat";
@@ -53,10 +54,13 @@ export class ProductionService {
     private readonly notifications: NotificationsService,
     private readonly config: ConfigService,
     private readonly permissions: PermissionService,
+    private readonly scope: ProductScopeService,
   ) {}
 
-  list() {
-    return this.prisma.policy.findMany({ orderBy: { createdAt: "desc" }, select: POLICY_FIELDS });
+  async list(userId?: string) {
+    // نطاق المنتجات: يُقيَّد بالفروع المسموحة للمستخدم (فارغ ⇒ بلا تقييد)
+    const where = userId ? await this.scope.whereFor(userId) : {};
+    return this.prisma.policy.findMany({ where, orderBy: { createdAt: "desc" }, select: POLICY_FIELDS });
   }
 
   async getOne(id: string) {

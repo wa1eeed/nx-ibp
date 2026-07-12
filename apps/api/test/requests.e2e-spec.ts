@@ -146,4 +146,37 @@ describe("النموذج الديناميكي والالتزام (e2e)", () => {
     expect(detail.body.blockRows.length).toBeGreaterThanOrEqual(1);
     expect(detail.body.blockRows[0].blockKey).toBe("members");
   });
+
+  // ----- نطاق المنتجات (H): صلاحية على مستوى فرع التأمين، متوافقة رجعيًا -----
+  it("نطاق المنتجات: حصر موظف بفرع ⇒ تصفية القائمة + منع الإنشاء خارجه + تراجع يعيد الكل", async () => {
+    const srv = app.getHttpServer();
+    // معرّف مدير المبيعات (sara)
+    const staffList = (await request(srv).get("/staff").set(auth(gm)).expect(200)).body as Array<{ id: string; email: string }>;
+    const saraId = staffList.find((u) => u.email === "sara@gulf-demo.sa")!.id;
+
+    // قبل التقييد: sara ترى طلبات بفروع متعددة (GMI + MCI أُنشئت أعلاه)
+    const before = (await request(srv).get("/requests").set(auth(sales)).expect(200)).body as Array<{ productLineCode: string }>;
+    const linesBefore = new Set(before.map((r) => r.productLineCode));
+    expect(linesBefore.has("GMI")).toBe(true);
+    expect(linesBefore.has("MCI")).toBe(true);
+
+    // كود فرع غير موجود ⇒ 400
+    await request(srv).post(`/staff/${saraId}/product-scope`).set(auth(gm)).send({ lines: ["NOPE"] }).expect(400);
+
+    // احصر sara بالطبي الجماعي (GMI) فقط
+    await request(srv).post(`/staff/${saraId}/product-scope`).set(auth(gm)).send({ lines: ["GMI"] }).expect(200);
+
+    // القائمة الآن مقصورة على GMI
+    const scoped = (await request(srv).get("/requests").set(auth(sales)).expect(200)).body as Array<{ productLineCode: string }>;
+    expect(scoped.length).toBeGreaterThan(0);
+    expect(scoped.every((r) => r.productLineCode === "GMI")).toBe(true);
+
+    // إنشاء طلب خارج النطاق (مركبات MCI) ⇒ 403 نطاق المنتجات (قبل فحوص أخرى)
+    await request(srv).post("/requests").set(auth(sales)).send({ clientId, productLineCode: "MCI", base: {}, blocks: {} }).expect(403);
+
+    // تراجع: بلا تقييد ⇒ ترى كل الفروع مجددًا (متوافق رجعيًا)
+    await request(srv).post(`/staff/${saraId}/product-scope`).set(auth(gm)).send({ lines: [] }).expect(200);
+    const after = (await request(srv).get("/requests").set(auth(sales)).expect(200)).body as Array<{ productLineCode: string }>;
+    expect(new Set(after.map((r) => r.productLineCode)).has("MCI")).toBe(true);
+  });
 });

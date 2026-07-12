@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import * as bcrypt from "bcryptjs";
 import { PrismaService } from "../../prisma/prisma.service";
 import { AuditService } from "../../common/audit/audit.service";
@@ -38,7 +38,7 @@ export class StaffService {
   async detail(id: string) {
     const user = await this.prisma.user.findFirst({
       where: { id },
-      select: { id: true, fullName: true, email: true, status: true, mfaEnabled: true, createdAt: true, role: { select: { name: true, isPreset: true } }, department: { select: { name: true } } },
+      select: { id: true, fullName: true, email: true, status: true, mfaEnabled: true, createdAt: true, allowedProductLines: true, role: { select: { name: true, isPreset: true } }, department: { select: { name: true } } },
     });
     if (!user) throw new NotFoundException("المستخدم غير موجود");
     const [activity, totalActions, policiesCreated, approvals, deals, tasks, issuedAudit] = await Promise.all([
@@ -160,5 +160,22 @@ export class StaffService {
     await this.prisma.user.update({ where: { id }, data: { mfaEnabled: false, mfaSecret: null } });
     await this.audit.log({ tenantId: admin.tenantId, userId: admin.userId, action: "update", entity: "user_mfa_reset", entityId: id, meta: { target: target.email, wasEnabled: target.mfaEnabled } });
     return { ok: true, enabled: false };
+  }
+
+  /**
+   * نطاق المنتجات: يضبط أكواد فروع التأمين المسموحة للموظف (قائمة فارغة = بلا تقييد = كل الفروع).
+   * يتحقّق أن الأكواد موجودة فعلاً في الكتالوج قبل الحفظ.
+   */
+  async setProductScope(admin: AuthUser, id: string, lines: string[]) {
+    const target = await this.prisma.user.findFirst({ where: { id }, select: { id: true, email: true } });
+    if (!target) throw new NotFoundException("الموظف غير موجود");
+    const clean = [...new Set(lines.map((l) => String(l).trim()).filter(Boolean))];
+    if (clean.length) {
+      const known = await this.prisma.productLine.count({ where: { code: { in: clean } } });
+      if (known !== clean.length) throw new BadRequestException("أحد أكواد الفروع غير موجود في الكتالوج");
+    }
+    await this.prisma.user.update({ where: { id }, data: { allowedProductLines: clean } });
+    await this.audit.log({ tenantId: admin.tenantId, userId: admin.userId, action: "update", entity: "user_product_scope", entityId: id, meta: { target: target.email, lines: clean } });
+    return { ok: true, allowedProductLines: clean };
   }
 }

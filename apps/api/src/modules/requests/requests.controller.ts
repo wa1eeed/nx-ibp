@@ -10,8 +10,8 @@ export class RequestsController {
 
   @Authorize({ module: "sales", action: "read", entitlement: "module.sales" })
   @Get()
-  list() {
-    return this.requests.list();
+  list(@CurrentUser("userId") userId: string) {
+    return this.requests.list(userId);
   }
 
   @Authorize({ module: "sales", action: "create", entitlement: "module.sales" })

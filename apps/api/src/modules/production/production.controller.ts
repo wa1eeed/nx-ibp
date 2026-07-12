@@ -12,8 +12,8 @@ export class ProductionController {
 
   @Authorize({ module: "production", action: "read", entitlement: "module.production" })
   @Get()
-  list() {
-    return this.production.list();
+  list(@CurrentUser("userId") userId: string) {
+    return this.production.list(userId);
   }
 
   @Authorize({ module: "production", action: "create", entitlement: "module.production" })

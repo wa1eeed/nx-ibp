@@ -10,6 +10,7 @@ import { SequenceService } from "../../common/sequence/sequence.service";
 import { AuditService } from "../../common/audit/audit.service";
 import { FormValidationService, type SectionDef, type BlockDef } from "./form-validation.service";
 import { NotificationsService } from "../notifications/notifications.service";
+import { ProductScopeService } from "../../common/scope/product-scope.service";
 import type { CreateRequestDto } from "./dto/create-request.dto";
 
 const asJson = (v: unknown) => v as Prisma.InputJsonValue;
@@ -26,10 +27,14 @@ export class RequestsService {
     private readonly audit: AuditService,
     private readonly validator: FormValidationService,
     private readonly notifications: NotificationsService,
+    private readonly scope: ProductScopeService,
   ) {}
 
-  list() {
+  async list(userId?: string) {
+    // نطاق المنتجات: يُقيَّد بالفروع المسموحة للمستخدم (فارغ ⇒ بلا تقييد)
+    const scopeWhere = userId ? await this.scope.whereFor(userId) : {};
     return this.prisma.policyRequest.findMany({
+      where: scopeWhere,
       orderBy: { createdAt: "desc" },
       select: {
         id: true,
@@ -66,6 +71,9 @@ export class RequestsService {
   }
 
   async create(tenantId: string, userId: string, dto: CreateRequestDto) {
+    // 0) نطاق المنتجات: لا يُنشئ المستخدم طلبًا في فرع خارج صلاحياته (غير المقيَّد ⇒ يمرّ)
+    await this.scope.assertAllowed(userId, dto.productLineCode);
+
     // 1) العميل ضمن المستأجر
     const client = await this.prisma.client.findFirst({ where: { id: dto.clientId } });
     if (!client) throw new NotFoundException("العميل غير موجود");

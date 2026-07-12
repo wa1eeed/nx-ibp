@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/Badge";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 
 interface Detail {
-  user: { id: string; fullName: string; email: string; status: string; mfaEnabled: boolean; createdAt: string; role: { name: string } | null; department: { name: string } | null };
+  user: { id: string; fullName: string; email: string; status: string; mfaEnabled: boolean; createdAt: string; allowedProductLines: string[]; role: { name: string } | null; department: { name: string } | null };
   activity: Array<{ action: string; entity: string; entityId: string | null; meta: unknown; createdAt: string }>;
   stats: { totalActions: number; policiesCreated: number; approvals: number };
   policies: Array<{ id: string; sequenceNo: string | null; insurerName: string | null; totalPremium: string | null; status: string; endDate: string | null }>;
@@ -96,6 +96,8 @@ export default function StaffDetailPage() {
         </div>
       </div>
 
+      <ProductScope userId={id} current={u.allowedProductLines} onSaved={() => void load()} />
+
       <div className="flex flex-wrap gap-1.5 border-b border-line">
         {TABS.map((x) => (
           <button key={x} onClick={() => setTab(x)} className={["rounded-t-lg px-3 py-2 text-[12.5px] font-medium transition-colors", tab === x ? "border-b-2 border-primary text-primary" : "text-muted hover:text-ink"].join(" ")}>
@@ -170,5 +172,76 @@ export default function StaffDetailPage() {
         )) : null}
       </div>
     </div>
+  );
+}
+
+interface CatalogClass { code: string; name: string; lines: Array<{ code: string; name: string }> }
+
+/** محرِّر نطاق المنتجات لموظف: بلا تحديد = كل الفروع؛ أو حصر بفروع مختارة. */
+function ProductScope({ userId, current, onSaved }: { userId: string; current: string[]; onSaved: () => void }) {
+  const t = useTranslations("staffDetail");
+  const [catalog, setCatalog] = useState<CatalogClass[]>([]);
+  const [sel, setSel] = useState<Set<string>>(new Set(current));
+  const [editing, setEditing] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  useEffect(() => { void api<CatalogClass[]>("/catalog").then(setCatalog).catch(() => undefined); }, []);
+  useEffect(() => { setSel(new Set(current)); }, [current]);
+
+  const nameOf = (code: string) => catalog.flatMap((c) => c.lines).find((l) => l.code === code)?.name ?? code;
+  const toggle = (code: string) => setSel((s) => { const n = new Set(s); n.has(code) ? n.delete(code) : n.add(code); return n; });
+
+  async function save() {
+    setBusy(true); setMsg("");
+    try {
+      await api(`/staff/${userId}/product-scope`, { method: "POST", body: JSON.stringify({ lines: [...sel] }) });
+      setMsg(t("scope.saved")); setEditing(false); onSaved();
+    } catch { setMsg(t("scope.error")); } finally { setBusy(false); }
+  }
+
+  return (
+    <section className="rounded-card border border-line bg-card p-4 shadow-card">
+      <div className="mb-2 flex items-center justify-between">
+        <div>
+          <h2 className="text-[13.5px] font-bold text-ink">{t("scope.title")}</h2>
+          <p className="text-[11.5px] text-subtle">{t("scope.hint")}</p>
+        </div>
+        {!editing ? <button onClick={() => setEditing(true)} className="h-8 rounded-lg border border-line px-3 text-[12px] font-medium text-muted hover:bg-surface-2">{t("scope.edit")}</button> : null}
+      </div>
+
+      {!editing ? (
+        current.length === 0
+          ? <span className="inline-flex items-center gap-1.5 rounded-lg bg-success-soft px-2.5 py-1 text-[12px] font-medium text-success">{t("scope.all")}</span>
+          : <div className="flex flex-wrap gap-1.5">{current.map((c) => <span key={c} className="rounded-lg bg-primary/10 px-2.5 py-1 text-[12px] font-medium text-primary">{nameOf(c)}</span>)}</div>
+      ) : (
+        <div>
+          <div className="mb-2 flex items-center gap-2 text-[11.5px] text-subtle">
+            <button onClick={() => setSel(new Set())} className="rounded border border-line px-2 py-0.5 hover:bg-surface-2">{t("scope.clear")} ({t("scope.all")})</button>
+            <span className="tnum">{sel.size ? t("scope.selected", { n: sel.size }) : t("scope.all")}</span>
+          </div>
+          <div className="max-h-64 space-y-3 overflow-y-auto rounded-lg border border-line bg-surface-2/30 p-3">
+            {catalog.map((cls) => (
+              <div key={cls.code}>
+                <div className="mb-1 text-[11px] font-bold uppercase tracking-wide text-subtle">{cls.name}</div>
+                <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
+                  {cls.lines.map((l) => (
+                    <label key={l.code} className="flex cursor-pointer items-center gap-2 rounded px-1.5 py-1 text-[12.5px] text-ink hover:bg-card">
+                      <input type="checkbox" checked={sel.has(l.code)} onChange={() => toggle(l.code)} className="accent-primary" />
+                      {l.name}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-2 flex justify-end gap-2">
+            <button onClick={() => { setSel(new Set(current)); setEditing(false); }} className="h-8 rounded-lg border border-line px-3 text-[12px] text-muted hover:bg-surface-2">{t("scope.cancel")}</button>
+            <button onClick={save} disabled={busy} className="h-8 rounded-lg bg-primary-strong px-4 text-[12px] font-semibold text-primary-fg hover:bg-primary disabled:opacity-60">{busy ? "…" : t("scope.save")}</button>
+          </div>
+        </div>
+      )}
+      {msg ? <p className="mt-2 text-[11.5px] font-medium text-success">{msg}</p> : null}
+    </section>
   );
 }

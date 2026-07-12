@@ -3,9 +3,10 @@ import { RequestsController } from "./requests.controller";
 import { RequestsService } from "./requests.service";
 import { FormValidationService } from "./form-validation.service";
 import { NotificationsModule } from "../notifications/notifications.module";
+import { ProductScopeModule } from "../../common/scope/product-scope.module";
 
 @Module({
-  imports: [NotificationsModule],
+  imports: [NotificationsModule, ProductScopeModule],
   controllers: [RequestsController],
   providers: [RequestsService, FormValidationService],
 })
