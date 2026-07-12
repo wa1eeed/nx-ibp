@@ -11,6 +11,12 @@ export class CatalogController {
     return this.catalog.tree();
   }
 
+  /** الكتالوج + إحصاءات إنتاج المستأجر لكل فرع (لصفحة المنتجات). */
+  @Get("stats")
+  stats() {
+    return this.catalog.withStats();
+  }
+
   @Get("lines/:code")
   line(@Param("code") code: string) {
     return this.catalog.line(code);

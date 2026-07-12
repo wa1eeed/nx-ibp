@@ -137,4 +137,18 @@ export class DocumentsService {
       select: { id: true, fileName: true, mime: true, sizeBytes: true, docType: true, tenantId: true, createdAt: true },
     });
   }
+
+  /** المستودع المركزي: كل مستندات المستأجر (مفلترة تلقائيًا بالمستأجر) مع فلاتر النوع/التصنيف/البحث. */
+  listAll(filter: { docType?: string; entityType?: string; q?: string } = {}) {
+    const where: Record<string, unknown> = {};
+    if (filter.docType) where.docType = filter.docType;
+    if (filter.entityType) where.entityType = filter.entityType;
+    if (filter.q && filter.q.trim()) where.fileName = { contains: filter.q.trim(), mode: "insensitive" };
+    return this.prisma.document.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      take: 500,
+      select: { id: true, fileName: true, mime: true, sizeBytes: true, docType: true, entityType: true, entityId: true, createdAt: true },
+    });
+  }
 }

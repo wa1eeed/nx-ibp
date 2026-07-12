@@ -80,4 +80,34 @@ describe("وحدة المستندات (e2e)", () => {
     const list = (await request(app.getHttpServer()).get(`/documents?entityType=client&entityId=${entityId}`).set(auth(amanGm)).expect(200)).body;
     expect(list.every((d: { tenantId: string }) => d.tenantId === "demo-tenant-2")).toBe(true);
   });
+
+  it("المستودع المركزي: كل المستندات + فلترة بالتصنيف + عزل بين المستأجرين", async () => {
+    const srv = app.getHttpServer();
+    const all = (await request(srv).get("/documents/all").set(auth(gm)).expect(200)).body as Array<{ id: string; docType: string; entityType: string; fileName: string }>;
+    expect(all.length).toBeGreaterThan(0); // يشمل مستند الدورة الكاملة أعلاه
+    // فلترة بالتصنيف
+    const official = (await request(srv).get("/documents/all?docType=OFFICIAL").set(auth(gm)).expect(200)).body as Array<{ docType: string }>;
+    expect(official.every((d) => d.docType === "OFFICIAL")).toBe(true);
+    // فلترة بنوع الكيان
+    const byEntity = (await request(srv).get("/documents/all?entityType=client").set(auth(gm)).expect(200)).body as Array<{ entityType: string }>;
+    expect(byEntity.every((d) => d.entityType === "client")).toBe(true);
+    // عزل: عدد مستندات الأمان مختلف عن الخليج (لا تسريب)
+    const amanAll = (await request(srv).get("/documents/all").set(auth(amanGm)).expect(200)).body as unknown[];
+    expect(amanAll.length).not.toBe(all.length);
+    // بلا مصادقة ⇒ 401
+    await request(srv).get("/documents/all").expect(401);
+  });
+
+  it("كتالوج المنتجات بإحصاءات المستأجر: فئات + نسبة ضريبة (حياة 0%) + إنتاج لكل فرع", async () => {
+    const srv = app.getHttpServer();
+    const classes = (await request(srv).get("/catalog/stats").set(auth(gm)).expect(200)).body as Array<{ code: string; vatRate: number; lines: Array<{ code: string; hasForm: boolean; count: number; premium: number }> }>;
+    expect(classes.length).toBeGreaterThan(0);
+    const lif = classes.find((c) => c.code === "LIF");
+    if (lif) expect(lif.vatRate).toBe(0); // تأمين الحياة معفى
+    expect(classes.every((c) => c.vatRate === 0 || c.vatRate === 15)).toBe(true);
+    // كل فرع يحمل إحصاءات (قد تكون صفرية) + جاهزية النموذج
+    const anyLine = classes.flatMap((c) => c.lines)[0];
+    expect(anyLine).toHaveProperty("count");
+    expect(anyLine).toHaveProperty("hasForm");
+  });
 });

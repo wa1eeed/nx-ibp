@@ -61,6 +61,16 @@ export class DocumentsController {
     return this.documents.list(entityType, entityId);
   }
 
+  /** المستودع المركزي لكل مستندات المستأجر (فلاتر: التصنيف/نوع الكيان/بحث). */
+  @Get("all")
+  listAll(
+    @Query("docType") docType?: string,
+    @Query("entityType") entityType?: string,
+    @Query("q") q?: string,
+  ) {
+    return this.documents.listAll({ docType, entityType, q });
+  }
+
   @Get(":id/url")
   getViewUrl(
     @CurrentUser("tenantId") tenantId: string,

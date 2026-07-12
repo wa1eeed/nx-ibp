@@ -9,6 +9,8 @@ export type ModuleKey =
   | "requests"
   | "policies"
   | "producers"
+  | "products"
+  | "documents"
   | "service"
   | "renewals"
   | "premiums"
@@ -78,6 +80,7 @@ export const TENANT_NAV: NavGroup[] = [
   {
     key: "production",
     items: [
+      { key: "products", href: "/tenant/products", icon: "Boxes", entitlement: "module.sales" },
       { key: "requests", href: "/tenant/requests", icon: "FileText", entitlement: "module.sales" },
       { key: "policies", href: "/tenant/policies", icon: "FileCheck2", entitlement: "module.production" },
       { key: "renewals", href: "/tenant/renewals", icon: "RefreshCw", entitlement: "module.production" },
@@ -89,6 +92,7 @@ export const TENANT_NAV: NavGroup[] = [
     items: [
       { key: "service", href: "/tenant/service", icon: "Headset", entitlement: "module.service" },
       { key: "claims", href: "/tenant/claims", icon: "ClipboardList", entitlement: "module.claims" },
+      { key: "documents", href: "/tenant/documents", icon: "FolderOpen", entitlement: "module.clients" },
     ],
   },
   // المالية

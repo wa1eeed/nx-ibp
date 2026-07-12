@@ -29,6 +29,8 @@ import {
   Target,
   ScrollText,
   Umbrella,
+  Boxes,
+  FolderOpen,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -71,6 +73,8 @@ const ICONS: Record<string, LucideIcon> = {
   Target,
   ScrollText,
   Umbrella,
+  Boxes,
+  FolderOpen,
 };
 
 type Perms = Record<string, { access?: boolean }>;

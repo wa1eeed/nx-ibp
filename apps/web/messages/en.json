@@ -205,7 +205,9 @@
       "approvalChain": "Approval chain",
       "audit": "Audit log",
       "security": "Security & 2FA"
-    }
+    },
+    "products": "Products",
+    "documents": "Documents"
   },
   "topbar": {
     "searchPlaceholder": "Search clients, policies, requests…",
@@ -2183,5 +2185,40 @@
       "rights": "All rights reserved",
       "madeIn": "Hosted inside Saudi Arabia"
     }
+  },
+  "documentsCenter": {
+    "title": "Documents",
+    "subtitle": "Central repository for all company documents — official & attachments, with filters and search",
+    "total": "Total documents",
+    "official": "Official",
+    "attachments": "Attachments",
+    "filterAll": "All",
+    "allTypes": "All types",
+    "search": "Search by file name…",
+    "empty": "No documents yet",
+    "view": "View",
+    "col": {
+      "file": "File",
+      "class": "Classification",
+      "entity": "Linked to",
+      "size": "Size",
+      "date": "Date"
+    }
+  },
+  "products": {
+    "title": "Products",
+    "subtitle": "Insurance-line catalog — tax treatment, form readiness, and your production per line",
+    "classes": "Classes",
+    "lines": "Lines",
+    "activeLines": "Active lines",
+    "totalPremium": "Total production",
+    "sar": "SAR",
+    "vatExempt": "VAT-exempt",
+    "vatStandard": "VAT {rate}%",
+    "formReady": "Form ready",
+    "noForm": "No form",
+    "policies": "policies",
+    "noProduction": "No production yet",
+    "newRequest": "New request in this line"
   }
 }
