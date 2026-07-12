@@ -211,6 +211,8 @@ return true;
 
 ترتيب الأعمدة كما في `RBAC_MODULES` (**13 موديولاً** بعد فصل **الاكتتاب** عن **الإصدار/الإنتاج**): `dashboard, sales, clients, underwriting, production, renewals, service, claims, finance, reports, compliance, hr, settings`.
 
+> **بُعد ثالث — صلاحيات على مستوى المنتج (فرع التأمين):** إضافةً لبُعدَي الباقة والدور، يمكن **حصر موظف بفروع تأمين محدّدة** عبر `User.allowedProductLines` (قائمة أكواد فروع). **متوافق رجعيًا**: فارغ = **بلا تقييد = كل الفروع** (لا يتأثّر أي مستخدم قائم). يُطبَّق على **قوائم الطلبات/الوثائق** (تُصفّى) و**إنشاء الطلب** (يُمنع خارج النطاق) عبر `ProductScopeService`. الضبط: `POST /staff/:id/product-scope` (`settings:update`) + محرِّر checkboxes في صفحة الموظف. السرد في [34 §28](./34-post-completion-features.md).
+
 | الدور (`code`) | الاسم | dash | sales | clients | underwriting | production | renewals | service | claims | finance | reports | compliance | hr | settings |
 |---|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
 | `general_manager` | المدير العام | A | ACED | ACED | ACED | ACEDR | ACEDR | ACEDR | ACEDR | ACED | ACED | ACED | ACED | ACED |

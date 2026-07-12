@@ -807,7 +807,7 @@ erDiagram
 > أُضيفت في مسار ما بعد الاكتمال. كلها معزولة بالمستأجر (FK `tenantId` + Prisma `$use`).
 
 ### الإشعارات
-- **`NotificationSetting`** — إعداد نوع إشعار بمستويين: `tenantId = NULL` ⇒ **افتراضي المنصة** (يديره سوبر أدمن المنصة، يرثه الجميع)؛ قيمة ⇒ **تخصيص شركة**. حقول: `eventKey` · `channelEmail`/`channelSms` · `subject`/`body`. (21 نوعًا (ثنائية اللغة) في `notifications.constants.ts`: 7 عملاء + 14 موظفين.)
+- **`NotificationSetting`** — إعداد نوع إشعار بمستويين: `tenantId = NULL` ⇒ **افتراضي المنصة** (يديره سوبر أدمن المنصة، يرثه الجميع)؛ قيمة ⇒ **تخصيص شركة**. حقول: `eventKey` · `channelEmail`/`channelSms` · `subject`/`body`. (22 نوعًا (ثنائية اللغة) في `notifications.constants.ts`: 7 عملاء + 15 موظفين.)
 - **`Notification`** — إشعار داخل المنصة (in-app) لمستقبِل واحد: `userId` (موظف) أو `clientId` (عميل بوّابة) · `eventKey` · `audience` (client/staff) · `title`/`body` · `readAt` (NULL = غير مقروء). فهارس `[tenantId, userId, readAt]` و`[tenantId, clientId, readAt]`.
 
 ### CRM (إدارة العلاقات)
@@ -852,8 +852,28 @@ erDiagram
 
 ---
 
+## ط. إضافات نموذج البيانات (طبقة الإطلاق + ما قبل العرض) — السرد في [34](./34-post-completion-features.md)
+
+**نماذج جديدة:**
+- **`Insurer`** — سجلّ شركات التأمين: `name`/`nameEn`/`code`/`licenseNo`/`commissionRate Decimal(6,3)`/`settlementDays Int`/`bankName`/`iban`/`contact*`/`status` **+ `vatNumber`/`nationalAddress`** (المشتري في فاتورة العمولة).
+- **`TenantEmailSettings`** — بريد BYO لكل شركة: مفتاح Resend **مشفّر at-rest** + نطاق مُرسِل + حالة تحقّق DNS + وضع الردود.
+- **`Target`** — أهداف الإنتاج (وسيط فرعي/فرع · أقساط/عدد/عمولة · شهري/ربعي/سنوي).
+- **`Lead`** — طلبات «تواصل معنا» من اللاندينق/التملّك (بحالات new/contacted/closed).
+
+**حقول أُضيفت لنماذج قائمة:**
+- **`Tenant`**: العنوان الوطني `buildingNo`/`street`/`district`/`city`/`postalCode` (فاتورة ZATCA) + علاقات `emailSettings`/`targets`/`insurers`.
+- **`User`**: `allowedProductLines String[] @default([])` — **صلاحيات على مستوى المنتج** (فارغ = كل الفروع، متوافق رجعيًا).
+- **`Client`**: `vatNumber` · `nationalAddress` · **`collectionModel String @default("collect_full")`** (آلية التحصيل الافتراضية: `collect_full` | `direct`).
+- **`Policy`**: **`collectionModel String?`** — **مبصوم عند الإصدار** (مصدر الحقيقة للترحيل المالي؛ `NULL` = تحصيل كامل تاريخيًا).
+- **`ServiceRequest`**: `assigneeId` · `priority` (low/normal/high/urgent) · `updatedAt` — تطوير موديول الخدمة.
+- **`Plan`**: `slaResponseHours Int?` — زمن استجابة الدعم لكل باقة.
+- **`ChartOfAccount`**: `accountType`/`isOnBalance`/`isLocked`/`clientId`/`costCenterId` + حساب مبذور جديد **`0104` ذمم عمولات على شركات التأمين** (نموذج الدفع المباشر).
+
+**الهجرات المقابلة:** `service_request_assignee_priority` · `zatca_addresses_buyer_vat` · `user_product_scope` · `collection_model` (انظر [15](./15-database-and-migrations.md)).
+
 ## انظر أيضاً
 - [`docs/01-overview.md`](./01-overview.md) — الرؤية ونموذج العمل وعائلات التأمين.
+- [`docs/34-post-completion-features.md`](./34-post-completion-features.md) — السرد الحاكم لكل ما بعد الاكتمال.
 - [`docs/02-architecture.md`](./02-architecture.md) — كيف يُفرض عزل المستأجرين عبر `PrismaService`.
 - [`packages/db/prisma/schema.prisma`](../packages/db/prisma/schema.prisma) — المصدر الوحيد للبنية.
 - [`packages/shared/src/rbac.ts`](../packages/shared/src/rbac.ts) — قوالب الأدوار الـ12.

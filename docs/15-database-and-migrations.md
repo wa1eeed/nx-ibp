@@ -25,8 +25,13 @@
 | `..._user_password_hash` | 1 | `User.passwordHash` (bcrypt) |
 | `..._clients_and_dynamic_form` | 3 | تحسين `Client` (كود تجاري + تفرّد + `complianceStatus`)؛ استبدال الجداول الأربعة الثابتة بـ `RequestBlockRow` العام |
 | `..._underwriting_and_finance_prep` | 4أ | `Slip`/`Quotation`/`Endorsement`؛ تهيئة بنية 4ب (`ChartOfAccount` بـ17 رقماً ومستويات وOn/Off‑Balance، `CostCenter`، `Voucher` بـ enum، `Invoice` ضريبية، `DebitNote`/`CreditNote`) |
+| … (مراحل 5–9 + ZATCA P2 + طبقة ما بعد الاكتمال) | 5–9 | `Claim`/`ServiceRequest`/`Renewal`، الإشعارات، سلاسل الاعتماد، MFA، الاحتفاظ/DLP، الوسطاء الفرعيون، `TenantEmailSettings`/`Target`/`Insurer`/`Lead`، `Plan.slaResponseHours` … |
+| `..._service_request_assignee_priority` | خدمة | `ServiceRequest`: `assigneeId`/`priority`/`updatedAt` (تطوير موديول الخدمة) |
+| `..._zatca_addresses_buyer_vat` | ZATCA | عنوان وطني للبائع (`Tenant`) + `vatNumber`/`nationalAddress` للمؤمِّن (`Insurer`) |
+| `..._user_product_scope` | صلاحيات | `User.allowedProductLines String[]` (صلاحيات على مستوى المنتج، متوافقة رجعيًا) |
+| `..._collection_model` | مالية | `Client.collectionModel` (افتراضي `collect_full`) + `Policy.collectionModel` (مبصوم) — نموذج التحصيل #32 |
 
-> في البيئات غير التفاعلية، تُولَّد بعض الترحيلات بـ `prisma migrate diff` ثم تُطبَّق بـ `prisma migrate deploy`.
+> في البيئات غير التفاعلية، تُولَّد بعض الترحيلات بـ `prisma migrate diff` ثم تُطبَّق بـ `prisma migrate deploy`. **كل الترحيلات الأخيرة إضافية بقيَم افتراضية** (آمنة على بيانات قائمة).
 
 ## 3. بيانات الزرع (Seed)
 
@@ -35,7 +40,7 @@
 - **الباقات** (basic/premium/enterprise) + **مصفوفة entitlements** لكل باقة (موديولز INCLUDED/ADDON/DISABLED + ميزات).
 - **12 دور preset** لكل مستأجر (من `@ibp/shared/rbac.ts`) بـ 144 صلاحية.
 - **مستخدمون** بأدوار متنوّعة (مدير عام، مبيعات، مطالبات، محاسبة، التزام، تسعير) — لاختبار RBAC.
-- **الكتالوج** (7 فئات/15 فرعاً) + **FormSchemas** الغنية لكل فرع.
+- **الكتالوج** (10 فئات/47 فرعاً) + **FormSchemas** الغنية لكل فرع.
 - **عملاء** بكود تجاري وحالات التزام (بعضهم PENDING لاختبار البوّابة).
 - موفّرو التحقّق، المحافظ، وإضافة المطالبات لتنانت الخليج.
 

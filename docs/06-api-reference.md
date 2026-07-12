@@ -749,3 +749,24 @@ curl -X POST http://localhost:4000/staff \
 - [27 — التكاملات التنظيمية](./27-regulatory-and-launch.md) — مسارات `/finance/*` · `/compliance/*` · `/regulatory/*` و ZATCA
 - [28 — ZATCA Fatoora المرحلة 2](./28-zatca-phase2-fatoora.md) — مسارات `/zatca/*` (التهيئة والفوترة والتوجيه)
 - الكود: المتحكّمات تحت [`apps/api/src/modules/`](../apps/api/src/modules/) · إعداد الحدود في [`main.ts`](../apps/api/src/main.ts)
+
+## ملحق: مسارات أُضيفت (طبقة الإطلاق + ما قبل العرض) — السرد في [34](./34-post-completion-features.md)
+
+| المسار | الصلاحية | الوظيفة |
+|---|---|---|
+| `GET /finance/overview` | `finance:read` | نظرة المالك: قائمة دخل مبسّطة + مؤشّرات صحة الأعمال + اتجاه 6 أشهر |
+| `GET /catalog/stats` | مصادَق | الكتالوج + إحصاءات إنتاج المستأجر لكل فرع + جاهزية النموذج + نسبة الضريبة |
+| `GET /documents/all` | مصادَق | المستودع المركزي لكل مستندات المستأجر (فلاتر: التصنيف/نوع الكيان/بحث) |
+| `POST /staff/:id/product-scope` | `settings:update` | ضبط `allowedProductLines` للموظف (صلاحيات على مستوى المنتج) |
+| `GET /service-requests/:id` · `/staff` | `service:read` | تفاصيل طلب الخدمة (+ الخطّ الزمني) · الموظفون القابلون للإسناد |
+| `POST /service-requests/:id/assign` · `/priority` · `/notes` | `service:update` | إسناد · أولوية · ملاحظة (خطّ زمني) |
+| `GET/POST/PATCH/DELETE /insurers` | `finance:*` | سجلّ شركات التأمين + إحصاءات الإنتاج |
+| `GET/POST/DELETE /targets` · `/targets/options` | `reports:*` | الأهداف والأداء |
+| `GET/PUT /branding` · `GET /branding/:tenantId/logo` | مصادَق/عام | الهوية البصرية + الشعار العام |
+| `GET/POST/PUT/DELETE /email/*` | `settings:*` | بريد BYO (ربط/تحقّق/اختبار) |
+| `GET/PUT /config/company` | `settings:*` | بيانات الشركة + العنوان الوطني (ZATCA) |
+| `GET /audit` | `compliance:read` | سجل التدقيق (بأسماء المنفّذين) — شركة/منصّة |
+| `GET /platform/leads` · `POST /platform/leads/:id/status` | سوبر أدمن | طلبات التواصل (Leads) |
+| `POST /policies/:id/endorsements` (مُحسَّن) | `production:*` | ملحق باتجاه مالي + ضريبة بنسبة الفرع (يولّد إشعار مدين/دائن) |
+
+> **ملاحظة سلوكية:** `GET /requests` و`GET /policies` أصبحا **يُصفّيان حسب نطاق منتجات المستخدم** (فارغ = كل الفروع)؛ و`POST /finance/policies/:id/approve` صار **يتفرّع حسب آلية التحصيل** (تحصيل كامل/دفع مباشر) ويعيد `collectionModel`.
