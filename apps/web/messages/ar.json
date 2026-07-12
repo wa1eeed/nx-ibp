@@ -601,8 +601,13 @@
     "hint": {
       "cr": "10 أرقام",
       "nationalId": "10 أرقام",
-      "vat": "15 رقمًا"
-    }
+      "vat": "15 رقمًا",
+      "mobile": "جوال سعودي — 05XXXXXXXX (10 أرقام)",
+      "landline": "هاتف ثابت — 01XXXXXXXX (10 أرقام)"
+    },
+    "contactName": "اسم شخص التواصل",
+    "phone": "رقم الجوال",
+    "landline": "رقم الهاتف الثابت"
   },
   "commissions": {
     "title": "العمولات",

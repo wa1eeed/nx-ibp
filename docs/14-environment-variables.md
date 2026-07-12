@@ -19,7 +19,7 @@
 | `WEB_PORT` | منفذ الواجهة | `3000` | compose | 0 |
 | `NEXT_PUBLIC_API_URL` | عنوان الـ API كما يراه المتصفّح | `http://localhost:4000` | `lib/api.ts` | 0 |
 | `JWT_SECRET` | سرّ توقيع JWT (قيمة محلية فقط) | `replace_with_local_dev_secret_only` | AuthModule، الـ middleware | 1 |
-| `JWT_EXPIRES_IN` | مدة صلاحية التوكن | `15m` | AuthModule | 1 |
+| `JWT_EXPIRES_IN` | مدة صلاحية التوكن | `8h` | AuthModule | 1 |
 | `STORAGE_DRIVER` | محرّك التخزين (حيادي المزوّد) | `local` \| `s3` \| `alibaba_oss` \| `google_cloud_storage` \| `minio` | وحدة المستندات | 5 |
 | `STORAGE_LOCAL_DIR` | مجلد التخزين للسائق المحلي | `.storage` | StorageService | 5 |
 | `STORAGE_ENDPOINT` | عنوان نقطة التخزين | `http://minio:9000` / `s3.me-central-1.amazonaws.com` | المستندات | 5 |

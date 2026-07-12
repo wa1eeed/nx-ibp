@@ -524,7 +524,9 @@ model Client {
   crNumber         String? // للمنشآت
   nationalId       String? // للأفراد
   email            String?
-  phone            String?
+  phone            String? // جوال سعودي 05XXXXXXXX (رقم التواصل الأساسي)
+  landline         String? // هاتف ثابت 01XXXXXXXX (اختياري)
+  contactName      String? // اسم شخص التواصل لدى العميل
   city             String?
   nationalAddress  String?
   // حقول معيارية لوساطة التأمين (إثراء سجل المؤمن له)

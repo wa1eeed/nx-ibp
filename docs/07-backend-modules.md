@@ -241,7 +241,7 @@ flowchart TB
 - [`public.decorator.ts`](../apps/api/src/modules/auth/public.decorator.ts) — `@Public()` لإعفاء المسار.
 - [`current-user.decorator.ts`](../apps/api/src/modules/auth/current-user.decorator.ts) — `@CurrentUser()` لاستخراج `AuthUser` من الطلب.
 
-**التبعيات:** `JwtModule` (عالمي، السر من `JWT_SECRET`، انتهاء `JWT_EXPIRES_IN` أو 15 دقيقة)، `PrismaService`، `AuditService`.
+**التبعيات:** `JwtModule` (عالمي، السر من `JWT_SECRET`، انتهاء `JWT_EXPIRES_IN` أو 8 ساعات)، `PrismaService`، `AuditService`.
 
 > **ملاحظة حوكمة:** `login` هو المسار الوحيد المقصود الذي يجري بلا سياق مستأجر؛ خطأ الدخول يُرجع `401` موحَّداً دون كشف وجود البريد.
 

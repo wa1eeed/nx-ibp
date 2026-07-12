@@ -48,7 +48,7 @@ SEED_MODE=demo                                # يسمح ببذرة الديمو
 | `ZATCA_ENC_KEY` | ✅ | تشفير الاعتماد at-rest: `openssl rand -base64 32` |
 | `CORS_ORIGINS` | ✅ | دومين الواجهة، مثل `https://app.example.com` |
 | `NEXT_PUBLIC_API_URL` | ✅ | دومين الـ API العام، مثل `https://api.example.com`. **يُدمَج وقت البناء** (build arg) في حزمة العميل — عند تغييره **أعد البناء** (لا يكفي إعادة التشغيل). |
-| `JWT_EXPIRES_IN` | — | افتراضي `15m` |
+| `JWT_EXPIRES_IN` | — | افتراضي `8h` (لا تجعلها قصيرة كي لا يُسجَّل خروج تلقائي) |
 | `ZATCA_DEFAULT_ENV` | — | `SANDBOX` (الإنتاج الحقيقي بعد النقل داخل المملكة) |
 | `LOGIN_MAX_FAILURES` / `LOGIN_LOCK_WINDOW_SEC` | — | قفل القوّة الغاشمة (8 / 900) |
 | `STORAGE_DRIVER` | — | `local` (افتراضي) أو `s3`/`r2`/`minio`/`alibaba_oss` |

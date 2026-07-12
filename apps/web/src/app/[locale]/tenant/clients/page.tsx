@@ -70,6 +70,9 @@ export default function ClientsPage() {
   const [producerName, setProducerName] = useState("");
   const [businessActivity, setBusinessActivity] = useState("");
   const [collectionModel, setCollectionModel] = useState("collect_full"); // #32 آلية التحصيل الافتراضية للعميل
+  const [contactName, setContactName] = useState(""); // اسم شخص التواصل
+  const [phone, setPhone] = useState(""); // جوال سعودي 05XXXXXXXX
+  const [landline, setLandline] = useState(""); // هاتف ثابت 01XXXXXXXX
 
   const load = useCallback(async () => {
     const cs = await api<ClientRow[]>("/clients");
@@ -106,11 +109,15 @@ export default function ClientsPage() {
           producerName: source === "producer" ? (producerName || undefined) : undefined,
           businessActivity: businessActivity || undefined,
           collectionModel,
+          contactName: contactName || undefined,
+          phone: phone || undefined,
+          landline: landline || undefined,
         }),
       });
       setShowForm(false);
       setName(""); setCrNumber(""); setNationalId(""); setEmail(""); setCity("");
       setNationalAddress(""); setVatNumber(""); setRelationStatus(""); setLegalForm(""); setSource(""); setProducerName(""); setBusinessActivity(""); setCollectionModel("collect_full");
+      setContactName(""); setPhone(""); setLandline("");
       await load();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "خطأ");
@@ -197,6 +204,9 @@ export default function ClientsPage() {
           )}
           <Field label={t("clients.email")} value={email} onChange={setEmail} type="email" />
           <Field label={t("clients.table.city")} value={city} onChange={setCity} />
+          <Field label={t("clients.contactName")} value={contactName} onChange={setContactName} />
+          <Field label={t("clients.phone")} value={phone} onChange={setPhone} numeric maxLength={10} placeholder="05XXXXXXXX" hint={t("clients.hint.mobile")} />
+          <Field label={t("clients.landline")} value={landline} onChange={setLandline} numeric maxLength={10} placeholder="01XXXXXXXX" hint={t("clients.hint.landline")} />
           {/* حقول معيارية لوساطة التأمين */}
           {type === "CORPORATE" ? <Field label={t("clients.vatNumber")} value={vatNumber} onChange={setVatNumber} numeric maxLength={15} placeholder="3XXXXXXXXXXXXX3" hint={t("clients.hint.vat")} /> : null}
           <label className="block">

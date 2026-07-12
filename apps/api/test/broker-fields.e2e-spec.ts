@@ -65,6 +65,20 @@ describe("إثراء حقول العميل (e2e)", () => {
     await request(srv()).post("/clients").set(auth(token)).send({ type: "CORPORATE", name: "منشأة صحيحة", crNumber: goodCr(), vatNumber: "300000000000003" }).expect(201); // صحيح
   });
 
+  it("أرقام التواصل مُتحقَّقة: جوال 05 وهاتف ثابت 01 (10 أرقام) + اسم شخص التواصل", async () => {
+    const token = await newOwner();
+    const goodCr = () => `10${uniq().replace(/\D/g, "").slice(0, 8)}`;
+    await request(srv()).post("/clients").set(auth(token)).send({ type: "CORPORATE", name: "منشأة", crNumber: goodCr(), phone: "0491234567" }).expect(400); // جوال لا يبدأ بـ05
+    await request(srv()).post("/clients").set(auth(token)).send({ type: "CORPORATE", name: "منشأة", crNumber: goodCr(), phone: "05123" }).expect(400); // جوال قصير
+    await request(srv()).post("/clients").set(auth(token)).send({ type: "CORPORATE", name: "منشأة", crNumber: goodCr(), landline: "0512345678" }).expect(400); // ثابت لا يبدأ بـ01
+    const cr = goodCr();
+    const created = (await request(srv()).post("/clients").set(auth(token)).send({ type: "CORPORATE", name: "منشأة تواصل", crNumber: cr, contactName: "أحمد المسؤول", phone: "0551234567", landline: "0112345678" }).expect(201)).body;
+    const c = (await request(srv()).get(`/clients/${created.id}`).set(auth(token)).expect(200)).body;
+    expect(c.contactName).toBe("أحمد المسؤول");
+    expect(c.phone).toBe("0551234567");
+    expect(c.landline).toBe("0112345678");
+  });
+
   it("شكل قانوني غير معروف ⇒ 400", async () => {
     const token = await newOwner();
     await request(srv()).post("/clients").set(auth(token)).send({ type: "CORPORATE", name: "منشأة", legalForm: "unknown" }).expect(400);

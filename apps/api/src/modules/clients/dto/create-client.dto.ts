@@ -19,7 +19,9 @@ export class CreateClientDto {
   @IsOptional() @Matches(/^\d{10}$/, { message: "السجل التجاري يجب أن يكون 10 أرقام" }) crNumber?: string; // CR سعودي = 10 أرقام
   @IsOptional() @Matches(/^\d{10}$/, { message: "الهوية الوطنية يجب أن تكون 10 أرقام" }) nationalId?: string; // هوية/إقامة = 10 أرقام
   @IsOptional() @IsEmail() email?: string;
-  @IsOptional() @IsString() phone?: string;
+  @IsOptional() @Matches(/^05\d{8}$/, { message: "رقم الجوال يجب أن يبدأ بـ05 ويتكوّن من 10 أرقام" }) phone?: string; // جوال سعودي
+  @IsOptional() @Matches(/^01\d{8}$/, { message: "رقم الهاتف الثابت يجب أن يبدأ بـ01 ويتكوّن من 10 أرقام" }) landline?: string; // هاتف ثابت سعودي
+  @IsOptional() @IsString() @MinLength(2) contactName?: string; // اسم شخص التواصل
   @IsOptional() @IsString() city?: string;
   @IsOptional() @IsString() nationalAddress?: string;
 

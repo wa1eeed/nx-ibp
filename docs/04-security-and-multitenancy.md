@@ -181,7 +181,7 @@ this.$use(async (params, next) => {
 
 | المكوّن | التقنية | المصدر |
 |---|---|---|
-| إصدار التوكن | `@nestjs/jwt` (`JwtModule` عالمي، `expiresIn` = `JWT_EXPIRES_IN` افتراضياً `15m`) | [`auth.module.ts`](../apps/api/src/modules/auth/auth.module.ts) |
+| إصدار التوكن | `@nestjs/jwt` (`JwtModule` عالمي، `expiresIn` = `JWT_EXPIRES_IN` افتراضياً `8h`) | [`auth.module.ts`](../apps/api/src/modules/auth/auth.module.ts) |
 | تجزئة كلمة المرور | `bcryptjs` (`bcrypt.compare` للتحقق، `bcrypt.hash(…, 10)` للإنشاء) | [`auth.service.ts`](../apps/api/src/modules/auth/auth.service.ts) |
 | فكّ التوكن وضبط السياق | `TenantContextMiddleware` (على كل المسارات) | [`tenant-context.middleware.ts`](../apps/api/src/common/middleware/tenant-context.middleware.ts) |
 | فرض المصادقة | `JwtAuthGuard` عالمي (`APP_GUARD`) | [`jwt-auth.guard.ts`](../apps/api/src/modules/auth/jwt-auth.guard.ts) |
