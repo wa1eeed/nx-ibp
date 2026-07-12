@@ -30,6 +30,7 @@
 | `..._zatca_addresses_buyer_vat` | ZATCA | عنوان وطني للبائع (`Tenant`) + `vatNumber`/`nationalAddress` للمؤمِّن (`Insurer`) |
 | `..._user_product_scope` | صلاحيات | `User.allowedProductLines String[]` (صلاحيات على مستوى المنتج، متوافقة رجعيًا) |
 | `..._collection_model` | مالية | `Client.collectionModel` (افتراضي `collect_full`) + `Policy.collectionModel` (مبصوم) — نموذج التحصيل #32 |
+| `..._client_contact_fields` | عملاء | `Client.landline` (هاتف ثابت) + `Client.contactName` (اسم شخص التواصل) |
 
 > في البيئات غير التفاعلية، تُولَّد بعض الترحيلات بـ `prisma migrate diff` ثم تُطبَّق بـ `prisma migrate deploy`. **كل الترحيلات الأخيرة إضافية بقيَم افتراضية** (آمنة على بيانات قائمة).
 

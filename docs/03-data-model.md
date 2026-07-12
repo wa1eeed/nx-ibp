@@ -863,13 +863,13 @@ erDiagram
 **حقول أُضيفت لنماذج قائمة:**
 - **`Tenant`**: العنوان الوطني `buildingNo`/`street`/`district`/`city`/`postalCode` (فاتورة ZATCA) + علاقات `emailSettings`/`targets`/`insurers`.
 - **`User`**: `allowedProductLines String[] @default([])` — **صلاحيات على مستوى المنتج** (فارغ = كل الفروع، متوافق رجعيًا).
-- **`Client`**: `vatNumber` · `nationalAddress` · **`collectionModel String @default("collect_full")`** (آلية التحصيل الافتراضية: `collect_full` | `direct`).
+- **`Client`**: `vatNumber` · `nationalAddress` · **`collectionModel String @default("collect_full")`** (آلية التحصيل الافتراضية: `collect_full` | `direct`) · **`landline`** (هاتف ثابت 01) · **`contactName`** (اسم شخص التواصل). تحقّق DTO: `crNumber`/`nationalId` = 10 أرقام، `vatNumber` = 15 رقمًا، `phone` = جوال سعودي `05\d{8}`، `landline` = `01\d{8}`.
 - **`Policy`**: **`collectionModel String?`** — **مبصوم عند الإصدار** (مصدر الحقيقة للترحيل المالي؛ `NULL` = تحصيل كامل تاريخيًا).
 - **`ServiceRequest`**: `assigneeId` · `priority` (low/normal/high/urgent) · `updatedAt` — تطوير موديول الخدمة.
 - **`Plan`**: `slaResponseHours Int?` — زمن استجابة الدعم لكل باقة.
 - **`ChartOfAccount`**: `accountType`/`isOnBalance`/`isLocked`/`clientId`/`costCenterId` + حساب مبذور جديد **`0104` ذمم عمولات على شركات التأمين** (نموذج الدفع المباشر).
 
-**الهجرات المقابلة:** `service_request_assignee_priority` · `zatca_addresses_buyer_vat` · `user_product_scope` · `collection_model` (انظر [15](./15-database-and-migrations.md)).
+**الهجرات المقابلة:** `service_request_assignee_priority` · `zatca_addresses_buyer_vat` · `user_product_scope` · `collection_model` · `client_contact_fields` (انظر [15](./15-database-and-migrations.md)).
 
 ## انظر أيضاً
 - [`docs/01-overview.md`](./01-overview.md) — الرؤية ونموذج العمل وعائلات التأمين.
