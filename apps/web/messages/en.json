@@ -1572,7 +1572,33 @@
       "seq": "Request #",
       "type": "Type",
       "subject": "Subject",
-      "status": "Status"
+      "status": "Status",
+      "priority": "Priority",
+      "assignee": "Assignee",
+      "age": "Age",
+      "client": "Client"
+    },
+    "priority": "Priority",
+    "assignee": "Assignee",
+    "unassigned": "Unassigned",
+    "filterAll": "All",
+    "mine": "My requests",
+    "today": "Today",
+    "daysAgo": "{n}d ago",
+    "notePlaceholder": "Add a note or update to this request…",
+    "logNote": "Add",
+    "timeline": "Timeline",
+    "statuses": {
+      "OPEN": "Open",
+      "IN_PROGRESS": "In progress",
+      "SENT_TO_INSURER": "Sent to insurer",
+      "CLOSED": "Closed"
+    },
+    "priorities": {
+      "low": "Low",
+      "normal": "Normal",
+      "high": "High",
+      "urgent": "Urgent"
     }
   },
   "claims": {

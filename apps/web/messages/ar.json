@@ -1572,7 +1572,33 @@
       "seq": "رقم الطلب",
       "type": "النوع",
       "subject": "الموضوع",
-      "status": "الحالة"
+      "status": "الحالة",
+      "priority": "الأولوية",
+      "assignee": "المُسنَد إليه",
+      "age": "العمر",
+      "client": "العميل"
+    },
+    "priority": "الأولوية",
+    "assignee": "المُسنَد إليه",
+    "unassigned": "غير مُسنَد",
+    "filterAll": "الكل",
+    "mine": "طلباتي",
+    "today": "اليوم",
+    "daysAgo": "منذ {n} يوم",
+    "notePlaceholder": "أضف ملاحظة أو تحديثًا على الطلب…",
+    "logNote": "إضافة",
+    "timeline": "الخطّ الزمني",
+    "statuses": {
+      "OPEN": "مفتوح",
+      "IN_PROGRESS": "قيد المعالجة",
+      "SENT_TO_INSURER": "مُرسَل للمؤمِّن",
+      "CLOSED": "مغلق"
+    },
+    "priorities": {
+      "low": "منخفضة",
+      "normal": "عادية",
+      "high": "عالية",
+      "urgent": "عاجلة"
     }
   },
   "claims": {

@@ -766,10 +766,14 @@ model ServiceRequest {
   type       String // addition | deletion | amendment | inquiry | renewal
   subject    String?
   status     ServiceStatus @default(OPEN)
+  priority   String        @default("normal") // low | normal | high | urgent
+  assigneeId String? // الموظف المُسنَد إليه معالجة الطلب
   details    Json?
   createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @default(now()) @updatedAt
 
   @@index([tenantId])
+  @@index([tenantId, assigneeId, status])
 }
 
 enum ServiceStatus {

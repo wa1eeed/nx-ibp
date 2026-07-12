@@ -48,6 +48,37 @@ describe("الموديولز التشغيلية (e2e)", () => {
   it("المبيعات لا تملك صلاحية خدمة العملاء ⇒ 403", () =>
     request(app.getHttpServer()).post("/service-requests").set(auth(sales)).send({ type: "inquiry" }).expect(403));
 
+  it("تطوير الخدمة: إسناد لموظف + أولوية + ملاحظة ⇒ خطّ زمني في التفاصيل", async () => {
+    const srv = app.getHttpServer();
+    // موظّفون قابلون للإسناد (بحارس service:read) — المبيعات ممنوعة
+    await request(srv).get("/service-requests/staff").set(auth(sales)).expect(403);
+    const staff = (await request(srv).get("/service-requests/staff").set(auth(care)).expect(200)).body as Array<{ id: string; fullName: string }>;
+    expect(staff.length).toBeGreaterThan(0);
+    const target = staff[0].id;
+
+    const sr = (await request(srv).post("/service-requests").set(auth(care)).send({ type: "amendment", subject: "طلب متطوّر", priority: "high" }).expect(201)).body;
+    expect(sr.priority).toBe("high");
+
+    const asg = (await request(srv).post(`/service-requests/${sr.id}/assign`).set(auth(care)).send({ assigneeId: target }).expect(200)).body;
+    expect(asg.assigneeId).toBe(target);
+    expect(asg.assigneeName).toBeTruthy();
+
+    const pr = (await request(srv).post(`/service-requests/${sr.id}/priority`).set(auth(care)).send({ priority: "urgent" }).expect(200)).body;
+    expect(pr.priority).toBe("urgent");
+
+    await request(srv).post(`/service-requests/${sr.id}/notes`).set(auth(care)).send({ body: "اتصلت بالمؤمِّن وبانتظار الرد" }).expect(201);
+
+    const detail = (await request(srv).get(`/service-requests/${sr.id}`).set(auth(care)).expect(200)).body;
+    expect(detail.assigneeName).toBeTruthy();
+    expect(detail.priority).toBe("urgent");
+    expect(detail.timeline.length).toBeGreaterThanOrEqual(3); // إنشاء + إسناد + أولوية + ملاحظة
+    expect((detail.timeline as Array<{ body: string }>).some((a) => a.body.includes("اتصلت بالمؤمِّن"))).toBe(true);
+
+    // فلترة بالحالة تعمل
+    const open = (await request(srv).get("/service-requests?status=OPEN").set(auth(care)).expect(200)).body as Array<{ status: string }>;
+    expect(open.every((r) => r.status === "OPEN")).toBe(true);
+  });
+
   // ----- المطالبات -----
   it("مسؤول المطالبات ينشئ مطالبة ويسوّيها ⇒ 201/200", async () => {
     const res = await request(app.getHttpServer()).post("/claims").set(auth(claimsOfficer))

@@ -18,9 +18,10 @@ const STAFF_ROUTES: Record<string, string> = {
   staff_policy_technical_review: "/tenant/policies",
   staff_policy_finance_review: "/tenant/policies",
   staff_policy_issued: "/tenant/policies",
-  // المطالبات والتجديدات
+  // المطالبات والتجديدات والخدمة
   staff_claim_created: "/tenant/claims",
   staff_renewal_due: "/tenant/renewals",
+  staff_service_assigned: "/tenant/service",
   // التحقّق الحكومي ومحفظته
   staff_verification_result: "/tenant/verification",
   staff_wallet_low: "/tenant/verification",
