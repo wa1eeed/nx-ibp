@@ -32,7 +32,7 @@ const daysSince = (d: string) => Math.floor((Date.now() - new Date(d).getTime())
 export default function ServicePage() {
   const t = useTranslations();
   const router = useRouter();
-  const [rows, setRows] = useState<SR[]>([]);
+  const [allRows, setAllRows] = useState<SR[]>([]);
   const [staff, setStaff] = useState<Staff[]>([]);
   const [show, setShow] = useState(false);
   const [error, setError] = useState("");
@@ -45,12 +45,13 @@ export default function ServicePage() {
   const [priority, setPriority] = useState("normal");
   const [assigneeId, setAssigneeId] = useState("");
 
+  // نجلب المجموعة كاملةً ضمن نطاق «طلباتي» فقط — لا نُرشِّح بالحالة على الخادم كي تبقى
+  // أعداد التابز ثابتةً وصحيحةً عبر كل الحالات؛ ترشيح الحالة يتمّ على العميل (انظر rows أدناه).
   const load = useCallback(async () => {
     const qs = new URLSearchParams();
-    if (statusFilter) qs.set("status", statusFilter);
     if (mine) qs.set("mine", "1");
-    setRows(await api<SR[]>(`/service-requests${qs.toString() ? `?${qs}` : ""}`));
-  }, [statusFilter, mine]);
+    setAllRows(await api<SR[]>(`/service-requests${qs.toString() ? `?${qs}` : ""}`));
+  }, [mine]);
 
   useEffect(() => {
     if (!getToken()) { router.replace("/login"); return; }
@@ -67,7 +68,10 @@ export default function ServicePage() {
     } catch (err) { setError(err instanceof ApiError ? err.message : "خطأ"); }
   }
 
-  const counts = STATUSES.reduce<Record<string, number>>((a, s) => ({ ...a, [s]: rows.filter((r) => r.status === s).length }), {});
+  // الأعداد محسوبة من المجموعة الكاملة (مستقلّة عن التاب المختار) — فلا تتغيّر عند التنقّل.
+  const counts = STATUSES.reduce<Record<string, number>>((a, s) => ({ ...a, [s]: allRows.filter((r) => r.status === s).length }), {});
+  // الصفوف المعروضة: ترشيح المجموعة الكاملة بالحالة على العميل.
+  const rows = statusFilter ? allRows.filter((r) => r.status === statusFilter) : allRows;
 
   return (
     <div>
@@ -99,7 +103,7 @@ export default function ServicePage() {
 
       {/* الفلاتر: الحالة + طلباتي */}
       <div className="mb-3 flex flex-wrap items-center gap-1.5">
-        <button onClick={() => setStatusFilter("")} className={["h-8 rounded-lg border px-3 text-[12px] font-medium", statusFilter === "" ? "border-primary bg-primary/10 text-primary" : "border-line text-muted hover:bg-surface-2"].join(" ")}>{t("service.filterAll")}</button>
+        <button onClick={() => setStatusFilter("")} className={["inline-flex h-8 items-center gap-1.5 rounded-lg border px-3 text-[12px] font-medium", statusFilter === "" ? "border-primary bg-primary/10 text-primary" : "border-line text-muted hover:bg-surface-2"].join(" ")}>{t("service.filterAll")}<span className="rounded-full bg-surface-2 px-1.5 text-[10px] tnum text-subtle">{allRows.length}</span></button>
         {STATUSES.map((s) => (
           <button key={s} onClick={() => setStatusFilter(s)} className={["inline-flex h-8 items-center gap-1.5 rounded-lg border px-3 text-[12px] font-medium", statusFilter === s ? "border-primary bg-primary/10 text-primary" : "border-line text-muted hover:bg-surface-2"].join(" ")}>
             {t(`service.statuses.${s}`)}<span className="rounded-full bg-surface-2 px-1.5 text-[10px] tnum text-subtle">{counts[s] ?? 0}</span>
