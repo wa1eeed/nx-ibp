@@ -16,6 +16,7 @@ export type ModuleKey =
   | "claims"
   | "reports"
   | "targets"
+  | "insurers"
   | "compliance"
   | "finance"
   | "addons"
@@ -98,6 +99,7 @@ export const TENANT_NAV: NavGroup[] = [
       { key: "premiums", href: "/tenant/premiums", icon: "Coins", entitlement: "module.finance" },
       { key: "commissions", href: "/tenant/commissions", icon: "Percent", entitlement: "module.finance" },
       { key: "producers", href: "/tenant/producers", icon: "Handshake", entitlement: "module.finance" },
+      { key: "insurers", href: "/tenant/insurers", icon: "Umbrella", entitlement: "module.finance" },
     ],
   },
   // التقارير والتحليلات

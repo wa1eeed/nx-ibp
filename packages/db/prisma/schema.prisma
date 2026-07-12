@@ -49,6 +49,7 @@ model Tenant {
   config       TenantConfig?
   emailSettings TenantEmailSettings?
   targets      Target[]
+  insurers     Insurer[]
   wallets      Wallet[]
 
   // العلاقات التشغيلية — كلها مرتبطة بـ tenantId كمفتاح أجنبي لفرض العزل والتكامل المرجعي
@@ -396,6 +397,34 @@ model Branch {
   name     String
 
   @@unique([tenantId, code])
+}
+
+// ============================================================
+// إدارة شركات التأمين (المؤمِّنون) — سجلّ + اتفاقيات/نِسب عمولة + تسوية + حساب بنكي
+// ============================================================
+// كيان «شركة تأمين» كمرجع لكل مستأجر: النسبة المتّفق عليها، دورة التسوية (مهلة السداد)،
+// الحساب البنكي للتوريد، وبيانات الترخيص/التواصل. تُربط تشغيليًا بالوثائق عبر الاسم.
+model Insurer {
+  id             String   @id @default(cuid())
+  tenantId       String
+  tenant         Tenant   @relation(fields: [tenantId], references: [id])
+  name           String // الاسم (يطابق insurerName على الوثائق)
+  nameEn         String?
+  code           String? // رمز داخلي اختياري
+  licenseNo      String? // رقم ترخيص هيئة التأمين
+  commissionRate Decimal? @db.Decimal(6, 3) // نسبة العمولة المتّفق عليها (%)
+  settlementDays Int? // دورة التسوية: مهلة توريد الأقساط (أيام)
+  bankName       String?
+  iban           String? // حساب التوريد
+  contactName    String?
+  contactEmail   String?
+  contactPhone   String?
+  notes          String?
+  status         String   @default("active") // active | inactive
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([tenantId])
 }
 
 // ============================================================

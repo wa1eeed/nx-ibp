@@ -1154,6 +1154,17 @@ async function main() {
       await prisma.target.upsert({ where: { id: tg.id }, update: { targetValue: tg.targetValue }, create: { id: tg.id, tenantId: GIB_DEF.id, scope: tg.scope, scopeRefId: tg.scopeRefId, metric: tg.metric, period: "year", periodStart: yearStart, targetValue: tg.targetValue, createdBy: "seed" } });
     }
 
+    // شركات التأمين (المؤمِّنون) لحساب GIB — أسماؤها تطابق insurerName على وثائقه فتظهر إحصاءات الإنتاج
+    const demoInsurers = [
+      { id: "ins-gib-1", name: "شركة التعاونية للتأمين", nameEn: "Tawuniya", licenseNo: "IA-INS-001", commissionRate: 15, settlementDays: 60, bankName: "الراجحي", iban: "SA0380000000608010111111", contactName: "قسم الوسطاء", contactPhone: "0112180000" },
+      { id: "ins-gib-2", name: "بوبا العربية للتأمين", nameEn: "Bupa Arabia", licenseNo: "IA-INS-002", commissionRate: 12.5, settlementDays: 45, bankName: "الأهلي", iban: "SA0380000000608010222222", contactName: "علاقات الوسطاء", contactPhone: "0126982222" },
+      { id: "ins-gib-3", name: "شركة ملاذ للتأمين", nameEn: "Malath", licenseNo: "IA-INS-003", commissionRate: 17.5, settlementDays: 90, bankName: "الرياض", iban: "SA0380000000608010333333" },
+      { id: "ins-gib-4", name: "المتوسط والخليج للتأمين (ميدغلف)", nameEn: "MedGulf", licenseNo: "IA-INS-004", commissionRate: 14, settlementDays: 60, bankName: "سامبا", iban: "SA0380000000608010444444" },
+    ];
+    for (const ins of demoInsurers) {
+      await prisma.insurer.upsert({ where: { id: ins.id }, update: { commissionRate: ins.commissionRate, settlementDays: ins.settlementDays, status: "active" }, create: { tenantId: GIB_DEF.id, status: "active", ...ins } });
+    }
+
     // هوية بصرية مميّزة لحساب GIB (White-label) — لون كحلي بدل الافتراضي، لعرض الميزة حيًّا
     const gibCfg = await prisma.tenantConfig.findFirst({ where: { tenantId: GIB_DEF.id }, select: { id: true, branding: true } });
     const gibBranding = { ...((gibCfg?.branding ?? {}) as Record<string, unknown>), primary: "#1e3a8a", displayName: "Gulf Insurance Brokers", logoText: "GIB" };

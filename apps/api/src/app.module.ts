@@ -47,6 +47,7 @@ import { FormTemplatesModule } from "./modules/form-templates/form-templates.mod
 import { EmailModule } from "./modules/email/email.module";
 import { TargetsModule } from "./modules/targets/targets.module";
 import { AuditViewModule } from "./modules/audit/audit.module";
+import { InsurersModule } from "./modules/insurers/insurers.module";
 
 /**
  * الوحدة الجذرية. معماري وحدات — module لكل مجال (GUIDELINES.md §5).
@@ -100,6 +101,7 @@ import { AuditViewModule } from "./modules/audit/audit.module";
     EmailModule,
     TargetsModule,
     AuditViewModule,
+    InsurersModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },
