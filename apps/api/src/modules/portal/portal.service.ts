@@ -138,6 +138,49 @@ export class PortalService {
     return this.submitService(tenantId, clientId, { type: "renewal", policyId, subject: `طلب تجديد الوثيقة ${policy.sequenceNo ?? policyId}` });
   }
 
+  /**
+   * تفاصيل طلب خدمة للعميل (مقصورة على طلباته) + المحادثة **الظاهرة للعميل فقط**
+   * (visibility=client — الملاحظات الداخلية للموظفين لا تظهر). يميّز ردود العميل نفسه (`mine`).
+   */
+  async serviceRequestDetail(clientId: string, id: string) {
+    const sr = await this.prisma.serviceRequest.findFirst({
+      where: { id, clientId },
+      select: { id: true, sequenceNo: true, type: true, subject: true, status: true, policyId: true, createdAt: true, updatedAt: true, details: true },
+    });
+    if (!sr) throw new NotFoundException("طلب الخدمة غير موجود");
+    const [policy, activities, clientUsers] = await Promise.all([
+      sr.policyId ? this.prisma.policy.findFirst({ where: { id: sr.policyId }, select: { id: true, sequenceNo: true, productLineCode: true } }) : Promise.resolve(null),
+      this.prisma.crmActivity.findMany({
+        where: { entityType: "service", entityId: id, visibility: "client" },
+        orderBy: { createdAt: "asc" },
+        select: { id: true, type: true, body: true, authorId: true, createdAt: true },
+      }),
+      this.prisma.clientUser.findMany({ where: { clientId }, select: { id: true } }),
+    ]);
+    const mineIds = new Set(clientUsers.map((u) => u.id));
+    const staffIds = [...new Set(activities.map((a) => a.authorId).filter((x): x is string => !!x && !mineIds.has(x)))];
+    const staff = staffIds.length ? await this.prisma.user.findMany({ where: { id: { in: staffIds } }, select: { id: true, fullName: true } }) : [];
+    const staffName = new Map(staff.map((u) => [u.id, u.fullName]));
+    const timeline = activities.map((a) => ({
+      id: a.id, body: a.body, createdAt: a.createdAt,
+      mine: !!a.authorId && mineIds.has(a.authorId),
+      authorName: a.authorId && !mineIds.has(a.authorId) ? staffName.get(a.authorId) ?? null : null,
+    }));
+    return { ...sr, policy, timeline };
+  }
+
+  /** رد العميل على طلب خدمته ⇒ يُضاف للمحادثة الظاهرة (visibility=client) + يُشعِر الموظف المُسنَد/الفريق. */
+  async replyToService(tenantId: string, clientId: string, clientUserId: string, id: string, body: string) {
+    const sr = await this.prisma.serviceRequest.findFirst({ where: { id, clientId }, select: { id: true, sequenceNo: true, assigneeId: true } });
+    if (!sr) throw new NotFoundException("طلب الخدمة غير موجود");
+    await this.prisma.crmActivity.create({ data: { tenantId, entityType: "service", entityId: id, type: "reply", visibility: "client", body, authorId: clientUserId } });
+    await this.audit.log({ tenantId, userId: clientId, action: "update", entity: "service_request", entityId: id, meta: { viaPortal: true, reply: true } });
+    const vars = { ref: sr.sequenceNo ?? id };
+    if (sr.assigneeId) void this.notifications.notifyUser(tenantId, sr.assigneeId, "staff_service_reply", vars).catch(() => undefined);
+    else void this.notifications.notifyStaff(tenantId, "staff_service_reply", vars).catch(() => undefined);
+    return { ok: true };
+  }
+
   async requests(clientId: string) {
     const [policyRequests, serviceRequests] = await Promise.all([
       this.prisma.policyRequest.findMany({

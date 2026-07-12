@@ -13,6 +13,11 @@ export class SubmitClaimDto {
   @IsString() @MinLength(5) @MaxLength(2000) description!: string;
 }
 
+/** رد العميل على طلب خدمته (يظهر في المحادثة الظاهرة). */
+export class PortalServiceReplyDto {
+  @IsString() @MinLength(1) @MaxLength(2000) body!: string;
+}
+
 /** تقديم طلب خدمة من البوّابة. */
 export class SubmitServiceDto {
   @IsIn(["certificate", "policy_copy", "amendment", "cancellation", "renewal", "inquiry"]) type!: string;

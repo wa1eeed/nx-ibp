@@ -50,6 +50,7 @@ export const NOTIFICATION_TYPES: readonly NotificationTypeDef[] = [
   { key: "staff_deal_assigned", audience: "staff", module: "sales", name: "إسناد صفقة (CRM)", subject: "صفقة مُسنَدة إليك", body: "أُسنِدت إليك صفقة: {title}.", subjectEn: "Deal assigned to you", bodyEn: "A deal has been assigned to you: {title}.", email: true, sms: false },
   { key: "staff_task_due", audience: "staff", module: "sales", name: "مهمة مستحقّة", subject: "لديك مهمة مستحقّة", body: "المهمة «{title}» بلغت تاريخ استحقاقها ({dueDate}).", subjectEn: "You have a task due", bodyEn: "Task “{title}” has reached its due date ({dueDate}).", email: true, sms: false },
   { key: "staff_service_assigned", audience: "staff", module: "service", name: "إسناد طلب خدمة", subject: "طلب خدمة مُسنَد إليك", body: "أُسنِد إليك طلب خدمة {ref}: {subject}.", subjectEn: "Service request assigned to you", bodyEn: "Service request {ref} was assigned to you: {subject}.", email: true, sms: false },
+  { key: "staff_service_reply", audience: "staff", module: "service", name: "رد العميل على طلب الخدمة", subject: "رد جديد من العميل", body: "ردّ العميل على طلب الخدمة {ref} — بانتظار المتابعة.", subjectEn: "New reply from client", bodyEn: "The client replied to service request {ref} — awaiting follow-up.", email: true, sms: false },
 ] as const;
 
 export const NOTIFICATION_KEYS = NOTIFICATION_TYPES.map((t) => t.key);

@@ -5,7 +5,7 @@ import { PortalGuard } from "./portal.guard";
 import { ConfigService } from "../config/config.service";
 import { Public } from "../auth/public.decorator";
 import { CurrentUser, type AuthUser } from "../auth/current-user.decorator";
-import { PortalLoginDto, SubmitClaimDto, SubmitServiceDto } from "./dto/portal.dto";
+import { PortalLoginDto, SubmitClaimDto, SubmitServiceDto, PortalServiceReplyDto } from "./dto/portal.dto";
 
 /** بوّابة العميل — كل المسارات بنطاق `client` عدا الدخول. clientId يُشتقّ من التوكن. */
 @UseGuards(PortalGuard)
@@ -65,6 +65,17 @@ export class PortalController {
   @Get("requests")
   requests(@CurrentUser() user: AuthUser) {
     return this.portal.requests(user.clientId!);
+  }
+
+  @Get("service-requests/:id")
+  serviceDetail(@CurrentUser() user: AuthUser, @Param("id") id: string) {
+    return this.portal.serviceRequestDetail(user.clientId!, id);
+  }
+
+  @HttpCode(201)
+  @Post("service-requests/:id/reply")
+  serviceReply(@CurrentUser() user: AuthUser, @Param("id") id: string, @Body() dto: PortalServiceReplyDto) {
+    return this.portal.replyToService(user.tenantId, user.clientId!, user.userId, id, dto.body);
   }
 
   @Get("claims")

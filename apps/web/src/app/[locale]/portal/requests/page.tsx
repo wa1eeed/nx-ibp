@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Plus, X, Check } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useRouter } from "@/i18n/routing";
 import { cpapi, ApiError } from "@/lib/api";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -18,6 +19,7 @@ const SERVICE_TYPES = ["certificate", "policy_copy", "amendment", "cancellation"
 
 export default function PortalRequests() {
   const t = useTranslations();
+  const router = useRouter();
   const [data, setData] = useState<Data | null>(null);
   const [policies, setPolicies] = useState<PolicyLite[]>([]);
   const [open, setOpen] = useState(false);
@@ -67,7 +69,7 @@ export default function PortalRequests() {
           </tr></thead>
           <tbody className="divide-y divide-line">
             {data?.serviceRequests.map((r) => (
-              <tr key={r.id} className="hover:bg-surface-2/60">
+              <tr key={r.id} onClick={() => router.push(`/portal/service/${r.id}`)} className="cursor-pointer hover:bg-surface-2/60">
                 <td className="px-5 py-3 text-[12.5px] font-medium text-ink tnum">{r.sequenceNo ?? "—"}</td>
                 <td className="px-5 py-3 text-[13px] text-muted">{r.subject ?? r.type}</td>
                 <td className="px-5 py-3 text-[12px] text-subtle tnum">{date(r.createdAt)}</td>

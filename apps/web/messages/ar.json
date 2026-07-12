@@ -2138,6 +2138,22 @@
         "size": "الحجم",
         "date": "التاريخ"
       }
+    },
+    "serviceDetail": {
+      "back": "عودة إلى طلباتي",
+      "notFound": "الطلب غير موجود",
+      "type": "النوع",
+      "policy": "الوثيقة",
+      "createdAt": "تاريخ الإنشاء",
+      "updatedAt": "آخر تحديث",
+      "yourRequest": "طلبك",
+      "conversation": "المحادثة",
+      "you": "أنت",
+      "team": "فريق الخدمة",
+      "noMessages": "لا رسائل بعد — يمكنك كتابة رد أدناه.",
+      "closed": "أُغلق هذا الطلب.",
+      "replyPlaceholder": "اكتب ردك…",
+      "send": "إرسال"
     }
   },
   "landing": {

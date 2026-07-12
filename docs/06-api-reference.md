@@ -649,6 +649,8 @@ curl -X POST http://localhost:4000/staff \
 | GET | `/portal/policies/:id` | بوّابة العميل | تفاصيل وثيقة العميل + مطالباتها + مستنداتها (404 على وثيقة الغير) |
 | POST | `/portal/claims` | بوّابة العميل | تقديم مطالبة ⇒ `RECEIVED` + إشعار فريق المطالبات (`assertOwnsPolicy` ⇒ 403 على وثيقة الغير) |
 | POST | `/portal/service-requests` | بوّابة العميل | طلب خدمة (٦ أنواع) ⇒ `OPEN` + إشعار |
+| GET | `/portal/service-requests/:id` | بوّابة العميل | تفاصيل طلب الخدمة + **المحادثة الظاهرة فقط** (`visibility=client`، بعلامة `mine`) — مقصور على طلبات العميل (غيره ⇒ 404) |
+| POST | `/portal/service-requests/:id/reply` | بوّابة العميل | رد العميل ⇒ يُضاف للمحادثة الظاهرة + يُشعِر الموظف المُسنَد/الفريق (`staff_service_reply`) |
 | POST | `/portal/policies/:id/renew` | بوّابة العميل | طلب تجديد (اختصار طلب خدمة `renewal`) |
 
 ---

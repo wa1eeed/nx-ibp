@@ -2138,6 +2138,22 @@
         "size": "Size",
         "date": "Date"
       }
+    },
+    "serviceDetail": {
+      "back": "Back to my requests",
+      "notFound": "Request not found",
+      "type": "Type",
+      "policy": "Policy",
+      "createdAt": "Created",
+      "updatedAt": "Last updated",
+      "yourRequest": "Your request",
+      "conversation": "Conversation",
+      "you": "You",
+      "team": "Service team",
+      "noMessages": "No messages yet — you can write a reply below.",
+      "closed": "This request is closed.",
+      "replyPlaceholder": "Write your reply…",
+      "send": "Send"
     }
   },
   "landing": {

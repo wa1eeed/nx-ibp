@@ -126,6 +126,33 @@ describe("بوّابة العميل (e2e)", () => {
     expect(reqs.serviceRequests.some((s) => s.id === res.body.id)).toBe(true);
   });
 
+  it("محادثة طلب الخدمة: العميل يرى الرد الظاهر فقط (لا الملاحظة الداخلية) ويردّ + عزل", async () => {
+    const srv = app.getHttpServer();
+    const sr = (await request(srv).post("/portal/service-requests").set(auth(fahd)).send({ type: "inquiry", subject: "استفسار عن التغطية" }).expect(201)).body;
+
+    // الموظف يضيف ملاحظة داخلية (سرّية) + ردًّا ظاهرًا للعميل
+    await request(srv).post(`/service-requests/${sr.id}/notes`).set(auth(employee)).send({ body: "ملاحظة داخلية سرّية", visibility: "internal" }).expect(201);
+    await request(srv).post(`/service-requests/${sr.id}/notes`).set(auth(employee)).send({ body: "رد الوسيط الظاهر", visibility: "client" }).expect(201);
+
+    // العميل يفتح التفاصيل ⇒ يرى الرد الظاهر فقط، والملاحظة الداخلية لا تتسرّب (أمان)
+    const detail = (await request(srv).get(`/portal/service-requests/${sr.id}`).set(auth(fahd)).expect(200)).body;
+    const timeline = detail.timeline as Array<{ body: string; mine: boolean; authorName: string | null }>;
+    expect(timeline.map((m) => m.body)).toContain("رد الوسيط الظاهر");
+    expect(timeline.map((m) => m.body)).not.toContain("ملاحظة داخلية سرّية");
+    const staffMsg = timeline.find((m) => m.body === "رد الوسيط الظاهر")!;
+    expect(staffMsg.mine).toBe(false);
+    expect(staffMsg.authorName).toBeTruthy();
+
+    // العميل يردّ ⇒ يظهر بعلامة mine=true
+    await request(srv).post(`/portal/service-requests/${sr.id}/reply`).set(auth(fahd)).send({ body: "شكرًا، بانتظار الشهادة" }).expect(201);
+    const detail2 = (await request(srv).get(`/portal/service-requests/${sr.id}`).set(auth(fahd)).expect(200)).body;
+    expect((detail2.timeline as Array<{ body: string; mine: boolean }>).find((m) => m.body === "شكرًا، بانتظار الشهادة")!.mine).toBe(true);
+
+    // عزل: عميل آخر لا يفتح/يردّ على طلب الفهد ⇒ 404
+    await request(srv).get(`/portal/service-requests/${sr.id}`).set(auth(nukhba)).expect(404);
+    await request(srv).post(`/portal/service-requests/${sr.id}/reply`).set(auth(nukhba)).send({ body: "تسلّل" }).expect(404);
+  });
+
   it("العميل يطلب تجديد وثيقته ⇒ 201 طلب خدمة نوعه renewal", async () => {
     const srv = app.getHttpServer();
     const policies = (await request(srv).get("/portal/policies").set(auth(fahd))).body as Array<{ id: string }>;
