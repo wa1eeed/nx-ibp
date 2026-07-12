@@ -773,6 +773,9 @@ async function seedGibDemo(passwordHash: string) {
   const T = GIB_DEF.id;
   await seedTenant(GIB_DEF, passwordHash);
 
+  // ---- العنوان الوطني لشركة الوساطة (يظهر في الفاتورة الضريبية) ----
+  await prisma.tenant.update({ where: { id: T }, data: { buildingNo: "3521", street: "طريق الملك فهد", district: "العليا", city: "الرياض", postalCode: "12333" } });
+
   // ---- عملاء واقعيون ----
   const clients: Array<{ id: string; name: string; id2: string; type: "CORPORATE" | "INDIVIDUAL"; city: string; email: string; phone: string; compliance: "APPROVED" | "PENDING" | "REJECTED" }> = [
     { id: "gib-cl-maaden", name: "شركة معادن الخليج للتعدين", id2: "1010445501", type: "CORPORATE", city: "الرياض", email: "insurance@gulf-maaden.sa", phone: "0114567001", compliance: "APPROVED" },
@@ -860,16 +863,18 @@ async function seedGibDemo(passwordHash: string) {
     }
   }
 
-  // ---- طلبات خدمة ----
+  // ---- طلبات خدمة (بأولوية وإسناد لمدير خدمة العملاء) ----
+  const care = await prisma.user.findFirst({ where: { tenantId: T, email: "care@gib-sa.com" }, select: { id: true } });
   const svcs = [
-    { id: "gib-s-noor-add", clientId: "gib-cl-noor", policyId: "gib-p-noor-med", type: "addition", subject: "إضافة 20 موظفاً للوثيقة الطبية", status: "IN_PROGRESS", seq: "RQ-2026-8001" },
-    { id: "gib-s-maaden-amd", clientId: "gib-cl-maaden", policyId: "gib-p-maaden-pro", type: "amendment", subject: "رفع مبلغ التأمين على الأصول", status: "SENT_TO_INSURER", seq: "RQ-2026-8002" },
-    { id: "gib-s-bina-del", clientId: "gib-cl-bina", policyId: "gib-p-bina-eng", type: "deletion", subject: "حذف معدّة من وثيقة التركيب", status: "CLOSED", seq: "RQ-2026-8003" },
-    { id: "gib-s-safwa-inq", clientId: "gib-cl-safwa", policyId: "gib-p-safwa-fire", type: "inquiry", subject: "استفسار عن تغطية انقطاع الأعمال", status: "OPEN", seq: "RQ-2026-8004" },
-    { id: "gib-s-durra-ren", clientId: "gib-cl-durra", policyId: "gib-p-durra-mar", type: "renewal", subject: "طلب تجديد وثيقة الشحن البحري", status: "OPEN", seq: "RQ-2026-8005" },
+    { id: "gib-s-noor-add", clientId: "gib-cl-noor", policyId: "gib-p-noor-med", type: "addition", subject: "إضافة 20 موظفاً للوثيقة الطبية", status: "IN_PROGRESS", seq: "RQ-2026-8001", priority: "high", assign: true },
+    { id: "gib-s-maaden-amd", clientId: "gib-cl-maaden", policyId: "gib-p-maaden-pro", type: "amendment", subject: "رفع مبلغ التأمين على الأصول", status: "SENT_TO_INSURER", seq: "RQ-2026-8002", priority: "urgent", assign: true },
+    { id: "gib-s-bina-del", clientId: "gib-cl-bina", policyId: "gib-p-bina-eng", type: "deletion", subject: "حذف معدّة من وثيقة التركيب", status: "CLOSED", seq: "RQ-2026-8003", priority: "normal", assign: false },
+    { id: "gib-s-safwa-inq", clientId: "gib-cl-safwa", policyId: "gib-p-safwa-fire", type: "inquiry", subject: "استفسار عن تغطية انقطاع الأعمال", status: "OPEN", seq: "RQ-2026-8004", priority: "normal", assign: false },
+    { id: "gib-s-durra-ren", clientId: "gib-cl-durra", policyId: "gib-p-durra-mar", type: "renewal", subject: "طلب تجديد وثيقة الشحن البحري", status: "OPEN", seq: "RQ-2026-8005", priority: "high", assign: true },
   ];
   for (const s of svcs) {
-    await prisma.serviceRequest.upsert({ where: { id: s.id }, update: {}, create: { id: s.id, tenantId: T, clientId: s.clientId, policyId: s.policyId, type: s.type, subject: s.subject, status: s.status as never, sequenceNo: s.seq } });
+    const assigneeId = s.assign ? care?.id ?? null : null;
+    await prisma.serviceRequest.upsert({ where: { id: s.id }, update: { priority: s.priority, assigneeId }, create: { id: s.id, tenantId: T, clientId: s.clientId, policyId: s.policyId, type: s.type, subject: s.subject, status: s.status as never, sequenceNo: s.seq, priority: s.priority, assigneeId } });
   }
 
   // ---- مطالبات متنوّعة الحالات ----
@@ -1156,13 +1161,13 @@ async function main() {
 
     // شركات التأمين (المؤمِّنون) لحساب GIB — أسماؤها تطابق insurerName على وثائقه فتظهر إحصاءات الإنتاج
     const demoInsurers = [
-      { id: "ins-gib-1", name: "شركة التعاونية للتأمين", nameEn: "Tawuniya", licenseNo: "IA-INS-001", commissionRate: 15, settlementDays: 60, bankName: "الراجحي", iban: "SA0380000000608010111111", contactName: "قسم الوسطاء", contactPhone: "0112180000" },
-      { id: "ins-gib-2", name: "بوبا العربية للتأمين", nameEn: "Bupa Arabia", licenseNo: "IA-INS-002", commissionRate: 12.5, settlementDays: 45, bankName: "الأهلي", iban: "SA0380000000608010222222", contactName: "علاقات الوسطاء", contactPhone: "0126982222" },
-      { id: "ins-gib-3", name: "شركة ملاذ للتأمين", nameEn: "Malath", licenseNo: "IA-INS-003", commissionRate: 17.5, settlementDays: 90, bankName: "الرياض", iban: "SA0380000000608010333333" },
-      { id: "ins-gib-4", name: "المتوسط والخليج للتأمين (ميدغلف)", nameEn: "MedGulf", licenseNo: "IA-INS-004", commissionRate: 14, settlementDays: 60, bankName: "سامبا", iban: "SA0380000000608010444444" },
+      { id: "ins-gib-1", name: "شركة التعاونية للتأمين", nameEn: "Tawuniya", licenseNo: "IA-INS-001", vatNumber: "300000000000013", nationalAddress: "طريق الملك فهد، العليا، الرياض 12211", commissionRate: 15, settlementDays: 60, bankName: "الراجحي", iban: "SA0380000000608010111111", contactName: "قسم الوسطاء", contactPhone: "0112180000" },
+      { id: "ins-gib-2", name: "بوبا العربية للتأمين", nameEn: "Bupa Arabia", licenseNo: "IA-INS-002", vatNumber: "300000000000023", nationalAddress: "طريق الأمير سلطان، الروضة، جدة 23434", commissionRate: 12.5, settlementDays: 45, bankName: "الأهلي", iban: "SA0380000000608010222222", contactName: "علاقات الوسطاء", contactPhone: "0126982222" },
+      { id: "ins-gib-3", name: "شركة ملاذ للتأمين", nameEn: "Malath", licenseNo: "IA-INS-003", vatNumber: "300000000000033", nationalAddress: "طريق العروبة، المروج، الرياض 12283", commissionRate: 17.5, settlementDays: 90, bankName: "الرياض", iban: "SA0380000000608010333333" },
+      { id: "ins-gib-4", name: "المتوسط والخليج للتأمين (ميدغلف)", nameEn: "MedGulf", licenseNo: "IA-INS-004", vatNumber: "300000000000043", nationalAddress: "طريق الملك عبدالعزيز، الخبر 34423", commissionRate: 14, settlementDays: 60, bankName: "سامبا", iban: "SA0380000000608010444444" },
     ];
     for (const ins of demoInsurers) {
-      await prisma.insurer.upsert({ where: { id: ins.id }, update: { commissionRate: ins.commissionRate, settlementDays: ins.settlementDays, status: "active" }, create: { tenantId: GIB_DEF.id, status: "active", ...ins } });
+      await prisma.insurer.upsert({ where: { id: ins.id }, update: { commissionRate: ins.commissionRate, settlementDays: ins.settlementDays, vatNumber: ins.vatNumber, nationalAddress: ins.nationalAddress, status: "active" }, create: { tenantId: GIB_DEF.id, status: "active", ...ins } });
     }
 
     // هوية بصرية مميّزة لحساب GIB (White-label) — لون كحلي بدل الافتراضي، لعرض الميزة حيًّا
