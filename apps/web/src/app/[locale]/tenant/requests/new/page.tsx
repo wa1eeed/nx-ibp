@@ -10,7 +10,7 @@ import { DynamicForm, type FormPayload, type FormSchemaData } from "@/components
 import type { BlockDef, SectionDef } from "@ibp/shared";
 
 interface ClientLite { id: string; name: string; code: string | null; type: string; crNumber: string | null; nationalId: string | null; complianceStatus: string }
-interface CatalogClass { code: string; name: string; lines: Array<{ code: string; name: string }> }
+interface CatalogClass { code: string; name: string; vatRate: number; lines: Array<{ code: string; name: string }> }
 interface LineSchema { code: string; name: string; formSchema: { version: number; baseFields: SectionDef[]; blocks: BlockDef[] } }
 
 export default function NewRequestPage() {
@@ -39,6 +39,11 @@ export default function NewRequestPage() {
   const [quickAdd, setQuickAdd] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
 
+  // اختيار المنتج (فرع التأمين) بالبحث السريع
+  const [prodSearch, setProdSearch] = useState("");
+  const [prodOpen, setProdOpen] = useState(false);
+  const prodBoxRef = useRef<HTMLDivElement>(null);
+
   const load = useCallback(async () => {
     const [cs, cat] = await Promise.all([api<ClientLite[]>("/clients"), api<CatalogClass[]>("/catalog")]);
     setClients(cs);
@@ -54,9 +59,12 @@ export default function NewRequestPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [load, router]);
 
-  // إغلاق القائمة عند النقر خارجها
+  // إغلاق القوائم عند النقر خارجها
   useEffect(() => {
-    const onDoc = (e: MouseEvent) => { if (boxRef.current && !boxRef.current.contains(e.target as Node)) setOpenList(false); };
+    const onDoc = (e: MouseEvent) => {
+      if (boxRef.current && !boxRef.current.contains(e.target as Node)) setOpenList(false);
+      if (prodBoxRef.current && !prodBoxRef.current.contains(e.target as Node)) setProdOpen(false);
+    };
     document.addEventListener("mousedown", onDoc);
     return () => document.removeEventListener("mousedown", onDoc);
   }, []);
@@ -107,6 +115,18 @@ export default function NewRequestPage() {
     : clients;
 
   function selectClient(id: string) { setClientId(id); setOpenList(false); setSearch(""); }
+
+  // المنتج (فرع التأمين) المختار + قائمة مفلترة بالبحث عبر كل الفروع/الفئات
+  const allLines = catalog.flatMap((c) => c.lines.map((l) => ({ ...l, className: c.name, vatRate: c.vatRate })));
+  const selectedLine = allLines.find((l) => l.code === lineCode) ?? null;
+  const pq = prodSearch.trim().toLowerCase();
+  const prodClasses = pq
+    ? catalog
+        .map((c) => ({ ...c, lines: c.lines.filter((l) => [l.name, l.code, c.name].some((x) => (x ?? "").toLowerCase().includes(pq))) }))
+        .filter((c) => c.lines.length)
+    : catalog;
+
+  function selectLine(code: string) { void pickLine(code); setProdOpen(false); setProdSearch(""); }
 
   async function onClientAdded(newId: string) {
     setQuickAdd(false);
@@ -181,19 +201,56 @@ export default function NewRequestPage() {
           )}
         </div>
 
-        {/* المنتج */}
-        <label className="block">
+        {/* المنتج — بحث سريع عبر كل الفروع */}
+        <div className="block" ref={prodBoxRef}>
           <span className="mb-1 block text-[12px] font-medium text-muted">{t("requestForm.product")}</span>
-          <select value={lineCode} onChange={(e) => pickLine(e.target.value)}
-            className="h-9 w-full rounded-lg border border-line bg-card px-2 text-[13px] text-ink focus:outline-none focus:ring-2 focus:ring-primary/30">
-            <option value="">—</option>
-            {catalog.map((cls) => (
-              <optgroup key={cls.code} label={cls.name}>
-                {cls.lines.map((l) => <option key={l.code} value={l.code}>{l.name}</option>)}
-              </optgroup>
-            ))}
-          </select>
-        </label>
+          {selectedLine ? (
+            // فرع مُختار
+            <div className="flex items-center justify-between rounded-lg border border-line bg-card px-3 py-2">
+              <span className="flex items-center gap-2 text-[13px] text-ink">
+                {selectedLine.name}
+                <span className="text-subtle">· {selectedLine.className}</span>
+                <span className={["rounded px-1.5 py-0.5 text-[10px] font-semibold", selectedLine.vatRate === 0 ? "bg-success-soft text-success" : "bg-surface-2 text-subtle"].join(" ")}>
+                  {selectedLine.vatRate === 0 ? t("requestForm.vatExempt") : t("requestForm.vatStandard", { rate: selectedLine.vatRate })}
+                </span>
+              </span>
+              <button type="button" onClick={() => selectLine("")} className="text-[11.5px] font-medium text-primary hover:underline">{t("requestForm.clearSelection")}</button>
+            </div>
+          ) : (
+            <div className="relative">
+              <div className="flex items-center gap-2 rounded-lg border border-line bg-card px-2.5">
+                <Search size={15} className="text-subtle" />
+                <input
+                  value={prodSearch} onChange={(e) => { setProdSearch(e.target.value); setProdOpen(true); }} onFocus={() => setProdOpen(true)}
+                  placeholder={t("requestForm.searchProduct")}
+                  className="h-9 w-full bg-transparent text-[13px] text-ink focus:outline-none"
+                />
+                <ChevronDown size={15} className="text-subtle" />
+              </div>
+              {prodOpen ? (
+                <div className="absolute z-20 mt-1 max-h-72 w-full overflow-auto rounded-lg border border-line bg-card shadow-card">
+                  {prodClasses.length ? prodClasses.map((cls) => (
+                    <div key={cls.code}>
+                      <div className="sticky top-0 flex items-center justify-between bg-surface-2 px-3 py-1.5 text-[10.5px] font-bold uppercase tracking-wide text-subtle">
+                        <span>{cls.name}</span>
+                        {cls.vatRate === 0 ? <span className="text-success">{t("requestForm.vatExempt")}</span> : null}
+                      </div>
+                      {cls.lines.map((l) => (
+                        <button key={l.code} type="button" onClick={() => selectLine(l.code)}
+                          className="flex w-full items-center justify-between gap-2 px-3 py-2 text-start hover:bg-surface-2">
+                          <span className="text-[12.5px] text-ink">{l.name}</span>
+                          <span className="text-[10.5px] text-subtle">{l.code}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )) : (
+                    <div className="px-3 py-3 text-center text-[12px] text-subtle">{t("requestForm.noProductMatch")}</div>
+                  )}
+                </div>
+              ) : null}
+            </div>
+          )}
+        </div>
       </div>
 
       {selected && selected.complianceStatus !== "APPROVED" ? (

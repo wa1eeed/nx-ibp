@@ -20,37 +20,149 @@
     "subtitle": "An immutable record of every sensitive action — who did what and when (cannot be edited or deleted).",
     "adminSubtitle": "Cross-account audit log — with actor names and IP addresses (for regulator review).",
     "empty": "No actions recorded yet",
-    "col": { "actor": "Actor", "action": "Action", "entity": "Entity", "target": "ID", "ip": "IP", "device": "Device", "time": "Time", "tenant": "Account" },
-    "filterAction": "All actions", "filterEntity": "All entities",
+    "col": {
+      "actor": "Actor",
+      "action": "Action",
+      "entity": "Entity",
+      "target": "ID",
+      "ip": "IP",
+      "device": "Device",
+      "time": "Time",
+      "tenant": "Account"
+    },
+    "filterAction": "All actions",
+    "filterEntity": "All entities",
     "immutableNote": "🔒 This log is immutable: edits/deletes are rejected even from code — an NCA ECC requirement.",
-    "action": { "login": "Login", "create": "Create", "update": "Update", "delete": "Delete", "approve": "Approve", "revert": "Revert", "verify": "Verify", "file_url": "Open document", "erase": "Erase (PDPL)" },
+    "action": {
+      "login": "Login",
+      "create": "Create",
+      "update": "Update",
+      "delete": "Delete",
+      "approve": "Approve",
+      "revert": "Revert",
+      "verify": "Verify",
+      "file_url": "Open document",
+      "erase": "Erase (PDPL)"
+    },
     "entity": {
-      "client": "Client", "policy": "Policy", "policy_finance": "Financial approval", "policy_technical": "Technical approval", "policy_cancellation": "Policy cancellation", "policy_approval_step": "Approval step",
-      "insurer_settlement": "Insurer settlement", "receipt": "Receipt voucher", "commission_receipt": "Commission receipt", "producer_settlement": "Sub-broker payout", "producer": "Sub-broker",
-      "deal": "Deal", "crm_task": "Task", "department": "Department", "user_department": "Dept assignment", "document": "Document", "slip": "RFQ slip", "quotation": "Quotation", "firm_order": "Firm order", "endorsement": "Endorsement",
-      "claim": "Claim", "service_request": "Service request", "renewal": "Renewal", "target": "Target", "form_template": "Form template", "branding": "Branding", "company": "Company details",
-      "email_settings": "Email settings", "security_policy": "Security policy", "retention_policy": "Retention policy", "approval_chain": "Approval chain", "verification_check": "Government check",
-      "tenant_signup": "Account signup", "request": "Insurance request", "user_mfa": "Two-factor auth", "user_mfa_reset": "MFA reset", "user": "User", "auth": "Auth"
+      "client": "Client",
+      "policy": "Policy",
+      "policy_finance": "Financial approval",
+      "policy_technical": "Technical approval",
+      "policy_cancellation": "Policy cancellation",
+      "policy_approval_step": "Approval step",
+      "insurer_settlement": "Insurer settlement",
+      "receipt": "Receipt voucher",
+      "commission_receipt": "Commission receipt",
+      "producer_settlement": "Sub-broker payout",
+      "producer": "Sub-broker",
+      "deal": "Deal",
+      "crm_task": "Task",
+      "department": "Department",
+      "user_department": "Dept assignment",
+      "document": "Document",
+      "slip": "RFQ slip",
+      "quotation": "Quotation",
+      "firm_order": "Firm order",
+      "endorsement": "Endorsement",
+      "claim": "Claim",
+      "service_request": "Service request",
+      "renewal": "Renewal",
+      "target": "Target",
+      "form_template": "Form template",
+      "branding": "Branding",
+      "company": "Company details",
+      "email_settings": "Email settings",
+      "security_policy": "Security policy",
+      "retention_policy": "Retention policy",
+      "approval_chain": "Approval chain",
+      "verification_check": "Government check",
+      "tenant_signup": "Account signup",
+      "request": "Insurance request",
+      "user_mfa": "Two-factor auth",
+      "user_mfa_reset": "MFA reset",
+      "user": "User",
+      "auth": "Auth"
     }
   },
   "confirm": {
     "confirm": "Confirm",
     "cancel": "Cancel",
-    "firmOrder": { "title": "Confirm firm order", "desc": "“{insurer}” will be selected as the final quotation and the request moves to issuance.", "action": "Firm order" },
-    "renewal": { "title": "Start renewal", "desc": "A renewal request will be created for this policy, starting a new cycle.", "action": "Start renewal" },
-    "approveClient": { "title": "Approve client", "desc": "The client will be compliance-approved and policies can be issued.", "action": "Approve" },
-    "rejectClient": { "title": "Reject client", "desc": "The client will be rejected and requests cannot proceed (reversible later).", "action": "Reject" },
-    "startRfq": { "title": "Start RFQ", "desc": "A slip will be created to collect insurer quotations and the request moves to quoting.", "action": "Start RFQ" },
-    "issuePolicy": { "title": "Issue policy", "desc": "A policy will be issued from this awarded request and moved to production.", "action": "Issue" },
-    "approveTechnical": { "title": "Technical approval", "desc": "The policy will be technically approved and move to financial approval.", "action": "Approve" },
-    "approveFinance": { "title": "Financial approval", "desc": "Financial approval auto-generates a journal voucher, debit note and tax invoice, and the policy becomes active.", "action": "Approve" },
-    "approveStep": { "title": "Approve step", "desc": "You will approve the configured extra approval step for this policy (per the approval chain).", "action": "Approve step" },
-    "revert": { "title": "Revert one step", "desc": "The policy will be moved one step back to its previous state (the action is audited). Issued policies cannot be reverted directly.", "action": "Revert" },
-    "claimStatus": { "title": "Update claim status", "desc": "The claim status will change to “{status}”.", "action": "Update" },
-    "serviceStatus": { "title": "Update request status", "desc": "The service request status will change to “{status}”.", "action": "Update" },
-    "tenantSuspend": { "title": "Suspend account", "desc": "Account “{name}” access to the platform will be suspended immediately.", "action": "Suspend" },
-    "tenantActivate": { "title": "Activate account", "desc": "Account “{name}” access to the platform will be restored.", "action": "Activate" },
-    "runYaqeen": { "title": "Confirm verification", "desc": "A Yaqeen identity check will run and one paid operation will be deducted from your wallet.", "action": "Verify" }
+    "firmOrder": {
+      "title": "Confirm firm order",
+      "desc": "“{insurer}” will be selected as the final quotation and the request moves to issuance.",
+      "action": "Firm order"
+    },
+    "renewal": {
+      "title": "Start renewal",
+      "desc": "A renewal request will be created for this policy, starting a new cycle.",
+      "action": "Start renewal"
+    },
+    "approveClient": {
+      "title": "Approve client",
+      "desc": "The client will be compliance-approved and policies can be issued.",
+      "action": "Approve"
+    },
+    "rejectClient": {
+      "title": "Reject client",
+      "desc": "The client will be rejected and requests cannot proceed (reversible later).",
+      "action": "Reject"
+    },
+    "startRfq": {
+      "title": "Start RFQ",
+      "desc": "A slip will be created to collect insurer quotations and the request moves to quoting.",
+      "action": "Start RFQ"
+    },
+    "issuePolicy": {
+      "title": "Issue policy",
+      "desc": "A policy will be issued from this awarded request and moved to production.",
+      "action": "Issue"
+    },
+    "approveTechnical": {
+      "title": "Technical approval",
+      "desc": "The policy will be technically approved and move to financial approval.",
+      "action": "Approve"
+    },
+    "approveFinance": {
+      "title": "Financial approval",
+      "desc": "Financial approval auto-generates a journal voucher, debit note and tax invoice, and the policy becomes active.",
+      "action": "Approve"
+    },
+    "approveStep": {
+      "title": "Approve step",
+      "desc": "You will approve the configured extra approval step for this policy (per the approval chain).",
+      "action": "Approve step"
+    },
+    "revert": {
+      "title": "Revert one step",
+      "desc": "The policy will be moved one step back to its previous state (the action is audited). Issued policies cannot be reverted directly.",
+      "action": "Revert"
+    },
+    "claimStatus": {
+      "title": "Update claim status",
+      "desc": "The claim status will change to “{status}”.",
+      "action": "Update"
+    },
+    "serviceStatus": {
+      "title": "Update request status",
+      "desc": "The service request status will change to “{status}”.",
+      "action": "Update"
+    },
+    "tenantSuspend": {
+      "title": "Suspend account",
+      "desc": "Account “{name}” access to the platform will be suspended immediately.",
+      "action": "Suspend"
+    },
+    "tenantActivate": {
+      "title": "Activate account",
+      "desc": "Account “{name}” access to the platform will be restored.",
+      "action": "Activate"
+    },
+    "runYaqeen": {
+      "title": "Confirm verification",
+      "desc": "A Yaqeen identity check will run and one paid operation will be deducted from your wallet.",
+      "action": "Verify"
+    }
   },
   "navGroup": {
     "workspace": "Broker Workspace",
@@ -142,9 +254,21 @@
     "claimed": "Claimed",
     "settled": "Settled",
     "regulatory": "Unified regulator report",
-    "reg": { "gwp": "Gross written premium (GWP)", "net": "Net premium", "vat": "VAT", "commission": "Brokerage commission", "claims": "Claims (count · settled)" },
+    "reg": {
+      "gwp": "Gross written premium (GWP)",
+      "net": "Net premium",
+      "vat": "VAT",
+      "commission": "Brokerage commission",
+      "claims": "Claims (count · settled)"
+    },
     "catalogTitle": "Approved reports catalog",
-    "cat": { "production": "Production", "finance": "Finance", "claims": "Claims", "compliance": "Compliance", "regulatory": "Regulatory" }
+    "cat": {
+      "production": "Production",
+      "finance": "Finance",
+      "claims": "Claims",
+      "compliance": "Compliance",
+      "regulatory": "Regulatory"
+    }
   },
   "finance": {
     "title": "Finance & accounting",
@@ -167,18 +291,52 @@
     "zatcaShow": "ZATCA details",
     "printDoc": "Document",
     "zatcaHash": "Hash",
-    "col": { "code": "Code", "account": "Account", "type": "Type", "balance": "Balance", "invoiceNo": "Invoice no.", "insurer": "Insurer", "party": "Party", "invoiceKind": "Invoice type", "net": "Net", "vat": "VAT", "total": "Total" },
+    "col": {
+      "code": "Code",
+      "account": "Account",
+      "type": "Type",
+      "balance": "Balance",
+      "invoiceNo": "Invoice no.",
+      "insurer": "Insurer",
+      "party": "Party",
+      "invoiceKind": "Invoice type",
+      "net": "Net",
+      "vat": "VAT",
+      "total": "Total"
+    },
     "payables": "Insurer payables (trust)",
     "payablesSub": "Net premium held per insurer — with aging and amounts settled",
     "settle": "Settle",
-    "pcol": { "insurer": "Insurer", "payable": "Payable", "settled": "Settled", "outstanding": "Outstanding" },
-    "settleModal": { "title": "Settle insurer payable", "amount": "Amount paid", "reference": "Reference", "submit": "Record payment", "cancel": "Cancel", "done": "Payment voucher {seq} recorded" },
+    "pcol": {
+      "insurer": "Insurer",
+      "payable": "Payable",
+      "settled": "Settled",
+      "outstanding": "Outstanding"
+    },
+    "settleModal": {
+      "title": "Settle insurer payable",
+      "amount": "Amount paid",
+      "reference": "Reference",
+      "submit": "Record payment",
+      "cancel": "Cancel",
+      "done": "Payment voucher {seq} recorded"
+    },
     "trialBalance": "Trial balance",
     "trialBalanceSub": "Voucher entries aggregated by account — debit must equal credit",
     "balanced": "Balanced",
     "notBalanced": "Not balanced",
-    "tcol": { "account": "Account", "debit": "Debit", "credit": "Credit", "balance": "Balance" },
-    "tab": { "coa": "Chart of accounts", "invoices": "Tax invoices", "payables": "Insurer payables", "trial": "Trial balance" }
+    "tcol": {
+      "account": "Account",
+      "debit": "Debit",
+      "credit": "Credit",
+      "balance": "Balance"
+    },
+    "tab": {
+      "coa": "Chart of accounts",
+      "invoices": "Tax invoices",
+      "payables": "Insurer payables",
+      "trial": "Trial balance"
+    }
   },
   "producers": {
     "title": "Sub-brokers",
@@ -191,13 +349,56 @@
     "theirPolicies": "Their policies",
     "noPolicies": "No linked policies",
     "settlements": "Payout vouchers",
-    "kpi": { "count": "Sub-brokers", "active": "active", "owed": "Commission owed", "paid": "Settled", "outstanding": "Outstanding" },
-    "col": { "code": "Code", "name": "Name", "license": "License", "rate": "Rate", "policies": "Policies", "owed": "Owed", "outstanding": "Outstanding", "status": "Status", "policy": "Policy", "client": "Client", "premium": "Premium", "share": "Share" },
-    "status": { "active": "Active", "suspended": "Suspended" },
-    "type": { "individual": "Individual", "company": "Company" },
-    "field": { "name": "Name", "type": "Type", "rate": "Commission rate (%)", "license": "IA license no.", "cr": "CR", "nid": "ID", "phone": "Phone", "email": "Email", "iban": "IBAN" },
+    "kpi": {
+      "count": "Sub-brokers",
+      "active": "active",
+      "owed": "Commission owed",
+      "paid": "Settled",
+      "outstanding": "Outstanding"
+    },
+    "col": {
+      "code": "Code",
+      "name": "Name",
+      "license": "License",
+      "rate": "Rate",
+      "policies": "Policies",
+      "owed": "Owed",
+      "outstanding": "Outstanding",
+      "status": "Status",
+      "policy": "Policy",
+      "client": "Client",
+      "premium": "Premium",
+      "share": "Share"
+    },
+    "status": {
+      "active": "Active",
+      "suspended": "Suspended"
+    },
+    "type": {
+      "individual": "Individual",
+      "company": "Company"
+    },
+    "field": {
+      "name": "Name",
+      "type": "Type",
+      "rate": "Commission rate (%)",
+      "license": "IA license no.",
+      "cr": "CR",
+      "nid": "ID",
+      "phone": "Phone",
+      "email": "Email",
+      "iban": "IBAN"
+    },
     "save": "Save",
-    "settle": { "action": "Pay commission", "title": "Pay sub-broker commission", "outstanding": "Outstanding", "amount": "Amount", "reference": "Reference / transfer no.", "submit": "Confirm payout", "cancel": "Cancel" }
+    "settle": {
+      "action": "Pay commission",
+      "title": "Pay sub-broker commission",
+      "outstanding": "Outstanding",
+      "amount": "Amount",
+      "reference": "Reference / transfer no.",
+      "submit": "Confirm payout",
+      "cancel": "Cancel"
+    }
   },
   "premiums": {
     "title": "Premiums & collections",
@@ -208,19 +409,69 @@
     "byClient": "Outstanding by client",
     "aging": "Receivables aging",
     "agingSub": "Outstanding per client by overdue period — for collection priorities",
-    "bucket": { "current": "0–30 days", "d60": "31–60", "d90": "61–90", "over": "90+" },
+    "bucket": {
+      "current": "0–30 days",
+      "d60": "31–60",
+      "d90": "61–90",
+      "over": "90+"
+    },
     "totalRow": "Total",
     "overdue": "Overdue",
     "over60": "60+ days",
     "collected": "Collected",
     "recordPayment": "Record payment",
     "statementBtn": "Statement",
-    "status": { "outstanding": "Outstanding", "partial": "Partial", "paid": "Paid" },
-    "colx": { "settled": "Collected", "outstanding": "Remaining", "status": "Status", "actions": "Actions" },
-    "receipt": { "title": "Record a receipt", "on": "against debit note", "amount": "Amount received", "method": "Payment method", "reference": "Reference (transfer/cheque…)", "submit": "Record receipt", "cancel": "Cancel", "done": "Receipt {seq} recorded", "methods": { "cash": "Cash", "transfer": "Bank transfer", "cheque": "Cheque", "card": "Card", "pos": "POS" } },
-    "statement": { "title": "Client statement", "charged": "Total charged", "paid": "Total collected", "balance": "Outstanding balance", "date": "Date", "ref": "Ref", "desc": "Description", "debit": "Debit", "credit": "Credit", "balanceCol": "Balance", "charge": "Debit note", "payment": "Receipt", "close": "Close", "empty": "No entries" },
+    "status": {
+      "outstanding": "Outstanding",
+      "partial": "Partial",
+      "paid": "Paid"
+    },
+    "colx": {
+      "settled": "Collected",
+      "outstanding": "Remaining",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "receipt": {
+      "title": "Record a receipt",
+      "on": "against debit note",
+      "amount": "Amount received",
+      "method": "Payment method",
+      "reference": "Reference (transfer/cheque…)",
+      "submit": "Record receipt",
+      "cancel": "Cancel",
+      "done": "Receipt {seq} recorded",
+      "methods": {
+        "cash": "Cash",
+        "transfer": "Bank transfer",
+        "cheque": "Cheque",
+        "card": "Card",
+        "pos": "POS"
+      }
+    },
+    "statement": {
+      "title": "Client statement",
+      "charged": "Total charged",
+      "paid": "Total collected",
+      "balance": "Outstanding balance",
+      "date": "Date",
+      "ref": "Ref",
+      "desc": "Description",
+      "debit": "Debit",
+      "credit": "Credit",
+      "balanceCol": "Balance",
+      "charge": "Debit note",
+      "payment": "Receipt",
+      "close": "Close",
+      "empty": "No entries"
+    },
     "debitNotes": "Debit notes",
-    "col": { "no": "No.", "client": "Client", "date": "Date", "total": "Total" }
+    "col": {
+      "no": "No.",
+      "client": "Client",
+      "date": "Date",
+      "total": "Total"
+    }
   },
   "compliance": {
     "title": "Compliance & risk",
@@ -232,8 +483,17 @@
     "riskDist": "Risk distribution (PEP/sanctions)",
     "checksByType": "Checks by type",
     "recent": "Latest checks",
-    "risk": { "low": "Low", "medium": "Medium", "high": "High" },
-    "col": { "client": "Client", "type": "Type", "risk": "Risk", "date": "Date" }
+    "risk": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High"
+    },
+    "col": {
+      "client": "Client",
+      "type": "Type",
+      "risk": "Risk",
+      "date": "Date"
+    }
   },
   "integrations": {
     "title": "Regulatory integrations",
@@ -241,8 +501,21 @@
     "sandbox": "Sandbox environment",
     "residencyNote": "Real production data in-Kingdom only (PDPL/NCA)",
     "active": "active",
-    "status": { "active": "Active", "planned": "Planned" },
-    "cat": { "invoicing": "Invoicing", "auth": "Auth", "identity": "Identity", "registry": "Registry", "address": "Address", "compliance": "Compliance", "motor": "Motor", "medical": "Medical", "regulator": "Regulator" }
+    "status": {
+      "active": "Active",
+      "planned": "Planned"
+    },
+    "cat": {
+      "invoicing": "Invoicing",
+      "auth": "Auth",
+      "identity": "Identity",
+      "registry": "Registry",
+      "address": "Address",
+      "compliance": "Compliance",
+      "motor": "Motor",
+      "medical": "Medical",
+      "regulator": "Regulator"
+    }
   },
   "clients": {
     "title": "Clients",
@@ -250,13 +523,25 @@
     "newClient": "New client",
     "searchPlaceholder": "Search by name, CR, ID or mobile…",
     "noResults": "No matching results",
-    "tabs": { "all": "All clients", "corporate": "Corporate", "individual": "Individual" },
-    "type": { "label": "Type", "corporate": "Corporate", "individual": "Individual" },
+    "tabs": {
+      "all": "All clients",
+      "corporate": "Corporate",
+      "individual": "Individual"
+    },
+    "type": {
+      "label": "Type",
+      "corporate": "Corporate",
+      "individual": "Individual"
+    },
     "code": "Code",
     "nationalId": "National ID",
     "email": "Email",
     "compliance": "Compliance",
-    "complianceStatus": { "PENDING": "Pending compliance", "APPROVED": "Approved", "REJECTED": "Rejected" },
+    "complianceStatus": {
+      "PENDING": "Pending compliance",
+      "APPROVED": "Approved",
+      "REJECTED": "Rejected"
+    },
     "approve": "Approve",
     "reject": "Reject",
     "create": "Create client",
@@ -303,12 +588,24 @@
       "variance": "Variance",
       "status": "Status"
     },
-    "status": { "received": "Received", "accrued": "Accrued", "variance": "Variance" },
+    "status": {
+      "received": "Received",
+      "accrued": "Accrued",
+      "variance": "Variance"
+    },
     "byInsurer": "By insurer",
     "collectionRate": "Collection rate",
     "empty": "No commissions recorded yet",
     "recordReceipt": "Record receipt",
-    "receipt": { "title": "Record commission receipt", "from": "From", "amount": "Amount received", "reference": "Reference", "submit": "Record", "cancel": "Cancel", "done": "Receipt {seq} recorded" }
+    "receipt": {
+      "title": "Record commission receipt",
+      "from": "From",
+      "amount": "Amount received",
+      "reference": "Reference",
+      "submit": "Record",
+      "cancel": "Cancel",
+      "done": "Receipt {seq} recorded"
+    }
   },
   "status": {
     "completed": "Completed",
@@ -377,8 +674,17 @@
     "dnsSubtitle": "Add these records at your {domain} DNS provider, then click “Verify now”.",
     "copy": "Copy",
     "error": "Operation failed",
-    "status": { "unconfigured": "Not configured", "pending": "Pending verification", "verified": "Verified", "failed": "Verification failed" },
-    "dns": { "type": "Type", "name": "Name", "value": "Value" }
+    "status": {
+      "unconfigured": "Not configured",
+      "pending": "Pending verification",
+      "verified": "Verified",
+      "failed": "Verification failed"
+    },
+    "dns": {
+      "type": "Type",
+      "name": "Name",
+      "value": "Value"
+    }
   },
   "tenantBranding": {
     "title": "Branding",
@@ -430,10 +736,14 @@
     "supportP2": "New government connectors as they become available",
     "supportP3": "Priority support + fixes and enhancements",
     "pillarsTitle": "Why ownership?",
-    "pillar1Title": "A balance-sheet asset", "pillar1Desc": "Turn operating expense into an owned digital asset on your books.",
-    "pillar2Title": "No monthly fees", "pillar2Desc": "No recurring subscriptions — one cost and perpetual ownership.",
-    "pillar3Title": "Full control", "pillar3Desc": "Complete control over data, compliance and in-Kingdom hosting.",
-    "pillar4Title": "Unlimited customization", "pillar4Desc": "Shape the system to your brand and needs without vendor limits.",
+    "pillar1Title": "A balance-sheet asset",
+    "pillar1Desc": "Turn operating expense into an owned digital asset on your books.",
+    "pillar2Title": "No monthly fees",
+    "pillar2Desc": "No recurring subscriptions — one cost and perpetual ownership.",
+    "pillar3Title": "Full control",
+    "pillar3Desc": "Complete control over data, compliance and in-Kingdom hosting.",
+    "pillar4Title": "Unlimited customization",
+    "pillar4Desc": "Shape the system to your brand and needs without vendor limits.",
     "contactTitle": "Talk to the ownership team",
     "contactSub": "Tell us about your organization and requirements, and we'll come back with a tailored proposal."
   },
@@ -474,12 +784,29 @@
     "empty": "No insurers yet — add the first one",
     "error": "Operation failed",
     "confirmDelete": "Delete this insurer?",
-    "name": "Name", "nameEn": "Name (English)", "code": "Code", "licenseNo": "License no.",
-    "commissionRate": "Commission %", "settlementDays": "Settlement (days)",
-    "bankName": "Bank", "iban": "IBAN", "contactName": "Contact", "contactEmail": "Email", "contactPhone": "Phone", "notes": "Notes",
-    "status": "Status", "active": "Active", "inactive": "Inactive",
-    "agreement": "Agreement", "bank": "Bank account", "contact": "Contact",
-    "production": "Production", "policies": "policies", "grossPremium": "Gross premium", "commission": "Commission", "settlementInfo": "Settle within {days} days"
+    "name": "Name",
+    "nameEn": "Name (English)",
+    "code": "Code",
+    "licenseNo": "License no.",
+    "commissionRate": "Commission %",
+    "settlementDays": "Settlement (days)",
+    "bankName": "Bank",
+    "iban": "IBAN",
+    "contactName": "Contact",
+    "contactEmail": "Email",
+    "contactPhone": "Phone",
+    "notes": "Notes",
+    "status": "Status",
+    "active": "Active",
+    "inactive": "Inactive",
+    "agreement": "Agreement",
+    "bank": "Bank account",
+    "contact": "Contact",
+    "production": "Production",
+    "policies": "policies",
+    "grossPremium": "Gross premium",
+    "commission": "Commission",
+    "settlementInfo": "Settle within {days} days"
   },
   "targets": {
     "title": "Targets & performance",
@@ -500,9 +827,20 @@
     "achievement": "Achievement",
     "filterAll": "All periods",
     "error": "Operation failed",
-    "scopes": { "producer": "Sub-broker", "line": "Insurance line" },
-    "metrics": { "premium": "Gross premium", "policies": "Policy count", "commissions": "Commissions" },
-    "periods": { "month": "Monthly", "quarter": "Quarterly", "year": "Yearly" },
+    "scopes": {
+      "producer": "Sub-broker",
+      "line": "Insurance line"
+    },
+    "metrics": {
+      "premium": "Gross premium",
+      "policies": "Policy count",
+      "commissions": "Commissions"
+    },
+    "periods": {
+      "month": "Monthly",
+      "quarter": "Quarterly",
+      "year": "Yearly"
+    },
     "note": "Actuals are computed from policies issued within the period — no new data."
   },
   "tenantSecurity": {
@@ -556,7 +894,12 @@
     "daysShort": "d",
     "seatCount": "Number of users",
     "perUserNote": "add any number — priced per user",
-    "grow": { "title": "Pay as you grow", "sub": "Start small and scale when you need to — never pay for seats you don't use.", "badge": "Flexible to your team size", "fair": "Transparent breakdown: per-user price × number of users — no hidden fees." },
+    "grow": {
+      "title": "Pay as you grow",
+      "sub": "Start small and scale when you need to — never pay for seats you don't use.",
+      "badge": "Flexible to your team size",
+      "fair": "Transparent breakdown: per-user price × number of users — no hidden fees."
+    },
     "upTo": "up to",
     "onboarding": "Company details",
     "unifiedNumber": "Unified national number",
@@ -582,21 +925,77 @@
   "contact": {
     "title": "Talk to sales",
     "sub": "Leave your details and our team will reach out to tailor an enterprise plan and quote for your size.",
-    "name": "Name", "company": "Company", "email": "Email", "phone": "Contact number", "message": "Your message (optional)",
-    "cancel": "Cancel", "submit": "Send request", "close": "Close",
-    "thanks": "Request received ✅", "thanksSub": "Our sales team will contact you shortly.", "error": "Could not send"
+    "name": "Name",
+    "company": "Company",
+    "email": "Email",
+    "phone": "Contact number",
+    "message": "Your message (optional)",
+    "cancel": "Cancel",
+    "submit": "Send request",
+    "close": "Close",
+    "thanks": "Request received ✅",
+    "thanksSub": "Our sales team will contact you shortly.",
+    "error": "Could not send"
   },
   "planFeature": {
-    "clients": "Clients & onboarding", "sales": "Sales & requests", "underwriting": "Underwriting & RFQ", "production": "Issuance & policies", "renewals": "Renewals", "service": "Client service", "claims": "Claims", "finance": "Finance & collection", "compliance": "Compliance & audit", "reports": "Reports", "hr": "Human resources",
-    "verification": "KYC / KYB verification forms", "zatca": "E-invoicing (ZATCA)", "auditImmutable": "Immutable audit log",
-    "crm": "CRM pipeline", "producers": "Sub-brokers registry", "formTemplates": "Form templates library", "analytics": "Advanced analytics", "approvalChains": "Approval chains", "org": "Org & departments", "mfaEnforce": "Enforced MFA",
-    "dlp": "Data governance (DLP + retention)", "api": "API access", "whiteLabel": "White-label branding", "prioritySupport": "Priority support",
-    "seats": "Number of users", "storage": "Storage", "upload": "Upload limit", "trial": "Free trial", "sla": "Support response (SLA)"
+    "clients": "Clients & onboarding",
+    "sales": "Sales & requests",
+    "underwriting": "Underwriting & RFQ",
+    "production": "Issuance & policies",
+    "renewals": "Renewals",
+    "service": "Client service",
+    "claims": "Claims",
+    "finance": "Finance & collection",
+    "compliance": "Compliance & audit",
+    "reports": "Reports",
+    "hr": "Human resources",
+    "verification": "KYC / KYB verification forms",
+    "zatca": "E-invoicing (ZATCA)",
+    "auditImmutable": "Immutable audit log",
+    "crm": "CRM pipeline",
+    "producers": "Sub-brokers registry",
+    "formTemplates": "Form templates library",
+    "analytics": "Advanced analytics",
+    "approvalChains": "Approval chains",
+    "org": "Org & departments",
+    "mfaEnforce": "Enforced MFA",
+    "dlp": "Data governance (DLP + retention)",
+    "api": "API access",
+    "whiteLabel": "White-label branding",
+    "prioritySupport": "Priority support",
+    "seats": "Number of users",
+    "storage": "Storage",
+    "upload": "Upload limit",
+    "trial": "Free trial",
+    "sla": "Support response (SLA)"
   },
   "compare": {
-    "title": "Compare plans", "heading": "Compare plans", "sub": "Every plan includes the operational and IA-compliance essentials. Tiers differ on advanced features and quotas.",
-    "backHome": "Home", "featuresCol": "Features", "billedMonthly": "Billed monthly", "billedYearly": "Billed yearly", "trialShort": "{days}d free", "perUserMo": "SAR/user/mo", "perUserYr": "SAR/user/yr", "choose": "Choose", "upTo": "up to", "days": "days", "addon": "Add-on", "included": "Included", "metered": "Metered", "slaBusinessDay": "within 1 business day", "slaDays": "within {n} business days", "slaHours": "within {n} hours", "footnote": "Any firm can upgrade anytime. Prices are per user.",
-    "cat": { "core": "Operations & compliance (core)", "growth": "Growth & efficiency", "enterprise": "Enterprise & governance", "limits": "Limits & quotas" }
+    "title": "Compare plans",
+    "heading": "Compare plans",
+    "sub": "Every plan includes the operational and IA-compliance essentials. Tiers differ on advanced features and quotas.",
+    "backHome": "Home",
+    "featuresCol": "Features",
+    "billedMonthly": "Billed monthly",
+    "billedYearly": "Billed yearly",
+    "trialShort": "{days}d free",
+    "perUserMo": "SAR/user/mo",
+    "perUserYr": "SAR/user/yr",
+    "choose": "Choose",
+    "upTo": "up to",
+    "days": "days",
+    "addon": "Add-on",
+    "included": "Included",
+    "metered": "Metered",
+    "slaBusinessDay": "within 1 business day",
+    "slaDays": "within {n} business days",
+    "slaHours": "within {n} hours",
+    "footnote": "Any firm can upgrade anytime. Prices are per user.",
+    "cat": {
+      "core": "Operations & compliance (core)",
+      "growth": "Growth & efficiency",
+      "enterprise": "Enterprise & governance",
+      "limits": "Limits & quotas"
+    }
   },
   "billing": {
     "title": "Subscription & Billing",
@@ -686,7 +1085,13 @@
     "title": "CRM",
     "subtitle": "Deals pipeline + tasks & reminders + activity log",
     "followUp": "Needs follow-up",
-    "fu": { "expiring": "Policies expiring", "requests": "Open requests", "claims": "Active claims", "commissions": "Unpaid commissions", "overdue": "Overdue tasks" },
+    "fu": {
+      "expiring": "Policies expiring",
+      "requests": "Open requests",
+      "claims": "Active claims",
+      "commissions": "Unpaid commissions",
+      "overdue": "Overdue tasks"
+    },
     "pipeline": "Pipeline",
     "tasks": "Tasks & reminders",
     "myTasks": "My tasks",
@@ -716,29 +1121,127 @@
     "emptyTasks": "No open tasks",
     "error": "Operation failed",
     "optionalClient": "Select a client (optional)",
-    "product": "Product line", "optionalProduct": "Line (optional)",
-    "detail": "Sales lead details", "edit": "Edit", "close": "Close",
-    "lead": { "estimatedPremium": "Estimated premium", "exclusivity": "Appointment (BOR)", "exclusive": "Exclusive", "non_exclusive": "Non-exclusive", "source": "Source", "direct": "Direct", "producerSrc": "Via sub-broker", "producer": "Sub-broker name", "currentInsurer": "Current insurer", "lossRatio": "Loss ratio %", "preferredInsurers": "Preferred insurers (comma-separated)", "expectedClose": "Expected close", "notes": "Notes / requirements" },
-    "convert": "Convert to request", "converted": "Converted to request", "convertDone": "Lead converted to request {seq}", "convertHint": "An insurance request is created from the lead data and enters the underwriting cycle; the lead is marked Won.",
-    "activityLog": "Activity", "noProduct": "—",
-    "stages": { "new": "New", "contacted": "Contacted", "quoting": "Quoting", "proposal": "Proposal", "negotiation": "Negotiation" },
-    "priorities": { "low": "Low", "normal": "Normal", "high": "High" }
+    "product": "Product line",
+    "optionalProduct": "Line (optional)",
+    "detail": "Sales lead details",
+    "edit": "Edit",
+    "close": "Close",
+    "lead": {
+      "estimatedPremium": "Estimated premium",
+      "exclusivity": "Appointment (BOR)",
+      "exclusive": "Exclusive",
+      "non_exclusive": "Non-exclusive",
+      "source": "Source",
+      "direct": "Direct",
+      "producerSrc": "Via sub-broker",
+      "producer": "Sub-broker name",
+      "currentInsurer": "Current insurer",
+      "lossRatio": "Loss ratio %",
+      "preferredInsurers": "Preferred insurers (comma-separated)",
+      "expectedClose": "Expected close",
+      "notes": "Notes / requirements"
+    },
+    "convert": "Convert to request",
+    "converted": "Converted to request",
+    "convertDone": "Lead converted to request {seq}",
+    "convertHint": "An insurance request is created from the lead data and enters the underwriting cycle; the lead is marked Won.",
+    "activityLog": "Activity",
+    "noProduct": "—",
+    "stages": {
+      "new": "New",
+      "contacted": "Contacted",
+      "quoting": "Quoting",
+      "proposal": "Proposal",
+      "negotiation": "Negotiation"
+    },
+    "priorities": {
+      "low": "Low",
+      "normal": "Normal",
+      "high": "High"
+    }
   },
   "policy360": {
     "back": "Back to policies",
     "insurerPolicyNo": "Insurer policy no.",
-    "kpi": { "gross": "Total", "commission": "Commission", "claims": "Claims", "endorsements": "Endorsements" },
-    "tabs": { "financial": "Financials & cover", "endorsements": "Endorsements", "claims": "Claims", "invoices": "Invoices", "documents": "Documents", "timeline": "Timeline" },
-    "financialTitle": "Financial breakdown", "commissionTitle": "Commission & sub-broker", "coverageTitle": "Cover & period",
-    "sumInsured": "Sum insured", "premium": "Net premium", "policyFees": "Policy fees", "vat": "VAT", "totalPremium": "Total due",
-    "commissionRate": "Brokerage", "producer": "Sub-broker", "period": "Cover period", "paymentTerms": "Payment terms",
-    "debitNotes": "Debit notes", "taxInvoices": "Tax invoices", "emptyTab": "No data in this section",
+    "kpi": {
+      "gross": "Total",
+      "commission": "Commission",
+      "claims": "Claims",
+      "endorsements": "Endorsements"
+    },
+    "tabs": {
+      "financial": "Financials & cover",
+      "endorsements": "Endorsements",
+      "claims": "Claims",
+      "invoices": "Invoices",
+      "documents": "Documents",
+      "timeline": "Timeline"
+    },
+    "financialTitle": "Financial breakdown",
+    "commissionTitle": "Commission & sub-broker",
+    "coverageTitle": "Cover & period",
+    "sumInsured": "Sum insured",
+    "premium": "Net premium",
+    "policyFees": "Policy fees",
+    "vat": "VAT",
+    "totalPremium": "Total due",
+    "commissionRate": "Brokerage",
+    "producer": "Sub-broker",
+    "period": "Cover period",
+    "paymentTerms": "Payment terms",
+    "debitNotes": "Debit notes",
+    "taxInvoices": "Tax invoices",
+    "emptyTab": "No data in this section",
     "addEndorsement": "Add endorsement",
     "creditNotes": "Credit notes (return premium)",
-    "toInsurer": "To insurer", "toClient": "To client", "invCommission": "Commission", "invFees": "Service fees",
-    "cancel": { "action": "Cancel policy", "title": "Cancel policy & return premium", "hint": "Return premium is computed pro-rata on the unexpired days, and a credit note is issued to the client.", "effectiveDate": "Cancellation effective date", "reason": "Reason", "submit": "Confirm cancellation", "cancel": "Back", "done": "Policy cancelled — credit note {seq}, return premium {amount}" },
-    "endo": { "title": "Add policy endorsement", "type": "Endorsement type", "effectiveDate": "Effective date", "delta": "Premium delta (± SAR)", "reason": "Reason / details", "submit": "Add endorsement", "cancel": "Cancel", "done": "Endorsement {seq} added", "onlyIssued": "Endorsements can only be added to issued policies", "types": { "addition": "Addition", "deletion": "Deletion", "amendment": "Amendment", "cancellation": "Cancellation" } },
-    "col": { "ref": "Ref", "type": "Type", "party": "Party", "effective": "Effective", "delta": "Premium Δ", "status": "Status", "claimed": "Claimed", "settled": "Settled", "incident": "Incident", "net": "Net", "vat": "VAT", "total": "Total", "date": "Date", "file": "File", "docType": "Type" }
+    "toInsurer": "To insurer",
+    "toClient": "To client",
+    "invCommission": "Commission",
+    "invFees": "Service fees",
+    "cancel": {
+      "action": "Cancel policy",
+      "title": "Cancel policy & return premium",
+      "hint": "Return premium is computed pro-rata on the unexpired days, and a credit note is issued to the client.",
+      "effectiveDate": "Cancellation effective date",
+      "reason": "Reason",
+      "submit": "Confirm cancellation",
+      "cancel": "Back",
+      "done": "Policy cancelled — credit note {seq}, return premium {amount}"
+    },
+    "endo": {
+      "title": "Add policy endorsement",
+      "type": "Endorsement type",
+      "effectiveDate": "Effective date",
+      "delta": "Premium delta (± SAR)",
+      "reason": "Reason / details",
+      "submit": "Add endorsement",
+      "cancel": "Cancel",
+      "done": "Endorsement {seq} added",
+      "onlyIssued": "Endorsements can only be added to issued policies",
+      "types": {
+        "addition": "Addition",
+        "deletion": "Deletion",
+        "amendment": "Amendment",
+        "cancellation": "Cancellation"
+      }
+    },
+    "col": {
+      "ref": "Ref",
+      "type": "Type",
+      "party": "Party",
+      "effective": "Effective",
+      "delta": "Premium Δ",
+      "status": "Status",
+      "claimed": "Claimed",
+      "settled": "Settled",
+      "incident": "Incident",
+      "net": "Net",
+      "vat": "VAT",
+      "total": "Total",
+      "date": "Date",
+      "file": "File",
+      "docType": "Type"
+    }
   },
   "client360": {
     "erase": {
@@ -748,31 +1251,127 @@
       "badge": "Data erased"
     },
     "back": "Back to clients",
-    "tabs": { "overview": "Overview", "policies": "Issued policies", "renewals": "Renewals", "claims": "Claims", "requests": "Requests", "documents": "Documents", "statement": "Statement", "timeline": "Timeline" },
-    "endDate": "Ends", "daysLeft": "left", "days": "days", "expired": "Expired", "noRenewals": "No policies nearing expiry",
-    "kpi": { "policies": "Policies", "claims": "Claims", "requests": "Requests", "due": "Due (SAR)" },
+    "tabs": {
+      "overview": "Overview",
+      "policies": "Issued policies",
+      "renewals": "Renewals",
+      "claims": "Claims",
+      "requests": "Requests",
+      "documents": "Documents",
+      "statement": "Statement",
+      "timeline": "Timeline"
+    },
+    "endDate": "Ends",
+    "daysLeft": "left",
+    "days": "days",
+    "expired": "Expired",
+    "noRenewals": "No policies nearing expiry",
+    "kpi": {
+      "policies": "Policies",
+      "claims": "Claims",
+      "requests": "Requests",
+      "due": "Due (SAR)"
+    },
     "info": "Client info",
-    "cr": "CR", "nid": "ID", "phone": "Phone", "email": "Email", "city": "City", "activity": "Activity", "vat": "VAT no.", "iban": "IBAN", "producer": "Sub-broker",
-    "compliance": "Compliance", "verification": "Government verification",
-    "addNote": "Add a note…", "add": "Add", "emptyTab": "No data in this section",
-    "risk": "Risk", "insurer": "Insurer", "premium": "Premium", "status": "Status", "amount": "Amount", "date": "Date",
-    "total": "Total", "settled": "Collected", "outstanding": "Remaining", "collected": "Collected", "creditNotes": "Credit notes (return premium)", "debitNotes": "Debit notes",
-    "dn": { "outstanding": "Outstanding", "partial": "Partial", "paid": "Paid" },
+    "cr": "CR",
+    "nid": "ID",
+    "phone": "Phone",
+    "email": "Email",
+    "city": "City",
+    "activity": "Activity",
+    "vat": "VAT no.",
+    "iban": "IBAN",
+    "producer": "Sub-broker",
+    "compliance": "Compliance",
+    "verification": "Government verification",
+    "addNote": "Add a note…",
+    "add": "Add",
+    "emptyTab": "No data in this section",
+    "risk": "Risk",
+    "insurer": "Insurer",
+    "premium": "Premium",
+    "status": "Status",
+    "amount": "Amount",
+    "date": "Date",
+    "total": "Total",
+    "settled": "Collected",
+    "outstanding": "Remaining",
+    "collected": "Collected",
+    "creditNotes": "Credit notes (return premium)",
+    "debitNotes": "Debit notes",
+    "dn": {
+      "outstanding": "Outstanding",
+      "partial": "Partial",
+      "paid": "Paid"
+    },
     "empty": "No activity yet"
   },
   "staffDetail": {
-    "mfa": { "label": "2FA", "on": "Enabled", "off": "Disabled", "reset": "Reset 2FA", "resetTitle": "Reset employee 2FA", "resetDesc": "Two-factor authentication will be disabled for this employee (e.g. lost device); they can re-enroll themselves later. Confirm?" },
+    "mfa": {
+      "label": "2FA",
+      "on": "Enabled",
+      "off": "Disabled",
+      "reset": "Reset 2FA",
+      "resetTitle": "Reset employee 2FA",
+      "resetDesc": "Two-factor authentication will be disabled for this employee (e.g. lost device); they can re-enroll themselves later. Confirm?"
+    },
     "back": "Back to staff",
-    "role": "Role", "department": "Department", "email": "Email", "status": "Status", "joined": "Joined", "noDept": "No department",
-    "stats": { "total": "Total actions", "issued": "Policies issued", "approvals": "Approvals" },
-    "tabs": { "overview": "Overview", "policies": "Policies (responsibility)", "deals": "Deals", "tasks": "Tasks", "activity": "Activity" },
-    "insurer": "Insurer", "premium": "Premium", "statusCol": "Status", "client": "Client", "stage": "Stage", "value": "Value", "due": "Due", "priority": "Priority",
-    "noPolicies": "No policies under responsibility", "noDeals": "No deals assigned", "noTasks": "No open tasks",
-    "product": "Product", "created": "Created", "related": "Related to", "overdue": "Overdue", "noRelated": "—",
-    "stages": { "new": "New", "contacted": "Contacted", "quoting": "Quoting", "proposal": "Proposal", "negotiation": "Negotiation" },
-    "priorities": { "low": "Low", "normal": "Normal", "high": "High" },
-    "entities": { "client": "Client", "policy": "Policy", "request": "Request", "claim": "Claim", "service_request": "Service request", "deal": "Deal" },
-    "activity": "Employee activity log", "empty": "No activity recorded"
+    "role": "Role",
+    "department": "Department",
+    "email": "Email",
+    "status": "Status",
+    "joined": "Joined",
+    "noDept": "No department",
+    "stats": {
+      "total": "Total actions",
+      "issued": "Policies issued",
+      "approvals": "Approvals"
+    },
+    "tabs": {
+      "overview": "Overview",
+      "policies": "Policies (responsibility)",
+      "deals": "Deals",
+      "tasks": "Tasks",
+      "activity": "Activity"
+    },
+    "insurer": "Insurer",
+    "premium": "Premium",
+    "statusCol": "Status",
+    "client": "Client",
+    "stage": "Stage",
+    "value": "Value",
+    "due": "Due",
+    "priority": "Priority",
+    "noPolicies": "No policies under responsibility",
+    "noDeals": "No deals assigned",
+    "noTasks": "No open tasks",
+    "product": "Product",
+    "created": "Created",
+    "related": "Related to",
+    "overdue": "Overdue",
+    "noRelated": "—",
+    "stages": {
+      "new": "New",
+      "contacted": "Contacted",
+      "quoting": "Quoting",
+      "proposal": "Proposal",
+      "negotiation": "Negotiation"
+    },
+    "priorities": {
+      "low": "Low",
+      "normal": "Normal",
+      "high": "High"
+    },
+    "entities": {
+      "client": "Client",
+      "policy": "Policy",
+      "request": "Request",
+      "claim": "Claim",
+      "service_request": "Service request",
+      "deal": "Deal"
+    },
+    "activity": "Employee activity log",
+    "empty": "No activity recorded"
   },
   "notifCenter": {
     "title": "Notifications",
@@ -801,8 +1400,27 @@
     "segregation": "Segregation of duties",
     "segregationHint": "The policy issuer cannot approve it financially — regulatory recommendation (Insurance Authority / NCA)",
     "complianceTag": "Regulatory",
-    "actions": { "read": "View", "create": "Create", "update": "Edit", "delete": "Delete" },
-    "modules": { "dashboard": "Dashboard", "sales": "Sales", "clients": "Clients", "underwriting": "Underwriting (RFQ)", "production": "Production / Issuance", "renewals": "Renewals", "service": "Service", "claims": "Claims", "finance": "Finance", "reports": "Reports", "compliance": "Compliance", "hr": "HR", "settings": "Settings" }
+    "actions": {
+      "read": "View",
+      "create": "Create",
+      "update": "Edit",
+      "delete": "Delete"
+    },
+    "modules": {
+      "dashboard": "Dashboard",
+      "sales": "Sales",
+      "clients": "Clients",
+      "underwriting": "Underwriting (RFQ)",
+      "production": "Production / Issuance",
+      "renewals": "Renewals",
+      "service": "Service",
+      "claims": "Claims",
+      "finance": "Finance",
+      "reports": "Reports",
+      "compliance": "Compliance",
+      "hr": "HR",
+      "settings": "Settings"
+    }
   },
   "staff": {
     "title": "Staff",
@@ -849,7 +1467,12 @@
     "rfq": "Get quotes",
     "issue": "Issue",
     "empty": "No requests yet — start a new request",
-    "col": { "seq": "Request #", "client": "Client", "product": "Product", "status": "Status" }
+    "col": {
+      "seq": "Request #",
+      "client": "Client",
+      "product": "Product",
+      "status": "Status"
+    }
   },
   "policies": {
     "title": "Policies",
@@ -859,7 +1482,13 @@
     "approveFinance": "Finance approval",
     "approveStep": "Approve",
     "revert": "Revert",
-    "col": { "seq": "Policy #", "insurer": "Insurer", "premium": "Total", "commission": "Commission", "status": "Status" }
+    "col": {
+      "seq": "Policy #",
+      "insurer": "Insurer",
+      "premium": "Total",
+      "commission": "Commission",
+      "status": "Status"
+    }
   },
   "verification": {
     "title": "Government Verification",
@@ -871,25 +1500,61 @@
     "fetched": "Data fetched",
     "history": "Verification history",
     "noChecks": "No verification checks yet",
-    "providers": { "yaqeen": "Yaqeen", "wathiq": "Wathiq", "nafath": "Nafath", "spl": "National Address" },
-    "col": { "type": "Type", "status": "Status", "cost": "Cost", "risk": "Risk", "date": "Date" }
+    "providers": {
+      "yaqeen": "Yaqeen",
+      "wathiq": "Wathiq",
+      "nafath": "Nafath",
+      "spl": "National Address"
+    },
+    "col": {
+      "type": "Type",
+      "status": "Status",
+      "cost": "Cost",
+      "risk": "Risk",
+      "date": "Date"
+    }
   },
   "service": {
     "title": "Customer Service",
     "subtitle": "Client requests (add/delete/amend) and follow-up",
-    "new": "New request", "cancel": "Cancel", "create": "Create", "empty": "No service requests yet",
-    "type": "Type", "subject": "Subject",
-    "types": { "addition": "Addition", "deletion": "Deletion", "amendment": "Amendment", "inquiry": "Inquiry", "renewal": "Renewal" },
-    "col": { "seq": "Request #", "type": "Type", "subject": "Subject", "status": "Status" }
+    "new": "New request",
+    "cancel": "Cancel",
+    "create": "Create",
+    "empty": "No service requests yet",
+    "type": "Type",
+    "subject": "Subject",
+    "types": {
+      "addition": "Addition",
+      "deletion": "Deletion",
+      "amendment": "Amendment",
+      "inquiry": "Inquiry",
+      "renewal": "Renewal"
+    },
+    "col": {
+      "seq": "Request #",
+      "type": "Type",
+      "subject": "Subject",
+      "status": "Status"
+    }
   },
   "claims": {
     "title": "Claims",
     "subtitle": "Claim lifecycle: received → submitted → settled → closed",
-    "new": "New claim", "cancel": "Cancel", "create": "Create", "empty": "No claims yet",
+    "new": "New claim",
+    "cancel": "Cancel",
+    "create": "Create",
+    "empty": "No claims yet",
     "locked": "Claims module is not enabled in your plan",
-    "insurer": "Insurer", "claimed": "Claimed amount", "deductible": "Deductible", "settled": "Settled", "incidentDate": "Incident date",
+    "insurer": "Insurer",
+    "claimed": "Claimed amount",
+    "deductible": "Deductible",
+    "settled": "Settled",
+    "incidentDate": "Incident date",
     "settledPrompt": "Enter settled amount:",
-    "col": { "seq": "Claim #", "status": "Status" }
+    "col": {
+      "seq": "Claim #",
+      "status": "Status"
+    }
   },
   "renewals": {
     "title": "Renewals",
@@ -902,8 +1567,20 @@
     "dayShort": "d",
     "daysLeft": "days",
     "expiredBy": "expired {n}d ago",
-    "kpi": { "expired": "Expired (overdue)", "soon": "Within 30 days", "upcoming": "Upcoming", "atRisk": "Premium at risk (SAR)" },
-    "col": { "seq": "Policy #", "client": "Client", "insurer": "Insurer", "premium": "Premium", "end": "Expiry", "urgency": "Urgency" }
+    "kpi": {
+      "expired": "Expired (overdue)",
+      "soon": "Within 30 days",
+      "upcoming": "Upcoming",
+      "atRisk": "Premium at risk (SAR)"
+    },
+    "col": {
+      "seq": "Policy #",
+      "client": "Client",
+      "insurer": "Insurer",
+      "premium": "Premium",
+      "end": "Expiry",
+      "urgency": "Urgency"
+    }
   },
   "underwriting": {
     "title": "Underwriting",
@@ -955,7 +1632,12 @@
       "commissionVat": "15% of commission",
       "deductible": "client bears",
       "limit": "cover ceiling"
-    }
+    },
+    "computedSummary": "Auto-computed summary",
+    "netPremium": "Net premium",
+    "vatLabel": "VAT ({rate}%)",
+    "vatExempt": "Exempt — life insurance (0%)",
+    "autoNote": "VAT, totals and commission are computed automatically from the inputs"
   },
   "requestForm": {
     "title": "New insurance request",
@@ -989,20 +1671,44 @@
     "save": "Save client",
     "cancel": "Cancel",
     "clientAdded": "Client added. It may need compliance approval before completing the request.",
-    "clearSelection": "Change"
+    "clearSelection": "Change",
+    "searchProduct": "Search insurance line (medical, motor, property…)",
+    "noProductMatch": "No matching line",
+    "vatExempt": "VAT-exempt",
+    "vatStandard": "VAT {rate}%"
   },
   "admin": {
     "brand": "IBP Platform",
     "subtitle": "Platform control panel",
     "logout": "Sign out",
-    "nav": { "usage": "Usage", "tenants": "Accounts", "leads": "Leads", "plans": "Plans", "notifications": "Notifications", "audit": "Audit log", "security": "Security" },
+    "nav": {
+      "usage": "Usage",
+      "tenants": "Accounts",
+      "leads": "Leads",
+      "plans": "Plans",
+      "notifications": "Notifications",
+      "audit": "Audit log",
+      "security": "Security"
+    },
     "leads": {
       "title": "Sales contact requests",
       "subtitle": "“Contact us” requests from large plans and the ownership page — for follow-up.",
       "empty": "No requests yet",
-      "name": "Name", "email": "Email", "company": "Company", "phone": "Phone", "plan": "Plan", "seats": "Users", "message": "Message", "date": "Date", "status": "Status",
-      "new": "New", "contacted": "Contacted", "closed": "Closed",
-      "markContacted": "Mark contacted", "markClosed": "Close", "reopen": "Reopen",
+      "name": "Name",
+      "email": "Email",
+      "company": "Company",
+      "phone": "Phone",
+      "plan": "Plan",
+      "seats": "Users",
+      "message": "Message",
+      "date": "Date",
+      "status": "Status",
+      "new": "New",
+      "contacted": "Contacted",
+      "closed": "Closed",
+      "markContacted": "Mark contacted",
+      "markClosed": "Close",
+      "reopen": "Reopen",
       "error": "Operation failed"
     },
     "login": {
@@ -1047,9 +1753,20 @@
       "activate": "Activate",
       "owner": "Account owner",
       "view": "View",
-      "col": { "name": "Account", "owner": "Account owner", "plan": "Plan", "seats": "Seats", "usage": "Usage", "billing": "Billing model", "status": "Status" }
+      "col": {
+        "name": "Account",
+        "owner": "Account owner",
+        "plan": "Plan",
+        "seats": "Seats",
+        "usage": "Usage",
+        "billing": "Billing model",
+        "status": "Status"
+      }
     },
-    "billingModel": { "PASS_THROUGH": "Company's own accounts", "RESELLER": "Via platform (fees + margin)" },
+    "billingModel": {
+      "PASS_THROUGH": "Company's own accounts",
+      "RESELLER": "Via platform (fees + margin)"
+    },
     "tenantDetail": {
       "title": "Account details",
       "back": "Back to list",
@@ -1084,14 +1801,23 @@
       "saved": "Changes saved",
       "price": "Price/mo",
       "pricing": "Pricing (per user)",
-      "perUserMo": "SAR/user/mo", "perUserYr": "SAR/user/yr",
+      "perUserMo": "SAR/user/mo",
       "perUserYr": "/user/yr",
       "trialDays": "Trial days",
       "slaHours": "Support SLA (hrs)",
       "savePricing": "Save pricing",
       "perUserModel": "Per-user pricing (no user cap)",
-      "mode": { "INCLUDED": "Included", "ADDON": "Add-on (paid)", "METERED": "Metered", "DISABLED": "Disabled" },
-      "modeShort": { "ADDON": "+", "METERED": "~", "DISABLED": "·" },
+      "mode": {
+        "INCLUDED": "Included",
+        "ADDON": "Add-on (paid)",
+        "METERED": "Metered",
+        "DISABLED": "Disabled"
+      },
+      "modeShort": {
+        "ADDON": "+",
+        "METERED": "~",
+        "DISABLED": "·"
+      },
       "features": "Modules & features",
       "toggleHint": "click to toggle"
     }
@@ -1103,18 +1829,55 @@
     "logout": "Sign out",
     "empty": "No data",
     "fileClaim": {
-      "action": "File a claim", "title": "File a new claim", "policy": "Policy", "incidentDate": "Incident date", "claimedAmount": "Claimed amount",
-      "description": "Incident description", "pickPolicy": "Select a policy", "descRequired": "Enter an incident description", "cancel": "Cancel", "submit": "Submit claim",
+      "action": "File a claim",
+      "title": "File a new claim",
+      "policy": "Policy",
+      "incidentDate": "Incident date",
+      "claimedAmount": "Claimed amount",
+      "description": "Incident description",
+      "pickPolicy": "Select a policy",
+      "descRequired": "Enter an incident description",
+      "cancel": "Cancel",
+      "submit": "Submit claim",
       "done": "We received your claim {seq} and will follow up"
     },
     "fileService": {
-      "action": "Request a service", "title": "New service request", "type": "Request type", "policy": "Policy (optional)", "subject": "Subject", "description": "Details",
-      "cancel": "Cancel", "submit": "Submit request", "done": "We received your request {seq} and will follow up",
-      "types": { "certificate": "Coverage certificate", "policy_copy": "Policy copy", "amendment": "Amendment/addition", "cancellation": "Policy cancellation", "renewal": "Renewal", "inquiry": "Inquiry" }
+      "action": "Request a service",
+      "title": "New service request",
+      "type": "Request type",
+      "policy": "Policy (optional)",
+      "subject": "Subject",
+      "description": "Details",
+      "cancel": "Cancel",
+      "submit": "Submit request",
+      "done": "We received your request {seq} and will follow up",
+      "types": {
+        "certificate": "Coverage certificate",
+        "policy_copy": "Policy copy",
+        "amendment": "Amendment/addition",
+        "cancellation": "Policy cancellation",
+        "renewal": "Renewal",
+        "inquiry": "Inquiry"
+      }
     },
-    "renew": { "action": "Request renewal", "done": "Renewal request {seq} sent", "window": "Policy valid until {date} — renewal opens {days} days before expiry." },
-    "nav": { "dashboard": "Home", "policies": "My policies", "requests": "My requests", "claims": "My claims", "statement": "Statement", "documents": "My documents" },
-    "login": { "title": "Client portal sign-in", "submit": "Sign in", "error": "Invalid credentials" },
+    "renew": {
+      "action": "Request renewal",
+      "done": "Renewal request {seq} sent",
+      "window": "Policy valid until {date} — renewal opens {days} days before expiry."
+    },
+    "nav": {
+      "dashboard": "Home",
+      "policies": "My policies",
+      "requests": "My requests",
+      "claims": "My claims",
+      "statement": "Statement",
+      "documents": "My documents"
+    },
+    "login": {
+      "title": "Client portal sign-in",
+      "submit": "Sign in",
+      "error": "Invalid credentials"
+    },
     "dashboard": {
       "title": "Home",
       "welcome": "Welcome,",
@@ -1134,24 +1897,59 @@
     "policies": {
       "title": "My policies",
       "subtitle": "Active and expired insurance policies",
-      "col": { "no": "Policy no.", "product": "Product", "insurer": "Insurer", "total": "Total", "period": "Coverage period", "status": "Status", "actions": "Actions", "detail": "Details" }
+      "col": {
+        "no": "Policy no.",
+        "product": "Product",
+        "insurer": "Insurer",
+        "total": "Total",
+        "period": "Coverage period",
+        "status": "Status",
+        "actions": "Actions",
+        "detail": "Details"
+      }
     },
     "policyDetail": {
-      "back": "Back to policies", "title": "Policy", "sumInsured": "Sum insured", "total": "Total", "daysLeft": "Days left", "claims": "Claims",
-      "details": "Policy details", "financial": "Financial breakdown", "status": "Status", "product": "Product", "insurer": "Insurer",
-      "insurerPolicyNo": "Insurer policy no.", "period": "Coverage period", "premium": "Net premium", "vat": "VAT", "documents": "Documents"
+      "back": "Back to policies",
+      "title": "Policy",
+      "sumInsured": "Sum insured",
+      "total": "Total",
+      "daysLeft": "Days left",
+      "claims": "Claims",
+      "details": "Policy details",
+      "financial": "Financial breakdown",
+      "status": "Status",
+      "product": "Product",
+      "insurer": "Insurer",
+      "insurerPolicyNo": "Insurer policy no.",
+      "period": "Coverage period",
+      "premium": "Net premium",
+      "vat": "VAT",
+      "documents": "Documents"
     },
     "claims": {
       "title": "My claims",
       "subtitle": "Insurance claims and their status",
-      "col": { "no": "Claim no.", "insurer": "Insurer", "incident": "Incident date", "claimed": "Claimed", "settled": "Settled", "status": "Status" }
+      "col": {
+        "no": "Claim no.",
+        "insurer": "Insurer",
+        "incident": "Incident date",
+        "claimed": "Claimed",
+        "settled": "Settled",
+        "status": "Status"
+      }
     },
     "requests": {
       "title": "My requests",
       "subtitle": "Insurance requests and service requests",
       "insurance": "Insurance requests",
       "service": "Service requests",
-      "col": { "no": "No.", "product": "Product", "subject": "Subject", "date": "Date", "status": "Status" }
+      "col": {
+        "no": "No.",
+        "product": "Product",
+        "subject": "Subject",
+        "date": "Date",
+        "status": "Status"
+      }
     },
     "statement": {
       "title": "Statement of account",
@@ -1159,7 +1957,15 @@
       "outstanding": "Outstanding balance",
       "debitNotes": "Debit notes",
       "invoices": "Tax invoices",
-      "col": { "no": "No.", "date": "Date", "net": "Net", "vat": "VAT", "total": "Total", "insurer": "Insurer", "status": "Status" }
+      "col": {
+        "no": "No.",
+        "date": "Date",
+        "net": "Net",
+        "vat": "VAT",
+        "total": "Total",
+        "insurer": "Insurer",
+        "status": "Status"
+      }
     },
     "documents": {
       "title": "My documents",
@@ -1167,11 +1973,18 @@
       "official": "Official",
       "attachment": "Attachment",
       "download": "Open",
-      "col": { "file": "File", "type": "Type", "size": "Size", "date": "Date" }
+      "col": {
+        "file": "File",
+        "type": "Type",
+        "size": "Size",
+        "date": "Date"
+      }
     }
   },
   "landing": {
-    "nav": { "login": "Sign in" },
+    "nav": {
+      "login": "Sign in"
+    },
     "hero": {
       "badge": "ZATCA Phase 2 (Fatoora) compliant",
       "title": "The Operating System for Insurance Brokerage",
@@ -1186,12 +1999,30 @@
     "features": {
       "title": "Everything a brokerage needs, in one platform",
       "subtitle": "Integrated modules covering the workflow end to end.",
-      "lifecycle": { "title": "Full deal lifecycle", "desc": "Sales → pricing → production → service → claims → finance, with governed state machines and gates." },
-      "underwriting": { "title": "Underwriting & RFQ", "desc": "Request quotes, auto comparison sheet that picks the best offer, firm order in one click." },
-      "finance": { "title": "Finance & e-invoicing", "desc": "Balanced double-entry, 17-digit chart of accounts, and ZATCA Phase 2 invoices." },
-      "claims": { "title": "Claims & client service", "desc": "Full claims cycle, service requests and renewals with status tracking." },
-      "verification": { "title": "Government verification", "desc": "Yaqeen, Wathiq, Nafath, National Address and PEP screening — smart-fill and compliance." },
-      "multitenant": { "title": "Multi-tenant & analytics", "desc": "Strict per-firm data isolation, granular RBAC, and live analytics dashboards." }
+      "lifecycle": {
+        "title": "Full deal lifecycle",
+        "desc": "Sales → pricing → production → service → claims → finance, with governed state machines and gates."
+      },
+      "underwriting": {
+        "title": "Underwriting & RFQ",
+        "desc": "Request quotes, auto comparison sheet that picks the best offer, firm order in one click."
+      },
+      "finance": {
+        "title": "Finance & e-invoicing",
+        "desc": "Balanced double-entry, 17-digit chart of accounts, and ZATCA Phase 2 invoices."
+      },
+      "claims": {
+        "title": "Claims & client service",
+        "desc": "Full claims cycle, service requests and renewals with status tracking."
+      },
+      "verification": {
+        "title": "Government verification",
+        "desc": "Yaqeen, Wathiq, Nafath, National Address and PEP screening — smart-fill and compliance."
+      },
+      "multitenant": {
+        "title": "Multi-tenant & analytics",
+        "desc": "Strict per-firm data isolation, granular RBAC, and live analytics dashboards."
+      }
     },
     "target": {
       "title": "Built specifically for insurance brokers",
@@ -1214,10 +2045,32 @@
       "upToSeats": "Up to {seats} users",
       "popular": "Most popular",
       "cta": "Start with this plan",
-      "compareLink": "Compare all plans", "ownershipLink": "Ownership option (enterprise)", "anyUsers": "Add any number of users — priced per user", "contactCta": "Contact us", "contactSales": "Talk to sales",
-      "basic": { "name": "Basic", "tagline": "For startups and small firms", "f1": "Up to 5 users", "f2": "Clients, sales and production", "f3": "Core finance and verification" },
-      "premium": { "name": "Professional", "tagline": "For growing firms", "f1": "Up to 20 users", "f2": "Everything in Basic + claims and reports", "f3": "Compliance and advanced verification add-ons" },
-      "enterprise": { "name": "Enterprise", "tagline": "For large firms", "f1": "Up to 100 users", "f2": "All modules enabled", "f3": "Dedicated support and higher limits" }
+      "compareLink": "Compare all plans",
+      "ownershipLink": "Ownership option (enterprise)",
+      "anyUsers": "Add any number of users — priced per user",
+      "contactCta": "Contact us",
+      "contactSales": "Talk to sales",
+      "basic": {
+        "name": "Basic",
+        "tagline": "For startups and small firms",
+        "f1": "Up to 5 users",
+        "f2": "Clients, sales and production",
+        "f3": "Core finance and verification"
+      },
+      "premium": {
+        "name": "Professional",
+        "tagline": "For growing firms",
+        "f1": "Up to 20 users",
+        "f2": "Everything in Basic + claims and reports",
+        "f3": "Compliance and advanced verification add-ons"
+      },
+      "enterprise": {
+        "name": "Enterprise",
+        "tagline": "For large firms",
+        "f1": "Up to 100 users",
+        "f2": "All modules enabled",
+        "f3": "Dedicated support and higher limits"
+      }
     },
     "compliance": {
       "title": "Saudi compliance from day one",
@@ -1231,6 +2084,9 @@
       "subtitle": "Start today and move your operations onto one compliant operating system.",
       "button": "Get started"
     },
-    "footer": { "rights": "All rights reserved", "madeIn": "Hosted inside Saudi Arabia" }
+    "footer": {
+      "rights": "All rights reserved",
+      "madeIn": "Hosted inside Saudi Arabia"
+    }
   }
 }

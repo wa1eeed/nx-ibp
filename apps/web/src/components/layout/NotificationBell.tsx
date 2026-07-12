@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Bell, Check } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useRouter } from "@/i18n/routing";
 
 interface Notif {
   id: string;
@@ -22,11 +23,14 @@ interface BellProps {
   basePath: string;
   /** إظهار زر «تعليم الكل كمقروء» (متاح للموظف؛ غير مُتاح للبوّابة). */
   allowMarkAll?: boolean;
+  /** يحوّل نوع الإشعار إلى وجهة للتنقّل عند النقر (null = لا تنقّل). */
+  routeFor?: (eventKey: string) => string | null;
 }
 
 /** جرس الإشعارات داخل المنصة (in-app) — شارة غير المقروء + قائمة منسدلة + تعليم كمقروء. مُعمَّم لأي نطاق. */
-export function NotificationBell({ apiFn, hasToken, basePath, allowMarkAll = true }: BellProps) {
+export function NotificationBell({ apiFn, hasToken, basePath, allowMarkAll = true, routeFor }: BellProps) {
   const t = useTranslations("notifCenter");
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<Notif[]>([]);
   const [unread, setUnread] = useState(0);
@@ -80,6 +84,16 @@ export function NotificationBell({ apiFn, hasToken, basePath, allowMarkAll = tru
     } catch { /* تجاهل */ }
   }
 
+  /** النقر على إشعار: يعلّمه كمقروء ثم ينتقل لوجهته (إن وُجدت) — أفضل تجربة مستخدم. */
+  function onItemClick(n: Notif) {
+    if (!n.readAt) void markRead(n.id);
+    const dest = routeFor?.(n.eventKey);
+    if (dest) {
+      setOpen(false);
+      router.push(dest);
+    }
+  }
+
   return (
     <div ref={ref} className="relative">
       <button
@@ -114,7 +128,7 @@ export function NotificationBell({ apiFn, hasToken, basePath, allowMarkAll = tru
                 <button
                   key={n.id}
                   type="button"
-                  onClick={() => (n.readAt ? undefined : void markRead(n.id))}
+                  onClick={() => onItemClick(n)}
                   className={["flex w-full flex-col items-start gap-0.5 border-b border-line px-4 py-2.5 text-start transition-colors hover:bg-surface-2", n.readAt ? "" : "bg-primary/5"].join(" ")}
                 >
                   <span className="flex w-full items-center gap-2">

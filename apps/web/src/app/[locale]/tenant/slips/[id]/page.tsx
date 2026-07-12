@@ -10,7 +10,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Badge, type BadgeTone } from "@/components/ui/Badge";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 
-interface Slip { id: string; sequenceNo: string | null; status: string; insurers: string[]; selectedQuotationId: string | null; request: { id: string; productLineCode: string; client: { name: string; type?: string } | null } | null }
+interface Slip { id: string; sequenceNo: string | null; status: string; insurers: string[]; selectedQuotationId: string | null; vatRate: number; request: { id: string; productLineCode: string; client: { name: string; type?: string } | null } | null }
 interface Column { key: string; labelAr: string; labelEn: string }
 interface Row { id: string; insurer: string; status: string; generalRemarks: string | null; [k: string]: string | number | null }
 interface Comparison { columns: Column[]; rows: Row[]; bestByPrice: string | null }
@@ -86,7 +86,7 @@ export default function SlipWorkbenchPage() {
 
       {error ? <p className="mb-3 rounded-lg bg-danger-soft px-3 py-2 text-[12.5px] font-medium text-danger">{error}</p> : null}
 
-      {showForm ? <AddQuotation slipId={id} onDone={() => { setShowForm(false); void load(); }} onError={setError} /> : null}
+      {showForm ? <AddQuotation slipId={id} vatRate={slip?.vatRate ?? 15} onDone={() => { setShowForm(false); void load(); }} onError={setError} /> : null}
 
       {/* جدول المقارنة الآلي */}
       <div className="overflow-hidden rounded-card border border-line bg-card shadow-card">
@@ -149,33 +149,22 @@ export default function SlipWorkbenchPage() {
   );
 }
 
-function AddQuotation({ slipId, onDone, onError }: { slipId: string; onDone: () => void; onError: (s: string) => void }) {
+function AddQuotation({ slipId, vatRate, onDone, onError }: { slipId: string; vatRate: number; onDone: () => void; onError: (s: string) => void }) {
   const t = useTranslations();
   const [v, setV] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const set = (k: string) => (e: { target: { value: string } }) => setV((p) => ({ ...p, [k]: e.target.value }));
   const numField = (k: string) => (v[k] === undefined || v[k] === "" ? undefined : Number(v[k]));
 
-  // احتساب المشتقّات: القسط (=مبلغ التأمين×النسبة) · الضريبة (15%) · الإجمالي (=صافي+رسوم+ضريبة) · العمولة (=صافي×نسبة العمولة)
-  function compute() {
-    setV((p) => {
-      const n = (k: string) => (p[k] === undefined || p[k] === "" ? undefined : Number(p[k]));
-      const si = n("sumInsured"), rate = n("rate"), fees = n("policyFees") ?? 0, comRate = n("commissionRate");
-      const premium = n("premium") ?? (si != null && rate != null ? +((si * rate) / 100).toFixed(2) : undefined);
-      const vat = premium != null ? +(premium * 0.15).toFixed(2) : n("vat");
-      const total = premium != null ? +(premium + fees + (vat ?? 0)).toFixed(2) : n("totalPremium");
-      const commission = premium != null && comRate != null ? +((premium * comRate) / 100).toFixed(2) : n("commissionAmount");
-      const commissionVat = commission != null ? +(commission * 0.15).toFixed(2) : n("commissionVat"); // 15% دائمًا على العمولة
-      return {
-        ...p,
-        ...(premium != null ? { premium: String(premium) } : {}),
-        ...(vat != null ? { vat: String(vat) } : {}),
-        ...(total != null ? { totalPremium: String(total) } : {}),
-        ...(commission != null ? { commissionAmount: String(commission) } : {}),
-        ...(commissionVat != null ? { commissionVat: String(commissionVat) } : {}),
-      };
-    });
-  }
+  // المشتقّات محسوبة حيًّا من المدخلات (لا زر احتساب ولا إدخال يدوي للضريبة):
+  //  القسط الصافي (=مبلغ التأمين×النسبة أو المُدخَل مباشرةً) · الضريبة (نسبة الفرع: حياة 0% / غيره 15%)
+  //  · الإجمالي (=صافي+رسوم+ضريبة) · عمولة الوسيط (=صافي×نسبة العمولة) · ضريبة العمولة (15% دائمًا).
+  const si = numField("sumInsured"), rate = numField("rate"), fees = numField("policyFees") ?? 0, comRate = numField("commissionRate");
+  const premium = numField("premium") ?? (si != null && rate != null ? +((si * rate) / 100).toFixed(2) : undefined);
+  const vat = premium != null ? +((premium * vatRate) / 100).toFixed(2) : undefined;
+  const total = premium != null ? +(premium + fees + (vat ?? 0)).toFixed(2) : undefined;
+  const commission = premium != null && comRate != null ? +((premium * comRate) / 100).toFixed(2) : undefined;
+  const commissionVat = commission != null ? +((commission * 15) / 100).toFixed(2) : undefined; // العمولة رسم خدمة الوسيط ⇒ 15% دائمًا
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -187,13 +176,13 @@ function AddQuotation({ slipId, onDone, onError }: { slipId: string; onDone: () 
           insurerName: v.insurerName ?? "",
           sumInsured: numField("sumInsured"),
           rate: numField("rate"),
-          premium: numField("premium"),
+          premium,
           policyFees: numField("policyFees"),
-          vat: numField("vat"),
-          totalPremium: numField("totalPremium"),
+          vat,
+          totalPremium: total,
           commissionRate: numField("commissionRate"),
-          commissionAmount: numField("commissionAmount"),
-          commissionVat: numField("commissionVat"),
+          commissionAmount: commission,
+          commissionVat,
           deductible: numField("deductible"),
           limit: numField("limit"),
           generalRemarks: v.generalRemarks || undefined,
@@ -207,7 +196,7 @@ function AddQuotation({ slipId, onDone, onError }: { slipId: string; onDone: () 
     }
   }
 
-  // حقل مع أيقونة تلميح (tooltip) بجانب العنوان + نص تعريفي صغير تحته.
+  // حقل مُدخَل مع أيقونة تلميح (tooltip) بجانب العنوان + نص تعريفي صغير تحته.
   const F = (k: string, label: string, opts: { type?: string; hint?: string; sub?: string } = {}) => (
     <label className="block">
       <span className="mb-1 flex items-center gap-1 text-[12px] font-medium text-muted">
@@ -223,26 +212,46 @@ function AddQuotation({ slipId, onDone, onError }: { slipId: string; onDone: () 
     </label>
   );
 
+  const fmt = (n: number | undefined) => (n == null ? "—" : n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+  // بند في الملخّص المحسوب (قيمة للقراءة فقط، تتحدّث تلقائيًا).
+  const S = (label: string, value: number | undefined, opts: { strong?: boolean; tone?: string; note?: string } = {}) => (
+    <div className="flex flex-col rounded-lg border border-line bg-card px-3 py-2">
+      <span className="text-[10.5px] font-medium text-subtle">{label}</span>
+      <span className={["tnum leading-tight", opts.strong ? "text-[15px] font-bold text-ink" : "text-[13.5px] font-semibold", opts.tone ?? "text-ink"].join(" ")}>{fmt(value)}</span>
+      {opts.note ? <span className="text-[10px] text-subtle">{opts.note}</span> : null}
+    </div>
+  );
+
   return (
     <form onSubmit={submit} className="mb-4 rounded-card border border-line bg-card p-5 shadow-card">
       <div className="mb-3 text-[14px] font-semibold text-ink">{t("underwriting.addQuotation")}</div>
+      {/* المدخلات فقط — الوسيط يُدخل ما تُرسله شركة التأمين */}
       <div className="grid grid-cols-1 gap-x-3 gap-y-4 sm:grid-cols-4">
         {F("insurerName", t("underwriting.insurer"), { type: "text", hint: t("underwriting.hint.insurer") })}
         {F("sumInsured", t("underwriting.sumInsured"), { hint: t("underwriting.hint.sumInsured"), sub: t("underwriting.sub.sumInsured") })}
         {F("rate", t("underwriting.rate"), { hint: t("underwriting.hint.rate"), sub: t("underwriting.sub.rate") })}
         {F("premium", t("underwriting.premium"), { hint: t("underwriting.hint.premium"), sub: t("underwriting.sub.premium") })}
         {F("policyFees", t("underwriting.policyFees"), { hint: t("underwriting.hint.policyFees"), sub: t("underwriting.sub.policyFees") })}
-        {F("vat", t("underwriting.vat"), { hint: t("underwriting.hint.vat"), sub: t("underwriting.sub.vat") })}
-        {F("totalPremium", t("underwriting.totalPremium"), { hint: t("underwriting.hint.totalPremium"), sub: t("underwriting.sub.totalPremium") })}
         {F("commissionRate", t("underwriting.commissionRate"), { hint: t("underwriting.hint.commissionRate"), sub: t("underwriting.sub.commissionRate") })}
-        {F("commissionAmount", t("underwriting.commissionAmount"), { hint: t("underwriting.hint.commissionAmount"), sub: t("underwriting.sub.commissionAmount") })}
-        {F("commissionVat", t("underwriting.commissionVat"), { hint: t("underwriting.hint.commissionVat"), sub: t("underwriting.sub.commissionVat") })}
         {F("deductible", t("underwriting.deductible"), { hint: t("underwriting.hint.deductible"), sub: t("underwriting.sub.deductible") })}
         {F("limit", t("underwriting.limit"), { hint: t("underwriting.hint.limit"), sub: t("underwriting.sub.limit") })}
       </div>
-      <button type="button" onClick={compute} className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface-2 px-3 py-1.5 text-[12px] font-semibold text-primary hover:bg-primary/5">
-        {t("underwriting.compute")}
-      </button>
+
+      {/* الملخّص المحسوب تلقائيًا — الضريبة والإجماليات والعمولة (قراءة فقط) */}
+      <div className="mt-4 rounded-card border border-primary/20 bg-primary/5 p-3.5">
+        <div className="mb-2 flex items-center gap-1.5 text-[12px] font-semibold text-primary">
+          <Info size={13} /> {t("underwriting.computedSummary")}
+          <span className="ms-auto font-normal text-subtle">{t("underwriting.autoNote")}</span>
+        </div>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+          {S(t("underwriting.netPremium"), premium)}
+          {S(vatRate === 0 ? t("underwriting.vat") : t("underwriting.vatLabel", { rate: vatRate }), vat, { note: vatRate === 0 ? t("underwriting.vatExempt") : undefined })}
+          {S(t("underwriting.totalPremium"), total, { strong: true })}
+          {S(t("underwriting.commissionAmount"), commission, { tone: "text-success" })}
+          {S(t("underwriting.commissionVat"), commissionVat)}
+        </div>
+      </div>
+
       <label className="mt-4 block">
         <span className="mb-1 flex items-center gap-1 text-[12px] font-medium text-muted">
           {t("underwriting.remarks")}

@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
+import { vatTreatmentForClass } from "../../common/tax/vat";
 
 /**
  * كتالوج المنتجات — بيانات مرجعية على مستوى المنصة (غير مفلترة بمستأجر).
@@ -8,9 +9,9 @@ import { PrismaService } from "../../prisma/prisma.service";
 export class CatalogService {
   constructor(private readonly prisma: PrismaService) {}
 
-  /** شجرة الفئات والفروع (لقوائم الاختيار). */
-  tree() {
-    return this.prisma.productClass.findMany({
+  /** شجرة الفئات والفروع (لقوائم الاختيار) + نسبة الضريبة لكل فئة (لعرض المعالجة الضريبية). */
+  async tree() {
+    const classes = await this.prisma.productClass.findMany({
       orderBy: { code: "asc" },
       select: {
         code: true,
@@ -21,6 +22,7 @@ export class CatalogService {
         },
       },
     });
+    return classes.map((c) => ({ ...c, vatRate: vatTreatmentForClass(c.code).rate }));
   }
 
   /** فرع واحد مع مخطط نموذجه (لعرض النموذج الديناميكي). */

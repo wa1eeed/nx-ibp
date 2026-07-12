@@ -4,6 +4,7 @@ import { PrismaService } from "../../prisma/prisma.service";
 import { SequenceService } from "../../common/sequence/sequence.service";
 import { AuditService } from "../../common/audit/audit.service";
 import { NotificationsService } from "../notifications/notifications.service";
+import { vatTreatmentForClass } from "../../common/tax/vat";
 import type { CreateSlipDto } from "./dto/create-slip.dto";
 import type { CreateQuotationDto } from "./dto/create-quotation.dto";
 
@@ -54,7 +55,18 @@ export class SlipsService {
       },
     });
     if (!slip) throw new NotFoundException("طلب الأسعار غير موجود");
-    return slip;
+
+    // المعالجة الضريبية للقسط بحسب فئة المنتج (الحياة معفاة 0%؛ البقية 15%) —
+    // تُمرَّر للواجهة كي تُحتسب الضريبة تلقائيًا بالنسبة الصحيحة (لا إدخال يدوي).
+    let vatRate = 15;
+    if (slip.request?.productLineCode) {
+      const line = await this.prisma.productLine.findFirst({
+        where: { code: slip.request.productLineCode },
+        select: { class: { select: { code: true } } },
+      });
+      vatRate = vatTreatmentForClass(line?.class?.code).rate;
+    }
+    return { ...slip, vatRate };
   }
 
   async createSlip(tenantId: string, userId: string, dto: CreateSlipDto) {

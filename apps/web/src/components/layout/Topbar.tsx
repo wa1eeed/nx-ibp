@@ -7,6 +7,7 @@ import { LocaleSwitcher } from "./LocaleSwitcher";
 import { NotificationBell } from "./NotificationBell";
 import { useMobileNav } from "./MobileNavContext";
 import { api, clearToken, getToken } from "@/lib/api";
+import { staffNotifRoute } from "@/lib/notif-routes";
 import { useRouter } from "@/i18n/routing";
 
 interface Me { fullName: string; email: string; roleId: string | null }
@@ -63,7 +64,7 @@ export function Topbar() {
       <div className="flex flex-1 items-center justify-end gap-2 sm:flex-none">
         <LocaleSwitcher />
 
-        <NotificationBell apiFn={api} hasToken={() => !!getToken()} basePath="/notifications/inbox" />
+        <NotificationBell apiFn={api} hasToken={() => !!getToken()} basePath="/notifications/inbox" routeFor={staffNotifRoute} />
 
         {/* قائمة المستخدم + تسجيل الخروج */}
         <div ref={ref} className="relative">

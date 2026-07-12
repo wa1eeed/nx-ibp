@@ -5,6 +5,7 @@ import { ShieldCheck, LayoutDashboard, FileCheck2, FileText, ClipboardList, Rece
 import { useTranslations } from "next-intl";
 import { Link, usePathname, useRouter } from "@/i18n/routing";
 import { getPortalToken, clearPortalToken, cpapi } from "@/lib/api";
+import { clientNotifRoute } from "@/lib/notif-routes";
 import { NotificationBell } from "@/components/layout/NotificationBell";
 import { BrandingProvider } from "@/components/branding/BrandingProvider";
 
@@ -64,7 +65,7 @@ export function PortalShell({ children }: { children: ReactNode }) {
           <span className="rounded-md bg-primary px-2 py-1 text-[11px] font-semibold text-white">{t("portal.badge")}</span>
           <span className="text-[13px] text-muted">{t("portal.subtitle")}</span>
           <div className="ms-auto">
-            <NotificationBell apiFn={cpapi} hasToken={() => !!getPortalToken()} basePath="/portal/notifications" allowMarkAll={false} />
+            <NotificationBell apiFn={cpapi} hasToken={() => !!getPortalToken()} basePath="/portal/notifications" allowMarkAll={false} routeFor={clientNotifRoute} />
           </div>
         </header>
         <main className="flex-1 px-5 py-6 sm:px-7">{children}</main>
