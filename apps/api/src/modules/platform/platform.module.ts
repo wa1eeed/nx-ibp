@@ -3,9 +3,10 @@ import { PlatformController } from "./platform.controller";
 import { PlatformService } from "./platform.service";
 import { PlatformGuard } from "./platform.guard";
 import { NotificationsModule } from "../notifications/notifications.module";
+import { AuditViewModule } from "../audit/audit.module";
 
 @Module({
-  imports: [NotificationsModule], // لإدارة إشعارات المنصة الافتراضية
+  imports: [NotificationsModule, AuditViewModule], // إشعارات المنصة الافتراضية + عرض التدقيق بالأسماء
   controllers: [PlatformController],
   providers: [PlatformService, PlatformGuard],
 })

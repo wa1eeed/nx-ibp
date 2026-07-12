@@ -15,6 +15,24 @@
     "next": "Next",
     "page": "Page {page} of {pages}"
   },
+  "audit": {
+    "title": "Audit log",
+    "subtitle": "An immutable record of every sensitive action — who did what and when (cannot be edited or deleted).",
+    "adminSubtitle": "Cross-account audit log — with actor names and IP addresses (for regulator review).",
+    "empty": "No actions recorded yet",
+    "col": { "actor": "Actor", "action": "Action", "entity": "Entity", "target": "ID", "ip": "IP", "device": "Device", "time": "Time", "tenant": "Account" },
+    "filterAction": "All actions", "filterEntity": "All entities",
+    "immutableNote": "🔒 This log is immutable: edits/deletes are rejected even from code — an NCA ECC requirement.",
+    "action": { "login": "Login", "create": "Create", "update": "Update", "delete": "Delete", "approve": "Approve", "revert": "Revert", "verify": "Verify", "file_url": "Open document", "erase": "Erase (PDPL)" },
+    "entity": {
+      "client": "Client", "policy": "Policy", "policy_finance": "Financial approval", "policy_technical": "Technical approval", "policy_cancellation": "Policy cancellation", "policy_approval_step": "Approval step",
+      "insurer_settlement": "Insurer settlement", "receipt": "Receipt voucher", "commission_receipt": "Commission receipt", "producer_settlement": "Sub-broker payout", "producer": "Sub-broker",
+      "deal": "Deal", "crm_task": "Task", "department": "Department", "user_department": "Dept assignment", "document": "Document", "slip": "RFQ slip", "quotation": "Quotation", "firm_order": "Firm order", "endorsement": "Endorsement",
+      "claim": "Claim", "service_request": "Service request", "renewal": "Renewal", "target": "Target", "form_template": "Form template", "branding": "Branding", "company": "Company details",
+      "email_settings": "Email settings", "security_policy": "Security policy", "retention_policy": "Retention policy", "approval_chain": "Approval chain", "verification_check": "Government check",
+      "tenant_signup": "Account signup", "request": "Insurance request", "user_mfa": "Two-factor auth", "user_mfa_reset": "MFA reset", "user": "User", "auth": "Auth"
+    }
+  },
   "confirm": {
     "confirm": "Confirm",
     "cancel": "Cancel",
@@ -72,6 +90,7 @@
       "email": "Official email",
       "notifications": "Notifications",
       "approvalChain": "Approval chain",
+      "audit": "Audit log",
       "security": "Security & 2FA"
     }
   },
@@ -955,7 +974,7 @@
     "brand": "IBP Platform",
     "subtitle": "Platform control panel",
     "logout": "Sign out",
-    "nav": { "usage": "Usage", "tenants": "Accounts", "leads": "Leads", "plans": "Plans", "notifications": "Notifications", "security": "Security" },
+    "nav": { "usage": "Usage", "tenants": "Accounts", "leads": "Leads", "plans": "Plans", "notifications": "Notifications", "audit": "Audit log", "security": "Security" },
     "leads": {
       "title": "Sales contact requests",
       "subtitle": "“Contact us” requests from large plans and the ownership page — for follow-up.",

@@ -1,6 +1,7 @@
 import { Body, Controller, Get, HttpCode, Param, Post, Put, Query, UseGuards } from "@nestjs/common";
 import { PlatformService } from "./platform.service";
 import { PlatformGuard } from "./platform.guard";
+import { AuditViewService } from "../audit/audit-view.service";
 import { NotificationsService } from "../notifications/notifications.service";
 import { UpdateNotificationDto } from "../notifications/dto/notification.dto";
 import { LeadStatusDto, MfaCodeDto, PlatformLoginDto, TenantStatusDto, UpdateEntitlementDto, UpdatePlanDto } from "./dto/platform.dto";
@@ -16,6 +17,7 @@ export class PlatformController {
   constructor(
     private readonly platform: PlatformService,
     private readonly notifications: NotificationsService,
+    private readonly auditView: AuditViewService,
   ) {}
 
   @Public()
@@ -98,10 +100,10 @@ export class PlatformController {
     return this.platform.updateLeadStatus(id, dto.status, adminId);
   }
 
-  /** مراجعة/تصدير سجل التدقيق (لمفتّشي الهيئة). */
+  /** مراجعة/تصدير سجل التدقيق عابر المستأجرين — بأسماء المنفّذين (لمفتّشي الهيئة). */
   @Get("audit")
-  audit(@Query("tenantId") tenantId?: string, @Query("limit") limit?: string) {
-    return this.platform.auditLogs(tenantId, limit ? Number(limit) : undefined);
+  audit(@Query("tenantId") tenantId?: string, @Query("action") action?: string, @Query("entity") entity?: string, @Query("limit") limit?: string) {
+    return this.auditView.listForPlatform({ tenantId, action, entity, limit: limit ? Number(limit) : undefined });
   }
 
   // ----- إشعارات المنصة الافتراضية (يرثها كل الحسابات ما لم تُخصَّص) -----

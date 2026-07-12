@@ -15,6 +15,24 @@
     "next": "التالي",
     "page": "صفحة {page} من {pages}"
   },
+  "audit": {
+    "title": "سجل التدقيق",
+    "subtitle": "سجلّ ثابت لكل عملية حسّاسة — مَن فعل ماذا ومتى (غير قابل للتعديل أو الحذف).",
+    "adminSubtitle": "سجلّ تدقيق عابر لكل الحسابات — بأسماء المنفّذين وعناوين IP (لمراجعة الهيئة).",
+    "empty": "لا عمليات مسجّلة بعد",
+    "col": { "actor": "المنفّذ", "action": "الفعل", "entity": "العنصر", "target": "المعرّف", "ip": "IP", "device": "الجهاز", "time": "الوقت", "tenant": "الحساب" },
+    "filterAction": "كل الأفعال", "filterEntity": "كل العناصر",
+    "immutableNote": "🔒 هذا السجل ثابت (immutable): يُرفض تعديله أو حذفه حتى من الكود — مطلب NCA ECC.",
+    "action": { "login": "دخول", "create": "إنشاء", "update": "تعديل", "delete": "حذف", "approve": "اعتماد", "revert": "تراجع", "verify": "تحقّق", "file_url": "فتح مستند", "erase": "محو (PDPL)" },
+    "entity": {
+      "client": "عميل", "policy": "وثيقة", "policy_finance": "اعتماد مالي", "policy_technical": "اعتماد فني", "policy_cancellation": "إلغاء وثيقة", "policy_approval_step": "خطوة اعتماد",
+      "insurer_settlement": "تسوية مؤمِّن", "receipt": "سند قبض", "commission_receipt": "استلام عمولة", "producer_settlement": "صرف وسيط فرعي", "producer": "وسيط فرعي",
+      "deal": "صفقة", "crm_task": "مهمة", "department": "قسم", "user_department": "إسناد قسم", "document": "مستند", "slip": "طلب أسعار", "quotation": "عرض سعر", "firm_order": "أمر إسناد", "endorsement": "ملحق",
+      "claim": "مطالبة", "service_request": "طلب خدمة", "renewal": "تجديد", "target": "هدف", "form_template": "قالب نموذج", "branding": "هوية بصرية", "company": "بيانات الشركة",
+      "email_settings": "إعدادات البريد", "security_policy": "سياسة أمان", "retention_policy": "سياسة احتفاظ", "approval_chain": "سلسلة اعتماد", "verification_check": "تحقّق حكومي",
+      "tenant_signup": "تسجيل حساب", "request": "طلب تأمين", "user_mfa": "مصادقة ثنائية", "user_mfa_reset": "إعادة تعيين MFA", "user": "مستخدم", "auth": "مصادقة"
+    }
+  },
   "confirm": {
     "confirm": "تأكيد",
     "cancel": "إلغاء",
@@ -72,6 +90,7 @@
       "email": "البريد الرسمي",
       "notifications": "التنبيهات",
       "approvalChain": "سلسلة الاعتماد",
+      "audit": "سجل التدقيق",
       "security": "الأمان والمصادقة الثنائية"
     }
   },
@@ -955,7 +974,7 @@
     "brand": "منصة IBP",
     "subtitle": "لوحة تحكّم المنصة",
     "logout": "تسجيل الخروج",
-    "nav": { "usage": "الاستخدام", "tenants": "الحسابات", "leads": "طلبات التواصل", "plans": "الباقات", "notifications": "الإشعارات", "security": "الأمان" },
+    "nav": { "usage": "الاستخدام", "tenants": "الحسابات", "leads": "طلبات التواصل", "plans": "الباقات", "notifications": "الإشعارات", "audit": "سجل التدقيق", "security": "الأمان" },
     "leads": {
       "title": "طلبات التواصل مع المبيعات",
       "subtitle": "طلبات «تواصل معنا» من الباقات الكبيرة وصفحة التملّك — للمتابعة.",

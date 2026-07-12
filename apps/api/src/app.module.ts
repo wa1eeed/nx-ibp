@@ -46,6 +46,7 @@ import { ProducersModule } from "./modules/producers/producers.module";
 import { FormTemplatesModule } from "./modules/form-templates/form-templates.module";
 import { EmailModule } from "./modules/email/email.module";
 import { TargetsModule } from "./modules/targets/targets.module";
+import { AuditViewModule } from "./modules/audit/audit.module";
 
 /**
  * الوحدة الجذرية. معماري وحدات — module لكل مجال (GUIDELINES.md §5).
@@ -98,6 +99,7 @@ import { TargetsModule } from "./modules/targets/targets.module";
     FormTemplatesModule,
     EmailModule,
     TargetsModule,
+    AuditViewModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

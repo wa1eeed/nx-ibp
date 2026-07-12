@@ -28,6 +28,7 @@ export type ModuleKey =
   | "settings.email"
   | "settings.notifications"
   | "settings.approvalChain"
+  | "settings.audit"
   | "settings.security";
 
 export interface NavItem {
@@ -124,6 +125,7 @@ export const TENANT_NAV: NavGroup[] = [
       { key: "settings.email", href: "/tenant/settings/email", icon: "Mail" },
       { key: "settings.notifications", href: "/tenant/settings/notifications", icon: "Bell" },
       { key: "settings.approvalChain", href: "/tenant/settings/approval-chain", icon: "ListChecks" },
+      { key: "settings.audit", href: "/tenant/settings/audit", icon: "ScrollText", entitlement: "module.compliance" },
       { key: "settings.security", href: "/tenant/settings/security", icon: "ShieldCheck" },
     ],
   },

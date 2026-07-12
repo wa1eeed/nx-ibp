@@ -27,6 +27,7 @@ import {
   Handshake,
   Mail,
   Target,
+  ScrollText,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -67,6 +68,7 @@ const ICONS: Record<string, LucideIcon> = {
   Handshake,
   Mail,
   Target,
+  ScrollText,
 };
 
 type Perms = Record<string, { access?: boolean }>;
