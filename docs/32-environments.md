@@ -101,6 +101,23 @@ API_PUBLIC_URL=https://api.ibp.nx.sa
 - **production**: القاعدة + النسخ الاحتياطية + السجلّات + المرفقات + دلو التخزين **داخل المملكة** (PDPL/هيئة التأمين). الاستضافة الحالية خارج المملكة **مؤقتة لما قبل الإطلاق فقط** — انظر [30 §4](./30-security-and-compliance.md).
 - **dev/staging**: بيانات وهمية، فالاستضافة خارج المملكة مقبولة لهما.
 
+## 5ب. أين قاعدة البيانات الآن على Coolify؟ (وكيف تُدار)
+> نشرنا عبر **Docker Compose**، فقاعدة البيانات **ليست تحت تبويب "Databases" في Coolify** — بل **خدمة `postgres` ضمن ستاك الحزمة نفسه** (postgres/redis/api/web كلها حاويات في مشروع واحد). لذلك لا تظهر كمورد قاعدة مستقلّ.
+
+- **الخدمة:** `postgres:16-alpine` (في [`docker-compose.coolify.yml`](../infra/docker/docker-compose.coolify.yml)) · المستخدم/القاعدة الافتراضيان `ibp` · كلمة السر من `POSTGRES_PASSWORD`.
+- **البيانات:** في **Docker volume اسمه `ibp_pgdata`** — **يبقى عبر كل إعادات النشر** (النشر لا يمسح البيانات).
+- **الوصول الداخلي:** التطبيق يتصل عبر `postgres:5432` (`DATABASE_URL`)؛ لا منفذ خارجي مكشوف افتراضيًا (أمان).
+- **الوصول للإدارة/الطرفية:**
+  ```bash
+  docker ps | grep postgres                                  # اسم الحاوية
+  docker exec -it <postgres-container> psql -U ibp -d ibp      # جلسة SQL
+  ```
+- ⚠️ **لا نسخ احتياطي تلقائي** في هذا الوضع (حاوية داخل الحزمة). **أنشئ نسخة يدويًا/مجدولة** حتى قبل بيانات حقيقية:
+  ```bash
+  docker exec <postgres-container> pg_dump -U ibp ibp | gzip > ibp_$(date +%F).sql.gz
+  ```
+- **هذا الوضع مقبول لـ staging** (بيانات ديمو، بساطة). **للإنتاج نفصلها لقاعدة مُدارة** — §6أ و§6ب.
+
 ## 6أ. المهمة القادمة رقم 1 — نسخة Production بقاعدة بيانات مفصولة (أولوية الإطلاق)
 > **قرار المستخدم:** أول مهمة **بعد اكتمال المشروع في Staging** — تُجهَّز نسخة Production تراعي أفضل المعايير لقاعدة البيانات قبل أي إطلاق حقيقي لشركات الوساطة. (staging تبقى بقاعدتها المدمجة كما هي — لا يتغيّر فيها شيء.)
 
@@ -112,6 +129,35 @@ API_PUBLIC_URL=https://api.ibp.nx.sa
    - **مجمّع اتصالات (PgBouncer)** + ضبط `max_connections`/`shared_buffers`/`work_mem` مع تزايد النسخ.
    - تشفير at-rest + شبكة/صلاحيات معزولة (least privilege) + مراقبة/تنبيهات + مسار توافر عالٍ (نسخ قراءة/failover).
 4. **مخرجات ملموسة (تُنفَّذ حينها):** `docker-compose.prod.yml` (بلا Postgres مضمّنة، يتوقّع `DATABASE_URL` خارجيًا — api+web+redis فقط) + تحديث [`infra/docker/coolify.md`](../infra/docker/coolify.md) بخطوات إنشاء القاعدة المُدارة والنسخ الاحتياطي والربط.
+
+## 6ب. قابلية النقل السحابية + إجراء ترحيل القاعدة (GCP · Alibaba · AWS)
+**المعمار حيادي السحابة بالكامل — لا قفل مورّد في الكود:**
+
+| الطبقة | القابلية |
+|---|---|
+| التطبيق | صور Docker (api+web) → أي منصّة: **GCP** Cloud Run/GKE · **AWS** ECS/EKS · **Alibaba** ACK/ECS |
+| قاعدة البيانات | **PostgreSQL 16 قياسي + Prisma** → أي Postgres مُدار: **Cloud SQL** (GCP) · **RDS/Aurora** (AWS) · **ApsaraDB RDS** (Alibaba) |
+| التخزين | سائق **S3-متوافق (SigV4، بلا SDK)** → GCS(S3-interop)/S3/OSS/R2 — بتغيير `STORAGE_*` فقط |
+| Redis | قياسي → Memorystore (GCP) · ElastiCache (AWS) · ApsaraDB Redis (Alibaba) |
+| البريد/SMS/الفوترة | seams عبر env (Resend/Taqnyat/Tap) — بلا ربط بسحابة |
+
+**⚠️ القيد الحاكم = سيادة البيانات (داخل المملكة لبيانات الإنتاج):**
+- **GCP** — منطقة **الدمّام** (`me-central2`) داخل المملكة ✅ (خيار قوي).
+- **Alibaba** — منطقة **الرياض** داخل المملكة ✅.
+- **AWS** — منطقة السعودية أُعلنت؛ **تحقّق من توفّرها وقت التنفيذ**. البحرين (`me-south-1`) **خارج المملكة** ⇒ لا تصلح لبيانات الإنتاج حتى تُطلَق منطقة KSA.
+
+**إجراء الترحيل (لأي وجهة — القاعدة المُدارة أو سحابة سعودية):**
+```bash
+# 1) نسخة من القاعدة الحالية
+docker exec <postgres-container> pg_dump -U ibp ibp | gzip > ibp_dump.sql.gz
+# 2) استعادتها في القاعدة المُدارة الجديدة (داخل المملكة)
+gunzip -c ibp_dump.sql.gz | psql "$MANAGED_DATABASE_URL"
+# 3) تطبيق أحدث المخطّط (الهجرات) على الوجهة
+DATABASE_URL="$MANAGED_DATABASE_URL" pnpm --filter @ibp/db migrate:deploy
+# 4) وجّه التطبيق للقاعدة الجديدة: غيّر DATABASE_URL في env
+#    واحذف خدمة postgres من الـcompose (استخدم docker-compose.prod.yml).
+```
+> بعدها: نسخ احتياطي آلي + PITR من مزوّد القاعدة المُدارة · التخزين/Redis يُنقلان بتغيير env فقط · لا تغيير في كود التطبيق.
 
 ## 6. الخريطة على Coolify (عند الإنشاء في النهاية)
 نموذج Coolify = **تطبيق/مشروع مستقلّ لكل بيئة**. لكلٍّ: نسخة من [`docker-compose.coolify.yml`](../infra/docker/docker-compose.coolify.yml) + مجموعة env خاصّة (القسم 3) + دومين + **قاعدة مفصولة (production) / مدمجة (staging)** + Redis. التفصيل في [`infra/docker/coolify.md`](../infra/docker/coolify.md).
