@@ -123,8 +123,12 @@ export class ProductionService {
     const documents = await this.prisma.document.findMany({ where: { entityId: id }, orderBy: { createdAt: "desc" }, select: { id: true, fileName: true, docType: true, createdAt: true } });
     const n = (d: unknown) => (d == null ? 0 : Number(d));
     const commissionTotal = n(policy.commissionAmount);
+    // نسبة الضريبة حسب فرع الوثيقة (الحياة معفاة) — للمعاينة الحيّة عند إضافة ملحق بفرق قسط
+    const line = policy.productLineCode ? await this.prisma.productLine.findFirst({ where: { code: policy.productLineCode }, select: { class: { select: { code: true } } } }) : null;
+    const vatRate = vatTreatmentForClass(line?.class?.code).rate;
     return {
       policy,
+      vatRate,
       client,
       endorsements,
       claims,

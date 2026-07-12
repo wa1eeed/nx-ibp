@@ -49,6 +49,7 @@ describe("صفحات 360° (e2e)", () => {
     const ov = (await request(srv).get("/policies/pol-fahd-pro/overview").set(auth(gm)).expect(200)).body;
     expect(ov.endorsements.some((e: { id: string }) => e.id === res.body.id)).toBe(true);
     expect(ov.summary.outstanding).toBeCloseTo(before + 1200 * 1.15, 1); // +القسط +15% ضريبة
+    expect(typeof ov.vatRate).toBe("number"); // نسبة الضريبة للفرع (للمعاينة الحيّة في نموذج الملحق)
   });
 
   it("عزل: مستأجر آخر لا يضيف ملحقًا على وثيقة ليست له ⇒ 404", () =>

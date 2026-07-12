@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { ArrowRight, FileCheck2, Coins, ClipboardList, FilePlus2, FolderOpen, Clock, Plus, X, Check, Ban } from "lucide-react";
+import { ArrowRight, FileCheck2, Coins, ClipboardList, FilePlus2, FolderOpen, Clock, Plus, X, Check, Ban, Info, Minus } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
 import { api, ApiError, getToken } from "@/lib/api";
@@ -17,6 +17,7 @@ interface Overview {
     sumInsured: string | null; premium: string | null; policyFees: string | null; vat: string | null; totalPremium: string | null;
     commissionRate: string | null; commissionAmount: string | null; producerName: string | null; producerCommission: string | null; paymentTerms: string | null;
   };
+  vatRate: number;
   client: { id: string; name: string; type: string; code: string | null } | null;
   endorsements: Array<{ id: string; sequenceNo: string | null; type: string; effectiveDate: string | null; premiumDelta: string | null; status: string; createdAt: string }>;
   claims: Array<{ id: string; sequenceNo: string | null; insurerName: string | null; claimedAmount: string | null; settledAmount: string | null; status: string; incidentDate: string | null; createdAt: string }>;
@@ -169,7 +170,7 @@ export default function PolicyDetailPage() {
         ) : empty) : null}
       </div>
 
-      {endoOpen ? <AddEndorsement policyId={id} onClose={() => setEndoOpen(false)} onDone={(seq) => { setEndoOpen(false); setEndoDone(t("endo.done", { seq })); void load(); }} /> : null}
+      {endoOpen ? <AddEndorsement policyId={id} vatRate={ov?.vatRate ?? 15} onClose={() => setEndoOpen(false)} onDone={(seq) => { setEndoOpen(false); setEndoDone(t("endo.done", { seq })); void load(); }} /> : null}
       {cancelOpen ? <CancelPolicy policyId={id} onClose={() => setCancelOpen(false)} onDone={(seq, amount) => { setCancelOpen(false); setBanner(t("cancel.done", { seq, amount })); void load(); }} /> : null}
     </div>
   );
@@ -210,37 +211,87 @@ function CancelPolicy({ policyId, onClose, onDone }: { policyId: string; onClose
   );
 }
 
-function AddEndorsement({ policyId, onClose, onDone }: { policyId: string; onClose: () => void; onDone: (seq: string) => void }) {
+function AddEndorsement({ policyId, vatRate, onClose, onDone }: { policyId: string; vatRate: number; onClose: () => void; onDone: (seq: string) => void }) {
   const t = useTranslations("policy360");
   const [type, setType] = useState<string>("amendment");
-  const [effectiveDate, setEffectiveDate] = useState("");
-  const [delta, setDelta] = useState("");
+  const [effectiveDate, setEffectiveDate] = useState(new Date().toISOString().slice(0, 10));
+  // الاتجاه المالي: قسط إضافي (+) · مُرتجَع (−) · بلا فرق — أوضح من إدخال رقم سالب
+  const [direction, setDirection] = useState<"add" | "refund" | "none">("add");
+  const [amount, setAmount] = useState("");
   const [reason, setReason] = useState("");
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
 
+  // اقتراح الاتجاه الافتراضي حسب نوع الملحق (إضافة⇒قسط إضافي · حذف⇒مُرتجَع)
+  function pickType(tp: string) {
+    setType(tp);
+    setDirection(tp === "addition" ? "add" : tp === "deletion" ? "refund" : tp === "cancellation" ? "refund" : "add");
+  }
+
+  const abs = amount === "" ? 0 : Math.abs(Number(amount));
+  const signedDelta = direction === "none" ? 0 : direction === "refund" ? -abs : abs;
+  const deltaVat = +((abs * vatRate) / 100).toFixed(2);
+  const deltaTotal = +(abs + deltaVat).toFixed(2);
+  const fmt2 = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
   async function save() {
     setErr(""); setSaving(true);
     try {
-      const r = await api<{ sequenceNo: string }>(`/policies/${policyId}/endorsements`, { method: "POST", body: JSON.stringify({ type, effectiveDate: effectiveDate || undefined, premiumDelta: delta ? Number(delta) : undefined, reason: reason || undefined }) });
+      const r = await api<{ sequenceNo: string }>(`/policies/${policyId}/endorsements`, { method: "POST", body: JSON.stringify({ type, effectiveDate: effectiveDate || undefined, premiumDelta: signedDelta || undefined, reason: reason || undefined }) });
       onDone(r.sequenceNo);
     } catch (e) { setErr(e instanceof ApiError ? e.message : "خطأ"); setSaving(false); }
   }
 
   const field = "h-9 w-full rounded-lg border border-line bg-card px-3 text-[13px] text-ink focus:outline-none focus:ring-2 focus:ring-primary/30";
+  const DIRS = [
+    { k: "add", label: t("endo.dirAdd"), Icon: Plus, tone: "text-danger" },
+    { k: "refund", label: t("endo.dirRefund"), Icon: Minus, tone: "text-success" },
+    { k: "none", label: t("endo.dirNone"), Icon: Ban, tone: "text-subtle" },
+  ] as const;
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onMouseDown={onClose}>
       <div className="w-full max-w-md rounded-card border border-line bg-card p-5 shadow-card" onMouseDown={(e) => e.stopPropagation()}>
         <div className="mb-3 flex items-center justify-between"><h2 className="text-[15px] font-bold text-ink">{t("endo.title")}</h2><button onClick={onClose} className="text-subtle hover:text-ink"><X size={18} /></button></div>
         <div className="space-y-3">
           <label className="block"><span className="mb-1 block text-[11.5px] font-medium text-muted">{t("endo.type")}</span>
-            <select value={type} onChange={(e) => setType(e.target.value)} className={field}>
+            <select value={type} onChange={(e) => pickType(e.target.value)} className={field}>
               {ENDO_TYPES.map((tp) => <option key={tp} value={tp}>{t(`endo.types.${tp}`)}</option>)}
             </select></label>
-          <div className="grid grid-cols-2 gap-3">
-            <label className="block"><span className="mb-1 block text-[11.5px] font-medium text-muted">{t("endo.effectiveDate")}</span><input type="date" value={effectiveDate} onChange={(e) => setEffectiveDate(e.target.value)} className={field} /></label>
-            <label className="block"><span className="mb-1 block text-[11.5px] font-medium text-muted">{t("endo.delta")}</span><input type="number" value={delta} onChange={(e) => setDelta(e.target.value)} className={`${field} tnum`} /></label>
+
+          {type === "cancellation" ? (
+            <p className="flex items-start gap-1.5 rounded-lg bg-info-soft px-3 py-2 text-[11.5px] leading-relaxed text-info"><Info size={13} className="mt-0.5 shrink-0" /> {t("endo.cancellationHint")}</p>
+          ) : null}
+
+          <label className="block"><span className="mb-1 block text-[11.5px] font-medium text-muted">{t("endo.effectiveDate")}</span><input type="date" value={effectiveDate} onChange={(e) => setEffectiveDate(e.target.value)} className={field} /></label>
+
+          {/* الاتجاه المالي + المبلغ */}
+          <div>
+            <span className="mb-1 block text-[11.5px] font-medium text-muted">{t("endo.financialImpact")}</span>
+            <div className="mb-2 flex gap-1.5">
+              {DIRS.map((d) => (
+                <button key={d.k} type="button" onClick={() => setDirection(d.k)}
+                  className={["inline-flex flex-1 items-center justify-center gap-1 rounded-lg border px-2 py-1.5 text-[11.5px] font-medium", direction === d.k ? "border-primary bg-primary/10 text-primary" : "border-line text-muted hover:bg-surface-2"].join(" ")}>
+                  <d.Icon size={12} className={direction === d.k ? "" : d.tone} /> {d.label}
+                </button>
+              ))}
+            </div>
+            {direction !== "none" ? (
+              <input type="number" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={t("endo.amountPlaceholder")} className={`${field} tnum`} />
+            ) : null}
           </div>
+
+          {/* المعاينة المالية الحيّة — يوضّح الضريبة والمستند الناتج */}
+          {direction !== "none" && abs > 0 ? (
+            <div className="rounded-lg border border-primary/20 bg-primary/5 p-2.5 text-[12px]">
+              <div className="flex items-center justify-between py-0.5"><span className="text-muted">{t("endo.net")}</span><span className="tnum font-semibold text-ink">{fmt2(abs)}</span></div>
+              <div className="flex items-center justify-between py-0.5"><span className="text-muted">{vatRate === 0 ? t("endo.vatExempt") : t("endo.vatAt", { rate: vatRate })}</span><span className="tnum font-semibold text-ink">{fmt2(deltaVat)}</span></div>
+              <div className="flex items-center justify-between border-t border-primary/15 py-0.5 pt-1"><span className="font-medium text-ink">{t("endo.total")}</span><span className="tnum font-bold text-ink">{fmt2(deltaTotal)}</span></div>
+              <p className={["mt-1 rounded px-1.5 py-0.5 text-[11px] font-medium", direction === "add" ? "bg-danger/10 text-danger" : "bg-success-soft text-success"].join(" ")}>
+                {direction === "add" ? t("endo.willDebit") : t("endo.willCredit")}
+              </p>
+            </div>
+          ) : null}
+
           <label className="block"><span className="mb-1 block text-[11.5px] font-medium text-muted">{t("endo.reason")}</span><textarea value={reason} onChange={(e) => setReason(e.target.value)} className="h-20 w-full rounded-lg border border-line bg-card px-3 py-2 text-[13px]" /></label>
           {err ? <p className="text-[12px] font-medium text-danger">{err}</p> : null}
           <div className="flex justify-end gap-2 pt-1">

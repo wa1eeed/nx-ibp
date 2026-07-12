@@ -1261,7 +1261,19 @@
         "deletion": "Deletion",
         "amendment": "Amendment",
         "cancellation": "Cancellation"
-      }
+      },
+      "dirAdd": "Additional premium",
+      "dirRefund": "Refund premium",
+      "dirNone": "No financial change",
+      "cancellationHint": "For a full cancellation use the “Cancel policy” button to auto-calculate the pro-rata refund. This endorsement is for partial changes.",
+      "financialImpact": "Financial impact (premium delta)",
+      "amountPlaceholder": "Amount (net, before VAT)",
+      "net": "Net premium delta",
+      "vatExempt": "VAT (exempt — life)",
+      "vatAt": "VAT ({rate}%)",
+      "total": "Total",
+      "willDebit": "A debit note (additional premium) will be issued to the client",
+      "willCredit": "A credit note (premium refund) will be issued to the client"
     },
     "col": {
       "ref": "Ref",
