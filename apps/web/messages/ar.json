@@ -1187,6 +1187,15 @@
       "low": "منخفضة",
       "normal": "عادية",
       "high": "عالية"
+    },
+    "addFollowUp": "مهمة متابعة",
+    "activityPlaceholder": "سجّل ملاحظة أو نتيجة مكالمة/اجتماع…",
+    "logActivity": "تسجيل",
+    "activity": {
+      "note": "ملاحظة",
+      "call": "مكالمة",
+      "email": "بريد",
+      "meeting": "اجتماع"
     }
   },
   "policy360": {

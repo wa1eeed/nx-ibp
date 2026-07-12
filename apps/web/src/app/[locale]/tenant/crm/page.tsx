@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Plus, Check, Trophy, X, CalendarClock, RefreshCw, FileText, ClipboardList, Percent, AlarmClock, ArrowRightLeft, ExternalLink } from "lucide-react";
+import { Plus, Check, Trophy, X, CalendarClock, RefreshCw, FileText, ClipboardList, Percent, AlarmClock, ArrowRightLeft, ExternalLink, Phone, Mail, Users, StickyNote, ArrowRight, Send } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { api, ApiError, getToken } from "@/lib/api";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -15,6 +15,16 @@ interface FollowUp { expiringPolicies: { count: number }; openRequests: number; 
 
 const STAGES = ["new", "contacted", "quoting", "proposal", "negotiation"] as const;
 const PRIO_TONE: Record<string, string> = { high: "bg-danger/10 text-danger", normal: "bg-surface-2 text-subtle", low: "bg-surface-2 text-subtle" };
+// أنواع النشاط القابلة للتسجيل يدويًا + أيقونة/لون كل نوع في الخطّ الزمني
+const ACT_TYPES = ["note", "call", "email", "meeting"] as const;
+const ACT_META: Record<string, { Icon: typeof Phone; tone: string }> = {
+  note: { Icon: StickyNote, tone: "text-subtle" },
+  call: { Icon: Phone, tone: "text-primary" },
+  email: { Icon: Mail, tone: "text-info" },
+  meeting: { Icon: Users, tone: "text-success" },
+  stage_change: { Icon: ArrowRight, tone: "text-warning" },
+  task: { Icon: AlarmClock, tone: "text-danger" },
+};
 
 export default function CrmPage() {
   const t = useTranslations("crm");
@@ -240,9 +250,32 @@ function DealDetail({ dealId, catalog, staff, onClose, onChanged }: { dealId: st
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [done, setDone] = useState("");
+  // مُدوِّن النشاط (مكالمة/بريد/اجتماع/ملاحظة) + مهمة متابعة سريعة مرتبطة بالصفقة
+  const [actType, setActType] = useState<(typeof ACT_TYPES)[number]>("note");
+  const [actBody, setActBody] = useState("");
+  const [taskForm, setTaskForm] = useState<{ title: string; dueDate: string } | null>(null);
 
   const load = useCallback(() => { void api<DealDetailData>(`/crm/deals/${dealId}`).then(setD).catch(() => undefined); }, [dealId]);
   useEffect(() => { load(); }, [load]);
+
+  async function logActivity() {
+    if (actBody.trim().length < 1) return;
+    setBusy(true); setErr("");
+    try {
+      await api("/crm/activities", { method: "POST", body: JSON.stringify({ entityType: "deal", entityId: dealId, type: actType, body: actBody.trim() }) });
+      setActBody(""); setActType("note"); load();
+    } catch (e) { setErr(e instanceof ApiError ? e.message : "خطأ"); } finally { setBusy(false); }
+  }
+
+  async function addFollowUp() {
+    if (!taskForm || taskForm.title.trim().length < 2) return;
+    setBusy(true); setErr("");
+    try {
+      await api("/crm/tasks", { method: "POST", body: JSON.stringify({ title: taskForm.title.trim(), dueDate: taskForm.dueDate || undefined, entityType: "deal", entityId: dealId }) });
+      await api("/crm/activities", { method: "POST", body: JSON.stringify({ entityType: "deal", entityId: dealId, type: "note", body: `مهمة متابعة: ${taskForm.title.trim()}${taskForm.dueDate ? ` (${taskForm.dueDate})` : ""}` }) });
+      setTaskForm(null); load(); onChanged();
+    } catch (e) { setErr(e instanceof ApiError ? e.message : "خطأ"); } finally { setBusy(false); }
+  }
 
   const fmt = (n: string | null) => (n == null ? "—" : Number(n).toLocaleString("en-US"));
   const lineName = (code: string | null) => catalog.flatMap((c) => c.lines).find((l) => l.code === code)?.name ?? code ?? "—";
@@ -331,9 +364,53 @@ function DealDetail({ dealId, catalog, staff, onClose, onChanged }: { dealId: st
               </dl>
             )}
 
+            {/* تسجيل نشاط (مكالمة/بريد/اجتماع/ملاحظة) + مهمة متابعة سريعة */}
+            <div className="mt-5 rounded-card border border-line bg-surface-2/30 p-3">
+              <div className="mb-2 flex flex-wrap items-center gap-1.5">
+                {ACT_TYPES.map((ty) => {
+                  const { Icon } = ACT_META[ty];
+                  const on = actType === ty;
+                  return (
+                    <button key={ty} type="button" onClick={() => setActType(ty)}
+                      className={["inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-[11.5px] font-medium", on ? "border-primary bg-primary/10 text-primary" : "border-line text-muted hover:bg-surface-2"].join(" ")}>
+                      <Icon size={12} /> {t(`activity.${ty}`)}
+                    </button>
+                  );
+                })}
+                <button type="button" onClick={() => setTaskForm(taskForm ? null : { title: "", dueDate: "" })}
+                  className="ms-auto inline-flex items-center gap-1 rounded-lg border border-line px-2.5 py-1 text-[11.5px] font-medium text-muted hover:bg-surface-2">
+                  <AlarmClock size={12} /> {t("addFollowUp")}
+                </button>
+              </div>
+              {taskForm ? (
+                <div className="mb-2 grid grid-cols-1 gap-2 rounded-lg border border-line bg-card p-2 sm:grid-cols-[1fr_auto_auto]">
+                  <input autoFocus value={taskForm.title} onChange={(e) => setTaskForm({ ...taskForm, title: e.target.value })} placeholder={t("taskTitle")} className="h-8 rounded-lg border border-line bg-card px-2.5 text-[12.5px] text-ink focus:outline-none focus:ring-2 focus:ring-primary/30" />
+                  <input value={taskForm.dueDate} onChange={(e) => setTaskForm({ ...taskForm, dueDate: e.target.value })} type="date" className="h-8 rounded-lg border border-line bg-card px-2 text-[12px] text-ink" />
+                  <button onClick={addFollowUp} disabled={busy || taskForm.title.trim().length < 2} className="inline-flex h-8 items-center gap-1 rounded-lg bg-primary-strong px-3 text-[12px] font-semibold text-primary-fg hover:bg-primary disabled:opacity-60"><Check size={13} /> {t("add")}</button>
+                </div>
+              ) : null}
+              <div className="flex items-end gap-2">
+                <textarea value={actBody} onChange={(e) => setActBody(e.target.value)} placeholder={t("activityPlaceholder")} rows={2}
+                  className="min-h-[38px] flex-1 rounded-lg border border-line bg-card px-2.5 py-1.5 text-[12.5px] text-ink focus:outline-none focus:ring-2 focus:ring-primary/30" />
+                <button onClick={logActivity} disabled={busy || actBody.trim().length < 1} className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg bg-ink px-3 text-[12px] font-semibold text-white hover:opacity-90 disabled:opacity-50"><Send size={13} /> {t("logActivity")}</button>
+              </div>
+            </div>
+
+            {/* الخطّ الزمني */}
             {d.activities?.length ? (
               <div className="mt-4"><p className="mb-1.5 text-[12px] font-semibold text-subtle">{t("activityLog")}</p>
-                <ol className="space-y-1.5">{d.activities.map((a) => <li key={a.id} className="flex items-center justify-between gap-2 rounded-lg bg-surface-2/40 px-3 py-1.5"><span className="text-[12px] text-ink">{a.body}</span><span className="shrink-0 text-[10.5px] text-subtle tnum">{new Date(a.createdAt).toLocaleDateString("en-GB")}</span></li>)}</ol>
+                <ol className="space-y-1.5">{d.activities.map((a) => {
+                  const meta = ACT_META[a.type] ?? ACT_META.note;
+                  return (
+                    <li key={a.id} className="flex items-start justify-between gap-2 rounded-lg bg-surface-2/40 px-3 py-2">
+                      <span className="flex min-w-0 items-start gap-2">
+                        <meta.Icon size={13} className={`mt-0.5 shrink-0 ${meta.tone}`} />
+                        <span className="text-[12px] text-ink">{a.body}</span>
+                      </span>
+                      <span className="shrink-0 text-[10.5px] text-subtle tnum">{new Date(a.createdAt).toLocaleDateString("en-GB")}</span>
+                    </li>
+                  );
+                })}</ol>
               </div>
             ) : null}
           </>

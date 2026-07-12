@@ -1187,6 +1187,15 @@
       "low": "Low",
       "normal": "Normal",
       "high": "High"
+    },
+    "addFollowUp": "Follow-up task",
+    "activityPlaceholder": "Log a note or the outcome of a call/meeting…",
+    "logActivity": "Log",
+    "activity": {
+      "note": "Note",
+      "call": "Call",
+      "email": "Email",
+      "meeting": "Meeting"
     }
   },
   "policy360": {
