@@ -535,6 +535,10 @@ model Client {
   producerName     String? // اسم المنتِج/الوسيط الفرعي عند source=producer
   businessActivity String? // النشاط التجاري
   iban             String? // للاسترداد/الدفعات
+  // آلية التحصيل الافتراضية لوثائق هذا العميل — تُبصَم على الوثيقة عند الإصدار:
+  //   collect_full = الوسيط يُحصّل كامل القسط ويحتجز الأمانة ويورّدها للمؤمِّن (الافتراضي، متوافق رجعيًا)
+  //   direct       = العميل يدفع القسط للمؤمِّن مباشرةً؛ الوسيط يُفوتر عمولته فقط (لا أمانة ولا تسوية)
+  collectionModel  String           @default("collect_full")
   contacts         Json? // قائمة جهات الاتصال: [{ name, title, phone, email }]
   accountManagerId String? // مدير الحساب المُعيَّن (نقطة تواصل العميل — معيار الوساطة)
   status           String?          @default("active")
@@ -741,6 +745,9 @@ model Policy {
   producerName       String? // المنتِج (الوسيط الفرعي) — نص حرّ (توافق خلفي)
   producerId         String? // مرجع سجلّ المنتِجين
   producerCommission Decimal?      @db.Decimal(14, 2) // عمولة المنتِج (من عمولة الوسيط)
+  // آلية التحصيل المبصومة عند الإصدار (collect_full | direct) — مصدر الحقيقة للترحيل المالي.
+  // NULL على الوثائق القديمة ⇒ تُعامَل كـ collect_full (السلوك التاريخي). لا تتأثّر بتغيير إعداد العميل لاحقًا.
+  collectionModel    String?
   status           PolicyStatus  @default(TECHNICAL_REVIEW)
   // E2 — سلاسل الاعتماد: مفاتيح خطوات الاعتماد الإضافية المتبقّية (بين الفني والمالي).
   // فارغ = السلسلة الافتراضية (فني ⇒ مالي)؛ يُملأ من TenantConfig.approvalChains عند الموافقة الفنية،

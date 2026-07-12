@@ -23,9 +23,9 @@ describe("الإصدار والاعتماد المالي (e2e)", () => {
     (await request(app.getHttpServer()).post("/auth/login").send({ email, password: "Passw0rd!" })).body.accessToken as string;
   const auth = (t: string) => ({ Authorization: `Bearer ${t}` });
 
-  async function createAwardedRequest(): Promise<string> {
+  async function createAwardedRequest(collectionModel = "collect_full"): Promise<string> {
     const cr = String(Date.now()).slice(-9) + Math.floor(Math.random() * 90);
-    const client = await request(app.getHttpServer()).post("/clients").set(auth(gm)).send({ type: "CORPORATE", name: "عميل إصدار", crNumber: cr });
+    const client = await request(app.getHttpServer()).post("/clients").set(auth(gm)).send({ type: "CORPORATE", name: "عميل إصدار", crNumber: cr, collectionModel });
     await request(app.getHttpServer()).post(`/clients/${client.body.id}/compliance`).set(auth(gm)).send({ decision: "APPROVED" });
     const req = await request(app.getHttpServer()).post("/requests").set(auth(gm)).send({
       clientId: client.body.id, productLineCode: "GMI",
@@ -127,6 +127,40 @@ describe("الإصدار والاعتماد المالي (e2e)", () => {
 
     // 8) لا يمكن إعادة الاعتماد المالي ⇒ 409
     await request(app.getHttpServer()).post(`/finance/policies/${policy.id}/approve`).set(auth(accountant)).expect(409);
+  });
+
+  it("#32 نموذج الدفع المباشر: ذمّة عمولة على المؤمِّن + لا أمانة + إشعار مدين بالرسوم فقط + قيد متوازن + لا يزيد المستحقّ للمؤمِّنين", async () => {
+    const srv = app.getHttpServer();
+    const trustBefore = (await request(srv).get("/finance/summary").set(auth(gm)).expect(200)).body.offBalanceTrust as number;
+
+    const requestId = await createAwardedRequest("direct");
+    const policy = (await request(srv).post("/policies/issue").set(auth(underwriter))
+      .send({ requestId, branchCode: "RUH", issuanceType: "POLICY", sumInsured: 500000, policyFees: 250 }).expect(201)).body;
+    await request(srv).post(`/policies/${policy.id}/approve-technical`).set(auth(underwriter)).expect(200);
+    const fin = (await request(srv).post(`/finance/policies/${policy.id}/approve`).set(auth(accountant)).expect(200)).body;
+    expect(fin.status).toBe("ISSUED");
+    expect(fin.collectionModel).toBe("direct"); // بُصِمت آلية العميل على الوثيقة
+    expect(fin.debitNote).toMatch(/^DN-/); // إشعار مدين بالرسوم فقط (fees=250) — لا قسط
+
+    const post = (await request(srv).get(`/finance/policies/${policy.id}/postings`).set(auth(accountant)).expect(200)).body;
+    const entries = post.voucher.lines.entries as Array<{ account: string; debit: number; credit: number }>;
+    const debit = entries.reduce((s, e) => s + Number(e.debit), 0);
+    const credit = entries.reduce((s, e) => s + Number(e.credit), 0);
+    expect(debit).toBeCloseTo(credit, 2); // القيد المزدوج متوازن
+
+    expect(entries.some((e) => e.account.startsWith("0202"))).toBe(false); // لا أمانات في الدفع المباشر
+    const commRecv = entries.find((e) => e.account.startsWith("0104")); // ذمّة عمولة على المؤمِّن
+    expect(commRecv).toBeTruthy();
+    expect(Number(commRecv!.debit)).toBeGreaterThan(0);
+    // إشعار العميل بالرسوم فقط (العميل يدفع القسط للمؤمِّن مباشرةً)
+    expect(Number(post.debitNote.netAmount)).toBe(250);
+    expect(Number(post.debitNote.vatAmount)).toBe(37.5);
+    // فاتورة عمولة على المؤمِّن قائمة في النموذجين
+    expect(Number(post.invoice.netAmount)).toBeGreaterThan(0);
+
+    // نظرة الأمانات لا تزيد بوثيقة الدفع المباشر (حارس الملخّص)
+    const trustAfter = (await request(srv).get("/finance/summary").set(auth(gm)).expect(200)).body.offBalanceTrust as number;
+    expect(trustAfter).toBeCloseTo(trustBefore, 2);
   });
 
   it("العزل: مستأجر الأمان لا يرى وثائق الخليج", async () => {

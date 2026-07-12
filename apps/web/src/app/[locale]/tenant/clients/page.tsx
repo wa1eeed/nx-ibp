@@ -69,6 +69,7 @@ export default function ClientsPage() {
   const [source, setSource] = useState("");
   const [producerName, setProducerName] = useState("");
   const [businessActivity, setBusinessActivity] = useState("");
+  const [collectionModel, setCollectionModel] = useState("collect_full"); // #32 آلية التحصيل الافتراضية للعميل
 
   const load = useCallback(async () => {
     const cs = await api<ClientRow[]>("/clients");
@@ -104,11 +105,12 @@ export default function ClientsPage() {
           source: source || undefined,
           producerName: source === "producer" ? (producerName || undefined) : undefined,
           businessActivity: businessActivity || undefined,
+          collectionModel,
         }),
       });
       setShowForm(false);
       setName(""); setCrNumber(""); setNationalId(""); setEmail(""); setCity("");
-      setNationalAddress(""); setVatNumber(""); setRelationStatus(""); setLegalForm(""); setSource(""); setProducerName(""); setBusinessActivity("");
+      setNationalAddress(""); setVatNumber(""); setRelationStatus(""); setLegalForm(""); setSource(""); setProducerName(""); setBusinessActivity(""); setCollectionModel("collect_full");
       await load();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "خطأ");
@@ -229,6 +231,14 @@ export default function ClientsPage() {
           </label>
           {source === "producer" ? <Field label="اسم الوسيط الفرعي" value={producerName} onChange={setProducerName} /> : null}
           <Field label="النشاط التجاري" value={businessActivity} onChange={setBusinessActivity} />
+          <label className="block">
+            <span className="mb-1 block text-[12px] font-medium text-muted">آلية التحصيل</span>
+            <select value={collectionModel} onChange={(e) => setCollectionModel(e.target.value)} className="h-9 w-full rounded-lg border border-line bg-card px-2 text-[13px]">
+              <option value="collect_full">تحصيل كامل القسط (أمانات)</option>
+              <option value="direct">العميل يدفع للمؤمِّن مباشرةً</option>
+            </select>
+            <span className="mt-1 block text-[10.5px] leading-tight text-subtle">{collectionModel === "direct" ? "الوسيط يُفوتر عمولته فقط على المؤمِّن — بلا أمانة ولا تسوية" : "الوسيط يُحصّل القسط كاملًا من العميل ويورّد أمانة المؤمِّن"}</span>
+          </label>
           <Field label="العنوان الوطني" value={nationalAddress} onChange={setNationalAddress} />
           <div className="flex items-end">
             <button type="submit" disabled={saving} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary-strong px-4 text-[13px] font-semibold text-primary-fg hover:bg-primary disabled:opacity-60">

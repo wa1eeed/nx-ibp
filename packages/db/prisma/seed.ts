@@ -336,6 +336,7 @@ const COA_TEMPLATE: Array<{ path: number[]; name: string; type: string; onBal: b
   { path: [1], name: "الأصول", type: "asset", onBal: true },
   { path: [1, 1], name: "الأصول المتداولة", type: "asset", onBal: true },
   { path: [1, 3], name: "ذمم العملاء المدينة", type: "asset", onBal: true },
+  { path: [1, 4], name: "ذمم عمولات على شركات التأمين", type: "asset", onBal: true }, // نموذج الدفع المباشر: عمولة تُحصَّل من المؤمِّن
   { path: [2], name: "الخصوم", type: "liability", onBal: true },
   { path: [2, 1], name: "ذمم شركات التأمين الدائنة", type: "liability", onBal: true },
   { path: [2, 2], name: "أمانات أقساط العملاء (خارج الميزانية)", type: "liability", onBal: false },

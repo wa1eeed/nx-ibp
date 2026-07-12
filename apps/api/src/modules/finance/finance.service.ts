@@ -342,7 +342,7 @@ export class FinanceService {
   async payables() {
     const DAY = 86_400_000;
     const [policies, settlements] = await Promise.all([
-      this.prisma.policy.findMany({ where: { status: "ISSUED" }, select: { insurerName: true, totalPremium: true, commissionAmount: true, issueDate: true, createdAt: true } }),
+      this.prisma.policy.findMany({ where: { status: "ISSUED" }, select: { insurerName: true, totalPremium: true, commissionAmount: true, collectionModel: true, issueDate: true, createdAt: true } }),
       this.prisma.voucher.findMany({ where: { type: "PYV" }, select: { amount: true, reference: true } }),
     ]);
     const settledBy = new Map<string, number>();
@@ -350,6 +350,7 @@ export class FinanceService {
     const now = Date.now();
     const byInsurer = new Map<string, { insurer: string; payable: number; count: number; b: [number, number, number, number] }>();
     for (const p of policies) {
+      if (p.collectionModel === "direct") continue; // دفع مباشر: الوسيط لم يحتجز قسطًا ⇒ لا أمانة ولا تسوية
       const key = p.insurerName ?? "—";
       const trust = r2(num(p.totalPremium) - num(p.commissionAmount) * 1.15); // أمانة المؤمِّن
       const days = (now - +(p.issueDate ?? p.createdAt)) / DAY;
@@ -414,8 +415,11 @@ export class FinanceService {
 
   /** ملخّص مالي: القسط المكتتب، العمولة، الأمانات (خارج الميزانية)، الذمم. */
   async summary() {
-    const [policyAgg, commissionAgg, invoiceAgg, debitAgg, creditAgg, vouchers] = await Promise.all([
+    // أساس الأمانات يستثني وثائق الدفع المباشر (لا يحتجز فيها الوسيط قسطًا). NULL = تحصيل كامل (توافق رجعي).
+    const trustWhere = { status: "ISSUED" as const, OR: [{ collectionModel: null }, { collectionModel: { not: "direct" } }] };
+    const [policyAgg, trustAgg, commissionAgg, invoiceAgg, debitAgg, creditAgg, vouchers] = await Promise.all([
       this.prisma.policy.aggregate({ where: { status: "ISSUED" }, _sum: { premium: true, vat: true, totalPremium: true, commissionAmount: true, policyFees: true } }),
+      this.prisma.policy.aggregate({ where: trustWhere, _sum: { totalPremium: true, commissionAmount: true } }),
       this.prisma.commission.aggregate({ _sum: { amount: true } }),
       this.prisma.invoice.aggregate({ _sum: { totalAmount: true }, _count: true }),
       this.prisma.debitNote.aggregate({ _sum: { netAmount: true, vatAmount: true, settledAmount: true } }),
@@ -428,6 +432,9 @@ export class FinanceService {
     const commissionVat = r2(commission * 0.15);
     const outputVatPayable = r2(commissionVat + serviceFees * 0.15); // ضريبة مخرجات الوسيط: عمولات + رسوم خدمة (تُورَّد لـ ZATCA)
     const creditsTotal = r2(num(creditAgg._sum.netAmount) + num(creditAgg._sum.vatAmount)); // إشعارات دائنة (قسط مُرتجَع للعملاء)
+    // أمانات المؤمِّنين على وثائق التحصيل الكامل فقط: القسط الإجمالي − العمولة − ضريبتها
+    const trustBase = num(trustAgg._sum.totalPremium);
+    const trustComm = num(trustAgg._sum.commissionAmount);
     return {
       grossPremium: total,
       netPremium: num(policyAgg._sum.premium),
@@ -435,7 +442,7 @@ export class FinanceService {
       commission: num(commissionAgg._sum.amount),
       serviceFees, // رسوم الخدمة/الإصدار المُفوترة على العملاء
       outputVatPayable, // ضريبة القيمة المضافة المستحقة (عمولات + رسوم)
-      offBalanceTrust: r2(total - commission - commissionVat), // أمانات أقساط العملاء (خارج الميزانية) — الرسوم ليست أمانة
+      offBalanceTrust: r2(trustBase - trustComm - trustComm * 0.15), // أمانات أقساط العملاء (تحصيل كامل فقط) — الرسوم ليست أمانة
       receivables: r2(num(debitAgg._sum.netAmount) + num(debitAgg._sum.vatAmount) - num(debitAgg._sum.settledAmount) - creditsTotal), // المتبقّي بعد التحصيل والإشعارات الدائنة
       collected: r2(num(debitAgg._sum.settledAmount)), // المُحصَّل من العملاء
       creditNotes: creditsTotal, // إجمالي الإشعارات الدائنة (قسط مُرتجَع)
@@ -454,8 +461,10 @@ export class FinanceService {
     // بداية الشهر قبل 5 أشهر (نافذة 6 أشهر شاملة الحالي)
     const windowStart = new Date(now.getFullYear(), now.getMonth() - 5, 1);
 
-    const [agg, policyCount, commRows, claimsAgg, debitAgg, creditAgg, trendRows] = await Promise.all([
+    const [agg, trustAgg, policyCount, commRows, claimsAgg, debitAgg, creditAgg, trendRows] = await Promise.all([
       this.prisma.policy.aggregate({ where: { status: "ISSUED" }, _sum: { premium: true, totalPremium: true, commissionAmount: true, policyFees: true, producerCommission: true } }),
+      // أساس الأمانات: وثائق التحصيل الكامل فقط (NULL = تحصيل كامل، توافق رجعي)
+      this.prisma.policy.aggregate({ where: { status: "ISSUED", OR: [{ collectionModel: null }, { collectionModel: { not: "direct" } }] }, _sum: { totalPremium: true, commissionAmount: true } }),
       this.prisma.policy.count({ where: { status: "ISSUED" } }),
       this.prisma.commission.groupBy({ by: ["status"], _sum: { amount: true, receivedAmount: true } }),
       this.prisma.claim.aggregate({ _sum: { settledAmount: true } }),
@@ -491,7 +500,10 @@ export class FinanceService {
     // الذمم على العملاء + أمانات الأقساط (خارج الميزانية)
     const creditsTotal = r2(num(creditAgg._sum.netAmount) + num(creditAgg._sum.vatAmount));
     const receivables = r2(num(debitAgg._sum.netAmount) + num(debitAgg._sum.vatAmount) - num(debitAgg._sum.settledAmount) - creditsTotal);
-    const trustToRemit = r2(num(agg._sum.totalPremium) - commissionIncome - commissionIncome * 0.15); // أمانات المؤمِّنين
+    // أمانات المؤمِّنين على وثائق التحصيل الكامل فقط (الدفع المباشر لا يُنشئ أمانة)
+    const trustPremium = num(trustAgg._sum.totalPremium);
+    const trustComm = num(trustAgg._sum.commissionAmount);
+    const trustToRemit = r2(trustPremium - trustComm - trustComm * 0.15);
 
     // ——— اتجاه صافي الدخل لآخر 6 أشهر ———
     const buckets = new Map<string, { revenue: number; expense: number }>();
@@ -568,52 +580,73 @@ export class FinanceService {
     const total = r2(premium + vat);
     const commission = Number(policy.commissionAmount ?? 0);
     const commVat = r2(commission * 0.15); // ضريبة القيمة المضافة على عمولة الوساطة (مخرجات الوسيط)
-    // الوسيط يحتفظ بعمولته + ضريبتها، ويحوّل الباقي (القسط + ضريبته − العمولة − ضريبتها) أمانةً للمؤمِّن.
-    const trust = r2(total - commission - commVat); // أمانات أقساط العملاء (خارج الميزانية)
     // رسوم الخدمة/الإصدار = إيراد الوسيط الخاص (خدمة خاضعة دائماً للضريبة القياسية 15%، فئة "S")، مستقلّة عن أمانة القسط.
     const fees = r2(Number(policy.policyFees ?? 0));
     const feesVat = r2(fees * 0.15);
     const feesTotal = r2(fees + feesVat);
 
+    // بيانات العميل (تشمل آلية التحصيل الافتراضية) + وجود تهيئة ZATCA
+    const client = policy.clientId
+      ? await this.prisma.client.findFirst({ where: { id: policy.clientId }, select: { name: true, type: true, crNumber: true, nationalId: true, city: true, collectionModel: true } })
+      : null;
+    // #32 — النموذج الفعلي = تجاوز الوثيقة ?? افتراضي العميل ?? «تحصيل كامل». يُبصَم على الوثيقة (مصدر الحقيقة).
+    const model = policy.collectionModel ?? client?.collectionModel ?? "collect_full";
+    const isDirect = model === "direct";
+    // أمانة المؤمِّن: في المباشر لا يحتجز الوسيط قسطًا (=0)؛ وإلا (القسط + ضريبته − العمولة − ضريبتها).
+    const trust = isDirect ? 0 : r2(total - commission - commVat);
+    // ذمّة العميل: في المباشر يدين بالرسوم فقط (العميل يدفع القسط للمؤمِّن مباشرةً)؛ وإلا القسط + الرسوم.
+    const clientDebitNet = isDirect ? fees : r2(premium + fees);
+    const clientDebitVat = isDirect ? feesVat : r2(vat + feesVat);
+    const needsClientDoc = clientDebitNet > 0 || clientDebitVat > 0; // لا مستند للعميل في المباشر بلا رسوم
+
     const voucherSeq = await this.seq.nextVoucherSeq("JRV");
-    const debitSeq = await this.seq.nextNoteSeq("DN");
+    const debitSeq = needsClientDoc ? await this.seq.nextNoteSeq("DN") : null;
     const invoiceSeq = await this.seq.nextInvoiceSeq();
     // فاتورة الرسوم رقمها يلي فاتورة العمولة (كلاهما يُنشأ في المعاملة نفسها قبل تحديث العدّاد)
     const feesInvoiceSeq = fees > 0 ? invoiceSeq.replace(/(\d+)$/, (m) => String(Number(m) + 1)) : null;
 
-    // بيانات العميل + وجود تهيئة ZATCA (لتوليد مستندات الفوترة المتوافقة)
-    const client = policy.clientId
-      ? await this.prisma.client.findFirst({ where: { id: policy.clientId }, select: { name: true, type: true, crNumber: true, nationalId: true, city: true } })
-      : null;
     const hasZatca = await this.prisma.tenantZatcaConfig.findFirst({ where: { tenantId }, select: { id: true } });
     const supplyDate = policy.startDate ? policy.startDate.toISOString().slice(0, 10) : null;
 
     const result = await this.prisma.$transaction(async (tx) => {
-      // 1) قيد يومية (JRV) — مدين = دائن. الرسوم إيراد للوسيط (04020) + ضريبتها، والعميل مدين بها.
-      const jrvEntries = [
-        { account: "01030000000000000", name: "ذمم العملاء المدينة", debit: r2(total + feesTotal), credit: 0 },
-        { account: "02020000000000000", name: "أمانات أقساط العملاء (Off-Balance)", debit: 0, credit: trust },
-        { account: "04010000000000000", name: "عمولات الوساطة", debit: 0, credit: commission },
-        { account: "02030000000000000", name: "ضريبة القيمة المضافة المستحقة (Output VAT)", debit: 0, credit: r2(commVat + feesVat) },
-      ];
-      if (fees > 0) jrvEntries.push({ account: "04020000000000000", name: "رسوم خدمات وإصدار الوثائق", debit: 0, credit: fees });
+      // 1) قيد يومية (JRV) — مدين = دائن. يتفرّع حسب آلية التحصيل:
+      //   • تحصيل كامل: العميل مدين بالقسط+الرسوم، والوسيط يحتجز أمانة المؤمِّن.
+      //   • مباشر: العميل يدفع القسط للمؤمِّن؛ الوسيط له ذمّة عمولة على المؤمِّن، والعميل مدين بالرسوم فقط.
+      const jrvEntries = isDirect
+        ? [
+            { account: "01040000000000000", name: "ذمم عمولات على شركات التأمين", debit: r2(commission + commVat), credit: 0 },
+            ...(feesTotal > 0 ? [{ account: "01030000000000000", name: "ذمم العملاء المدينة", debit: feesTotal, credit: 0 }] : []),
+            { account: "04010000000000000", name: "عمولات الوساطة", debit: 0, credit: commission },
+            { account: "02030000000000000", name: "ضريبة القيمة المضافة المستحقة (Output VAT)", debit: 0, credit: r2(commVat + feesVat) },
+            ...(fees > 0 ? [{ account: "04020000000000000", name: "رسوم خدمات وإصدار الوثائق", debit: 0, credit: fees }] : []),
+          ]
+        : [
+            { account: "01030000000000000", name: "ذمم العملاء المدينة", debit: r2(total + feesTotal), credit: 0 },
+            { account: "02020000000000000", name: "أمانات أقساط العملاء (Off-Balance)", debit: 0, credit: trust },
+            { account: "04010000000000000", name: "عمولات الوساطة", debit: 0, credit: commission },
+            { account: "02030000000000000", name: "ضريبة القيمة المضافة المستحقة (Output VAT)", debit: 0, credit: r2(commVat + feesVat) },
+            ...(fees > 0 ? [{ account: "04020000000000000", name: "رسوم خدمات وإصدار الوثائق", debit: 0, credit: fees }] : []),
+          ];
+      const voucherAmount = isDirect ? r2(commission + commVat + feesTotal) : r2(total + feesTotal);
       const voucher = await tx.voucher.create({
         data: {
           tenantId,
           type: "JRV",
           sequenceNo: voucherSeq,
-          amount: r2(total + feesTotal),
+          amount: voucherAmount,
           status: "posted",
           isAuto: true,
           reference: policy.id,
-          lines: asJson({ description: `إصدار الوثيقة ${policy.sequenceNo}`, entries: jrvEntries }),
+          lines: asJson({ description: `إصدار الوثيقة ${policy.sequenceNo} (${isDirect ? "دفع مباشر" : "تحصيل كامل"})`, entries: jrvEntries }),
         },
       });
 
-      // 2) إشعار مدين للعميل (قسط + ضريبته + رسوم الخدمة + ضريبتها) — مطالبة واحدة قابلة للتحصيل
-      const debitNote = await tx.debitNote.create({
-        data: { tenantId, sequenceNo: debitSeq, clientId: policy.clientId, policyId: policy.id, netAmount: r2(premium + fees), vatAmount: r2(vat + feesVat) },
-      });
+      // 2) إشعار مدين للعميل — في المباشر بالرسوم فقط (إن وُجدت)؛ وفي الكامل بالقسط+الرسوم. لا يُنشأ في المباشر بلا رسوم.
+      const debitNote = needsClientDoc
+        ? await tx.debitNote.create({
+            data: { tenantId, sequenceNo: debitSeq!, clientId: policy.clientId, policyId: policy.id, netAmount: clientDebitNet, vatAmount: clientDebitVat },
+          })
+        : null;
 
       // 3) فاتورة ضريبية لشركة التأمين (العمولة + ضريبتها)
       const invoice = await tx.invoice.create({
@@ -672,15 +705,20 @@ export class FinanceService {
       const billing: string[] = [];
       if (hasZatca) {
         const subtype = client?.type === "INDIVIDUAL" ? ("SIMPLIFIED_B2C" as const) : ("STANDARD_B2B" as const);
-        const dnLines = [{ description: policy.productLineCode ?? "قسط تأمين", quantity: 1, unitPrice: premium, vatRate: treatment.rate, vatAmount: vat, net: premium, taxCategory: treatment.category, exemptionReasonCode: treatment.exemptionReasonCode, exemptionReason: treatment.exemptionReason }];
-        // رسوم الخدمة/الإصدار سطر مستقل خاضع للضريبة القياسية 15% (فئة "S") — مستند العميل يطابق إشعار المدين
-        if (fees > 0) dnLines.push({ description: "رسوم خدمة وإصدار", quantity: 1, unitPrice: fees, vatRate: 15, vatAmount: feesVat, net: fees, taxCategory: "S", exemptionReasonCode: undefined, exemptionReason: undefined });
-        const dn = await this.zatcaBilling.createInTx(tx, tenantId, {
-          documentType: "DEBIT_NOTE", subtype, clientId: policy.clientId, policyId: policy.id,
-          customer: { name: client?.name, crOrId: client?.crNumber ?? client?.nationalId, address: client?.city },
-          lines: dnLines,
-          supplyDate,
-        });
+        // مستند العميل: في الكامل يشمل القسط؛ وفي المباشر لا قسط (يدفعه للمؤمِّن) — الرسوم فقط إن وُجدت.
+        const dnLines: Array<{ description: string; quantity: number; unitPrice: number; vatRate: number; vatAmount: number; net: number; taxCategory: "S" | "E" | "Z" | "O"; exemptionReasonCode?: string; exemptionReason?: string }> = [];
+        if (!isDirect) dnLines.push({ description: policy.productLineCode ?? "قسط تأمين", quantity: 1, unitPrice: premium, vatRate: treatment.rate, vatAmount: vat, net: premium, taxCategory: treatment.category, exemptionReasonCode: treatment.exemptionReasonCode, exemptionReason: treatment.exemptionReason });
+        if (fees > 0) dnLines.push({ description: "رسوم خدمة وإصدار", quantity: 1, unitPrice: fees, vatRate: 15, vatAmount: feesVat, net: fees, taxCategory: "S" });
+        if (dnLines.length) {
+          const dn = await this.zatcaBilling.createInTx(tx, tenantId, {
+            documentType: "DEBIT_NOTE", subtype, clientId: policy.clientId, policyId: policy.id,
+            customer: { name: client?.name, crOrId: client?.crNumber ?? client?.nationalId, address: client?.city },
+            lines: dnLines,
+            supplyDate,
+          });
+          billing.push(dn.id);
+        }
+        // فاتورة عمولة المؤمِّن — في النموذجين (الوسيط يُفوتر العمولة دائمًا)
         const inv = await this.zatcaBilling.createInTx(tx, tenantId, {
           documentType: "TAX_INVOICE", subtype: "STANDARD_B2B", clientId: policy.clientId, policyId: policy.id,
           customer: { name: policy.insurerName },
@@ -688,14 +726,14 @@ export class FinanceService {
           lines: [{ description: "عمولة وساطة", quantity: 1, unitPrice: commission, vatRate: 15, vatAmount: commVat, net: commission, taxCategory: "S" }],
           supplyDate,
         });
-        billing.push(dn.id, inv.id);
+        billing.push(inv.id);
       }
 
-      // 6) تحديث الحالات ⇒ الوثيقة والطلب ISSUED
-      await tx.policy.update({ where: { id: policyId }, data: { status: "ISSUED" } });
+      // 6) تحديث الحالات + بصمة آلية التحصيل على الوثيقة (مصدر الحقيقة) ⇒ ISSUED
+      await tx.policy.update({ where: { id: policyId }, data: { status: "ISSUED", collectionModel: model } });
       if (policy.requestId) await tx.policyRequest.update({ where: { id: policy.requestId }, data: { status: "ISSUED" } });
 
-      return { voucher: voucher.sequenceNo, debitNote: debitNote.sequenceNo, invoice: invoice.sequenceNo, feesInvoice: feesInvoice?.sequenceNo ?? null, billing };
+      return { voucher: voucher.sequenceNo, debitNote: debitNote?.sequenceNo ?? null, invoice: invoice.sequenceNo, feesInvoice: feesInvoice?.sequenceNo ?? null, billing, model };
     });
 
     await this.audit.log({ tenantId, userId, action: "approve", entity: "policy_finance", entityId: policyId, meta: { voucher: result.voucher, debitNote: result.debitNote, invoice: result.invoice, feesInvoice: result.feesInvoice } });
@@ -705,14 +743,14 @@ export class FinanceService {
       await this.zatcaRouter.route(docId).catch((e) => this.logger.warn(`ZATCA routing failed for ${docId}: ${e?.message}`));
     }
 
-    // إشعار العميل بإصدار إشعار المدين (لا يُفشل الاعتماد المالي عند تعذّره)
-    if (policy.clientId) {
+    // إشعار العميل بإصدار إشعار المدين (لا يُفشل الاعتماد المالي عند تعذّره) — فقط عند وجود إشعار مدين
+    if (policy.clientId && result.debitNote) {
       const contact = await this.prisma.client.findFirst({ where: { id: policy.clientId }, select: { email: true, phone: true } });
       if (contact) void this.notifications.notify(tenantId, "debit_note", { email: contact.email ?? undefined, phone: contact.phone ?? undefined, clientId: policy.clientId }, { ref: String(result.debitNote) }).catch(() => undefined);
     }
     // إشعار داخلي باكتمال إصدار الوثيقة
     void this.notifications.notifyStaff(tenantId, "staff_policy_issued", { sequenceNo: policy.sequenceNo ?? policyId }).catch(() => undefined);
 
-    return { policyId, status: "ISSUED", voucher: result.voucher, debitNote: result.debitNote, invoice: result.invoice, feesInvoice: result.feesInvoice, serviceFees: fees, billingDocuments: result.billing.length };
+    return { policyId, status: "ISSUED", collectionModel: result.model, voucher: result.voucher, debitNote: result.debitNote, invoice: result.invoice, feesInvoice: result.feesInvoice, serviceFees: fees, billingDocuments: result.billing.length };
   }
 }

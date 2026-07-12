@@ -31,6 +31,7 @@ export class CreateClientDto {
   @IsOptional() @IsString() producerName?: string;
   @IsOptional() @IsString() businessActivity?: string;
   @IsOptional() @IsString() iban?: string;
+  @IsOptional() @IsIn(["collect_full", "direct"]) collectionModel?: string; // آلية التحصيل الافتراضية لوثائقه
   @IsOptional() @IsString() accountManagerId?: string; // مدير الحساب المُعيَّن
 
   @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => ClientContactDto)

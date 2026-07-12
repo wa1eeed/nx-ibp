@@ -28,6 +28,7 @@ const CLIENT_FIELDS = {
   producerName: true,
   businessActivity: true,
   iban: true,
+  collectionModel: true,
   contacts: true,
   status: true,
   complianceStatus: true,
@@ -137,6 +138,7 @@ export class ClientsService {
           producerName: dto.producerName ?? null,
           businessActivity: dto.businessActivity ?? null,
           iban: dto.iban ?? null,
+          collectionModel: dto.collectionModel ?? undefined, // الافتراضي «collect_full» من المخطّط
           accountManagerId: dto.accountManagerId ?? null,
           contacts: dto.contacts ? (dto.contacts as unknown as Prisma.InputJsonValue) : undefined,
           // يبدأ بانتظار اعتماد الالتزام قبل السماح بطلب الأسعار
