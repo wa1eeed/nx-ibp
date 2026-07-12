@@ -44,6 +44,12 @@ export class FinanceController {
   }
 
   @Authorize({ module: "finance", action: "read", entitlement: "module.finance" })
+  @Get("overview")
+  overview() {
+    return this.finance.overview();
+  }
+
+  @Authorize({ module: "finance", action: "read", entitlement: "module.finance" })
   @Get("coa")
   coa() {
     return this.finance.coa();

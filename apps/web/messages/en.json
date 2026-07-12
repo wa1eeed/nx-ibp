@@ -335,7 +335,36 @@
       "coa": "Chart of accounts",
       "invoices": "Tax invoices",
       "payables": "Insurer payables",
-      "trial": "Trial balance"
+      "trial": "Trial balance",
+      "overview": "Overview"
+    },
+    "overview": {
+      "incomeStatement": "Income statement",
+      "incomeStatementSub": "Brokerage income on accrual basis (earned at policy issuance)",
+      "commissionIncome": "Brokerage commission (from insurers)",
+      "serviceFees": "Service fees (on clients)",
+      "totalRevenue": "Total revenue",
+      "subBrokerCommission": "Sub-broker commissions",
+      "netIncome": "Net brokerage income",
+      "netMargin": "Net margin",
+      "vatNote": "Note: VAT is not revenue — it is collected on behalf of ZATCA and remitted to it, so it is excluded from the income statement.",
+      "gwp": "Gross written premium",
+      "gwpSub": "Total policy premiums (throughput, not income)",
+      "policyCount": "Active policies",
+      "avgIncome": "Avg income/policy: {v}",
+      "effectiveRate": "Effective commission rate",
+      "effectiveRateSub": "Commission ÷ net premium",
+      "commissionCollected": "Commission collection",
+      "outstanding": "Outstanding: {v}",
+      "receivables": "Receivables",
+      "receivablesSub": "Due from clients (uncollected)",
+      "trust": "Insurer trust funds",
+      "trustSub": "Collected premiums to remit to insurers",
+      "lossRatio": "Loss ratio",
+      "lossRatioSub": "Settled claims ÷ net premium",
+      "trend": "Net income trend — last 6 months",
+      "revenue": "Revenue",
+      "net": "Net income"
     }
   },
   "producers": {

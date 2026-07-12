@@ -250,4 +250,27 @@ describe("الإصدار والاعتماد المالي (e2e)", () => {
     // فاتورة مجهولة ⇒ 404
     await request(srv).get("/finance/invoices/nope-xyz/document").set(auth(gm)).expect(404);
   });
+
+  it("نظرة المالك: قائمة دخل متّسقة (صافي = إيراد − عمولات فرعيين) + اتجاه 6 أشهر + عزل", async () => {
+    const srv = app.getHttpServer();
+    // مدير المبيعات (لا finance) ممنوع
+    await request(srv).get("/finance/overview").set(auth(sales)).expect(403);
+
+    const ov = (await request(srv).get("/finance/overview").set(auth(accountant)).expect(200)).body;
+    // اتّساق قائمة الدخل
+    expect(ov.incomeStatement.totalRevenue).toBe(Number((ov.incomeStatement.commissionIncome + ov.incomeStatement.serviceFees).toFixed(2)));
+    expect(ov.incomeStatement.netIncome).toBe(Number((ov.incomeStatement.totalRevenue - ov.incomeStatement.subBrokerCommission).toFixed(2)));
+    // إصدار وثائق سابقًا ⇒ إيراد موجب
+    expect(ov.incomeStatement.commissionIncome).toBeGreaterThan(0);
+    expect(ov.health.policyCount).toBeGreaterThan(0);
+    // اتجاه من 6 أشهر بالضبط
+    expect(Array.isArray(ov.trend)).toBe(true);
+    expect(ov.trend).toHaveLength(6);
+    // ضريبة القيمة المضافة ليست ضمن الإيراد (صافي القسط أكبر من العمولة عادةً؛ نتحقّق أن الإيراد ليس القسط الإجمالي)
+    expect(ov.incomeStatement.totalRevenue).toBeLessThan(ov.health.gwp);
+
+    // العزل: مستأجر الأمان لا يرى إنتاج الخليج في نظرته (نظرة مختلفة/معزولة)
+    const amanOv = (await request(srv).get("/finance/overview").set(auth(amanGm)).expect(200)).body;
+    expect(amanOv.health.gwp).not.toBe(ov.health.gwp);
+  });
 });

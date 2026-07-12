@@ -419,6 +419,90 @@ export class FinanceService {
     };
   }
 
+  /**
+   * نظرة المالك المالية: قائمة دخل مبسّطة (أساس الاستحقاق) + مؤشّرات صحة الأعمال + اتجاه 6 أشهر.
+   * دخل الوساطة = عمولات (من المؤمِّنين) + رسوم خدمة (على العملاء) − عمولات الوسطاء الفرعيين.
+   * ملاحظة: ضريبة القيمة المضافة **ليست** إيرادًا/مصروفًا (تمرّ للهيئة) فتُستبعد من القائمة.
+   */
+  async overview() {
+    const now = new Date();
+    // بداية الشهر قبل 5 أشهر (نافذة 6 أشهر شاملة الحالي)
+    const windowStart = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+
+    const [agg, policyCount, commRows, claimsAgg, debitAgg, creditAgg, trendRows] = await Promise.all([
+      this.prisma.policy.aggregate({ where: { status: "ISSUED" }, _sum: { premium: true, totalPremium: true, commissionAmount: true, policyFees: true, producerCommission: true } }),
+      this.prisma.policy.count({ where: { status: "ISSUED" } }),
+      this.prisma.commission.groupBy({ by: ["status"], _sum: { amount: true, receivedAmount: true } }),
+      this.prisma.claim.aggregate({ _sum: { settledAmount: true } }),
+      this.prisma.debitNote.aggregate({ _sum: { netAmount: true, vatAmount: true, settledAmount: true } }),
+      this.prisma.creditNote.aggregate({ where: { clientId: { not: null } }, _sum: { netAmount: true, vatAmount: true } }),
+      this.prisma.policy.findMany({
+        where: { status: "ISSUED", issueDate: { gte: windowStart } },
+        select: { issueDate: true, createdAt: true, commissionAmount: true, policyFees: true, producerCommission: true },
+      }),
+    ]);
+
+    // ——— قائمة الدخل (أساس الاستحقاق: يُكتسب عند الإصدار) ———
+    const commissionIncome = r2(num(agg._sum.commissionAmount));
+    const serviceFees = r2(num(agg._sum.policyFees));
+    const subBrokerCommission = r2(num(agg._sum.producerCommission)); // مصروف مباشر (عمولات الوسطاء الفرعيين)
+    const totalRevenue = r2(commissionIncome + serviceFees);
+    const netIncome = r2(totalRevenue - subBrokerCommission);
+    const netMargin = totalRevenue > 0 ? Math.round((netIncome / totalRevenue) * 1000) / 10 : 0;
+
+    // ——— مؤشّرات صحة الأعمال ———
+    const gwp = r2(num(agg._sum.totalPremium)); // إجمالي القسط المُدار (تدفّق، ليس إيرادًا)
+    const netPremium = num(agg._sum.premium);
+    const effectiveCommissionRate = netPremium > 0 ? Math.round((commissionIncome / netPremium) * 1000) / 10 : 0;
+    const avgIncomePerPolicy = policyCount > 0 ? r2(netIncome / policyCount) : 0;
+    const settledClaims = r2(num(claimsAgg._sum.settledAmount));
+    const lossRatio = netPremium > 0 ? Math.round((settledClaims / netPremium) * 1000) / 10 : 0;
+
+    // تحصيل العمولات من المؤمِّنين (نقدي): المُستلَم مقابل الإجمالي
+    const commissionTotal = r2(commRows.reduce((s, r) => s + num(r._sum.amount), 0));
+    const commissionReceived = r2(commRows.reduce((s, r) => s + num(r._sum.receivedAmount), 0));
+    const commissionCollectedPct = commissionTotal > 0 ? Math.round((commissionReceived / commissionTotal) * 100) : 0;
+
+    // الذمم على العملاء + أمانات الأقساط (خارج الميزانية)
+    const creditsTotal = r2(num(creditAgg._sum.netAmount) + num(creditAgg._sum.vatAmount));
+    const receivables = r2(num(debitAgg._sum.netAmount) + num(debitAgg._sum.vatAmount) - num(debitAgg._sum.settledAmount) - creditsTotal);
+    const trustToRemit = r2(num(agg._sum.totalPremium) - commissionIncome - commissionIncome * 0.15); // أمانات المؤمِّنين
+
+    // ——— اتجاه صافي الدخل لآخر 6 أشهر ———
+    const buckets = new Map<string, { revenue: number; expense: number }>();
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      buckets.set(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`, { revenue: 0, expense: 0 });
+    }
+    for (const p of trendRows) {
+      const d = p.issueDate ?? p.createdAt;
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      const b = buckets.get(key);
+      if (!b) continue;
+      b.revenue += num(p.commissionAmount) + num(p.policyFees);
+      b.expense += num(p.producerCommission);
+    }
+    const trend = Array.from(buckets.entries()).map(([month, b]) => ({ month, revenue: r2(b.revenue), expense: r2(b.expense), net: r2(b.revenue - b.expense) }));
+
+    return {
+      incomeStatement: { commissionIncome, serviceFees, totalRevenue, subBrokerCommission, netIncome, netMargin },
+      health: {
+        gwp,
+        policyCount,
+        effectiveCommissionRate,
+        avgIncomePerPolicy,
+        commissionCollectedPct,
+        commissionReceived,
+        commissionOutstanding: r2(commissionTotal - commissionReceived),
+        receivables,
+        trustToRemit,
+        lossRatio,
+        settledClaims,
+      },
+      trend,
+    };
+  }
+
   async postings(policyId: string) {
     const [voucher, debitNote, invoices, creditNotes] = await Promise.all([
       this.prisma.voucher.findFirst({ where: { reference: policyId } }),

@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useCallback, useEffect, useState } from "react";
-import { Landmark, Wallet2, ShieldCheck, FileText, QrCode, Building2, Scale, Banknote, X, Check, Printer } from "lucide-react";
+import { Landmark, Wallet2, ShieldCheck, FileText, QrCode, Building2, Scale, Banknote, X, Check, Printer, LineChart, Users, Percent, Coins, AlertTriangle } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
 import { api, ApiError } from "@/lib/api";
@@ -10,9 +10,14 @@ import { StatCard } from "@/components/ui/StatCard";
 import { Badge } from "@/components/ui/Badge";
 import { usePaged, Pagination } from "@/components/ui/Pagination";
 
-type FinanceTab = "coa" | "invoices" | "payables" | "trial";
+type FinanceTab = "overview" | "coa" | "invoices" | "payables" | "trial";
 
 interface Summary { grossPremium: number; netPremium: number; vat: number; commission: number; serviceFees: number; offBalanceTrust: number; receivables: number; collected: number; invoiceCount: number; voucherCount: number }
+interface Overview {
+  incomeStatement: { commissionIncome: number; serviceFees: number; totalRevenue: number; subBrokerCommission: number; netIncome: number; netMargin: number };
+  health: { gwp: number; policyCount: number; effectiveCommissionRate: number; avgIncomePerPolicy: number; commissionCollectedPct: number; commissionReceived: number; commissionOutstanding: number; receivables: number; trustToRemit: number; lossRatio: number; settledClaims: number };
+  trend: Array<{ month: string; revenue: number; expense: number; net: number }>;
+}
 interface Coa { id: string; code: string; name: string; level: number; isOnBalance: boolean; isLocked: boolean; accountType: string | null }
 interface Invoice { id: string; sequenceNo: string | null; kind: string; party: string; insurerName: string | null; netAmount: string | null; vatAmount: string | null; totalAmount: string | null; status: string | null; zatca: { qr: string; uuid: string; hash: string } }
 interface PayRow { insurer: string; payable: number; settled: number; outstanding: number; count: number }
@@ -23,6 +28,7 @@ interface Trial { rows: TrialRow[]; totals: { debit: number; credit: number; bal
 export default function FinancePage() {
   const t = useTranslations();
   const [s, setS] = useState<Summary | null>(null);
+  const [ov, setOv] = useState<Overview | null>(null);
   const [coa, setCoa] = useState<Coa[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [pay, setPay] = useState<Payables | null>(null);
@@ -30,10 +36,11 @@ export default function FinancePage() {
   const [settle, setSettle] = useState<PayRow | null>(null);
   const [done, setDone] = useState("");
   const [open, setOpen] = useState("");
-  const [tab, setTab] = useState<FinanceTab>("coa");
+  const [tab, setTab] = useState<FinanceTab>("overview");
 
   const load = useCallback(() => {
     void api<Summary>("/finance/summary").then(setS).catch(() => undefined);
+    void api<Overview>("/finance/overview").then(setOv).catch(() => undefined);
     void api<Coa[]>("/finance/coa").then(setCoa).catch(() => undefined);
     void api<Invoice[]>("/finance/invoices").then(setInvoices).catch(() => undefined);
     void api<Payables>("/finance/payables").then(setPay).catch(() => undefined);
@@ -49,7 +56,8 @@ export default function FinancePage() {
 
   const fmt = (n: string | number | null) => (n == null ? "—" : Number(n).toLocaleString("en-US"));
 
-  const TABS: Array<{ key: FinanceTab; icon: typeof Landmark; label: string; count: number }> = [
+  const TABS: Array<{ key: FinanceTab; icon: typeof Landmark; label: string; count: number | null }> = [
+    { key: "overview", icon: LineChart, label: t("finance.tab.overview"), count: null },
     { key: "coa", icon: Landmark, label: t("finance.tab.coa"), count: coa.length },
     { key: "invoices", icon: QrCode, label: t("finance.tab.invoices"), count: invoices.length },
     { key: "payables", icon: Building2, label: t("finance.tab.payables"), count: pay?.rows.length ?? 0 },
@@ -77,13 +85,127 @@ export default function FinancePage() {
               className={`inline-flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-xl px-3 py-2.5 text-[13px] font-semibold transition-colors ${active ? "bg-primary-strong text-primary-fg shadow-sm" : "text-muted hover:bg-surface-2 hover:text-ink"}`}>
               <Icon size={16} />
               <span>{tb.label}</span>
-              <span className={`hidden rounded-full px-1.5 py-0.5 text-[10.5px] tnum sm:inline ${active ? "bg-white/20 text-primary-fg" : "bg-surface-2 text-subtle"}`}>{tb.count}</span>
+              {tb.count != null ? <span className={`hidden rounded-full px-1.5 py-0.5 text-[10.5px] tnum sm:inline ${active ? "bg-white/20 text-primary-fg" : "bg-surface-2 text-subtle"}`}>{tb.count}</span> : null}
             </button>
           );
         })}
       </div>
 
       {done ? <p className="rounded-lg bg-success-soft px-3 py-2 text-[12.5px] font-medium text-success">{done}</p> : null}
+
+      {/* نظرة المالك: قائمة الدخل + صحة الأعمال + اتجاه 6 أشهر */}
+      {tab === "overview" ? (
+        !ov ? (
+          <div className="rounded-card border border-line bg-card p-8 text-center text-[13px] text-muted shadow-card">…</div>
+        ) : (
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+          {/* قائمة الدخل المبسّطة */}
+          <section className="overflow-hidden rounded-card border border-line bg-card shadow-card lg:col-span-1">
+            <div className="border-b border-line px-5 py-3.5">
+              <h2 className="text-[15px] font-semibold text-ink">{t("finance.overview.incomeStatement")}</h2>
+              <p className="text-[12px] text-subtle">{t("finance.overview.incomeStatementSub")}</p>
+            </div>
+            <div className="divide-y divide-line px-5 text-[13px]">
+              <div className="flex items-center justify-between py-2.5">
+                <span className="text-muted">{t("finance.overview.commissionIncome")}</span>
+                <span className="tnum font-semibold text-ink">{fmt(ov.incomeStatement.commissionIncome)}</span>
+              </div>
+              <div className="flex items-center justify-between py-2.5">
+                <span className="text-muted">{t("finance.overview.serviceFees")}</span>
+                <span className="tnum font-semibold text-ink">{fmt(ov.incomeStatement.serviceFees)}</span>
+              </div>
+              <div className="flex items-center justify-between py-2.5">
+                <span className="font-medium text-ink">{t("finance.overview.totalRevenue")}</span>
+                <span className="tnum font-bold text-ink">{fmt(ov.incomeStatement.totalRevenue)}</span>
+              </div>
+              <div className="flex items-center justify-between py-2.5">
+                <span className="text-muted">− {t("finance.overview.subBrokerCommission")}</span>
+                <span className="tnum font-semibold text-danger">{fmt(ov.incomeStatement.subBrokerCommission)}</span>
+              </div>
+            </div>
+            <div className="flex items-center justify-between bg-primary/5 px-5 py-3.5">
+              <div>
+                <div className="text-[13px] font-semibold text-primary">{t("finance.overview.netIncome")}</div>
+                <div className="text-[11px] text-subtle">{t("finance.overview.netMargin")}: <span className="tnum">{ov.incomeStatement.netMargin}%</span></div>
+              </div>
+              <span className="tnum text-[20px] font-extrabold text-ink">{fmt(ov.incomeStatement.netIncome)}</span>
+            </div>
+            <p className="border-t border-line px-5 py-2 text-[10.5px] leading-relaxed text-subtle">{t("finance.overview.vatNote")}</p>
+          </section>
+
+          {/* صحة الأعمال + الاتجاه */}
+          <div className="space-y-5 lg:col-span-2">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {[
+                { icon: <Landmark size={15} />, label: t("finance.overview.gwp"), value: fmt(ov.health.gwp), sub: t("finance.overview.gwpSub") },
+                { icon: <Users size={15} />, label: t("finance.overview.policyCount"), value: ov.health.policyCount.toLocaleString("en-US"), sub: t("finance.overview.avgIncome", { v: fmt(ov.health.avgIncomePerPolicy) }) },
+                { icon: <Percent size={15} />, label: t("finance.overview.effectiveRate"), value: `${ov.health.effectiveCommissionRate}%`, sub: t("finance.overview.effectiveRateSub") },
+                { icon: <Coins size={15} />, label: t("finance.overview.commissionCollected"), value: `${ov.health.commissionCollectedPct}%`, sub: t("finance.overview.outstanding", { v: fmt(ov.health.commissionOutstanding) }) },
+              ].map((k, i) => (
+                <div key={i} className="rounded-card border border-line bg-card p-3.5 shadow-card">
+                  <div className="mb-1 flex items-center gap-1.5 text-subtle">{k.icon}<span className="text-[11px] font-medium">{k.label}</span></div>
+                  <div className="tnum text-[19px] font-bold text-ink">{k.value}</div>
+                  <div className="text-[10.5px] text-subtle">{k.sub}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* مؤشّرات إضافية: الذمم · الأمانات · نسبة الخسارة */}
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div className="rounded-card border border-line bg-card p-3.5 shadow-card">
+                <div className="mb-1 flex items-center gap-1.5 text-warning"><FileText size={15} /><span className="text-[11px] font-medium text-subtle">{t("finance.overview.receivables")}</span></div>
+                <div className="tnum text-[17px] font-bold text-ink">{fmt(ov.health.receivables)}</div>
+                <div className="text-[10.5px] text-subtle">{t("finance.overview.receivablesSub")}</div>
+              </div>
+              <div className="rounded-card border border-line bg-card p-3.5 shadow-card">
+                <div className="mb-1 flex items-center gap-1.5 text-info"><ShieldCheck size={15} /><span className="text-[11px] font-medium text-subtle">{t("finance.overview.trust")}</span></div>
+                <div className="tnum text-[17px] font-bold text-ink">{fmt(ov.health.trustToRemit)}</div>
+                <div className="text-[10.5px] text-subtle">{t("finance.overview.trustSub")}</div>
+              </div>
+              <div className="rounded-card border border-line bg-card p-3.5 shadow-card">
+                <div className="mb-1 flex items-center gap-1.5 text-subtle">
+                  {ov.health.lossRatio > 70 ? <AlertTriangle size={15} className="text-danger" /> : <ShieldCheck size={15} className="text-success" />}
+                  <span className="text-[11px] font-medium">{t("finance.overview.lossRatio")}</span>
+                </div>
+                <div className={`tnum text-[17px] font-bold ${ov.health.lossRatio > 70 ? "text-danger" : "text-ink"}`}>{ov.health.lossRatio}%</div>
+                <div className="text-[10.5px] text-subtle">{t("finance.overview.lossRatioSub")}</div>
+              </div>
+            </div>
+
+            {/* اتجاه صافي الدخل — آخر 6 أشهر */}
+            <section className="rounded-card border border-line bg-card p-4 shadow-card">
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="flex items-center gap-1.5 text-[13.5px] font-semibold text-ink"><LineChart size={15} className="text-primary" /> {t("finance.overview.trend")}</h3>
+                <div className="flex items-center gap-3 text-[10.5px] text-subtle">
+                  <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-sm bg-primary/25" /> {t("finance.overview.revenue")}</span>
+                  <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-sm bg-primary" /> {t("finance.overview.net")}</span>
+                </div>
+              </div>
+              {(() => {
+                const maxV = Math.max(...ov.trend.map((m) => m.revenue), 1);
+                return (
+                  <div className="flex items-end justify-between gap-2" style={{ height: 132 }}>
+                    {ov.trend.map((m) => {
+                      const [, mm] = m.month.split("-");
+                      return (
+                        <div key={m.month} className="flex flex-1 flex-col items-center gap-1.5" title={`${m.month} · ${t("finance.overview.net")}: ${fmt(m.net)} · ${t("finance.overview.revenue")}: ${fmt(m.revenue)}`}>
+                          <div className="tnum text-[10px] font-semibold text-ink">{fmt(m.net)}</div>
+                          <div className="relative flex w-full max-w-[38px] flex-1 items-end justify-center">
+                            <div className="w-full rounded-t bg-primary/20" style={{ height: `${(m.revenue / maxV) * 100}%` }} />
+                            <div className="absolute bottom-0 w-[60%] rounded-t bg-primary" style={{ height: `${(Math.max(m.net, 0) / maxV) * 100}%` }} />
+                          </div>
+                          <div className="tnum text-[10.5px] text-subtle">{+mm}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+            </section>
+          </div>
+        </div>
+        )
+      ) : null}
 
       {/* شجرة الحسابات */}
       {tab === "coa" ? (
