@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Plus, X, Check } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useRouter } from "@/i18n/routing";
 import { cpapi, ApiError } from "@/lib/api";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -18,6 +19,7 @@ const TONE: Record<string, BadgeTone> = { RECEIVED: "neutral", UNDER_REVIEW: "wa
 
 export default function PortalClaims() {
   const t = useTranslations();
+  const router = useRouter();
   const [rows, setRows] = useState<Claim[]>([]);
   const [policies, setPolicies] = useState<PolicyLite[]>([]);
   const [open, setOpen] = useState(false);
@@ -46,7 +48,7 @@ export default function PortalClaims() {
           </tr></thead>
           <tbody className="divide-y divide-line">
             {rows.map((c) => (
-              <tr key={c.id} className="hover:bg-surface-2/60">
+              <tr key={c.id} onClick={() => router.push(`/portal/claims/${c.id}`)} className="cursor-pointer hover:bg-surface-2/60">
                 <td className="px-5 py-3 text-[12.5px] font-medium text-ink tnum">{c.sequenceNo ?? "—"}</td>
                 <td className="px-5 py-3 text-[13px] text-muted">{c.insurerName ?? "—"}</td>
                 <td className="px-5 py-3 text-[12px] text-subtle tnum">{date(c.incidentDate)}</td>

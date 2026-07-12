@@ -1,4 +1,4 @@
-import { IsIn, IsNumber, IsObject, IsOptional, IsString } from "class-validator";
+import { IsIn, IsNumber, IsObject, IsOptional, IsString, MinLength, MaxLength } from "class-validator";
 
 export class CreateClaimDto {
   @IsOptional() @IsString() clientId?: string;
@@ -16,4 +16,10 @@ export class UpdateClaimStatusDto {
 
   /** يُحدَّد عند التسوية (SETTLED). */
   @IsOptional() @IsNumber() settledAmount?: number;
+}
+
+export class ClaimNoteDto {
+  @IsString() @MinLength(1) @MaxLength(2000) body!: string;
+  /** internal = ملاحظة داخلية (موظفون فقط، الافتراضي) · client = رد ظاهر للعميل. */
+  @IsOptional() @IsIn(["internal", "client"]) visibility?: "internal" | "client";
 }

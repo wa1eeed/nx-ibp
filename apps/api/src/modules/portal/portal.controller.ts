@@ -5,7 +5,8 @@ import { PortalGuard } from "./portal.guard";
 import { ConfigService } from "../config/config.service";
 import { Public } from "../auth/public.decorator";
 import { CurrentUser, type AuthUser } from "../auth/current-user.decorator";
-import { PortalLoginDto, SubmitClaimDto, SubmitServiceDto, PortalServiceReplyDto } from "./dto/portal.dto";
+import { PortalLoginDto, SubmitClaimDto, SubmitServiceDto, PortalServiceReplyDto, UpdateContactDto } from "./dto/portal.dto";
+import { Put } from "@nestjs/common";
 
 /** بوّابة العميل — كل المسارات بنطاق `client` عدا الدخول. clientId يُشتقّ من التوكن. */
 @UseGuards(PortalGuard)
@@ -25,6 +26,12 @@ export class PortalController {
   @Get("me")
   me(@CurrentUser() user: AuthUser) {
     return this.portal.me(user.clientId!);
+  }
+
+  @Put("me")
+  @HttpCode(200)
+  updateContact(@CurrentUser() user: AuthUser, @Body() dto: UpdateContactDto) {
+    return this.portal.updateContact(user.tenantId, user.clientId!, dto);
   }
 
   /** هوية شركة الوساطة (White-label) لتلوين بوّابة العميل. */
@@ -81,6 +88,17 @@ export class PortalController {
   @Get("claims")
   claims(@CurrentUser() user: AuthUser) {
     return this.portal.claims(user.clientId!);
+  }
+
+  @Get("claims/:id")
+  claimDetail(@CurrentUser() user: AuthUser, @Param("id") id: string) {
+    return this.portal.claimDetail(user.clientId!, id);
+  }
+
+  @HttpCode(201)
+  @Post("claims/:id/reply")
+  claimReply(@CurrentUser() user: AuthUser, @Param("id") id: string, @Body() dto: PortalServiceReplyDto) {
+    return this.portal.replyToClaim(user.tenantId, user.clientId!, user.userId, id, dto.body);
   }
 
   @Get("statement")

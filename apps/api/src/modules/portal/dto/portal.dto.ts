@@ -1,4 +1,12 @@
-import { IsEmail, IsIn, IsNumber, IsOptional, IsString, MaxLength, MinLength } from "class-validator";
+import { IsEmail, IsIn, IsNumber, IsOptional, IsString, Matches, MaxLength, MinLength } from "class-validator";
+
+/** تحديث بيانات التواصل من البوّابة (حقول التواصل فقط — لا CR/هوية/ضريبي). */
+export class UpdateContactDto {
+  @IsOptional() @IsString() @MaxLength(120) contactName?: string;
+  @IsOptional() @Matches(/^05\d{8}$/, { message: "الجوال يجب أن يكون 05 ثم 8 أرقام" }) phone?: string;
+  @IsOptional() @Matches(/^01\d{8}$/, { message: "الهاتف الثابت يجب أن يكون 01 ثم 8 أرقام" }) landline?: string;
+  @IsOptional() @IsEmail() email?: string;
+}
 
 export class PortalLoginDto {
   @IsEmail() email!: string;

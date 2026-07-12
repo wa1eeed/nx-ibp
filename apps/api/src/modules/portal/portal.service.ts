@@ -59,10 +59,30 @@ export class PortalService {
   async me(clientId: string) {
     const client = await this.prisma.client.findFirst({
       where: { id: clientId },
-      select: { id: true, code: true, name: true, type: true, crNumber: true, nationalId: true, email: true, phone: true, city: true, complianceStatus: true },
+      select: { id: true, code: true, name: true, type: true, crNumber: true, nationalId: true, vatNumber: true, email: true, phone: true, landline: true, contactName: true, city: true, nationalAddress: true, complianceStatus: true },
     });
     if (!client) throw new NotFoundException("العميل غير موجود");
     return client;
+  }
+
+  /**
+   * تحديث بيانات التواصل من البوّابة — العميل يعدّل **حقول التواصل فقط**
+   * (جهة التواصل/الجوال/الهاتف/البريد). الحقول المُتحقَّق منها حكوميًّا (CR/الهوية/الضريبي) لا تُعدَّل من البوّابة.
+   */
+  async updateContact(tenantId: string, clientId: string, dto: { contactName?: string; phone?: string; landline?: string; email?: string }) {
+    const exists = await this.prisma.client.findFirst({ where: { id: clientId }, select: { id: true } });
+    if (!exists) throw new NotFoundException("العميل غير موجود");
+    await this.prisma.client.update({
+      where: { id: clientId },
+      data: {
+        contactName: dto.contactName ?? undefined,
+        phone: dto.phone ?? undefined,
+        landline: dto.landline ?? undefined,
+        email: dto.email ?? undefined,
+      },
+    });
+    await this.audit.log({ tenantId, userId: clientId, action: "update", entity: "client", entityId: clientId, meta: { viaPortal: true, contact: true } });
+    return this.me(clientId);
   }
 
   policies(clientId: string) {
@@ -178,6 +198,40 @@ export class PortalService {
     const vars = { ref: sr.sequenceNo ?? id };
     if (sr.assigneeId) void this.notifications.notifyUser(tenantId, sr.assigneeId, "staff_service_reply", vars).catch(() => undefined);
     else void this.notifications.notifyStaff(tenantId, "staff_service_reply", vars).catch(() => undefined);
+    return { ok: true };
+  }
+
+  /** تفاصيل مطالبة للعميل + المحادثة **الظاهرة فقط** (visibility=client). يميّز ردود العميل (`mine`). */
+  async claimDetail(clientId: string, id: string) {
+    const claim = await this.prisma.claim.findFirst({
+      where: { id, clientId },
+      select: { id: true, sequenceNo: true, insurerName: true, status: true, claimedAmount: true, deductible: true, settledAmount: true, incidentDate: true, policyId: true, createdAt: true, details: true },
+    });
+    if (!claim) throw new NotFoundException("المطالبة غير موجودة");
+    const [policy, activities, clientUsers] = await Promise.all([
+      claim.policyId ? this.prisma.policy.findFirst({ where: { id: claim.policyId }, select: { id: true, sequenceNo: true, productLineCode: true } }) : Promise.resolve(null),
+      this.prisma.crmActivity.findMany({ where: { entityType: "claim", entityId: id, visibility: "client" }, orderBy: { createdAt: "asc" }, select: { id: true, body: true, authorId: true, createdAt: true } }),
+      this.prisma.clientUser.findMany({ where: { clientId }, select: { id: true } }),
+    ]);
+    const mineIds = new Set(clientUsers.map((u) => u.id));
+    const staffIds = [...new Set(activities.map((a) => a.authorId).filter((x): x is string => !!x && !mineIds.has(x)))];
+    const staff = staffIds.length ? await this.prisma.user.findMany({ where: { id: { in: staffIds } }, select: { id: true, fullName: true } }) : [];
+    const staffName = new Map(staff.map((u) => [u.id, u.fullName]));
+    const timeline = activities.map((a) => ({
+      id: a.id, body: a.body, createdAt: a.createdAt,
+      mine: !!a.authorId && mineIds.has(a.authorId),
+      authorName: a.authorId && !mineIds.has(a.authorId) ? staffName.get(a.authorId) ?? null : null,
+    }));
+    return { ...claim, policy, timeline };
+  }
+
+  /** رد العميل على مطالبته ⇒ يُضاف للمحادثة الظاهرة + يُشعِر فريق المطالبات (`staff_claim_reply`). */
+  async replyToClaim(tenantId: string, clientId: string, clientUserId: string, id: string, body: string) {
+    const claim = await this.prisma.claim.findFirst({ where: { id, clientId }, select: { id: true, sequenceNo: true } });
+    if (!claim) throw new NotFoundException("المطالبة غير موجودة");
+    await this.prisma.crmActivity.create({ data: { tenantId, entityType: "claim", entityId: id, type: "reply", visibility: "client", body, authorId: clientUserId } });
+    await this.audit.log({ tenantId, userId: clientId, action: "update", entity: "claim", entityId: id, meta: { viaPortal: true, reply: true } });
+    void this.notifications.notifyStaff(tenantId, "staff_claim_reply", { ref: claim.sequenceNo ?? id }).catch(() => undefined);
     return { ok: true };
   }
 

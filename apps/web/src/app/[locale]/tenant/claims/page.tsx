@@ -94,13 +94,13 @@ export default function ClaimsPage() {
               <th className="px-5 py-3"></th></tr></thead>
             <tbody className="divide-y divide-line">
               {rows.map((r) => (
-                <tr key={r.id} className="hover:bg-surface-2/60">
+                <tr key={r.id} onClick={() => router.push(`/tenant/claims/${r.id}`)} className="cursor-pointer hover:bg-surface-2/60">
                   <td className="px-5 py-3 text-[12.5px] font-medium text-ink tnum">{r.sequenceNo ?? "—"}</td>
                   <td className="px-5 py-3 text-[13px] text-ink">{r.insurerName ?? "—"}</td>
                   <td className="px-5 py-3 text-[12.5px] tnum">{fmt(r.claimedAmount)}</td>
                   <td className="px-5 py-3 text-[12.5px] text-muted tnum">{fmt(r.settledAmount)}</td>
                   <td className="px-5 py-3"><Badge tone={TONE[r.status] ?? "neutral"}>{r.status}</Badge></td>
-                  <td className="px-5 py-3 text-end">
+                  <td className="px-5 py-3 text-end" onClick={(e) => e.stopPropagation()}>
                     <select value={r.status} onChange={(e) => setStatus(r.id, e.target.value)} className="h-8 rounded-lg border border-line bg-card px-2 text-[12px]">
                       {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
                     </select>

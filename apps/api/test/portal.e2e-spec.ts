@@ -153,6 +153,45 @@ describe("بوّابة العميل (e2e)", () => {
     await request(srv).post(`/portal/service-requests/${sr.id}/reply`).set(auth(nukhba)).send({ body: "تسلّل" }).expect(404);
   });
 
+  it("محادثة المطالبة: العميل يرى التحديث الظاهر فقط (لا الداخلي) ويردّ + عزل", async () => {
+    const srv = app.getHttpServer();
+    const fahdPolicies = (await request(srv).get("/portal/policies").set(auth(fahd))).body as Array<{ id: string }>;
+    const claim = (await request(srv).post("/claims").set(auth(employee)).send({ clientId: "cl-fahd", policyId: fahdPolicies[0].id, insurerName: "بوبا", claimedAmount: 10000 }).expect(201)).body;
+
+    // الموظف: ملاحظة داخلية (سرّية) + تحديث ظاهر
+    await request(srv).post(`/claims/${claim.id}/notes`).set(auth(employee)).send({ body: "ملاحظة داخلية على المطالبة", visibility: "internal" }).expect(201);
+    await request(srv).post(`/claims/${claim.id}/notes`).set(auth(employee)).send({ body: "تحديث ظاهر للعميل", visibility: "client" }).expect(201);
+
+    // العميل يرى الظاهر فقط
+    const detail = (await request(srv).get(`/portal/claims/${claim.id}`).set(auth(fahd)).expect(200)).body;
+    const bodies = (detail.timeline as Array<{ body: string; mine: boolean }>).map((m) => m.body);
+    expect(bodies).toContain("تحديث ظاهر للعميل");
+    expect(bodies).not.toContain("ملاحظة داخلية على المطالبة");
+
+    // العميل يردّ ⇒ mine
+    await request(srv).post(`/portal/claims/${claim.id}/reply`).set(auth(fahd)).send({ body: "شكرًا للتحديث" }).expect(201);
+    const d2 = (await request(srv).get(`/portal/claims/${claim.id}`).set(auth(fahd)).expect(200)).body;
+    expect((d2.timeline as Array<{ body: string; mine: boolean }>).find((m) => m.body === "شكرًا للتحديث")!.mine).toBe(true);
+
+    // جهة الموظف: تفاصيل المطالبة تُرجِع بيانات العميل + الخطّ الزمني الكامل (داخلي + ظاهر + رد العميل = 3)
+    const staffDetail = (await request(srv).get(`/claims/${claim.id}`).set(auth(employee)).expect(200)).body;
+    expect(staffDetail.client.name).toBeTruthy();
+    expect((staffDetail.timeline as Array<{ visibility: string }>).length).toBe(3);
+
+    // عزل: عميل آخر لا يفتح مطالبة الفهد ⇒ 404
+    await request(srv).get(`/portal/claims/${claim.id}`).set(auth(nukhba)).expect(404);
+  });
+
+  it("العميل يحدّث بيانات التواصل من البوّابة (تحقّق الجوال) — الحقول المُتحقَّقة للعرض فقط", async () => {
+    const srv = app.getHttpServer();
+    const updated = (await request(srv).put("/portal/me").set(auth(fahd)).send({ contactName: "أبو محمد", phone: "0512345678", landline: "0112345678" }).expect(200)).body;
+    expect(updated.contactName).toBe("أبو محمد");
+    expect(updated.phone).toBe("0512345678");
+    expect(updated.landline).toBe("0112345678");
+    // جوال بصيغة خاطئة ⇒ 400 (لا يُحفظ)
+    await request(srv).put("/portal/me").set(auth(fahd)).send({ phone: "12345" }).expect(400);
+  });
+
   it("العميل يطلب تجديد وثيقته ⇒ 201 طلب خدمة نوعه renewal", async () => {
     const srv = app.getHttpServer();
     const policies = (await request(srv).get("/portal/policies").set(auth(fahd))).body as Array<{ id: string }>;

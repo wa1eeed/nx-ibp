@@ -1,8 +1,8 @@
 import { Body, Controller, Get, HttpCode, Param, Post } from "@nestjs/common";
 import { ClaimsService } from "./claims.service";
-import { CreateClaimDto, UpdateClaimStatusDto } from "./dto/claim.dto";
+import { CreateClaimDto, UpdateClaimStatusDto, ClaimNoteDto } from "./dto/claim.dto";
 import { Authorize } from "../rbac/authorize.decorator";
-import { CurrentUser } from "../auth/current-user.decorator";
+import { CurrentUser, type AuthUser } from "../auth/current-user.decorator";
 
 @Controller("claims")
 export class ClaimsController {
@@ -39,7 +39,19 @@ export class ClaimsController {
 
   @Authorize({ module: "claims", action: "read", entitlement: "module.claims" })
   @Get(":id")
-  getOne(@Param("id") id: string) {
-    return this.claims.getOne(id);
+  detail(@CurrentUser() user: AuthUser, @Param("id") id: string) {
+    return this.claims.detail(id, user);
+  }
+
+  @Authorize({ module: "claims", action: "update", entitlement: "module.claims" })
+  @HttpCode(201)
+  @Post(":id/notes")
+  addNote(
+    @CurrentUser("tenantId") tenantId: string,
+    @CurrentUser("userId") userId: string,
+    @Param("id") id: string,
+    @Body() dto: ClaimNoteDto,
+  ) {
+    return this.claims.addNote(tenantId, userId, id, dto.body, dto.visibility ?? "internal");
   }
 }

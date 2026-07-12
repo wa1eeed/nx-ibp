@@ -1713,6 +1713,12 @@
     "col": {
       "seq": "Claim #",
       "status": "Status"
+    },
+    "detail": {
+      "back": "Back to claims",
+      "title": "Claim details",
+      "claimData": "Claim details",
+      "notFound": "Claim not found"
     }
   },
   "renewals": {
@@ -2030,7 +2036,8 @@
       "requests": "My requests",
       "claims": "My claims",
       "statement": "Statement",
-      "documents": "My documents"
+      "documents": "My documents",
+      "account": "My account"
     },
     "login": {
       "title": "Client portal sign-in",
@@ -2154,6 +2161,37 @@
       "closed": "This request is closed.",
       "replyPlaceholder": "Write your reply…",
       "send": "Send"
+    },
+    "claimDetail": {
+      "back": "Back to my claims",
+      "notFound": "Claim not found",
+      "title": "Claim",
+      "claimed": "Claimed amount",
+      "settled": "Settled amount",
+      "incidentDate": "Incident date",
+      "closed": "This claim is closed."
+    },
+    "account": {
+      "title": "My account",
+      "subtitle": "Your details and contact information",
+      "identity": "Verified details",
+      "name": "Name",
+      "code": "Code",
+      "cr": "CR number",
+      "nationalId": "ID/Iqama",
+      "vat": "VAT number",
+      "city": "City",
+      "address": "National address",
+      "verifiedHint": "These details are verified with your broker and cannot be edited here — contact them for any correction.",
+      "contact": "Contact details",
+      "contactName": "Contact person",
+      "phone": "Mobile",
+      "phoneHint": "Saudi mobile (05 + 8 digits)",
+      "landline": "Landline",
+      "landlineHint": "01 + 8 digits (optional)",
+      "email": "Email",
+      "save": "Save changes",
+      "saved": "Contact details saved"
     }
   },
   "landing": {

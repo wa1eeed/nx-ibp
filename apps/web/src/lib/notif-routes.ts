@@ -20,6 +20,7 @@ const STAFF_ROUTES: Record<string, string> = {
   staff_policy_issued: "/tenant/policies",
   // المطالبات والتجديدات والخدمة
   staff_claim_created: "/tenant/claims",
+  staff_claim_reply: "/tenant/claims",
   staff_renewal_due: "/tenant/renewals",
   staff_service_assigned: "/tenant/service",
   staff_service_reply: "/tenant/service",
@@ -40,6 +41,7 @@ const CLIENT_ROUTES: Record<string, string> = {
   request_ack: "/portal/requests",
   service_reply: "/portal/requests",
   claim_ack: "/portal/claims",
+  claim_reply: "/portal/claims",
 };
 
 export const staffNotifRoute = (eventKey: string): string | null => STAFF_ROUTES[eventKey] ?? null;

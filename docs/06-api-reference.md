@@ -648,6 +648,9 @@ curl -X POST http://localhost:4000/staff \
 |---|---|---|---|
 | GET | `/portal/policies/:id` | بوّابة العميل | تفاصيل وثيقة العميل + مطالباتها + مستنداتها (404 على وثيقة الغير) |
 | POST | `/portal/claims` | بوّابة العميل | تقديم مطالبة ⇒ `RECEIVED` + إشعار فريق المطالبات (`assertOwnsPolicy` ⇒ 403 على وثيقة الغير) |
+| GET | `/portal/claims/:id` | بوّابة العميل | تفاصيل مطالبة + **المحادثة الظاهرة فقط** (`visibility=client`، بعلامة `mine`) — مقصور على مطالبات العميل (غيره ⇒ 404) |
+| POST | `/portal/claims/:id/reply` | بوّابة العميل | رد العميل على مطالبته ⇒ يُضاف للمحادثة الظاهرة + يُشعِر فريق المطالبات (`staff_claim_reply`) |
+| PUT | `/portal/me` | بوّابة العميل | تحديث بيانات التواصل فقط (اسم التواصل/الجوال 05/الهاتف 01/البريد، مُتحقَّق) — الحقول المُتحقَّقة حكوميًّا غير قابلة للتعديل |
 | POST | `/portal/service-requests` | بوّابة العميل | طلب خدمة (٦ أنواع) ⇒ `OPEN` + إشعار |
 | GET | `/portal/service-requests/:id` | بوّابة العميل | تفاصيل طلب الخدمة + **المحادثة الظاهرة فقط** (`visibility=client`، بعلامة `mine`) — مقصور على طلبات العميل (غيره ⇒ 404) |
 | POST | `/portal/service-requests/:id/reply` | بوّابة العميل | رد العميل ⇒ يُضاف للمحادثة الظاهرة + يُشعِر الموظف المُسنَد/الفريق (`staff_service_reply`) |
@@ -693,6 +696,8 @@ curl -X POST http://localhost:4000/staff \
 | `GET` · `POST` | `/service-requests` | `service:read` · `service:create` + `module.service` | 200/201 |
 | `POST` | `/service-requests/:id/status` | `service:update` + `module.service` | 200 |
 | `GET` | `/claims` · `POST` `/claims` · `POST` `/claims/:id/status` | `claims:*` + `module.claims` | 200/201 |
+| `GET` | `/claims/:id` | `claims:read` + `module.claims` | تفاصيل المطالبة: بيانات العميل (مُخفاة PII بـDLP) + الوثيقة + خطّ زمني بأسماء الكُتّاب |
+| `POST` | `/claims/:id/notes` | `claims:update` + `module.claims` | `{ body, visibility? }` — `internal` (داخلي) أو `client` (رد ظاهر + يُشعِر العميل `claim_reply`) |
 | `GET` | `/staff` | `settings:read` | 200 |
 | `GET` | `/staff/roles` | `settings:read` | 200 |
 | `POST` | `/staff` | `settings:create` | 201 |
