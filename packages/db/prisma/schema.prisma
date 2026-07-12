@@ -37,6 +37,12 @@ model Tenant {
   unifiedNumber String? // الرقم الموحد للمنشأة (700-series، 10 أرقام)
   vatNumber    String? // الرقم الضريبي (15 رقمًا)
   phone        String? // رقم التواصل (جوال سعودي 05XXXXXXXX)
+  // العنوان الوطني (لفاتورة ZATCA — عنوان البائع)
+  buildingNo   String? // رقم المبنى (4 أرقام)
+  street       String? // اسم الشارع
+  district     String? // الحي
+  city         String? // المدينة
+  postalCode   String? // الرمز البريدي (5 أرقام)
   status       TenantStatus @default(ACTIVE)
   billingModel BillingModel @default(PASS_THROUGH) // نموذج التحقق: عبر حسابات الشركة نفسها (PASS_THROUGH) أو عبر المنصة برسوم+هامش (RESELLER)
   createdAt    DateTime     @default(now())
@@ -412,6 +418,8 @@ model Insurer {
   nameEn         String?
   code           String? // رمز داخلي اختياري
   licenseNo      String? // رقم ترخيص هيئة التأمين
+  vatNumber      String? // الرقم الضريبي (15 رقمًا) — للمشتري في فاتورة العمولة
+  nationalAddress String? // العنوان الوطني (لفاتورة ZATCA)
   commissionRate Decimal? @db.Decimal(6, 3) // نسبة العمولة المتّفق عليها (%)
   settlementDays Int? // دورة التسوية: مهلة توريد الأقساط (أيام)
   bankName       String?

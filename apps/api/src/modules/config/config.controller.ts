@@ -35,6 +35,11 @@ class SetCompanyDto {
   @IsOptional() @IsString() @MaxLength(10) unifiedNumber?: string;
   @IsOptional() @IsString() @MaxLength(15) vatNumber?: string;
   @IsOptional() @IsString() @MaxLength(10) phone?: string;
+  @IsOptional() @IsString() @MaxLength(10) buildingNo?: string;
+  @IsOptional() @IsString() @MaxLength(120) street?: string;
+  @IsOptional() @IsString() @MaxLength(80) district?: string;
+  @IsOptional() @IsString() @MaxLength(80) city?: string;
+  @IsOptional() @IsString() @MaxLength(10) postalCode?: string;
 }
 
 /** إعدادات المستأجر القابلة للتهيئة — سلسلة اعتماد الوثيقة (E2). تحت الإعدادات. */

@@ -247,6 +247,14 @@ describe("الإصدار والاعتماد المالي (e2e)", () => {
     expect(doc.seller.name).toBeTruthy();
     expect(doc.party.name).toBeTruthy();
     expect(doc.zatca.uuid).toBeTruthy();
+    // امتثال ZATCA: رمز نوع الفاتورة + بنود مفصّلة بفئة/نسبة ضريبة + عنوان البائع المهيكل
+    expect(doc.invoice.invoiceTypeCode).toBe("388");
+    expect(Array.isArray(doc.lineItems)).toBe(true);
+    expect(doc.lineItems.length).toBeGreaterThan(0);
+    expect(["S", "E"]).toContain(doc.lineItems[0].taxCategory);
+    expect(Number((doc.lineItems[0].net + doc.lineItems[0].taxAmount).toFixed(2))).toBe(doc.lineItems[0].lineTotal);
+    expect(doc.seller.address).toBeDefined();
+    expect(doc.party).toHaveProperty("vatNumber"); // رقم المشتري الضريبي (قد يكون null إن لم يُدخَل)
     // فاتورة مجهولة ⇒ 404
     await request(srv).get("/finance/invoices/nope-xyz/document").set(auth(gm)).expect(404);
   });

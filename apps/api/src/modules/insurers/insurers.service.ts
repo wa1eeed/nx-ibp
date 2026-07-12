@@ -5,6 +5,7 @@ import { AuditService } from "../../common/audit/audit.service";
 
 export interface InsurerInput {
   name?: string; nameEn?: string; code?: string; licenseNo?: string;
+  vatNumber?: string; nationalAddress?: string;
   commissionRate?: number; settlementDays?: number;
   bankName?: string; iban?: string; contactName?: string; contactEmail?: string; contactPhone?: string;
   notes?: string; status?: string;
@@ -72,7 +73,7 @@ export class InsurersService {
   private validate(dto: InsurerInput): Record<string, unknown> {
     const out: Record<string, unknown> = {};
     if (dto.name !== undefined) { const n = String(dto.name).trim(); if (n.length < 2) throw new BadRequestException("اسم الشركة حرفان على الأقل"); out.name = n; }
-    for (const f of ["nameEn", "code", "licenseNo", "bankName", "iban", "contactName", "contactEmail", "contactPhone", "notes"] as const) {
+    for (const f of ["nameEn", "code", "licenseNo", "vatNumber", "nationalAddress", "bankName", "iban", "contactName", "contactEmail", "contactPhone", "notes"] as const) {
       if (dto[f] !== undefined) out[f] = String(dto[f]).trim() || null;
     }
     if (dto.commissionRate !== undefined) {

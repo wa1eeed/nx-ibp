@@ -90,25 +90,50 @@ export class FinanceService {
       select: { id: true, sequenceNo: true, kind: true, insurerName: true, clientId: true, policyId: true, netAmount: true, vatAmount: true, totalAmount: true, status: true, createdAt: true },
     });
     if (!inv) throw new NotFoundException("الفاتورة غير موجودة");
-    const tenant = await this.prisma.tenant.findFirst({ where: { id: tenantId }, select: { name: true, crNumber: true, vatNumber: true, unifiedNumber: true, phone: true } });
+    const tenant = await this.prisma.tenant.findFirst({ where: { id: tenantId }, select: { name: true, crNumber: true, vatNumber: true, unifiedNumber: true, phone: true, buildingNo: true, street: true, district: true, city: true, postalCode: true } });
     const kind = inv.kind ?? "COMMISSION";
-    let party = inv.insurerName ?? "—";
+
+    // ——— المشتري (الطرف الآخر) مع رقمه الضريبي وعنوانه: العميل (رسوم) أو المؤمِّن (عمولة) ———
+    let buyerName = inv.insurerName ?? "—";
+    let buyerVat: string | null = null;
+    let buyerAddress: string | null = null;
     if (kind === "FEES" && inv.clientId) {
-      const client = await this.prisma.client.findFirst({ where: { id: inv.clientId }, select: { name: true } });
-      party = client?.name ?? "—";
+      const client = await this.prisma.client.findFirst({ where: { id: inv.clientId }, select: { name: true, vatNumber: true, nationalAddress: true, city: true } });
+      buyerName = client?.name ?? "—";
+      buyerVat = client?.vatNumber ?? null;
+      buyerAddress = [client?.nationalAddress, client?.city].filter(Boolean).join("، ") || null;
+    } else if (kind !== "FEES" && inv.insurerName) {
+      const insurer = await this.prisma.insurer.findFirst({ where: { name: inv.insurerName }, select: { vatNumber: true, nationalAddress: true } });
+      buyerVat = insurer?.vatNumber ?? null;
+      buyerAddress = insurer?.nationalAddress ?? null;
     }
+
     const policy = inv.policyId ? await this.prisma.policy.findFirst({ where: { id: inv.policyId }, select: { sequenceNo: true, productLineCode: true } }) : null;
     const sellerVat = tenant?.vatNumber ?? this.vatNumber(tenant?.crNumber ?? null);
+    const sellerAddress = { buildingNo: tenant?.buildingNo ?? null, street: tenant?.street ?? null, district: tenant?.district ?? null, city: tenant?.city ?? null, postalCode: tenant?.postalCode ?? null };
+
+    // ——— بند الفاتورة (سطر واحد): خدمة الوساطة خاضعة دائمًا للضريبة القياسية 15% («S») ———
+    const net = num(inv.netAmount), vat = num(inv.vatAmount), total = num(inv.totalAmount);
+    const taxRate = net > 0 ? Math.round((vat / net) * 100) : (vat > 0 ? 15 : 0);
+    const taxCategory = taxRate > 0 ? "S" : "E"; // خدمة الوسيط قياسية؛ E احتياطًا فقط
+    const description = kind === "FEES" ? "رسوم خدمة وإصدار وثيقة تأمين" : "عمولة وساطة تأمين";
+    const lineItems = [{
+      description: policy?.sequenceNo ? `${description} — ${policy.sequenceNo}` : description,
+      quantity: 1, unitPrice: net, net, taxCategory, taxRate, taxAmount: vat, lineTotal: total,
+    }];
+
     return {
       invoice: {
         id: inv.id, sequenceNo: inv.sequenceNo, kind, status: inv.status,
-        net: num(inv.netAmount), vat: num(inv.vatAmount), total: num(inv.totalAmount),
+        invoiceTypeCode: "388", // 388 = فاتورة ضريبية (Tax Invoice) وفق UN/CEFACT — تصنيف ZATCA
+        net, vat, total,
         issuedAt: new Date(inv.createdAt).toISOString(),
       },
-      seller: { name: tenant?.name ?? "—", vatNumber: sellerVat, crNumber: tenant?.crNumber ?? null, unifiedNumber: tenant?.unifiedNumber ?? null, phone: tenant?.phone ?? null },
-      party: { name: party, type: kind === "FEES" ? "client" : "insurer" },
+      seller: { name: tenant?.name ?? "—", vatNumber: sellerVat, crNumber: tenant?.crNumber ?? null, unifiedNumber: tenant?.unifiedNumber ?? null, phone: tenant?.phone ?? null, address: sellerAddress },
+      party: { name: buyerName, type: kind === "FEES" ? "client" : "insurer", vatNumber: buyerVat, address: buyerAddress },
+      lineItems,
       policy: policy ? { sequenceNo: policy.sequenceNo, productLineCode: policy.productLineCode } : null,
-      zatca: zatcaPackage({ sellerName: tenant?.name ?? "—", vatNumber: sellerVat, timestamp: new Date(inv.createdAt).toISOString(), total: num(inv.totalAmount), vat: num(inv.vatAmount) }),
+      zatca: zatcaPackage({ sellerName: tenant?.name ?? "—", vatNumber: sellerVat, timestamp: new Date(inv.createdAt).toISOString(), total, vat }),
     };
   }
 

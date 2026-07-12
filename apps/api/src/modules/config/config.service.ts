@@ -24,6 +24,12 @@ export interface CompanyInfo {
   unifiedNumber: string | null; // 10 أرقام
   vatNumber: string | null; // 15 رقمًا
   phone: string | null; // 05XXXXXXXX
+  // العنوان الوطني (فاتورة ZATCA)
+  buildingNo: string | null;
+  street: string | null;
+  district: string | null;
+  city: string | null;
+  postalCode: string | null;
   createdAt: Date | null;
 }
 
@@ -161,7 +167,7 @@ export class ConfigService {
   async getCompany(tenantId: string): Promise<CompanyInfo> {
     const t = await this.prisma.tenant.findFirst({
       where: { id: tenantId },
-      select: { name: true, nameEn: true, crNumber: true, unifiedNumber: true, vatNumber: true, phone: true, createdAt: true },
+      select: { name: true, nameEn: true, crNumber: true, unifiedNumber: true, vatNumber: true, phone: true, buildingNo: true, street: true, district: true, city: true, postalCode: true, createdAt: true },
     });
     return {
       name: t?.name ?? "",
@@ -170,6 +176,11 @@ export class ConfigService {
       unifiedNumber: t?.unifiedNumber ?? null,
       vatNumber: t?.vatNumber ?? null,
       phone: t?.phone ?? null,
+      buildingNo: t?.buildingNo ?? null,
+      street: t?.street ?? null,
+      district: t?.district ?? null,
+      city: t?.city ?? null,
+      postalCode: t?.postalCode ?? null,
       createdAt: t?.createdAt ?? null,
     };
   }
@@ -187,6 +198,11 @@ export class ConfigService {
     if (input.unifiedNumber !== undefined) data.unifiedNumber = validateDigits(input.unifiedNumber, 10, "الرقم الموحّد");
     if (input.vatNumber !== undefined) data.vatNumber = validateDigits(input.vatNumber, 15, "الرقم الضريبي");
     if (input.phone !== undefined) data.phone = validatePhone(input.phone);
+    if (input.buildingNo !== undefined) data.buildingNo = String(input.buildingNo).trim() || null;
+    if (input.street !== undefined) data.street = String(input.street).trim() || null;
+    if (input.district !== undefined) data.district = String(input.district).trim() || null;
+    if (input.city !== undefined) data.city = String(input.city).trim() || null;
+    if (input.postalCode !== undefined) data.postalCode = String(input.postalCode).trim() || null;
     if (Object.keys(data).length) await this.prisma.tenant.update({ where: { id: tenantId }, data });
     await this.audit.log({ tenantId, userId, action: "update", entity: "company", entityId: tenantId, meta: { fields: Object.keys(data) } });
     return { ok: true, ...(await this.getCompany(tenantId)) };

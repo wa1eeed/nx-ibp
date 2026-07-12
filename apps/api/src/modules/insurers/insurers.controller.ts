@@ -9,6 +9,8 @@ class InsurerDto {
   @IsOptional() @IsString() @MaxLength(120) nameEn?: string;
   @IsOptional() @IsString() @MaxLength(30) code?: string;
   @IsOptional() @IsString() @MaxLength(40) licenseNo?: string;
+  @IsOptional() @IsString() @MaxLength(15) vatNumber?: string;
+  @IsOptional() @IsString() @MaxLength(160) nationalAddress?: string;
   @IsOptional() @IsNumber() @Min(0) @Max(100) commissionRate?: number;
   @IsOptional() @IsInt() @Min(0) @Max(365) settlementDays?: number;
   @IsOptional() @IsString() @MaxLength(80) bankName?: string;

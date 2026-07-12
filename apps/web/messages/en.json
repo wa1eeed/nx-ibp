@@ -681,7 +681,14 @@
     "memberSince": "Member since",
     "orgTitle": "Org structure & departments",
     "orgDesc": "Your departments, default roles and hierarchy chart.",
-    "orgLink": "Manage structure"
+    "orgLink": "Manage structure",
+    "addressTitle": "National address",
+    "addressHint": "Appears on the tax invoice (ZATCA requirement).",
+    "buildingNo": "Building no.",
+    "street": "Street",
+    "district": "District",
+    "city": "City",
+    "postalCode": "Postal code"
   },
   "tenantEmail": {
     "title": "Official email & notifications",
@@ -798,7 +805,17 @@
     "total": "Total due",
     "sar": "SAR",
     "zatcaCompliant": "Compliant e-invoice",
-    "footer": "Issued electronically via {brand} — no signature required."
+    "footer": "Issued electronically via {brand} — no signature required.",
+    "typeCode": "Invoice type",
+    "qty": "Qty",
+    "unitPrice": "Unit price",
+    "taxCat": "Tax category",
+    "lineVat": "VAT",
+    "lineTotal": "Total",
+    "catS": "Standard {rate}%",
+    "catE": "Exempt",
+    "netTotal": "Subtotal (before VAT)",
+    "vatTotal": "VAT"
   },
   "insurers": {
     "title": "Insurers",
@@ -835,7 +852,9 @@
     "policies": "policies",
     "grossPremium": "Gross premium",
     "commission": "Commission",
-    "settlementInfo": "Settle within {days} days"
+    "settlementInfo": "Settle within {days} days",
+    "vatNumber": "VAT number",
+    "nationalAddress": "National address"
   },
   "targets": {
     "title": "Targets & performance",

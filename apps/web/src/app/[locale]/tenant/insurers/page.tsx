@@ -9,12 +9,13 @@ import { PageHeader } from "@/components/ui/PageHeader";
 interface Stats { count: number; grossPremium: number; commission: number }
 interface Insurer {
   id: string; name: string; nameEn: string | null; code: string | null; licenseNo: string | null;
+  vatNumber: string | null; nationalAddress: string | null;
   commissionRate: number | null; settlementDays: number | null; bankName: string | null; iban: string | null;
   contactName: string | null; contactEmail: string | null; contactPhone: string | null; notes: string | null;
   status: string; stats: Stats;
 }
 
-const empty = { name: "", nameEn: "", code: "", licenseNo: "", commissionRate: "", settlementDays: "", bankName: "", iban: "", contactName: "", contactEmail: "", contactPhone: "", notes: "", status: "active" };
+const empty = { name: "", nameEn: "", code: "", licenseNo: "", vatNumber: "", nationalAddress: "", commissionRate: "", settlementDays: "", bankName: "", iban: "", contactName: "", contactEmail: "", contactPhone: "", notes: "", status: "active" };
 
 export default function InsurersPage() {
   const t = useTranslations("insurers");
@@ -30,14 +31,14 @@ export default function InsurersPage() {
   const openNew = () => { setEditId(null); setForm({ ...empty }); setError(""); };
   const openEdit = (i: Insurer) => {
     setEditId(i.id);
-    setForm({ name: i.name, nameEn: i.nameEn ?? "", code: i.code ?? "", licenseNo: i.licenseNo ?? "", commissionRate: i.commissionRate != null ? String(i.commissionRate) : "", settlementDays: i.settlementDays != null ? String(i.settlementDays) : "", bankName: i.bankName ?? "", iban: i.iban ?? "", contactName: i.contactName ?? "", contactEmail: i.contactEmail ?? "", contactPhone: i.contactPhone ?? "", notes: i.notes ?? "", status: i.status });
+    setForm({ name: i.name, nameEn: i.nameEn ?? "", code: i.code ?? "", licenseNo: i.licenseNo ?? "", vatNumber: i.vatNumber ?? "", nationalAddress: i.nationalAddress ?? "", commissionRate: i.commissionRate != null ? String(i.commissionRate) : "", settlementDays: i.settlementDays != null ? String(i.settlementDays) : "", bankName: i.bankName ?? "", iban: i.iban ?? "", contactName: i.contactName ?? "", contactEmail: i.contactEmail ?? "", contactPhone: i.contactPhone ?? "", notes: i.notes ?? "", status: i.status });
     setError("");
   };
 
   async function save() {
     if (!form) return;
     setError(""); setNotice("");
-    const body: Record<string, unknown> = { name: form.name, nameEn: form.nameEn, code: form.code, licenseNo: form.licenseNo, bankName: form.bankName, iban: form.iban, contactName: form.contactName, contactPhone: form.contactPhone, notes: form.notes, status: form.status };
+    const body: Record<string, unknown> = { name: form.name, nameEn: form.nameEn, code: form.code, licenseNo: form.licenseNo, vatNumber: form.vatNumber, nationalAddress: form.nationalAddress, bankName: form.bankName, iban: form.iban, contactName: form.contactName, contactPhone: form.contactPhone, notes: form.notes, status: form.status };
     if (form.contactEmail) body.contactEmail = form.contactEmail;
     if (form.commissionRate) body.commissionRate = Number(form.commissionRate);
     if (form.settlementDays) body.settlementDays = Number(form.settlementDays);
@@ -70,6 +71,8 @@ export default function InsurersPage() {
             <L label={t("name")}><input value={form.name} onChange={(e) => set("name", e.target.value)} className={field} /></L>
             <L label={t("nameEn")}><input dir="ltr" value={form.nameEn} onChange={(e) => set("nameEn", e.target.value)} className={field} /></L>
             <L label={t("licenseNo")}><input dir="ltr" value={form.licenseNo} onChange={(e) => set("licenseNo", e.target.value)} className={field} /></L>
+            <L label={t("vatNumber")}><input dir="ltr" inputMode="numeric" value={form.vatNumber} onChange={(e) => set("vatNumber", e.target.value.replace(/\D/g, "").slice(0, 15))} placeholder="300012345600003" className={`${field} tnum`} /></L>
+            <L label={t("nationalAddress")}><input value={form.nationalAddress} onChange={(e) => set("nationalAddress", e.target.value)} className={field} /></L>
             <L label={t("commissionRate")}><input type="number" min={0} max={100} step="0.1" value={form.commissionRate} onChange={(e) => set("commissionRate", e.target.value)} className={`${field} tnum`} /></L>
             <L label={t("settlementDays")}><input type="number" min={0} max={365} value={form.settlementDays} onChange={(e) => set("settlementDays", e.target.value)} className={`${field} tnum`} /></L>
             <L label={t("status")}><select value={form.status} onChange={(e) => set("status", e.target.value)} className={field}><option value="active">{t("active")}</option><option value="inactive">{t("inactive")}</option></select></L>

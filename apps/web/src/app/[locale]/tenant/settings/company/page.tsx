@@ -8,7 +8,9 @@ import { Link } from "@/i18n/routing";
 
 interface Company {
   name: string; nameEn: string | null; crNumber: string | null;
-  unifiedNumber: string | null; vatNumber: string | null; phone: string | null; createdAt: string | null;
+  unifiedNumber: string | null; vatNumber: string | null; phone: string | null;
+  buildingNo: string | null; street: string | null; district: string | null; city: string | null; postalCode: string | null;
+  createdAt: string | null;
 }
 
 export default function TenantCompanyPage() {
@@ -25,6 +27,7 @@ export default function TenantCompanyPage() {
     setForm({
       name: data.name ?? "", nameEn: data.nameEn ?? "", crNumber: data.crNumber ?? "",
       unifiedNumber: data.unifiedNumber ?? "", vatNumber: data.vatNumber ?? "", phone: data.phone ?? "",
+      buildingNo: data.buildingNo ?? "", street: data.street ?? "", district: data.district ?? "", city: data.city ?? "", postalCode: data.postalCode ?? "",
     });
   }, []);
   useEffect(() => { void load().catch(() => undefined); }, [load]);
@@ -72,6 +75,25 @@ export default function TenantCompanyPage() {
           <label className="block"><span className="mb-1 block text-[12px] font-medium text-muted">{t("phone")}</span>
             <input dir="ltr" inputMode="numeric" value={form.phone ?? ""} onChange={(e) => set("phone", digits(e.target.value, 10))} placeholder="0551234567" className={`${field} tnum`} /></label>
         </div>
+
+        {/* العنوان الوطني — يظهر في الفاتورة الضريبية (ZATCA) */}
+        <div className="mt-5 border-t border-line pt-4">
+          <h3 className="mb-1 text-[13px] font-semibold text-ink">{t("addressTitle")}</h3>
+          <p className="mb-3 text-[11.5px] text-subtle">{t("addressHint")}</p>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <label className="block"><span className="mb-1 block text-[12px] font-medium text-muted">{t("buildingNo")}</span>
+              <input dir="ltr" inputMode="numeric" value={form.buildingNo ?? ""} onChange={(e) => set("buildingNo", digits(e.target.value, 4))} placeholder="1234" className={`${field} tnum`} /></label>
+            <label className="block sm:col-span-2"><span className="mb-1 block text-[12px] font-medium text-muted">{t("street")}</span>
+              <input value={form.street ?? ""} onChange={(e) => set("street", e.target.value)} className={field} /></label>
+            <label className="block"><span className="mb-1 block text-[12px] font-medium text-muted">{t("district")}</span>
+              <input value={form.district ?? ""} onChange={(e) => set("district", e.target.value)} className={field} /></label>
+            <label className="block"><span className="mb-1 block text-[12px] font-medium text-muted">{t("city")}</span>
+              <input value={form.city ?? ""} onChange={(e) => set("city", e.target.value)} className={field} /></label>
+            <label className="block"><span className="mb-1 block text-[12px] font-medium text-muted">{t("postalCode")}</span>
+              <input dir="ltr" inputMode="numeric" value={form.postalCode ?? ""} onChange={(e) => set("postalCode", digits(e.target.value, 5))} placeholder="12345" className={`${field} tnum`} /></label>
+          </div>
+        </div>
+
         <button onClick={save} disabled={busy || !(form.name ?? "").trim()} className="mt-4 inline-flex h-10 items-center gap-2 rounded-lg bg-primary-strong px-4 text-[13px] font-semibold text-primary-fg hover:bg-primary disabled:opacity-60">
           <Check size={16} /> {t("save")}
         </button>
