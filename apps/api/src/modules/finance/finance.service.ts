@@ -483,6 +483,77 @@ export class FinanceService {
     return { id: voucher.id, sequenceNo: voucher.sequenceNo, amount: totalDebit };
   }
 
+  /**
+   * دفتر عمولات الموظفين (مندوبي المبيعات) — **الاستحقاق عند التحصيل**: العمولة *متوقّعة* عند الإصدار،
+   * وتصبح *مستحقّة* فقط عندما تُحصَّل عمولة الوساطة من المؤمِّن (`Commission.status = received`).
+   * المتبقّي = المستحقّ − المصروف (سندات PYV بمرجع `emp:{userId}`). مصروف على حساب 05020.
+   */
+  async employeeCommissions() {
+    const policies = await this.prisma.policy.findMany({
+      where: { status: "ISSUED", salespersonId: { not: null }, salespersonCommission: { not: null } },
+      select: { id: true, salespersonId: true, salespersonCommission: true },
+    });
+    const policyIds = policies.map((p) => p.id);
+    const [commissions, settlements] = await Promise.all([
+      policyIds.length ? this.prisma.commission.findMany({ where: { policyId: { in: policyIds } }, select: { policyId: true, status: true } }) : Promise.resolve([]),
+      this.prisma.voucher.findMany({ where: { type: "PYV" }, select: { amount: true, reference: true } }),
+    ]);
+    const collected = new Set(commissions.filter((c) => c.status === "received").map((c) => c.policyId));
+    const paidBy = new Map<string, number>();
+    for (const s of settlements) if (s.reference?.startsWith("emp:")) paidBy.set(s.reference, r2((paidBy.get(s.reference) ?? 0) + num(s.amount)));
+    const agg = new Map<string, { count: number; accrued: number; eligible: number }>();
+    for (const p of policies) {
+      const k = p.salespersonId as string;
+      const g = agg.get(k) ?? { count: 0, accrued: 0, eligible: 0 };
+      g.count += 1;
+      g.accrued = r2(g.accrued + num(p.salespersonCommission));
+      if (collected.has(p.id)) g.eligible = r2(g.eligible + num(p.salespersonCommission));
+      agg.set(k, g);
+    }
+    const userIds = [...agg.keys()];
+    const users = userIds.length ? await this.prisma.user.findMany({ where: { id: { in: userIds } }, select: { id: true, fullName: true, commissionRate: true } }) : [];
+    const nameOf = new Map(users.map((u) => [u.id, u.fullName]));
+    const rateOf = new Map(users.map((u) => [u.id, u.commissionRate]));
+    const rows = [...agg.entries()].map(([uid, a]) => {
+      const paid = paidBy.get(`emp:${uid}`) ?? 0;
+      return { userId: uid, name: nameOf.get(uid) ?? "—", commissionRate: rateOf.get(uid) != null ? Number(rateOf.get(uid)) : null, policies: a.count, accrued: a.accrued, eligible: a.eligible, paid: r2(paid), outstanding: r2(Math.max(0, a.eligible - paid)) };
+    }).sort((a, b) => b.outstanding - a.outstanding);
+    const summary = {
+      employees: rows.length,
+      accrued: r2(rows.reduce((s, r) => s + r.accrued, 0)),
+      eligible: r2(rows.reduce((s, r) => s + r.eligible, 0)),
+      paid: r2(rows.reduce((s, r) => s + r.paid, 0)),
+      outstanding: r2(rows.reduce((s, r) => s + r.outstanding, 0)),
+    };
+    return { rows, summary };
+  }
+
+  /** صرف عمولة موظف (PYV) — يمنع تجاوز المستحقّ. قيد: عمولات وحوافز الموظفين (05020) ⇒ نقد. */
+  async settleEmployeeCommission(tenantId: string, userId: string, salespersonId: string, dto: { amount: number; reference?: string; paidDate?: string }) {
+    const emp = await this.prisma.user.findFirst({ where: { id: salespersonId, tenantId }, select: { id: true, fullName: true } });
+    if (!emp) throw new NotFoundException("الموظف غير موجود");
+    const ledger = await this.employeeCommissions();
+    const outstanding = ledger.rows.find((r) => r.userId === salespersonId)?.outstanding ?? 0;
+    if (dto.amount <= 0) throw new BadRequestException("المبلغ يجب أن يكون موجبًا");
+    if (dto.amount > outstanding + 0.001) throw new ConflictException(`المبلغ يتجاوز المتبقّي المستحقّ (${outstanding})`);
+    const seq = await this.seq.nextVoucherSeq("PYV");
+    const voucher = await this.prisma.voucher.create({
+      data: {
+        tenantId, type: "PYV", sequenceNo: seq, amount: r2(dto.amount), status: "posted", isAuto: false, reference: `emp:${salespersonId}`,
+        lines: asJson({
+          description: `صرف عمولة الموظف ${emp.fullName}`, ref: dto.reference ?? null, paidDate: dto.paidDate ?? null, salespersonId,
+          entries: [
+            { account: "05020000000000000", name: "عمولات وحوافز الموظفين", debit: r2(dto.amount), credit: 0 },
+            { account: "01010000000000000", name: "النقد والبنوك", debit: 0, credit: r2(dto.amount) },
+          ],
+        }),
+      },
+      select: { id: true, sequenceNo: true },
+    });
+    await this.audit.log({ tenantId, userId, action: "create", entity: "employee_commission_settlement", entityId: voucher.id, meta: { salespersonId, amount: r2(dto.amount) } });
+    return { voucher, salespersonId, outstanding: r2(outstanding - dto.amount) };
+  }
+
   /** ملخّص مالي: القسط المكتتب، العمولة، الأمانات (خارج الميزانية)، الذمم. */
   async summary() {
     // أساس الأمانات يستثني وثائق الدفع المباشر (لا يحتجز فيها الوسيط قسطًا). NULL = تحصيل كامل (توافق رجعي).

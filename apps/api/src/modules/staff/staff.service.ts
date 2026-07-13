@@ -38,7 +38,7 @@ export class StaffService {
   async detail(id: string) {
     const user = await this.prisma.user.findFirst({
       where: { id },
-      select: { id: true, fullName: true, email: true, status: true, mfaEnabled: true, createdAt: true, allowedProductLines: true, role: { select: { name: true, isPreset: true } }, department: { select: { name: true } } },
+      select: { id: true, fullName: true, email: true, status: true, mfaEnabled: true, createdAt: true, allowedProductLines: true, commissionRate: true, role: { select: { name: true, isPreset: true } }, department: { select: { name: true } } },
     });
     if (!user) throw new NotFoundException("المستخدم غير موجود");
     const [activity, totalActions, policiesCreated, approvals, deals, tasks, issuedAudit] = await Promise.all([
@@ -177,5 +177,15 @@ export class StaffService {
     await this.prisma.user.update({ where: { id }, data: { allowedProductLines: clean } });
     await this.audit.log({ tenantId: admin.tenantId, userId: admin.userId, action: "update", entity: "user_product_scope", entityId: id, meta: { target: target.email, lines: clean } });
     return { ok: true, allowedProductLines: clean };
+  }
+
+  /** ضبط نسبة عمولة/حافز الموظف (% من عمولة الوساطة) — null = بلا عمولة. */
+  async setCommissionRate(admin: AuthUser, id: string, rate: number | null) {
+    const target = await this.prisma.user.findFirst({ where: { id }, select: { id: true, email: true } });
+    if (!target) throw new NotFoundException("الموظف غير موجود");
+    if (rate != null && (rate < 0 || rate > 100)) throw new BadRequestException("النسبة يجب أن تكون بين 0 و100");
+    await this.prisma.user.update({ where: { id }, data: { commissionRate: rate } });
+    await this.audit.log({ tenantId: admin.tenantId, userId: admin.userId, action: "update", entity: "user_commission_rate", entityId: id, meta: { target: target.email, rate } });
+    return { ok: true, commissionRate: rate };
   }
 }

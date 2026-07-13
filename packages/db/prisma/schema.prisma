@@ -325,6 +325,7 @@ model User {
   // نطاق المنتجات: أكواد فروع التأمين المسموح بها لهذا المستخدم. فارغة = بلا تقييد (كل الفروع)
   // — متوافق رجعيًا: السلوك الافتراضي بلا تغيير ولا يتأثّر أي مستخدم قائم.
   allowedProductLines String[] @default([])
+  commissionRate Decimal? @db.Decimal(6, 3) // نسبة عمولة/حافز الموظف (% من عمولة الوساطة) — لمندوبي المبيعات
   createdAt    DateTime   @default(now())
 
   @@unique([tenantId, email])
@@ -748,6 +749,8 @@ model Policy {
   producerName       String? // المنتِج (الوسيط الفرعي) — نص حرّ (توافق خلفي)
   producerId         String? // مرجع سجلّ المنتِجين
   producerCommission Decimal?      @db.Decimal(14, 2) // عمولة المنتِج (من عمولة الوسيط)
+  salespersonId      String? // الموظف (مندوب المبيعات) المُستحِقّ للعمولة الداخلية
+  salespersonCommission Decimal?   @db.Decimal(14, 2) // عمولة/حافز الموظف (تُحتسب من عمولة الوساطة عند الإصدار)
   // آلية التحصيل المبصومة عند الإصدار (collect_full | direct) — مصدر الحقيقة للترحيل المالي.
   // NULL على الوثائق القديمة ⇒ تُعامَل كـ collect_full (السلوك التاريخي). لا تتأثّر بتغيير إعداد العميل لاحقًا.
   collectionModel    String?

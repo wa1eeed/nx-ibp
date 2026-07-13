@@ -23,4 +23,5 @@ export class IssuePolicyDto {
   @IsOptional() @IsString() producerName?: string; // المنتِج (نص حرّ — توافق خلفي)
   @IsOptional() @IsString() producerId?: string; // مرجع سجلّ المنتِجين
   @IsOptional() @IsNumber() producerCommission?: number; // عمولة المنتِج (تُحتسب آليًا من نسبته إن غابت)
+  @IsOptional() @IsString() salespersonId?: string; // الموظف المُستحِقّ للعمولة الداخلية (افتراضيًا المُصدِر)
 }

@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/Badge";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 
 interface Detail {
-  user: { id: string; fullName: string; email: string; status: string; mfaEnabled: boolean; createdAt: string; allowedProductLines: string[]; role: { name: string } | null; department: { name: string } | null };
+  user: { id: string; fullName: string; email: string; status: string; mfaEnabled: boolean; createdAt: string; allowedProductLines: string[]; commissionRate: number | null; role: { name: string } | null; department: { name: string } | null };
   activity: Array<{ action: string; entity: string; entityId: string | null; meta: unknown; createdAt: string }>;
   stats: { totalActions: number; policiesCreated: number; approvals: number };
   policies: Array<{ id: string; sequenceNo: string | null; insurerName: string | null; totalPremium: string | null; status: string; endDate: string | null }>;
@@ -98,6 +98,8 @@ export default function StaffDetailPage() {
 
       <ProductScope userId={id} current={u.allowedProductLines} onSaved={() => void load()} />
 
+      <CommissionRate userId={id} current={u.commissionRate} onSaved={() => void load()} />
+
       <div className="flex flex-wrap gap-1.5 border-b border-line">
         {TABS.map((x) => (
           <button key={x} onClick={() => setTab(x)} className={["rounded-t-lg px-3 py-2 text-[12.5px] font-medium transition-colors", tab === x ? "border-b-2 border-primary text-primary" : "text-muted hover:text-ink"].join(" ")}>
@@ -178,6 +180,38 @@ export default function StaffDetailPage() {
 interface CatalogClass { code: string; name: string; lines: Array<{ code: string; name: string }> }
 
 /** محرِّر نطاق المنتجات لموظف: بلا تحديد = كل الفروع؛ أو حصر بفروع مختارة. */
+function CommissionRate({ userId, current, onSaved }: { userId: string; current: number | null; onSaved: () => void }) {
+  const t = useTranslations("staffDetail");
+  const [val, setVal] = useState(current != null ? String(current) : "");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  useEffect(() => { setVal(current != null ? String(current) : ""); }, [current]);
+  async function save() {
+    setBusy(true); setMsg("");
+    try {
+      const rate = val.trim() === "" ? null : Number(val);
+      await api(`/staff/${userId}/commission-rate`, { method: "POST", body: JSON.stringify({ rate }) });
+      setMsg(t("commission.saved")); onSaved();
+    } catch { setMsg(t("commission.error")); } finally { setBusy(false); }
+  }
+  const dirty = (val.trim() === "" ? null : Number(val)) !== current;
+  return (
+    <section className="rounded-card border border-line bg-card p-4 shadow-card">
+      <div className="mb-2"><h2 className="text-[13.5px] font-bold text-ink">{t("commission.title")}</h2><p className="text-[11.5px] text-subtle">{t("commission.hint")}</p></div>
+      <div className="flex items-end gap-2">
+        <label className="block flex-1 max-w-[180px]"><span className="mb-1 block text-[11.5px] font-medium text-muted">{t("commission.rate")}</span>
+          <div className="relative">
+            <input type="number" min="0" max="100" step="0.5" value={val} onChange={(e) => setVal(e.target.value)} placeholder="0" className="h-9 w-full rounded-lg border border-line bg-card px-3 pe-7 text-[13px] tnum text-ink focus:outline-none focus:ring-2 focus:ring-primary/30" />
+            <span className="pointer-events-none absolute inset-y-0 end-2.5 flex items-center text-[12px] text-subtle">%</span>
+          </div>
+        </label>
+        <button onClick={save} disabled={busy || !dirty} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary-strong px-4 text-[12.5px] font-semibold text-primary-fg hover:bg-primary disabled:opacity-50">{busy ? "…" : t("commission.save")}</button>
+        {msg ? <span className="text-[11.5px] font-medium text-success">{msg}</span> : null}
+      </div>
+    </section>
+  );
+}
+
 function ProductScope({ userId, current, onSaved }: { userId: string; current: string[]; onSaved: () => void }) {
   const t = useTranslations("staffDetail");
   const [catalog, setCatalog] = useState<CatalogClass[]>([]);

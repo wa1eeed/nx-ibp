@@ -1,5 +1,5 @@
 import { Body, Controller, Get, HttpCode, Param, Post } from "@nestjs/common";
-import { IsArray, IsString } from "class-validator";
+import { IsArray, IsNumber, IsOptional, IsString } from "class-validator";
 import { StaffService } from "./staff.service";
 import { CreateStaffDto } from "./dto/create-staff.dto";
 import { Authorize } from "../rbac/authorize.decorator";
@@ -7,6 +7,10 @@ import { CurrentUser, type AuthUser } from "../auth/current-user.decorator";
 
 class ProductScopeDto {
   @IsArray() @IsString({ each: true }) lines!: string[];
+}
+
+class CommissionRateDto {
+  @IsOptional() @IsNumber() rate?: number | null;
 }
 
 /**
@@ -62,5 +66,13 @@ export class StaffController {
   @Post(":id/product-scope")
   setProductScope(@CurrentUser() user: AuthUser, @Param("id") id: string, @Body() dto: ProductScopeDto) {
     return this.staff.setProductScope(user, id, dto.lines);
+  }
+
+  // نسبة عمولة/حافز الموظف (% من عمولة الوساطة) — لمندوبي المبيعات
+  @Authorize({ module: "settings", action: "update" })
+  @HttpCode(200)
+  @Post(":id/commission-rate")
+  setCommissionRate(@CurrentUser() user: AuthUser, @Param("id") id: string, @Body() dto: CommissionRateDto) {
+    return this.staff.setCommissionRate(user, id, dto.rate ?? null);
   }
 }

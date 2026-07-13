@@ -4,6 +4,7 @@ import { RecordReceiptDto } from "./dto/record-receipt.dto";
 import { CancelPolicyDto } from "./dto/cancel-policy.dto";
 import { SettleInsurerDto } from "./dto/settle-insurer.dto";
 import { CreateJournalDto } from "./dto/create-journal.dto";
+import { SettleCommissionDto } from "./dto/settle-commission.dto";
 import { Authorize } from "../rbac/authorize.decorator";
 import { CurrentUser } from "../auth/current-user.decorator";
 
@@ -78,6 +79,25 @@ export class FinanceController {
     @Body() dto: CreateJournalDto,
   ) {
     return this.finance.createJournal(tenantId, userId, dto);
+  }
+
+  // ——— عمولات الموظفين (مندوبي المبيعات) ———
+  @Authorize({ module: "finance", action: "read", entitlement: "module.finance" })
+  @Get("employee-commissions")
+  employeeCommissions() {
+    return this.finance.employeeCommissions();
+  }
+
+  @Authorize({ module: "finance", action: "create", entitlement: "module.finance" })
+  @HttpCode(201)
+  @Post("employee-commissions/:userId/settle")
+  settleEmployeeCommission(
+    @CurrentUser("tenantId") tenantId: string,
+    @CurrentUser("userId") actorId: string,
+    @Param("userId") salespersonId: string,
+    @Body() dto: SettleCommissionDto,
+  ) {
+    return this.finance.settleEmployeeCommission(tenantId, actorId, salespersonId, dto);
   }
 
   @Authorize({ module: "finance", action: "read", entitlement: "module.finance" })

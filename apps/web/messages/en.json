@@ -339,7 +339,8 @@
       "payables": "Insurer payables",
       "trial": "Trial balance",
       "overview": "Overview",
-      "journal": "Journal & expenses"
+      "journal": "Journal & expenses",
+      "commissions": "Commissions"
     },
     "overview": {
       "incomeStatement": "Income statement",
@@ -400,6 +401,33 @@
       "equity": "Equity",
       "revenue": "Revenue",
       "expense": "Expenses"
+    },
+    "commissions": {
+      "employees": "Employee commissions",
+      "employeesSub": "Sales-staff incentive — earned when brokerage commission is collected",
+      "employee": "Employee",
+      "rate": "Rate",
+      "accrued": "Expected",
+      "accruedHint": "Total commission on their issued policies (before collection)",
+      "eligible": "Earned",
+      "eligibleHint": "Actually earned (brokerage commission collected from insurer)",
+      "paid": "Paid",
+      "outstanding": "Outstanding",
+      "outstandingCol": "Outstanding",
+      "settle": "Pay",
+      "emptyEmp": "No employee commissions — set an employee rate on their page then issue policies",
+      "note": "Earned on collection: commission is expected at issuance and becomes earned when the brokerage commission is collected from the insurer. Payment posts an expense to Employee commissions & incentives.",
+      "producers": "Sub-broker commissions",
+      "producersSub": "Producers share of the brokerage commission",
+      "producer": "Sub-broker",
+      "owed": "Owed",
+      "emptyProd": "No sub-brokers",
+      "settled": "Commission paid successfully",
+      "settleTitle": "Pay commission",
+      "settleConfirm": "Confirm payment",
+      "amount": "Amount",
+      "reference": "Reference",
+      "cancel": "Cancel"
     }
   },
   "producers": {
@@ -1499,6 +1527,14 @@
       "save": "Save",
       "cancel": "Cancel",
       "saved": "Product scope saved",
+      "error": "Save failed"
+    },
+    "commission": {
+      "title": "Sales commission/incentive",
+      "hint": "Employee share of the brokerage commission on policies they issue (leave empty for none)",
+      "rate": "Rate",
+      "save": "Save",
+      "saved": "Saved",
       "error": "Save failed"
     }
   },

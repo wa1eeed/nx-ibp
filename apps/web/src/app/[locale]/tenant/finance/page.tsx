@@ -10,7 +10,7 @@ import { StatCard } from "@/components/ui/StatCard";
 import { Badge } from "@/components/ui/Badge";
 import { usePaged, Pagination } from "@/components/ui/Pagination";
 
-type FinanceTab = "overview" | "journal" | "coa" | "invoices" | "payables" | "trial";
+type FinanceTab = "overview" | "journal" | "commissions" | "coa" | "invoices" | "payables" | "trial";
 
 interface Summary { grossPremium: number; netPremium: number; vat: number; commission: number; serviceFees: number; offBalanceTrust: number; receivables: number; collected: number; invoiceCount: number; voucherCount: number }
 interface Overview {
@@ -27,6 +27,10 @@ interface Trial { rows: TrialRow[]; totals: { debit: number; credit: number; bal
 interface PostAccount { code: string; name: string; accountType: string | null; isOnBalance: boolean }
 interface JournalEntry { account: string; name: string; debit: number; credit: number }
 interface JournalVoucher { id: string; sequenceNo: string | null; amount: string | null; reference: string | null; createdAt: string; lines: { description?: string; date?: string; entries?: JournalEntry[] } | null }
+interface EmpCommRow { userId: string; name: string; commissionRate: number | null; policies: number; accrued: number; eligible: number; paid: number; outstanding: number }
+interface EmpComm { rows: EmpCommRow[]; summary: { employees: number; accrued: number; eligible: number; paid: number; outstanding: number } }
+interface ProducerRow { id: string; name: string; code: string | null; policies: number; commissionOwed: number; paid: number; outstanding: number; status: string | null }
+interface Producers { rows: ProducerRow[]; summary: { producers: number; commissionOwed: number; paid: number; outstanding: number } }
 
 export default function FinancePage() {
   const t = useTranslations();
@@ -38,6 +42,9 @@ export default function FinancePage() {
   const [trial, setTrial] = useState<Trial | null>(null);
   const [postAccts, setPostAccts] = useState<PostAccount[]>([]);
   const [journal, setJournal] = useState<JournalVoucher[]>([]);
+  const [empComm, setEmpComm] = useState<EmpComm | null>(null);
+  const [producers, setProducers] = useState<Producers | null>(null);
+  const [settleComm, setSettleComm] = useState<{ kind: "employee" | "producer"; id: string; name: string; outstanding: number } | null>(null);
   const [settle, setSettle] = useState<PayRow | null>(null);
   const [done, setDone] = useState("");
   const [open, setOpen] = useState("");
@@ -52,6 +59,8 @@ export default function FinancePage() {
     void api<Trial>("/finance/trial-balance").then(setTrial).catch(() => undefined);
     void api<PostAccount[]>("/finance/posting-accounts").then(setPostAccts).catch(() => undefined);
     void api<JournalVoucher[]>("/finance/journal").then(setJournal).catch(() => undefined);
+    void api<EmpComm>("/finance/employee-commissions").then(setEmpComm).catch(() => undefined);
+    void api<Producers>("/producers").then(setProducers).catch(() => undefined);
   }, []);
   useEffect(() => { load(); }, [load]);
 
@@ -66,6 +75,7 @@ export default function FinancePage() {
   const TABS: Array<{ key: FinanceTab; icon: typeof Landmark; label: string; count: number | null }> = [
     { key: "overview", icon: LineChart, label: t("finance.tab.overview"), count: null },
     { key: "journal", icon: BookText, label: t("finance.tab.journal"), count: journal.length },
+    { key: "commissions", icon: Coins, label: t("finance.tab.commissions"), count: (empComm?.rows.length ?? 0) + (producers?.rows.length ?? 0) },
     { key: "coa", icon: Landmark, label: t("finance.tab.coa"), count: coa.length },
     { key: "invoices", icon: QrCode, label: t("finance.tab.invoices"), count: invoices.length },
     { key: "payables", icon: Building2, label: t("finance.tab.payables"), count: pay?.rows.length ?? 0 },
@@ -218,6 +228,11 @@ export default function FinancePage() {
       {/* القيود اليدوية والمصروفات */}
       {tab === "journal" ? (
         <JournalTab accounts={postAccts} vouchers={journal} onPosted={() => { setDone(t("finance.journal.posted")); load(); }} />
+      ) : null}
+
+      {/* العمولات: موظفون + وسطاء فرعيون */}
+      {tab === "commissions" ? (
+        <CommissionsTab emp={empComm} producers={producers} onSettle={(kind, id, name, outstanding) => { setDone(""); setSettleComm({ kind, id, name, outstanding }); }} />
       ) : null}
 
       {/* شجرة الحسابات */}
@@ -389,6 +404,120 @@ export default function FinancePage() {
       ) : null}
 
       {settle ? <SettleInsurer row={settle} onClose={() => setSettle(null)} onDone={(seq) => { setSettle(null); setDone(t("finance.settleModal.done", { seq })); load(); }} /> : null}
+      {settleComm ? <SettleCommission item={settleComm} onClose={() => setSettleComm(null)} onDone={() => { setSettleComm(null); setDone(t("finance.commissions.settled")); load(); }} /> : null}
+    </div>
+  );
+}
+
+/** تبويب العمولات: دفتر عمولات الموظفين (استحقاق عند التحصيل) + الوسطاء الفرعيين، مع صرف. */
+function CommissionsTab({ emp, producers, onSettle }: { emp: EmpComm | null; producers: Producers | null; onSettle: (kind: "employee" | "producer", id: string, name: string, outstanding: number) => void }) {
+  const t = useTranslations();
+  const m = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return (
+    <div className="space-y-5">
+      {/* الموظفون */}
+      <section className="overflow-hidden rounded-card border border-line bg-card shadow-card">
+        <div className="flex flex-wrap items-center gap-2 border-b border-line px-5 py-3.5">
+          <Users size={17} className="text-primary" />
+          <div><h2 className="text-[15px] font-semibold text-ink">{t("finance.commissions.employees")}</h2><p className="text-[12px] text-subtle">{t("finance.commissions.employeesSub")}</p></div>
+          {emp ? <span className="ms-auto text-[12px] text-subtle">{t("finance.commissions.outstanding")}: <span className="font-bold text-warning tnum">{m(emp.summary.outstanding)}</span> {t("common.sar")}</span> : null}
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[720px]">
+            <thead><tr className="border-b border-line text-[11px] uppercase tracking-wide text-subtle">
+              <th className="px-5 py-3 text-start font-semibold">{t("finance.commissions.employee")}</th>
+              <th className="px-4 py-3 text-end font-semibold">{t("finance.commissions.rate")}</th>
+              <th className="px-4 py-3 text-end font-semibold">{t("finance.commissions.accrued")}</th>
+              <th className="px-4 py-3 text-end font-semibold">{t("finance.commissions.eligible")}</th>
+              <th className="px-4 py-3 text-end font-semibold">{t("finance.commissions.paid")}</th>
+              <th className="px-4 py-3 text-end font-semibold">{t("finance.commissions.outstandingCol")}</th>
+              <th className="px-4 py-3"></th>
+            </tr></thead>
+            <tbody className="divide-y divide-line">
+              {emp?.rows.map((r) => (
+                <tr key={r.userId} className="hover:bg-surface-2/60">
+                  <td className="px-5 py-3 text-[13px] font-medium text-ink">{r.name} <span className="text-[11px] text-subtle">({r.policies})</span></td>
+                  <td className="px-4 py-3 text-end text-[12.5px] text-muted tnum">{r.commissionRate != null ? `${r.commissionRate}%` : "—"}</td>
+                  <td className="px-4 py-3 text-end text-[12.5px] text-subtle tnum" title={t("finance.commissions.accruedHint")}>{m(r.accrued)}</td>
+                  <td className="px-4 py-3 text-end text-[12.5px] font-medium text-ink tnum" title={t("finance.commissions.eligibleHint")}>{m(r.eligible)}</td>
+                  <td className="px-4 py-3 text-end text-[12.5px] text-success tnum">{r.paid ? m(r.paid) : "—"}</td>
+                  <td className={`px-4 py-3 text-end text-[12.5px] tnum ${r.outstanding > 0 ? "font-semibold text-warning" : "text-subtle"}`}>{m(r.outstanding)}</td>
+                  <td className="px-4 py-3 text-end">{r.outstanding > 0 ? <button onClick={() => onSettle("employee", r.userId, r.name, r.outstanding)} className="inline-flex items-center gap-1 rounded-lg border border-line px-2.5 py-1.5 text-[12px] font-medium text-muted hover:bg-surface-2"><Banknote size={13} /> {t("finance.commissions.settle")}</button> : null}</td>
+                </tr>
+              ))}
+              {emp && emp.rows.length === 0 ? <tr><td colSpan={7} className="px-5 py-8 text-center text-[12.5px] text-subtle">{t("finance.commissions.emptyEmp")}</td></tr> : null}
+            </tbody>
+          </table>
+        </div>
+        <p className="border-t border-line px-5 py-2 text-[10.5px] leading-relaxed text-subtle">{t("finance.commissions.note")}</p>
+      </section>
+
+      {/* الوسطاء الفرعيون */}
+      <section className="overflow-hidden rounded-card border border-line bg-card shadow-card">
+        <div className="flex flex-wrap items-center gap-2 border-b border-line px-5 py-3.5">
+          <Building2 size={17} className="text-info" />
+          <div><h2 className="text-[15px] font-semibold text-ink">{t("finance.commissions.producers")}</h2><p className="text-[12px] text-subtle">{t("finance.commissions.producersSub")}</p></div>
+          {producers ? <span className="ms-auto text-[12px] text-subtle">{t("finance.commissions.outstanding")}: <span className="font-bold text-warning tnum">{m(producers.summary.outstanding)}</span> {t("common.sar")}</span> : null}
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[640px]">
+            <thead><tr className="border-b border-line text-[11px] uppercase tracking-wide text-subtle">
+              <th className="px-5 py-3 text-start font-semibold">{t("finance.commissions.producer")}</th>
+              <th className="px-4 py-3 text-end font-semibold">{t("finance.commissions.owed")}</th>
+              <th className="px-4 py-3 text-end font-semibold">{t("finance.commissions.paid")}</th>
+              <th className="px-4 py-3 text-end font-semibold">{t("finance.commissions.outstandingCol")}</th>
+              <th className="px-4 py-3"></th>
+            </tr></thead>
+            <tbody className="divide-y divide-line">
+              {producers?.rows.map((r) => (
+                <tr key={r.id} className="hover:bg-surface-2/60">
+                  <td className="px-5 py-3 text-[13px] font-medium text-ink">{r.name} <span className="text-[11px] text-subtle">({r.policies})</span></td>
+                  <td className="px-4 py-3 text-end text-[12.5px] font-medium text-ink tnum">{m(r.commissionOwed)}</td>
+                  <td className="px-4 py-3 text-end text-[12.5px] text-success tnum">{r.paid ? m(r.paid) : "—"}</td>
+                  <td className={`px-4 py-3 text-end text-[12.5px] tnum ${r.outstanding > 0 ? "font-semibold text-warning" : "text-subtle"}`}>{m(r.outstanding)}</td>
+                  <td className="px-4 py-3 text-end">{r.outstanding > 0 ? <button onClick={() => onSettle("producer", r.id, r.name, r.outstanding)} className="inline-flex items-center gap-1 rounded-lg border border-line px-2.5 py-1.5 text-[12px] font-medium text-muted hover:bg-surface-2"><Banknote size={13} /> {t("finance.commissions.settle")}</button> : null}</td>
+                </tr>
+              ))}
+              {producers && producers.rows.length === 0 ? <tr><td colSpan={5} className="px-5 py-8 text-center text-[12.5px] text-subtle">{t("finance.commissions.emptyProd")}</td></tr> : null}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+/** صرف عمولة (موظف أو وسيط فرعي) — سند PYV. */
+function SettleCommission({ item, onClose, onDone }: { item: { kind: "employee" | "producer"; id: string; name: string; outstanding: number }; onClose: () => void; onDone: () => void }) {
+  const t = useTranslations("finance.commissions");
+  const [amount, setAmount] = useState(String(item.outstanding));
+  const [reference, setReference] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState("");
+  const field = "h-9 w-full rounded-lg border border-line bg-card px-3 text-[13px] text-ink focus:outline-none focus:ring-2 focus:ring-primary/30";
+  async function save() {
+    setErr(""); setSaving(true);
+    try {
+      const url = item.kind === "employee" ? `/finance/employee-commissions/${item.id}/settle` : `/producers/${item.id}/settle`;
+      await api(url, { method: "POST", body: JSON.stringify({ amount: Number(amount), reference: reference || undefined }) });
+      onDone();
+    } catch (e) { setErr(e instanceof ApiError ? e.message : "خطأ"); setSaving(false); }
+  }
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onMouseDown={onClose}>
+      <div className="w-full max-w-sm rounded-card border border-line bg-card p-5 shadow-card" onMouseDown={(e) => e.stopPropagation()}>
+        <div className="mb-1 flex items-center justify-between"><h2 className="text-[15px] font-bold text-ink">{t("settleTitle")}</h2><button onClick={onClose} className="text-subtle hover:text-ink"><X size={18} /></button></div>
+        <p className="mb-3 text-[12px] text-subtle">{item.name} · {t("outstanding")}: <span className="tnum text-warning">{item.outstanding.toLocaleString("en-US")}</span></p>
+        <div className="space-y-3">
+          <label className="block"><span className="mb-1 block text-[11.5px] font-medium text-muted">{t("amount")}</span><input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} className={`${field} tnum`} /></label>
+          <label className="block"><span className="mb-1 block text-[11.5px] font-medium text-muted">{t("reference")}</span><input value={reference} onChange={(e) => setReference(e.target.value)} className={field} /></label>
+          {err ? <p className="text-[12px] font-medium text-danger">{err}</p> : null}
+          <div className="flex justify-end gap-2 pt-1">
+            <button onClick={onClose} className="h-9 rounded-lg border border-line px-3 text-[12.5px] font-medium text-muted hover:bg-surface-2">{t("cancel")}</button>
+            <button onClick={save} disabled={saving || !(Number(amount) > 0)} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary-strong px-4 text-[12.5px] font-semibold text-primary-fg hover:bg-primary disabled:opacity-60"><Check size={15} /> {saving ? "…" : t("settleConfirm")}</button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

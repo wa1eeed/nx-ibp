@@ -980,6 +980,28 @@ async function seedCrm(tenantId: string, ownerEmail: string, clientIds: string[]
  * لا مستأجرين وهميين ولا بيانات تجريبية. حساب GIB الحقيقي يُنشأ لاحقًا عبر التسجيل/التزويد.
  * كلمة مرور السوبر أدمن إلزامية من البيئة (لا افتراضي في الإنتاج)، ولا تُعاد كتابتها عند إعادة التشغيل.
  */
+/** عمولات الموظفين (ديمو): نِسب لبعض مندوبي المبيعات + إسنادهم لوثائق الخليج المُصدَرة مع احتساب حصّتهم. */
+async function seedEmployeeCommissions() {
+  const reps = [
+    { email: "waleed@gulf-demo.sa", rate: 10 },
+    { email: "sara@gulf-demo.sa", rate: 8 },
+  ];
+  const resolved: Array<{ id: string; rate: number }> = [];
+  for (const r of reps) {
+    const u = await prisma.user.findFirst({ where: { email: r.email }, select: { id: true } });
+    if (u) { await prisma.user.update({ where: { id: u.id }, data: { commissionRate: r.rate } }); resolved.push({ id: u.id, rate: r.rate }); }
+  }
+  if (!resolved.length) return;
+  const pols = await prisma.policy.findMany({ where: { tenantId: "demo-tenant", status: "ISSUED" }, select: { id: true, commissionAmount: true } });
+  let i = 0;
+  for (const p of pols) {
+    const rep = resolved[i % resolved.length];
+    const sc = +((Number(p.commissionAmount ?? 0) * rep.rate) / 100).toFixed(2);
+    await prisma.policy.update({ where: { id: p.id }, data: { salespersonId: rep.id, salespersonCommission: sc } });
+    i++;
+  }
+}
+
 async function seedProductionBootstrap() {
   const email = process.env.PLATFORM_ADMIN_EMAIL?.trim();
   const password = process.env.PLATFORM_ADMIN_PASSWORD;
@@ -1030,6 +1052,7 @@ async function main() {
 
   await seedOperations(passwordHash);
   await seedRichData(passwordHash);
+  await seedEmployeeCommissions();
 
   // حساب العرض للعميل الأول (Gulf Insurance Brokers Co.) — في التطوير فقط (لا يُلوّث قاعدة الاختبار)
   const isTestDb = (process.env.DATABASE_URL ?? "").includes("ibp_test");

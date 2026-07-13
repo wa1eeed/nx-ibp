@@ -355,4 +355,35 @@ describe("الإصدار والاعتماد المالي (e2e)", () => {
     // سطر واحد فقط ⇒ 400
     await request(srv).post("/finance/journal").set(auth(accountant)).send({ description: "طرف واحد", entries: [{ account: SALARY, debit: 100 }] }).expect(400);
   });
+
+  it("عمولات الموظفين: ضبط النسبة + دفتر (متوقّعة/مستحقّة) + صرف بحدّ المستحقّ + عزل", async () => {
+    const srv = app.getHttpServer();
+    // ضبط نسبة عمولة موظف (gm له settings) — صحيح 200 · خاطئ (>100) 400
+    const staff = (await request(srv).get("/staff").set(auth(gm)).expect(200)).body as Array<{ id: string }>;
+    await request(srv).post(`/staff/${staff[0].id}/commission-rate`).set(auth(gm)).send({ rate: 7.5 }).expect(200);
+    await request(srv).post(`/staff/${staff[0].id}/commission-rate`).set(auth(gm)).send({ rate: 150 }).expect(400);
+
+    // الدفتر: عزل (المبيعات لا finance) 403 · البنية + بيانات مزروعة
+    await request(srv).get("/finance/employee-commissions").set(auth(sales)).expect(403);
+    const led = (await request(srv).get("/finance/employee-commissions").set(auth(accountant)).expect(200)).body as { rows: Array<{ userId: string; accrued: number; eligible: number; outstanding: number }>; summary: { outstanding: number } };
+    expect(Array.isArray(led.rows)).toBe(true);
+    expect(led.summary).toHaveProperty("outstanding");
+    // موظف مزروع بعمولات متوقّعة (waleed/sara مندوبان على وثائق الخليج)
+    const withAccrued = led.rows.find((r) => r.accrued > 0);
+    expect(withAccrued).toBeTruthy();
+    // الاستحقاق ≤ المتوقّع (لا يُحتسب مستحقًّا إلا المُحصَّل)
+    for (const r of led.rows) expect(r.eligible).toBeLessThanOrEqual(r.accrued + 0.01);
+
+    // صرف: تجاوز المتبقّي ⇒ 409
+    await request(srv).post(`/finance/employee-commissions/${led.rows[0].userId}/settle`).set(auth(accountant)).send({ amount: led.rows[0].outstanding + 100000 }).expect(409);
+    // إن وُجد مستحقّ ⇒ صرف جزئي 201 (سند PYV) ويُنقص المتبقّي
+    const payable = led.rows.find((r) => r.outstanding > 1);
+    if (payable) {
+      const res = (await request(srv).post(`/finance/employee-commissions/${payable.userId}/settle`).set(auth(accountant)).send({ amount: 1 }).expect(201)).body;
+      expect(res.voucher.sequenceNo).toBeTruthy();
+      expect(res.outstanding).toBe(Number((payable.outstanding - 1).toFixed(2)));
+    }
+    // غير المخوّل يُمنع من الصرف
+    await request(srv).post(`/finance/employee-commissions/${led.rows[0].userId}/settle`).set(auth(sales)).send({ amount: 1 }).expect(403);
+  });
 });
