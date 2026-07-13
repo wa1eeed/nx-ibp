@@ -10,7 +10,7 @@ import { StatCard } from "@/components/ui/StatCard";
 import { Badge } from "@/components/ui/Badge";
 import { usePaged, Pagination } from "@/components/ui/Pagination";
 
-type FinanceTab = "overview" | "journal" | "commissions" | "coa" | "invoices" | "payables" | "trial";
+type FinanceTab = "overview" | "journal" | "commissions" | "receivables" | "coa" | "invoices" | "payables" | "trial";
 
 interface Summary { grossPremium: number; netPremium: number; vat: number; commission: number; serviceFees: number; offBalanceTrust: number; receivables: number; collected: number; invoiceCount: number; voucherCount: number }
 interface Overview {
@@ -31,6 +31,9 @@ interface EmpCommRow { userId: string; name: string; commissionRate: number | nu
 interface EmpComm { rows: EmpCommRow[]; summary: { employees: number; accrued: number; eligible: number; paid: number; outstanding: number } }
 interface ProducerRow { id: string; name: string; code: string | null; policies: number; commissionOwed: number; paid: number; outstanding: number; status: string | null }
 interface Producers { rows: ProducerRow[]; summary: { producers: number; commissionOwed: number; paid: number; outstanding: number } }
+interface RecvNote { id: string; sequenceNo: string | null; clientName: string; total: number; settled: number; outstanding: number; status: string; hasPlan: boolean }
+interface Receivables { outstanding: number; collected: number; notes: RecvNote[] }
+interface InstallmentRow { id: string; seq: number; dueDate: string; amount: number; settled: number; outstanding: number; status: string }
 
 export default function FinancePage() {
   const t = useTranslations();
@@ -44,6 +47,8 @@ export default function FinancePage() {
   const [journal, setJournal] = useState<JournalVoucher[]>([]);
   const [empComm, setEmpComm] = useState<EmpComm | null>(null);
   const [producers, setProducers] = useState<Producers | null>(null);
+  const [recv, setRecv] = useState<Receivables | null>(null);
+  const [planFor, setPlanFor] = useState<RecvNote | null>(null);
   const [settleComm, setSettleComm] = useState<{ kind: "employee" | "producer"; id: string; name: string; outstanding: number } | null>(null);
   const [settle, setSettle] = useState<PayRow | null>(null);
   const [done, setDone] = useState("");
@@ -61,6 +66,7 @@ export default function FinancePage() {
     void api<JournalVoucher[]>("/finance/journal").then(setJournal).catch(() => undefined);
     void api<EmpComm>("/finance/employee-commissions").then(setEmpComm).catch(() => undefined);
     void api<Producers>("/producers").then(setProducers).catch(() => undefined);
+    void api<Receivables>("/finance/receivables").then(setRecv).catch(() => undefined);
   }, []);
   useEffect(() => { load(); }, [load]);
 
@@ -76,6 +82,7 @@ export default function FinancePage() {
     { key: "overview", icon: LineChart, label: t("finance.tab.overview"), count: null },
     { key: "journal", icon: BookText, label: t("finance.tab.journal"), count: journal.length },
     { key: "commissions", icon: Coins, label: t("finance.tab.commissions"), count: (empComm?.rows.length ?? 0) + (producers?.rows.length ?? 0) },
+    { key: "receivables", icon: Receipt, label: t("finance.tab.receivables"), count: recv?.notes.length ?? 0 },
     { key: "coa", icon: Landmark, label: t("finance.tab.coa"), count: coa.length },
     { key: "invoices", icon: QrCode, label: t("finance.tab.invoices"), count: invoices.length },
     { key: "payables", icon: Building2, label: t("finance.tab.payables"), count: pay?.rows.length ?? 0 },
@@ -234,6 +241,12 @@ export default function FinancePage() {
       {tab === "commissions" ? (
         <CommissionsTab emp={empComm} producers={producers} onSettle={(kind, id, name, outstanding) => { setDone(""); setSettleComm({ kind, id, name, outstanding }); }} />
       ) : null}
+
+      {/* الذمم المدينة وخطط التقسيط */}
+      {tab === "receivables" ? (
+        <ReceivablesTab data={recv} onPlan={(n) => { setDone(""); setPlanFor(n); }} />
+      ) : null}
+      {planFor ? <InstallmentPlanModal note={planFor} onClose={() => setPlanFor(null)} onDone={() => { setPlanFor(null); setDone(t("finance.installments.created")); load(); }} /> : null}
 
       {/* شجرة الحسابات */}
       {tab === "coa" ? (
@@ -483,6 +496,153 @@ function CommissionsTab({ emp, producers, onSettle }: { emp: EmpComm | null; pro
           </table>
         </div>
       </section>
+    </div>
+  );
+}
+
+/** لون شارة حالة القسط/الإشعار المدين. */
+function instTone(status: string): string {
+  switch (status) {
+    case "paid": return "bg-success-soft text-success";
+    case "partial": return "bg-info-soft text-info";
+    case "overdue": return "bg-danger-soft text-danger";
+    case "outstanding": return "bg-warning-soft text-warning";
+    default: return "bg-surface-2 text-subtle"; // due
+  }
+}
+
+/** الذمم المدينة (إشعارات مدينة) + إدارة خطط التقسيط لكل إشعار. */
+function ReceivablesTab({ data, onPlan }: { data: Receivables | null; onPlan: (n: RecvNote) => void }) {
+  const t = useTranslations();
+  const m = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const [sched, setSched] = useState<Record<string, InstallmentRow[]>>({});
+  const [busy, setBusy] = useState<string | null>(null);
+  const notes = data?.notes ?? [];
+  const page = usePaged(notes);
+
+  const loadSched = useCallback(async (id: string) => {
+    setBusy(id);
+    try { const rows = await api<InstallmentRow[]>(`/finance/debit-notes/${id}/installments`); setSched((s) => ({ ...s, [id]: rows })); }
+    catch { setSched((s) => ({ ...s, [id]: [] })); }
+    finally { setBusy(null); }
+  }, []);
+  async function toggle(id: string) {
+    if (expanded === id) { setExpanded(null); return; }
+    setExpanded(id);
+    if (!sched[id]) await loadSched(id);
+  }
+
+  return (
+    <section className="overflow-hidden rounded-card border border-line bg-card shadow-card">
+      <div className="flex flex-wrap items-center gap-2 border-b border-line px-5 py-3.5">
+        <Receipt size={17} className="text-warning" />
+        <div><h2 className="text-[15px] font-semibold text-ink">{t("finance.receivables")}</h2><p className="text-[12px] text-subtle">{t("finance.receivablesSub")}</p></div>
+        {data ? <span className="ms-auto text-[12px] text-subtle">{t("finance.receivablesTab.outstanding")}: <span className="font-bold text-warning tnum">{m(data.outstanding)}</span> {t("common.sar")}</span> : null}
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[760px]">
+          <thead><tr className="border-b border-line text-[11px] uppercase tracking-wide text-subtle">
+            <th className="px-5 py-3 text-start font-semibold">{t("finance.receivablesTab.note")}</th>
+            <th className="px-4 py-3 text-start font-semibold">{t("finance.receivablesTab.client")}</th>
+            <th className="px-4 py-3 text-end font-semibold">{t("finance.receivablesTab.total")}</th>
+            <th className="px-4 py-3 text-end font-semibold">{t("finance.receivablesTab.settled")}</th>
+            <th className="px-4 py-3 text-end font-semibold">{t("finance.receivablesTab.outstandingCol")}</th>
+            <th className="px-4 py-3 text-center font-semibold">{t("finance.receivablesTab.status")}</th>
+            <th className="px-4 py-3"></th>
+          </tr></thead>
+          <tbody className="divide-y divide-line">
+            {page.pageItems.map((n) => (
+              <Fragment key={n.id}>
+                <tr className="hover:bg-surface-2/60">
+                  <td className="px-5 py-3 text-[12.5px] font-medium text-ink tnum">{n.sequenceNo ?? n.id.slice(0, 8)}</td>
+                  <td className="px-4 py-3 text-[13px] text-ink">{n.clientName}</td>
+                  <td className="px-4 py-3 text-end text-[12.5px] font-medium text-ink tnum">{m(n.total)}</td>
+                  <td className="px-4 py-3 text-end text-[12.5px] text-success tnum">{n.settled ? m(n.settled) : "—"}</td>
+                  <td className={`px-4 py-3 text-end text-[12.5px] tnum ${n.outstanding > 0 ? "font-semibold text-warning" : "text-subtle"}`}>{m(n.outstanding)}</td>
+                  <td className="px-4 py-3 text-center"><span className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-medium ${instTone(n.status)}`}>{t(`finance.receivablesTab.st.${n.status}`)}</span></td>
+                  <td className="px-4 py-3 text-end">
+                    <div className="flex items-center justify-end gap-1.5">
+                      {n.outstanding > 0 && !n.hasPlan ? <button onClick={() => onPlan(n)} className="inline-flex items-center gap-1 rounded-lg border border-line px-2.5 py-1.5 text-[12px] font-medium text-muted hover:bg-surface-2"><Coins size={13} /> {t("finance.installments.plan")}</button> : null}
+                      {n.hasPlan ? <button onClick={() => toggle(n.id)} className="inline-flex items-center gap-1 rounded-lg border border-line px-2.5 py-1.5 text-[12px] font-medium text-muted hover:bg-surface-2">{expanded === n.id ? t("finance.installments.hide") : t("finance.installments.schedule")}</button> : null}
+                    </div>
+                  </td>
+                </tr>
+                {expanded === n.id ? (
+                  <tr className="bg-surface-2/40"><td colSpan={7} className="px-5 py-3">
+                    {busy === n.id && !sched[n.id] ? <p className="py-3 text-center text-[12px] text-subtle">…</p> : (sched[n.id]?.length ?? 0) === 0 ? (
+                      <p className="py-3 text-center text-[12px] text-subtle">{t("finance.installments.none")}{n.outstanding > 0 ? <> — <button onClick={() => onPlan(n)} className="font-semibold text-primary hover:underline">{t("finance.installments.createNow")}</button></> : null}</p>
+                    ) : (
+                      <div className="overflow-hidden rounded-lg border border-line bg-card">
+                        <table className="w-full">
+                          <thead><tr className="border-b border-line text-[10.5px] uppercase tracking-wide text-subtle">
+                            <th className="px-4 py-2 text-start font-semibold">{t("finance.installments.seq")}</th>
+                            <th className="px-4 py-2 text-start font-semibold">{t("finance.installments.due")}</th>
+                            <th className="px-4 py-2 text-end font-semibold">{t("finance.installments.amount")}</th>
+                            <th className="px-4 py-2 text-end font-semibold">{t("finance.installments.settledCol")}</th>
+                            <th className="px-4 py-2 text-center font-semibold">{t("finance.receivablesTab.status")}</th>
+                          </tr></thead>
+                          <tbody className="divide-y divide-line">
+                            {sched[n.id]?.map((r) => (
+                              <tr key={r.id}>
+                                <td className="px-4 py-2 text-[12px] font-medium text-ink tnum">{r.seq}</td>
+                                <td className="px-4 py-2 text-[12px] text-muted tnum">{r.dueDate.slice(0, 10)}</td>
+                                <td className="px-4 py-2 text-end text-[12px] text-ink tnum">{m(r.amount)}</td>
+                                <td className="px-4 py-2 text-end text-[12px] text-success tnum">{r.settled ? m(r.settled) : "—"}</td>
+                                <td className="px-4 py-2 text-center"><span className={`inline-block rounded-full px-2 py-0.5 text-[10.5px] font-medium ${instTone(r.status)}`}>{t(`finance.receivablesTab.st.${r.status}`)}</span></td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </td></tr>
+                ) : null}
+              </Fragment>
+            ))}
+            {data && notes.length === 0 ? <tr><td colSpan={7} className="px-5 py-8 text-center text-[12.5px] text-subtle">{t("finance.receivablesTab.empty")}</td></tr> : null}
+          </tbody>
+        </table>
+      </div>
+      <Pagination page={page.page} pageCount={page.pageCount} total={page.total} from={page.from} to={page.to} onPage={page.setPage} />
+      <p className="border-t border-line px-5 py-2 text-[10.5px] leading-relaxed text-subtle">{t("finance.installments.note")}</p>
+    </section>
+  );
+}
+
+/** إنشاء خطة تقسيط لإشعار مدين — عدد دفعات + تاريخ أول قسط. */
+function InstallmentPlanModal({ note, onClose, onDone }: { note: RecvNote; onClose: () => void; onDone: () => void }) {
+  const t = useTranslations("finance.installments");
+  const [count, setCount] = useState("3");
+  const [firstDueDate, setFirstDueDate] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState("");
+  const field = "h-9 w-full rounded-lg border border-line bg-card px-3 text-[13px] text-ink focus:outline-none focus:ring-2 focus:ring-primary/30";
+  const n = Number(count);
+  const per = n >= 2 && note.total > 0 ? note.total / n : 0;
+  async function save() {
+    setErr(""); setSaving(true);
+    try {
+      await api(`/finance/debit-notes/${note.id}/installments`, { method: "POST", body: JSON.stringify({ count: n, firstDueDate: firstDueDate || undefined }) });
+      onDone();
+    } catch (e) { setErr(e instanceof ApiError ? e.message : "خطأ"); setSaving(false); }
+  }
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onMouseDown={onClose}>
+      <div className="w-full max-w-sm rounded-card border border-line bg-card p-5 shadow-card" onMouseDown={(e) => e.stopPropagation()}>
+        <div className="mb-1 flex items-center justify-between"><h2 className="text-[15px] font-bold text-ink">{t("planTitle")}</h2><button onClick={onClose} className="text-subtle hover:text-ink"><X size={18} /></button></div>
+        <p className="mb-3 text-[12px] text-subtle">{note.clientName} · {t("total")}: <span className="tnum text-ink">{note.total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></p>
+        <div className="space-y-3">
+          <label className="block"><span className="mb-1 block text-[11.5px] font-medium text-muted">{t("count")}</span><input type="number" min={2} max={36} value={count} onChange={(e) => setCount(e.target.value)} className={`${field} tnum`} /></label>
+          <label className="block"><span className="mb-1 block text-[11.5px] font-medium text-muted">{t("firstDue")}</span><input type="date" value={firstDueDate} onChange={(e) => setFirstDueDate(e.target.value)} className={`${field} tnum`} /><span className="mt-1 block text-[10.5px] text-subtle">{t("firstDueHint")}</span></label>
+          {per > 0 ? <p className="rounded-lg bg-surface-2 px-3 py-2 text-[12px] text-muted">{t("preview", { count: n, per: per.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) })}</p> : null}
+          {err ? <p className="text-[12px] font-medium text-danger">{err}</p> : null}
+          <div className="flex justify-end gap-2 pt-1">
+            <button onClick={onClose} className="h-9 rounded-lg border border-line px-3 text-[12.5px] font-medium text-muted hover:bg-surface-2">{t("cancel")}</button>
+            <button onClick={save} disabled={saving || !(n >= 2 && n <= 36)} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary-strong px-4 text-[12.5px] font-semibold text-primary-fg hover:bg-primary disabled:opacity-60"><Check size={15} /> {saving ? "…" : t("confirm")}</button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

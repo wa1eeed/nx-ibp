@@ -386,4 +386,60 @@ describe("الإصدار والاعتماد المالي (e2e)", () => {
     // غير المخوّل يُمنع من الصرف
     await request(srv).post(`/finance/employee-commissions/${led.rows[0].userId}/settle`).set(auth(sales)).send({ amount: 1 }).expect(403);
   });
+
+  it("#2.1 التقسيط: خطة تقسّم الإجمالي (الأخيرة تمتصّ التقريب) + التحصيل بالأقدم استحقاقًا (شلال) + الحواجز", async () => {
+    const srv = app.getHttpServer();
+    const requestId = await createAwardedRequest();
+    const policy = (await request(srv).post("/policies/issue").set(auth(underwriter)).send({ requestId, branchCode: "RUH" }).expect(201)).body;
+    await request(srv).post(`/policies/${policy.id}/approve-technical`).set(auth(underwriter)).expect(200);
+    const fin = (await request(srv).post(`/finance/policies/${policy.id}/approve`).set(auth(accountant)).expect(200)).body;
+    const note = (await request(srv).get("/finance/receivables").set(auth(accountant))).body.notes.find((n: { sequenceNo: string }) => n.sequenceNo === fin.debitNote);
+    const total = note.total as number; // 69000
+
+    // الحواجز: عدد < 2 ⇒ 400 · غير المخوّل (مبيعات) ⇒ 403
+    await request(srv).post(`/finance/debit-notes/${note.id}/installments`).set(auth(accountant)).send({ count: 1 }).expect(400);
+    await request(srv).post(`/finance/debit-notes/${note.id}/installments`).set(auth(sales)).send({ count: 3 }).expect(403);
+
+    // خطة 7 دفعات (تاريخ مستقبلي حتمي) ⇒ المجموع == الإجمالي (الأخيرة تمتصّ فرق التقريب)
+    const plan = (await request(srv).post(`/finance/debit-notes/${note.id}/installments`).set(auth(accountant)).send({ count: 7, firstDueDate: "2099-01-15" }).expect(201)).body;
+    expect(plan.installments).toHaveLength(7);
+    const sum = plan.installments.reduce((s: number, r: { amount: number }) => s + r.amount, 0);
+    expect(Number(sum.toFixed(2))).toBe(total); // لا يضيع ولا يُخلق قرش
+    expect(plan.installments.map((r: { seq: number }) => r.seq)).toEqual([1, 2, 3, 4, 5, 6, 7]); // تسلسل
+    expect(plan.installments[0].dueDate.slice(0, 10)).toBe("2099-01-15");
+    expect(plan.installments[1].dueDate.slice(0, 10)).toBe("2099-02-15"); // استحقاق شهري تصاعدي
+    expect(plan.installments.every((r: { status: string }) => r.status === "due")).toBe(true); // كلها قادمة (مستقبلية)
+
+    // إعادة إنشاء خطة على نفس الإشعار ⇒ 409
+    await request(srv).post(`/finance/debit-notes/${note.id}/installments`).set(auth(accountant)).send({ count: 3 }).expect(409);
+
+    // التحصيل يُطبَّق بالأقدم استحقاقًا: سند قبض بقيمة أول قسطين ⇒ 1و2 مسدَّدان، 3 يبقى مستحقًّا بلا تحصيل
+    const two = Number((plan.installments[0].amount + plan.installments[1].amount).toFixed(2));
+    await request(srv).post(`/finance/debit-notes/${note.id}/receipt`).set(auth(accountant)).send({ amount: two, method: "transfer" }).expect(201);
+    const sched = (await request(srv).get(`/finance/debit-notes/${note.id}/installments`).set(auth(accountant)).expect(200)).body as Array<{ seq: number; status: string; settled: number; outstanding: number }>;
+    expect(sched.find((r) => r.seq === 1)!.status).toBe("paid");
+    expect(sched.find((r) => r.seq === 2)!.status).toBe("paid");
+    expect(sched.find((r) => r.seq === 3)!.status).toBe("due"); // لم يصله تحصيل بعد
+    expect(sched.find((r) => r.seq === 3)!.settled).toBe(0);
+  });
+
+  it("#2.1 التقسيط: تحصيل سابق للخطة يُرحَّل على الأقساط (مسدَّد/جزئي) + المتأخّر يُحتسب من تاريخ الاستحقاق", async () => {
+    const srv = app.getHttpServer();
+    const requestId = await createAwardedRequest();
+    const policy = (await request(srv).post("/policies/issue").set(auth(underwriter)).send({ requestId, branchCode: "RUH" }).expect(201)).body;
+    await request(srv).post(`/policies/${policy.id}/approve-technical`).set(auth(underwriter)).expect(200);
+    const fin = (await request(srv).post(`/finance/policies/${policy.id}/approve`).set(auth(accountant)).expect(200)).body;
+    const note = (await request(srv).get("/finance/receivables").set(auth(accountant))).body.notes.find((n: { sequenceNo: string }) => n.sequenceNo === fin.debitNote);
+
+    // تحصيل 25000 قبل إنشاء الخطة (لا أقساط بعد)
+    await request(srv).post(`/finance/debit-notes/${note.id}/receipt`).set(auth(accountant)).send({ amount: 25000, method: "transfer" }).expect(201);
+
+    // خطة 3 دفعات (23000 لكلٍّ) بتاريخ ماضٍ حتمي ⇒ يُرحَّل المُحصَّل السابق بالأقدم استحقاقًا
+    const plan = (await request(srv).post(`/finance/debit-notes/${note.id}/installments`).set(auth(accountant)).send({ count: 3, firstDueDate: "2020-01-01" }).expect(201)).body;
+    const inst = plan.installments as Array<{ seq: number; status: string; settled: number }>;
+    expect(inst.find((r) => r.seq === 1)!.status).toBe("paid"); // 23000 ← 25000
+    expect(inst.find((r) => r.seq === 2)!.status).toBe("partial"); // 2000 المتبقّية
+    expect(inst.find((r) => r.seq === 2)!.settled).toBe(2000);
+    expect(inst.find((r) => r.seq === 3)!.status).toBe("overdue"); // 2020 ماضٍ + بلا تحصيل
+  });
 });

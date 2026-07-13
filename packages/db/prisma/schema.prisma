@@ -63,6 +63,7 @@ model Tenant {
   clients            Client[]
   policyRequests     PolicyRequest[]
   policies           Policy[]
+  installments       Installment[]
   serviceRequests    ServiceRequest[]
   claims             Claim[]
   chartOfAccounts    ChartOfAccount[]
@@ -941,6 +942,27 @@ model DebitNote {
   createdAt     DateTime @default(now())
 
   @@index([tenantId])
+  @@index([tenantId, clientId])
+}
+
+// قسط ضمن خطة تقسيط إشعار مدين — التحصيل الجزئي يُطبَّق عليها بالأقدم استحقاقًا (waterfall).
+model Installment {
+  id            String    @id @default(cuid())
+  tenantId      String
+  tenant        Tenant    @relation(fields: [tenantId], references: [id])
+  debitNoteId   String
+  clientId      String?
+  policyId      String?
+  seq           Int // ترتيب القسط 1..N
+  dueDate       DateTime
+  amount        Decimal   @db.Decimal(14, 2)
+  settledAmount Decimal   @default(0) @db.Decimal(14, 2)
+  settledAt     DateTime?
+  remindedAt    DateTime? // حتمية التذكير (لا يتكرّر)
+  createdAt     DateTime  @default(now())
+
+  @@index([tenantId])
+  @@index([debitNoteId, seq])
   @@index([tenantId, clientId])
 }
 

@@ -1127,6 +1127,42 @@ async function main() {
     });
   }
 
+  // خطة تقسيط توضيحية للديمو (إشعار مدين لعميل الفهد) — تُظهر أقساطًا مسدَّدة/جزئية/متأخّرة/قادمة (الديمو فقط)
+  if (!isTestDb) {
+    const planNoteId = "dn-pol-fahd-mot"; // DN-2026-1002 (الفهد — المركبات)
+    const pn = await prisma.debitNote.findUnique({ where: { id: planNoteId }, select: { id: true, tenantId: true, clientId: true, policyId: true, netAmount: true, vatAmount: true } });
+    if (pn) {
+      const gross = round2(Number(pn.netAmount ?? 0) + Number(pn.vatAmount ?? 0));
+      const collected = round2(gross * 0.45); // 45% محصّلة ⇒ خليط حالات عبر الترحيل بالأقدم استحقاقًا
+      // ثبّت الإشعار على «جزئي» حتميًا مع سند القبض المطابق كي تكون الخطة توضيحية
+      await prisma.debitNote.update({ where: { id: pn.id }, data: { settledAmount: collected, settledAt: null } });
+      await prisma.voucher.upsert({
+        where: { id: `rcv-seed-${pn.id}` },
+        update: { amount: collected },
+        create: { id: `rcv-seed-${pn.id}`, tenantId: pn.tenantId, type: "RCV", sequenceNo: "RCV-2026-19002", amount: collected, status: "posted", isAuto: false, reference: pn.id, lines: { description: "تحصيل جزئي (خطة تقسيط)", method: "transfer", clientId: pn.clientId } },
+      });
+      const count = 4;
+      const per = round2(gross / count);
+      const base = new Date("2026-05-01T00:00:00.000Z"); // 4 دفعات شهرية: 05-01..08-01 (خليط متأخّر/قادم مرجعيًا لتاريخ الديمو)
+      let allocated = 0;
+      let paidRem = collected;
+      for (let s = 0; s < count; s++) {
+        const amount = s === count - 1 ? round2(gross - allocated) : per;
+        allocated = round2(allocated + amount);
+        const due = new Date(base);
+        due.setMonth(due.getMonth() + s);
+        const applied = round2(Math.min(paidRem, amount));
+        paidRem = round2(paidRem - applied);
+        const fullyPaid = applied >= amount - 0.001;
+        await prisma.installment.upsert({
+          where: { id: `inst-seed-${planNoteId}-${s + 1}` },
+          update: { amount, settledAmount: applied, settledAt: fullyPaid ? due : null },
+          create: { id: `inst-seed-${planNoteId}-${s + 1}`, tenantId: pn.tenantId, debitNoteId: pn.id, clientId: pn.clientId, policyId: pn.policyId, seq: s + 1, dueDate: due, amount, settledAmount: applied, settledAt: fullyPaid ? due : null },
+        });
+      }
+    }
+  }
+
   // ---- سجلّ المنتِجين (الوسطاء الفرعيون) + ربط جزء من الوثائق بهم مع حصّة عمولتهم ----
   const producerDefs = [
     // منتِجو حساب الخليج (ديمو دون قاعدة الاختبار)

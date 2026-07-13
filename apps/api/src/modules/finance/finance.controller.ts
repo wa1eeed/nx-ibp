@@ -5,6 +5,7 @@ import { CancelPolicyDto } from "./dto/cancel-policy.dto";
 import { SettleInsurerDto } from "./dto/settle-insurer.dto";
 import { CreateJournalDto } from "./dto/create-journal.dto";
 import { SettleCommissionDto } from "./dto/settle-commission.dto";
+import { CreateInstallmentPlanDto } from "./dto/installments.dto";
 import { Authorize } from "../rbac/authorize.decorator";
 import { CurrentUser } from "../auth/current-user.decorator";
 
@@ -129,6 +130,25 @@ export class FinanceController {
     @Body() dto: RecordReceiptDto,
   ) {
     return this.finance.recordReceipt(tenantId, userId, id, dto);
+  }
+
+  // خطة تقسيط إشعار مدين — عرض/إنشاء
+  @Authorize({ module: "finance", action: "read", entitlement: "module.finance" })
+  @Get("debit-notes/:id/installments")
+  installments(@Param("id") id: string) {
+    return this.finance.installments(id);
+  }
+
+  @Authorize({ module: "finance", action: "create", entitlement: "module.finance" })
+  @HttpCode(201)
+  @Post("debit-notes/:id/installments")
+  createInstallments(
+    @CurrentUser("tenantId") tenantId: string,
+    @CurrentUser("userId") userId: string,
+    @Param("id") id: string,
+    @Body() dto: CreateInstallmentPlanDto,
+  ) {
+    return this.finance.generateInstallments(tenantId, userId, id, dto.count, dto.firstDueDate);
   }
 
   // استلام عمولة من المؤمِّن (RCV)

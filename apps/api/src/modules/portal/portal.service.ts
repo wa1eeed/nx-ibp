@@ -283,7 +283,17 @@ export class PortalService {
     const collected = debitNotes.reduce((s, d) => s + num(d.settledAmount), 0);
     const credited = creditNotes.reduce((s, c) => s + num(c.netAmount) + num(c.vatAmount), 0);
     const outstanding = Math.round((charged - collected - credited) * 100) / 100;
-    return { debitNotes, creditNotes, invoices, outstanding, collected: Math.round(collected * 100) / 100 };
+    // جدول الأقساط (إن وُجدت خطة تقسيط) — بحالة كل قسط للعميل
+    const insts = await this.prisma.installment.findMany({ where: { clientId }, orderBy: { dueDate: "asc" }, select: { id: true, seq: true, dueDate: true, amount: true, settledAmount: true } });
+    const now = Date.now();
+    const installments = insts.map((r) => {
+      const amount = Number(r.amount);
+      const settled = Number(r.settledAmount);
+      const out = Math.round((amount - settled) * 100) / 100;
+      const status = out <= 0.01 ? "paid" : settled > 0 ? "partial" : new Date(r.dueDate).getTime() < now ? "overdue" : "due";
+      return { id: r.id, seq: r.seq, dueDate: r.dueDate, amount, settled: Math.round(settled * 100) / 100, outstanding: out, status };
+    });
+    return { debitNotes, creditNotes, invoices, outstanding, collected: Math.round(collected * 100) / 100, installments };
   }
 
   /** كل معرّفات الكيانات التي تخصّ العميل (هو + طلباته + مطالباته + وثائقه). أساس فحص ملكية المستندات. */

@@ -607,7 +607,9 @@ curl -X POST http://localhost:4000/staff \
 ### المالية — دورة التحصيل (سندات القبض + كشف الحساب)
 | الطريقة | المسار | الحماية | الوصف |
 |---|---|---|---|
-| POST | `/finance/debit-notes/:id/receipt` | finance:create | سند قبض من العميل مقابل إشعار مدين — يزيد `settledAmount`، قيد متوازن (نقد/ذمم)، يمنع تجاوز المستحقّ (409) |
+| POST | `/finance/debit-notes/:id/receipt` | finance:create | سند قبض من العميل مقابل إشعار مدين — يزيد `settledAmount`، قيد متوازن (نقد/ذمم)، يمنع تجاوز المستحقّ (409). عند وجود خطة تقسيط: يُطبَّق على الأقساط **بالأقدم استحقاقًا** (waterfall) |
+| GET | `/finance/debit-notes/:id/installments` | finance:read | جدول أقساط الإشعار — لكل قسط `seq`/`dueDate`/`amount`/`settled`/`outstanding`/الحالة (paid/partial/overdue/due) |
+| POST | `/finance/debit-notes/:id/installments` | finance:create | **إنشاء خطة تقسيط**: `{ count (2–36), firstDueDate? }` — تقسّم الإجمالي على دفعات شهرية (الأخيرة تمتصّ التقريب) + ترحيل المُحصَّل سابقًا بالأقدم استحقاقًا. تكرار الخطة ⇒ 409 · عدد خارج المدى ⇒ 400 |
 | POST | `/finance/commissions/:id/receipt` | finance:create | استلام عمولة من المؤمِّن — يضبط `receivedAmount`/الحالة (مستلمة/فرق تحصيل) |
 | GET | `/finance/statement/:clientId` | finance:read | كشف حساب العميل: قيود (إشعارات مدين) + إشعارات دائنة + مدفوعات (سندات قبض) برصيد جارٍ |
 | POST | `/finance/policies/:id/cancel` | finance:update | **إلغاء وثيقة** — قسط مُرتجَع نسبةً وتناسبًا + إشعار دائن للعميل (CNP) + **إشعار دائن للمؤمِّن (CNC)** يعكس العمولة + قيد عكسي + `CANCELLED` (تكرار ⇒ 409) |
@@ -620,7 +622,7 @@ curl -X POST http://localhost:4000/staff \
 | GET | `/finance/employee-commissions` | finance:read | دفتر عمولات الموظفين — **استحقاق عند التحصيل** (متوقّعة/مستحقّة/مدفوعة/متبقّية لكل مندوب) |
 | POST | `/finance/employee-commissions/:userId/settle` | finance:create | صرف عمولة موظف (سند PYV، حساب 05020) — يمنع تجاوز المتبقّي (409) |
 | POST | `/staff/:id/commission-rate` | settings:update | ضبط نسبة عمولة/حافز الموظف (% من عمولة الوساطة، 0–100؛ null = بلا عمولة) |
-| GET | `/finance/receivables` · `/finance/summary` | finance:read | تعيدان **المتبقّي بعد التحصيل والإشعارات الدائنة** + `collected` + `creditNotes` + `serviceFees` + حالة كل إشعار |
+| GET | `/finance/receivables` · `/finance/summary` | finance:read | تعيدان **المتبقّي بعد التحصيل والإشعارات الدائنة** + `collected` + `creditNotes` + `serviceFees` + حالة كل إشعار + `hasPlan` (وجود خطة تقسيط) |
 | GET | `/finance/invoices` | finance:read | الفواتير الضريبية مع `kind` (COMMISSION على المؤمِّن / FEES على العميل) + `party` (الطرف) + حزمة ZATCA |
 | GET | `/finance/invoices/:id/document` | finance:read | **بيانات وثيقة الفاتورة المطبوعة** (بائع/طرف/بنود/ZATCA) لتوليد فاتورة PDF بهوية المستأجر — مجهولة ⇒ 404 |
 

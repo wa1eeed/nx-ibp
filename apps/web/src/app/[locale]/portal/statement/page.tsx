@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Receipt } from "lucide-react";
+import { Receipt, CalendarClock } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { cpapi } from "@/lib/api";
 import { PortalShell } from "@/components/portal/PortalShell";
@@ -11,7 +11,10 @@ import { Badge } from "@/components/ui/Badge";
 
 interface DebitNote { id: string; sequenceNo: string | null; policyId: string | null; netAmount: string | null; vatAmount: string | null; createdAt: string }
 interface Invoice { id: string; sequenceNo: string | null; insurerName: string | null; netAmount: string | null; vatAmount: string | null; totalAmount: string | null; status: string | null; createdAt: string }
-interface Statement { debitNotes: DebitNote[]; invoices: Invoice[]; outstanding: number }
+interface InstallmentRow { id: string; seq: number; dueDate: string; amount: number; settled: number; outstanding: number; status: string }
+interface Statement { debitNotes: DebitNote[]; invoices: Invoice[]; outstanding: number; installments: InstallmentRow[] }
+
+const instTone: Record<string, "success" | "info" | "danger" | "warning" | "neutral"> = { paid: "success", partial: "info", overdue: "danger", due: "warning" };
 
 export default function PortalStatement() {
   const t = useTranslations();
@@ -32,6 +35,34 @@ export default function PortalStatement() {
         <StatCard tone="info" icon={<Receipt size={18} />} title={t("portal.statement.debitNotes")} value={s?.debitNotes.length ?? 0} />
         <StatCard tone="primary" icon={<Receipt size={18} />} title={t("portal.statement.invoices")} value={s?.invoices.length ?? 0} />
       </div>
+
+      {s && s.installments.length > 0 ? (
+        <div className="mb-6">
+          <div className="mb-2 flex items-center gap-2"><CalendarClock size={16} className="text-primary" /><h2 className="text-[14px] font-bold text-ink">{t("portal.statement.installments.title")}</h2></div>
+          <div className="overflow-x-auto rounded-card border border-line bg-card shadow-card">
+            <table className="w-full min-w-[560px]">
+              <thead><tr className="border-b border-line text-[11px] uppercase tracking-wide text-subtle">
+                <th className="px-5 py-3 text-start font-semibold">{t("portal.statement.installments.seq")}</th>
+                <th className="px-5 py-3 text-start font-semibold">{t("portal.statement.installments.due")}</th>
+                <th className="px-5 py-3 text-start font-semibold">{t("portal.statement.installments.amount")}</th>
+                <th className="px-5 py-3 text-start font-semibold">{t("portal.statement.installments.remaining")}</th>
+                <th className="px-5 py-3 text-start font-semibold">{t("portal.statement.col.status")}</th>
+              </tr></thead>
+              <tbody className="divide-y divide-line">
+                {s.installments.map((r) => (
+                  <tr key={r.id} className="hover:bg-surface-2/60">
+                    <td className="px-5 py-3 text-[12.5px] font-medium text-ink tnum">{r.seq}</td>
+                    <td className="px-5 py-3 text-[12px] text-muted tnum">{date(r.dueDate)}</td>
+                    <td className="px-5 py-3 text-[13px] tnum font-semibold text-ink">{fmt(r.amount)} <span className="text-[11px] text-subtle">{t("common.sar")}</span></td>
+                    <td className={`px-5 py-3 text-[13px] tnum ${r.outstanding > 0 ? "text-warning" : "text-subtle"}`}>{r.outstanding > 0 ? fmt(r.outstanding) : "—"}</td>
+                    <td className="px-5 py-3"><Badge tone={instTone[r.status] ?? "neutral"}>{t(`portal.statement.installments.st.${r.status}`)}</Badge></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : null}
 
       <h2 className="mb-2 text-[14px] font-bold text-ink">{t("portal.statement.debitNotes")}</h2>
       <div className="mb-6 overflow-x-auto rounded-card border border-line bg-card shadow-card">

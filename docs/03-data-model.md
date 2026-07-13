@@ -581,6 +581,25 @@ erDiagram
 
 **الفهارس:** `@@index([tenantId])` · `@@index([tenantId, clientId])`. **الحالة** مُشتقّة: `outstanding`/`partial`/`paid`. سندات القبض مُخزَّنة كـ`Voucher` نوع `RCV` بـ`reference = debitNoteId`.
 
+### `Installment`
+**الغرض:** قسط ضمن خطة تقسيط لإشعار مدين (دفعات شهرية مجدولة). الخطة اختيارية؛ التحصيل يبقى عبر سندات القبض (RCV) على الإشعار، ويُطبَّق على الأقساط **بالأقدم استحقاقًا** (waterfall).
+
+| الحقل | النوع | ملاحظة |
+|---|---|---|
+| `id` | String | المفتاح |
+| `tenantId` | String (FK→Tenant) | المستأجر |
+| `debitNoteId` | String | الإشعار المدين المُقسَّط |
+| `clientId` / `policyId` | String? | المراجع (للعرض في البوّابة والتذكير) |
+| `seq` | Int | ترتيب القسط (1..N) |
+| `dueDate` | DateTime | تاريخ استحقاق القسط (شهري تصاعدي) |
+| `amount` | Decimal(14,2) | قيمة القسط (الأخير يمتصّ فرق التقريب) |
+| `settledAmount` | Decimal(14,2) | المُحصَّل على هذا القسط — الافتراضي 0 |
+| `settledAt` | DateTime? | تاريخ اكتمال سداد القسط |
+| `remindedAt` | DateTime? | ختم تذكير الاستحقاق (حتمية — لا تكرار) |
+| `createdAt` | DateTime | |
+
+**الفهارس:** `@@index([tenantId])` · `@@index([debitNoteId, seq])` · `@@index([tenantId, clientId])`. **الحالة** مُشتقّة لكل قسط: `paid`/`partial`/`overdue`/`due`. الإنشاء يفرض عدد دفعات **2–36** ويمنع تكرار الخطة على الإشعار نفسه.
+
 ### `CreditNote`
 **الغرض:** إشعار دائن — **CNP** على العميل (قسط مُرتجَع عند الإلغاء) أو **CNC** على المؤمِّن (عكس العمولة المستردّة).
 

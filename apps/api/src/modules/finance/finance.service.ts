@@ -147,6 +147,12 @@ export class FinanceService {
       this.prisma.creditNote.findMany({ where: { clientId: { not: null } }, select: { clientId: true, netAmount: true, vatAmount: true } }), // إشعارات دائنة على العملاء فقط (تُستثنى CNC على المؤمِّن)
     ]);
     const clientIds = [...new Set(notes.map((n) => n.clientId).filter((x): x is string => !!x))];
+    // الإشعارات التي لها خطة تقسيط (لعرض «الجدول» بدل «خطة تقسيط»). مُقيَّدة بإشعارات المستأجر الحالي.
+    const noteIds = notes.map((n) => n.id);
+    const planned = noteIds.length
+      ? await this.prisma.installment.findMany({ where: { debitNoteId: { in: noteIds } }, select: { debitNoteId: true }, distinct: ["debitNoteId"] })
+      : [];
+    const plannedSet = new Set(planned.map((p) => p.debitNoteId));
     const clients = clientIds.length
       ? await this.prisma.client.findMany({ where: { id: { in: clientIds } }, select: { id: true, name: true } })
       : [];
@@ -181,7 +187,7 @@ export class FinanceService {
       notes: notes.map((n) => {
         const gross = r2(num(n.netAmount) + num(n.vatAmount));
         const settled = r2(num(n.settledAmount));
-        return { id: n.id, sequenceNo: n.sequenceNo, clientId: n.clientId, clientName: nameOf[n.clientId ?? ""] ?? "—", total: gross, settled, outstanding: r2(gross - settled), status: settled <= 0 ? "outstanding" : settled >= gross ? "paid" : "partial", createdAt: n.createdAt };
+        return { id: n.id, sequenceNo: n.sequenceNo, clientId: n.clientId, clientName: nameOf[n.clientId ?? ""] ?? "—", total: gross, settled, outstanding: r2(gross - settled), status: settled <= 0 ? "outstanding" : settled >= gross ? "paid" : "partial", hasPlan: plannedSet.has(n.id), createdAt: n.createdAt };
       }),
     };
   }
@@ -219,6 +225,20 @@ export class FinanceService {
         data: { settledAmount: newSettled, settledAt: fullyPaid ? new Date() : null },
         select: { id: true, sequenceNo: true, netAmount: true, vatAmount: true, settledAmount: true, settledAt: true },
       });
+      // إن كانت هناك خطة تقسيط: يُطبَّق التحصيل على الأقساط **بالأقدم استحقاقًا** (waterfall)
+      const insts = await tx.installment.findMany({ where: { debitNoteId }, orderBy: [{ dueDate: "asc" }, { seq: "asc" }] });
+      if (insts.length) {
+        let rem = dto.amount;
+        for (const inst of insts) {
+          if (rem <= 0.001) break;
+          const instRem = r2(num(inst.amount) - num(inst.settledAmount));
+          if (instRem <= 0) continue;
+          const apply = Math.min(rem, instRem);
+          const ns = r2(num(inst.settledAmount) + apply);
+          await tx.installment.update({ where: { id: inst.id }, data: { settledAmount: ns, settledAt: ns >= num(inst.amount) - 0.001 ? new Date() : inst.settledAt } });
+          rem = r2(rem - apply);
+        }
+      }
       return { voucher, note: updated };
     });
     await this.audit.log({ tenantId, userId, action: "create", entity: "receipt", entityId: result.voucher.id, meta: { debitNoteId, amount: r2(dto.amount), fullyPaid } });
@@ -230,6 +250,59 @@ export class FinanceService {
   }
 
   /** استلام عمولة من المؤمِّن (RCV) — يسجّل المُستلَم ويضبط الحالة (مستلمة/فرق تحصيل). */
+  /** قائمة أقساط إشعار مدين مع حالة كل قسط (مدفوع/جزئي/متأخّر/مستحقّ). */
+  async installments(debitNoteId: string) {
+    const rows = await this.prisma.installment.findMany({ where: { debitNoteId }, orderBy: { seq: "asc" }, select: { id: true, seq: true, dueDate: true, amount: true, settledAmount: true, settledAt: true } });
+    const now = Date.now();
+    return rows.map((r) => {
+      const amount = num(r.amount);
+      const settled = num(r.settledAmount);
+      const outstanding = r2(amount - settled);
+      const status = outstanding <= 0.001 ? "paid" : settled > 0 ? "partial" : new Date(r.dueDate).getTime() < now ? "overdue" : "due";
+      return { id: r.id, seq: r.seq, dueDate: r.dueDate, amount: r2(amount), settled: r2(settled), outstanding, status };
+    });
+  }
+
+  /**
+   * إنشاء خطة تقسيط لإشعار مدين: تقسيم الإجمالي إلى `count` دفعة **شهرية** من `firstDueDate`
+   * (الأخيرة تمتصّ فرق التقريب). مستقلّة عن تسوية المؤمِّن. تُطبَّق التحصيلات لاحقًا بالأقدم استحقاقًا.
+   */
+  async generateInstallments(tenantId: string, userId: string, debitNoteId: string, count: number, firstDueDate?: string) {
+    const note = await this.prisma.debitNote.findFirst({ where: { id: debitNoteId }, select: { id: true, clientId: true, policyId: true, netAmount: true, vatAmount: true, settledAmount: true } });
+    if (!note) throw new NotFoundException("إشعار المدين غير موجود");
+    if (!Number.isInteger(count) || count < 2 || count > 36) throw new BadRequestException("عدد الدفعات يجب أن يكون عددًا صحيحًا بين 2 و36");
+    if ((await this.prisma.installment.count({ where: { debitNoteId } })) > 0) throw new ConflictException("توجد خطة تقسيط بالفعل لهذا الإشعار");
+    const total = r2(num(note.netAmount) + num(note.vatAmount));
+    if (total <= 0) throw new BadRequestException("لا مبلغ للتقسيط");
+    const base = firstDueDate ? new Date(firstDueDate) : new Date();
+    if (Number.isNaN(+base)) throw new BadRequestException("تاريخ أول قسط غير صالح");
+    const per = r2(total / count);
+    const rows: Array<{ tenantId: string; debitNoteId: string; clientId: string | null; policyId: string | null; seq: number; dueDate: Date; amount: number }> = [];
+    let allocated = 0;
+    for (let i = 0; i < count; i++) {
+      const amount = i === count - 1 ? r2(total - allocated) : per;
+      allocated = r2(allocated + amount);
+      const due = new Date(base);
+      due.setMonth(due.getMonth() + i);
+      rows.push({ tenantId, debitNoteId, clientId: note.clientId, policyId: note.policyId, seq: i + 1, dueDate: due, amount });
+    }
+    await this.prisma.installment.createMany({ data: rows });
+    // تطبيق ما سبق تحصيله (إن وُجد) على الأقساط بالأقدم استحقاقًا
+    const paid = num(note.settledAmount);
+    if (paid > 0) {
+      const insts = await this.prisma.installment.findMany({ where: { debitNoteId }, orderBy: [{ dueDate: "asc" }, { seq: "asc" }] });
+      let rem = paid;
+      for (const inst of insts) {
+        if (rem <= 0.001) break;
+        const apply = Math.min(rem, num(inst.amount));
+        await this.prisma.installment.update({ where: { id: inst.id }, data: { settledAmount: r2(apply), settledAt: apply >= num(inst.amount) - 0.001 ? new Date() : null } });
+        rem = r2(rem - apply);
+      }
+    }
+    await this.audit.log({ tenantId, userId, action: "create", entity: "installment_plan", entityId: debitNoteId, meta: { count, total } });
+    return { debitNoteId, count, total, installments: await this.installments(debitNoteId) };
+  }
+
   async recordCommissionReceipt(tenantId: string, userId: string, commissionId: string, dto: { amount: number; reference?: string; receivedDate?: string }) {
     const comm = await this.prisma.commission.findFirst({ where: { id: commissionId } });
     if (!comm) throw new NotFoundException("سجلّ العمولة غير موجود");

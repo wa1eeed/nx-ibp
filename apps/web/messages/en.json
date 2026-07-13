@@ -280,6 +280,7 @@
     "offBalance": "Client trust (off-balance)",
     "offBalanceSub": "Funds held for the insurer",
     "receivables": "Receivables",
+    "receivablesSub": "Debit notes owed by clients and installment plans",
     "coa": "Chart of accounts (17-digit)",
     "coaSub": "Levels 1/2 locked · on/off-balance separation",
     "onBalance": "On-balance",
@@ -340,7 +341,8 @@
       "trial": "Trial balance",
       "overview": "Overview",
       "journal": "Journal & expenses",
-      "commissions": "Commissions"
+      "commissions": "Commissions",
+      "receivables": "Receivables & installments"
     },
     "overview": {
       "incomeStatement": "Income statement",
@@ -428,6 +430,44 @@
       "amount": "Amount",
       "reference": "Reference",
       "cancel": "Cancel"
+    },
+    "receivablesTab": {
+      "outstanding": "Total outstanding",
+      "note": "Debit note",
+      "client": "Client",
+      "total": "Total",
+      "settled": "Collected",
+      "outstandingCol": "Outstanding",
+      "status": "Status",
+      "empty": "No receivables — debit notes issued to clients appear here",
+      "st": {
+        "paid": "Paid",
+        "partial": "Partial",
+        "overdue": "Overdue",
+        "due": "Due",
+        "outstanding": "Outstanding"
+      }
+    },
+    "installments": {
+      "plan": "Installment plan",
+      "schedule": "Schedule",
+      "hide": "Hide",
+      "none": "No installment plan for this note",
+      "createNow": "Create a plan now",
+      "seq": "No.",
+      "due": "Due date",
+      "amount": "Amount",
+      "settledCol": "Collected",
+      "note": "Installments split the note total into monthly payments. Receipts are applied automatically to the oldest-due installments first, and the client is reminded of due installments.",
+      "created": "Installment plan created successfully",
+      "planTitle": "Installment plan",
+      "total": "Note total",
+      "count": "Number of payments",
+      "firstDue": "First installment date",
+      "firstDueHint": "Leave empty to start today — installments recur monthly",
+      "preview": "{count} payments · about {per} each",
+      "cancel": "Cancel",
+      "confirm": "Create plan"
     }
   },
   "producers": {
@@ -2200,6 +2240,19 @@
         "total": "Total",
         "insurer": "Insurer",
         "status": "Status"
+      },
+      "installments": {
+        "title": "Installment schedule",
+        "seq": "No.",
+        "due": "Due date",
+        "amount": "Amount",
+        "remaining": "Remaining",
+        "st": {
+          "paid": "Paid",
+          "partial": "Partial",
+          "overdue": "Overdue",
+          "due": "Upcoming"
+        }
       }
     },
     "documents": {
