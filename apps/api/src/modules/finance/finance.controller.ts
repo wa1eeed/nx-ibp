@@ -3,6 +3,7 @@ import { FinanceService } from "./finance.service";
 import { RecordReceiptDto } from "./dto/record-receipt.dto";
 import { CancelPolicyDto } from "./dto/cancel-policy.dto";
 import { SettleInsurerDto } from "./dto/settle-insurer.dto";
+import { CreateJournalDto } from "./dto/create-journal.dto";
 import { Authorize } from "../rbac/authorize.decorator";
 import { CurrentUser } from "../auth/current-user.decorator";
 
@@ -53,6 +54,30 @@ export class FinanceController {
   @Get("coa")
   coa() {
     return this.finance.coa();
+  }
+
+  // ——— القيود اليدوية والمصروفات (المحاسبة العامة) ———
+  @Authorize({ module: "finance", action: "read", entitlement: "module.finance" })
+  @Get("posting-accounts")
+  postingAccounts() {
+    return this.finance.postingAccounts();
+  }
+
+  @Authorize({ module: "finance", action: "read", entitlement: "module.finance" })
+  @Get("journal")
+  journal() {
+    return this.finance.journalVouchers();
+  }
+
+  @Authorize({ module: "finance", action: "create", entitlement: "module.finance" })
+  @HttpCode(201)
+  @Post("journal")
+  createJournal(
+    @CurrentUser("tenantId") tenantId: string,
+    @CurrentUser("userId") userId: string,
+    @Body() dto: CreateJournalDto,
+  ) {
+    return this.finance.createJournal(tenantId, userId, dto);
   }
 
   @Authorize({ module: "finance", action: "read", entitlement: "module.finance" })

@@ -614,6 +614,9 @@ curl -X POST http://localhost:4000/staff \
 | GET | `/finance/payables` | finance:read | المستحقّ للمؤمِّنين (أمانات) لكل مؤمِّن + أعمار الدَّين + المُسوّى + المتبقّي |
 | POST | `/finance/insurers/settle` | finance:create | سند صرف (PYV) لتسوية مستحقّ مؤمِّن (يمنع التجاوز ⇒ 409) |
 | GET | `/finance/trial-balance` | finance:read | ميزان المراجعة — أطراف القيود مجمّعة حسب الحساب + مؤشّر توازن |
+| GET | `/finance/posting-accounts` | finance:read | حسابات الترحيل (leaf) لمنتقي القيد اليدوي — تستثني العناوين |
+| GET | `/finance/journal` | finance:read | سجلّ القيود اليدوية (سندات JRV) |
+| POST | `/finance/journal` | finance:create | **قيد يومية/مصروف يدوي**: `{ description, date?, reference?, entries:[{account, debit?, credit?}] }` — يفرض ≥طرفين · مدين XOR دائن · **توازن (مدين=دائن)** · حساب ورقة (400/422 عند المخالفة) |
 | GET | `/finance/receivables` · `/finance/summary` | finance:read | تعيدان **المتبقّي بعد التحصيل والإشعارات الدائنة** + `collected` + `creditNotes` + `serviceFees` + حالة كل إشعار |
 | GET | `/finance/invoices` | finance:read | الفواتير الضريبية مع `kind` (COMMISSION على المؤمِّن / FEES على العميل) + `party` (الطرف) + حزمة ZATCA |
 | GET | `/finance/invoices/:id/document` | finance:read | **بيانات وثيقة الفاتورة المطبوعة** (بائع/طرف/بنود/ZATCA) لتوليد فاتورة PDF بهوية المستأجر — مجهولة ⇒ 404 |

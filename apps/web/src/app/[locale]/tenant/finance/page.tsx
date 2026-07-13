@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useCallback, useEffect, useState } from "react";
-import { Landmark, Wallet2, ShieldCheck, FileText, QrCode, Building2, Scale, Banknote, X, Check, Printer, LineChart, Users, Percent, Coins, AlertTriangle } from "lucide-react";
+import { Landmark, Wallet2, ShieldCheck, FileText, QrCode, Building2, Scale, Banknote, X, Check, Printer, LineChart, Users, Percent, Coins, AlertTriangle, BookText, Plus, Trash2, Receipt } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
 import { api, ApiError } from "@/lib/api";
@@ -10,7 +10,7 @@ import { StatCard } from "@/components/ui/StatCard";
 import { Badge } from "@/components/ui/Badge";
 import { usePaged, Pagination } from "@/components/ui/Pagination";
 
-type FinanceTab = "overview" | "coa" | "invoices" | "payables" | "trial";
+type FinanceTab = "overview" | "journal" | "coa" | "invoices" | "payables" | "trial";
 
 interface Summary { grossPremium: number; netPremium: number; vat: number; commission: number; serviceFees: number; offBalanceTrust: number; receivables: number; collected: number; invoiceCount: number; voucherCount: number }
 interface Overview {
@@ -24,6 +24,9 @@ interface PayRow { insurer: string; payable: number; settled: number; outstandin
 interface Payables { rows: PayRow[]; summary: { payable: number; settled: number; outstanding: number } }
 interface TrialRow { account: string; name: string; debit: number; credit: number; balance: number }
 interface Trial { rows: TrialRow[]; totals: { debit: number; credit: number; balanced: boolean } }
+interface PostAccount { code: string; name: string; accountType: string | null; isOnBalance: boolean }
+interface JournalEntry { account: string; name: string; debit: number; credit: number }
+interface JournalVoucher { id: string; sequenceNo: string | null; amount: string | null; reference: string | null; createdAt: string; lines: { description?: string; date?: string; entries?: JournalEntry[] } | null }
 
 export default function FinancePage() {
   const t = useTranslations();
@@ -33,6 +36,8 @@ export default function FinancePage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [pay, setPay] = useState<Payables | null>(null);
   const [trial, setTrial] = useState<Trial | null>(null);
+  const [postAccts, setPostAccts] = useState<PostAccount[]>([]);
+  const [journal, setJournal] = useState<JournalVoucher[]>([]);
   const [settle, setSettle] = useState<PayRow | null>(null);
   const [done, setDone] = useState("");
   const [open, setOpen] = useState("");
@@ -45,6 +50,8 @@ export default function FinancePage() {
     void api<Invoice[]>("/finance/invoices").then(setInvoices).catch(() => undefined);
     void api<Payables>("/finance/payables").then(setPay).catch(() => undefined);
     void api<Trial>("/finance/trial-balance").then(setTrial).catch(() => undefined);
+    void api<PostAccount[]>("/finance/posting-accounts").then(setPostAccts).catch(() => undefined);
+    void api<JournalVoucher[]>("/finance/journal").then(setJournal).catch(() => undefined);
   }, []);
   useEffect(() => { load(); }, [load]);
 
@@ -58,6 +65,7 @@ export default function FinancePage() {
 
   const TABS: Array<{ key: FinanceTab; icon: typeof Landmark; label: string; count: number | null }> = [
     { key: "overview", icon: LineChart, label: t("finance.tab.overview"), count: null },
+    { key: "journal", icon: BookText, label: t("finance.tab.journal"), count: journal.length },
     { key: "coa", icon: Landmark, label: t("finance.tab.coa"), count: coa.length },
     { key: "invoices", icon: QrCode, label: t("finance.tab.invoices"), count: invoices.length },
     { key: "payables", icon: Building2, label: t("finance.tab.payables"), count: pay?.rows.length ?? 0 },
@@ -205,6 +213,11 @@ export default function FinancePage() {
           </div>
         </div>
         )
+      ) : null}
+
+      {/* القيود اليدوية والمصروفات */}
+      {tab === "journal" ? (
+        <JournalTab accounts={postAccts} vouchers={journal} onPosted={() => { setDone(t("finance.journal.posted")); load(); }} />
       ) : null}
 
       {/* شجرة الحسابات */}
@@ -376,6 +389,142 @@ export default function FinancePage() {
       ) : null}
 
       {settle ? <SettleInsurer row={settle} onClose={() => setSettle(null)} onDone={(seq) => { setSettle(null); setDone(t("finance.settleModal.done", { seq })); load(); }} /> : null}
+    </div>
+  );
+}
+
+type JLine = { account: string; debit: string; credit: string };
+const CASH_CODE = "01010000000000000";
+const ACCT_GROUPS = ["asset", "liability", "equity", "revenue", "expense"] as const;
+
+/** القيود اليدوية والمصروفات: مُنشئ قيد متوازن (مدين=دائن) + قوالب سريعة + سجلّ القيود. */
+function JournalTab({ accounts, vouchers, onPosted }: { accounts: PostAccount[]; vouchers: JournalVoucher[]; onPosted: () => void }) {
+  const t = useTranslations();
+  const blank = (): JLine => ({ account: "", debit: "", credit: "" });
+  const [desc, setDesc] = useState("");
+  const [date, setDate] = useState("");
+  const [reference, setReference] = useState("");
+  const [lines, setLines] = useState<JLine[]>([blank(), blank()]);
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState("");
+  const [openV, setOpenV] = useState("");
+
+  const n = (v: string) => Number(v) || 0;
+  const totD = lines.reduce((s, l) => s + n(l.debit), 0);
+  const totC = lines.reduce((s, l) => s + n(l.credit), 0);
+  const diff = Math.round((totD - totC) * 100) / 100;
+  const balanced = Math.abs(diff) < 0.01 && totD > 0;
+  const money = (x: number | string | null) => (x == null ? "—" : Number(x).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+
+  const setLine = (i: number, patch: Partial<JLine>) => setLines((ls) => ls.map((l, j) => (j === i ? { ...l, ...patch } : l)));
+  const addLine = () => setLines((ls) => [...ls, blank()]);
+  const removeLine = (i: number) => setLines((ls) => (ls.length > 2 ? ls.filter((_, j) => j !== i) : ls));
+  const expenseTemplate = () => { setLines([blank(), { account: CASH_CODE, debit: "", credit: "" }]); setErr(""); };
+  const clearForm = () => { setDesc(""); setDate(""); setReference(""); setLines([blank(), blank()]); setErr(""); };
+  const byType = (ty: string) => accounts.filter((a) => a.accountType === ty);
+
+  async function post() {
+    setErr(""); setSaving(true);
+    try {
+      const entries = lines.filter((l) => l.account && (n(l.debit) > 0 || n(l.credit) > 0)).map((l) => ({ account: l.account, debit: n(l.debit) || undefined, credit: n(l.credit) || undefined }));
+      await api("/finance/journal", { method: "POST", body: JSON.stringify({ description: desc, date: date || undefined, reference: reference || undefined, entries }) });
+      clearForm(); onPosted();
+    } catch (e) { setErr(e instanceof ApiError ? (e.details?.[0] ?? e.message) : "خطأ"); } finally { setSaving(false); }
+  }
+
+  const sel = "h-9 w-full rounded-lg border border-line bg-card px-2 text-[12.5px] text-ink focus:outline-none focus:ring-2 focus:ring-primary/30";
+  const inp = "h-9 w-full rounded-lg border border-line bg-card px-2 text-end text-[12.5px] tnum text-ink focus:outline-none focus:ring-2 focus:ring-primary/30";
+
+  return (
+    <div className="grid grid-cols-1 gap-5 lg:grid-cols-5">
+      {/* المُنشئ */}
+      <section className="overflow-hidden rounded-card border border-line bg-card shadow-card lg:col-span-3">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-5 py-3.5">
+          <div><h2 className="flex items-center gap-2 text-[15px] font-semibold text-ink"><BookText size={17} className="text-primary" /> {t("finance.journal.title")}</h2><p className="text-[12px] text-subtle">{t("finance.journal.sub")}</p></div>
+          <div className="flex items-center gap-1.5">
+            <button onClick={expenseTemplate} className="inline-flex items-center gap-1 rounded-lg border border-line px-2.5 py-1.5 text-[11.5px] font-medium text-muted hover:bg-surface-2"><Receipt size={13} /> {t("finance.journal.expenseTemplate")}</button>
+            <button onClick={clearForm} className="rounded-lg border border-line px-2.5 py-1.5 text-[11.5px] font-medium text-muted hover:bg-surface-2">{t("finance.journal.clear")}</button>
+          </div>
+        </div>
+        <div className="space-y-3 p-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
+            <label className="block sm:col-span-2"><span className="mb-1 block text-[11.5px] font-medium text-muted">{t("finance.journal.description")}</span><input value={desc} onChange={(e) => setDesc(e.target.value)} placeholder={t("finance.journal.descPlaceholder")} className="h-9 w-full rounded-lg border border-line bg-card px-3 text-[12.5px] text-ink focus:outline-none focus:ring-2 focus:ring-primary/30" /></label>
+            <label className="block"><span className="mb-1 block text-[11.5px] font-medium text-muted">{t("finance.journal.date")}</span><input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={sel} /></label>
+            <label className="block"><span className="mb-1 block text-[11.5px] font-medium text-muted">{t("finance.journal.reference")}</span><input value={reference} onChange={(e) => setReference(e.target.value)} className="h-9 w-full rounded-lg border border-line bg-card px-3 text-[12.5px] text-ink focus:outline-none focus:ring-2 focus:ring-primary/30" /></label>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[520px]">
+              <thead><tr className="text-[10.5px] uppercase tracking-wide text-subtle"><th className="pb-1 text-start font-semibold">{t("finance.journal.account")}</th><th className="pb-1 text-end font-semibold">{t("finance.journal.debit")}</th><th className="pb-1 text-end font-semibold">{t("finance.journal.credit")}</th><th /></tr></thead>
+              <tbody>
+                {lines.map((l, i) => (
+                  <tr key={i}>
+                    <td className="py-1 pe-2">
+                      <select value={l.account} onChange={(e) => setLine(i, { account: e.target.value })} className={sel}>
+                        <option value="">{t("finance.journal.pickAccount")}</option>
+                        {ACCT_GROUPS.map((g) => byType(g).length ? (
+                          <optgroup key={g} label={t(`finance.acctType.${g}`)}>
+                            {byType(g).map((a) => <option key={a.code} value={a.code}>{a.code.slice(0, 4)} · {a.name}</option>)}
+                          </optgroup>
+                        ) : null)}
+                      </select>
+                    </td>
+                    <td className="py-1 pe-1 w-[110px]"><input type="number" min="0" step="0.01" value={l.debit} onChange={(e) => setLine(i, { debit: e.target.value, credit: "" })} className={inp} /></td>
+                    <td className="py-1 pe-1 w-[110px]"><input type="number" min="0" step="0.01" value={l.credit} onChange={(e) => setLine(i, { credit: e.target.value, debit: "" })} className={inp} /></td>
+                    <td className="py-1 w-8 text-center"><button onClick={() => removeLine(i)} disabled={lines.length <= 2} className="text-subtle hover:text-danger disabled:opacity-30" title={t("finance.journal.removeLine")}><Trash2 size={14} /></button></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <button onClick={addLine} className="inline-flex items-center gap-1 rounded-lg border border-dashed border-line px-2.5 py-1.5 text-[11.5px] font-medium text-muted hover:bg-surface-2"><Plus size={13} /> {t("finance.journal.addLine")}</button>
+
+          {/* الإجماليات والتوازن */}
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-surface-2/50 px-3 py-2.5 text-[12.5px]">
+            <div className="flex items-center gap-4">
+              <span className="text-subtle">{t("finance.journal.totalDebit")}: <span className="tnum font-semibold text-ink">{money(totD)}</span></span>
+              <span className="text-subtle">{t("finance.journal.totalCredit")}: <span className="tnum font-semibold text-ink">{money(totC)}</span></span>
+            </div>
+            <span className={balanced ? "inline-flex items-center gap-1 font-semibold text-success" : "inline-flex items-center gap-1 font-semibold text-warning"}>
+              {balanced ? <><Check size={14} /> {t("finance.journal.balanced")}</> : <><Scale size={14} /> {t("finance.journal.diff")}: <span className="tnum">{money(Math.abs(diff))}</span></>}
+            </span>
+          </div>
+
+          {err ? <p className="rounded-lg bg-danger-soft px-3 py-2 text-[12px] font-medium text-danger">{err}</p> : null}
+          <button onClick={post} disabled={saving || !balanced || desc.trim().length < 2} className="inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-lg bg-primary-strong text-[13px] font-semibold text-primary-fg hover:bg-primary disabled:opacity-50"><BookText size={15} /> {saving ? "…" : t("finance.journal.post")}</button>
+        </div>
+      </section>
+
+      {/* سجلّ القيود */}
+      <section className="overflow-hidden rounded-card border border-line bg-card shadow-card lg:col-span-2">
+        <div className="border-b border-line px-5 py-3.5"><h2 className="text-[15px] font-semibold text-ink">{t("finance.journal.log")}</h2><p className="text-[12px] text-subtle">{t("finance.journal.logSub")}</p></div>
+        {vouchers.length === 0 ? (
+          <p className="px-5 py-10 text-center text-[12.5px] text-subtle">{t("finance.journal.empty")}</p>
+        ) : (
+          <ul className="divide-y divide-line">
+            {vouchers.map((v) => (
+              <li key={v.id}>
+                <button onClick={() => setOpenV(openV === v.id ? "" : v.id)} className="flex w-full items-center justify-between gap-2 px-5 py-3 text-start hover:bg-surface-2/60">
+                  <div className="min-w-0">
+                    <div className="truncate text-[12.5px] font-medium text-ink">{v.lines?.description ?? "—"}</div>
+                    <div className="text-[11px] text-subtle tnum">{v.sequenceNo ?? "—"} · {new Date(v.createdAt).toLocaleDateString("en-GB")}</div>
+                  </div>
+                  <span className="tnum shrink-0 text-[12.5px] font-semibold text-ink">{money(v.amount)}</span>
+                </button>
+                {openV === v.id && v.lines?.entries ? (
+                  <div className="bg-surface-2/40 px-5 py-2">
+                    <table className="w-full text-[11.5px]"><tbody>
+                      {v.lines.entries.map((e, j) => (
+                        <tr key={j}><td className="py-1 text-muted">{e.name}</td><td className="py-1 text-end tnum text-ink">{e.debit ? money(e.debit) : ""}</td><td className="py-1 text-end tnum text-ink">{e.credit ? money(e.credit) : ""}</td></tr>
+                      ))}
+                    </tbody></table>
+                  </div>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </div>
   );
 }

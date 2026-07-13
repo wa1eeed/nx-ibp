@@ -1,4 +1,4 @@
-import { ConflictException, ForbiddenException, Injectable, Logger, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, Logger, NotFoundException, UnprocessableEntityException } from "@nestjs/common";
 import { Prisma } from "@ibp/db";
 import { PrismaService } from "../../prisma/prisma.service";
 import { SequenceService } from "../../common/sequence/sequence.service";
@@ -411,6 +411,76 @@ export class FinanceService {
     const totalDebit = r2(rows.reduce((s, r) => s + r.debit, 0));
     const totalCredit = r2(rows.reduce((s, r) => s + r.credit, 0));
     return { rows, totals: { debit: totalDebit, credit: totalCredit, balanced: Math.abs(totalDebit - totalCredit) < 0.01 } };
+  }
+
+  /** حسابات الترحيل (leaf) القابلة للاختيار في القيد اليدوي — تستثني العناوين (المستوى 1 والحسابات ذات الأبناء). */
+  async postingAccounts() {
+    const accounts = await this.prisma.chartOfAccount.findMany({
+      orderBy: { code: "asc" },
+      select: { id: true, code: true, name: true, level: true, accountType: true, parentId: true, isOnBalance: true },
+    });
+    const parentIds = new Set(accounts.map((a) => a.parentId).filter((x): x is string => !!x));
+    return accounts
+      .filter((a) => a.level >= 2 && !parentIds.has(a.id)) // ورقة: ليست عنوانًا ولا لها أبناء
+      .map((a) => ({ code: a.code, name: a.name, accountType: a.accountType, isOnBalance: a.isOnBalance }));
+  }
+
+  /** سندات القيود اليدوية (JRV) — القيود والمصروفات المُدخلة يدويًا (تُستثنى القيود الآلية). */
+  journalVouchers() {
+    return this.prisma.voucher.findMany({
+      where: { type: "JRV", isAuto: false },
+      orderBy: { createdAt: "desc" },
+      take: 100,
+      select: { id: true, sequenceNo: true, amount: true, reference: true, lines: true, createdAt: true },
+    });
+  }
+
+  /**
+   * **قيد يومية يدوي / مصروف** — أساس المحاسبة العامة: يُنشئ سند JRV بأطراف متوازنة على حسابات الترحيل.
+   * تحقّق صارم: ≥ طرفين · كل سطر مدين **أو** دائن (XOR) · الحساب ورقة موجودة · **مجموع المدين = مجموع الدائن**.
+   * يتدفّق تلقائيًا إلى ميزان المراجعة (الذي يجمّع أطراف كل السندات).
+   */
+  async createJournal(
+    tenantId: string,
+    userId: string,
+    dto: { description: string; date?: string; reference?: string; entries: Array<{ account: string; debit?: number; credit?: number }> },
+  ) {
+    const entries = dto.entries ?? [];
+    if (entries.length < 2) throw new BadRequestException("القيد يحتاج طرفين على الأقل");
+    const codes = [...new Set(entries.map((e) => e.account))];
+    const accounts = await this.prisma.chartOfAccount.findMany({ where: { code: { in: codes } }, select: { id: true, code: true, name: true, level: true } });
+    const byCode = new Map(accounts.map((a) => [a.code, a]));
+    const all = await this.prisma.chartOfAccount.findMany({ select: { id: true, parentId: true } });
+    const parentIds = new Set(all.map((a) => a.parentId).filter((x): x is string => !!x));
+
+    let totalDebit = 0;
+    let totalCredit = 0;
+    const resolved: Array<{ account: string; name: string; debit: number; credit: number }> = [];
+    for (const e of entries) {
+      const acc = byCode.get(e.account);
+      if (!acc) throw new BadRequestException(`حساب غير موجود: ${e.account}`);
+      if (acc.level < 2 || parentIds.has(acc.id)) throw new BadRequestException(`لا يمكن الترحيل إلى حساب عنوان: ${acc.name}`);
+      const debit = r2(num(e.debit));
+      const credit = r2(num(e.credit));
+      if (debit < 0 || credit < 0) throw new BadRequestException("لا يُسمح بقيم سالبة");
+      if ((debit > 0) === (credit > 0)) throw new BadRequestException(`كل سطر إمّا مدين أو دائن: ${acc.name}`);
+      totalDebit = r2(totalDebit + debit);
+      totalCredit = r2(totalCredit + credit);
+      resolved.push({ account: acc.code, name: acc.name, debit, credit });
+    }
+    if (totalDebit <= 0) throw new BadRequestException("قيمة القيد صفر");
+    if (Math.abs(totalDebit - totalCredit) > 0.01) throw new UnprocessableEntityException(`القيد غير متوازن: المدين ${totalDebit} ≠ الدائن ${totalCredit}`);
+
+    const seq = await this.seq.nextVoucherSeq("JRV");
+    const voucher = await this.prisma.voucher.create({
+      data: {
+        tenantId, type: "JRV", sequenceNo: seq, amount: totalDebit, status: "posted", isAuto: false, reference: dto.reference ?? null,
+        lines: asJson({ description: dto.description, date: dto.date ?? null, entries: resolved }),
+      },
+      select: { id: true, sequenceNo: true, amount: true },
+    });
+    await this.audit.log({ tenantId, userId, action: "create", entity: "voucher", entityId: voucher.id, meta: { type: "JRV", amount: totalDebit } });
+    return { id: voucher.id, sequenceNo: voucher.sequenceNo, amount: totalDebit };
   }
 
   /** ملخّص مالي: القسط المكتتب، العمولة، الأمانات (خارج الميزانية)، الذمم. */

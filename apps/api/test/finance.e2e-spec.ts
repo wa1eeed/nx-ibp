@@ -315,4 +315,44 @@ describe("الإصدار والاعتماد المالي (e2e)", () => {
     const amanOv = (await request(srv).get("/finance/overview").set(auth(amanGm)).expect(200)).body;
     expect(amanOv.health.gwp).not.toBe(ov.health.gwp);
   });
+
+  it("القيود اليدوية والمصروفات: قيد متوازن يُرحَّل ويتدفّق لميزان المراجعة · غير المتوازن/العنوان/غير المخوّل يُرفض", async () => {
+    const srv = app.getHttpServer();
+    const SALARY = "05030000000000000"; // الرواتب والأجور (مصروف — ورقة)
+    const CASH = "01010000000000000"; // النقد والبنوك (ورقة)
+
+    // حسابات الترحيل تستثني العناوين (لا يظهر حساب المستوى 1 مثل "05")
+    const accts = (await request(srv).get("/finance/posting-accounts").set(auth(accountant)).expect(200)).body as Array<{ code: string; accountType: string }>;
+    expect(accts.some((a) => a.code === SALARY)).toBe(true);
+    expect(accts.some((a) => a.code === "05000000000000000")).toBe(false); // العنوان غير قابل للترحيل
+    expect(accts.some((a) => a.accountType === "expense")).toBe(true);
+
+    // غير المخوّل (مبيعات) ⇒ 403
+    await request(srv).post("/finance/journal").set(auth(sales)).send({ description: "محاولة", entries: [{ account: SALARY, debit: 100 }, { account: CASH, credit: 100 }] }).expect(403);
+
+    // مصروف رواتب 5000 نقدًا ⇒ 201، ويتوازن الميزان
+    const before = (await request(srv).get("/finance/trial-balance").set(auth(accountant)).expect(200)).body;
+    const salaryDebitBefore = (before.rows.find((r: { account: string }) => r.account === SALARY)?.debit ?? 0) as number;
+    const jv = (await request(srv).post("/finance/journal").set(auth(accountant)).send({
+      description: "رواتب الموظفين — يناير", entries: [{ account: SALARY, debit: 5000 }, { account: CASH, credit: 5000 }],
+    }).expect(201)).body;
+    expect(jv.amount).toBe(5000);
+    expect(jv.sequenceNo).toBeTruthy();
+
+    const after = (await request(srv).get("/finance/trial-balance").set(auth(accountant)).expect(200)).body;
+    expect(after.totals.balanced).toBe(true); // يبقى متوازنًا
+    const salaryDebitAfter = (after.rows.find((r: { account: string }) => r.account === SALARY)?.debit ?? 0) as number;
+    expect(Math.round((salaryDebitAfter - salaryDebitBefore) * 100) / 100).toBe(5000); // القيد تدفّق للحساب
+
+    // يظهر في سجلّ القيود اليدوية
+    const log = (await request(srv).get("/finance/journal").set(auth(accountant)).expect(200)).body as Array<{ id: string }>;
+    expect(log.some((v) => v.id === jv.id)).toBe(true);
+
+    // غير المتوازن ⇒ 422
+    await request(srv).post("/finance/journal").set(auth(accountant)).send({ description: "غير متوازن", entries: [{ account: SALARY, debit: 5000 }, { account: CASH, credit: 4000 }] }).expect(422);
+    // الترحيل لحساب عنوان (05) ⇒ 400
+    await request(srv).post("/finance/journal").set(auth(accountant)).send({ description: "عنوان", entries: [{ account: "05000000000000000", debit: 100 }, { account: CASH, credit: 100 }] }).expect(400);
+    // سطر واحد فقط ⇒ 400
+    await request(srv).post("/finance/journal").set(auth(accountant)).send({ description: "طرف واحد", entries: [{ account: SALARY, debit: 100 }] }).expect(400);
+  });
 });

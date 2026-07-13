@@ -338,7 +338,8 @@
       "invoices": "Tax invoices",
       "payables": "Insurer payables",
       "trial": "Trial balance",
-      "overview": "Overview"
+      "overview": "Overview",
+      "journal": "Journal & expenses"
     },
     "overview": {
       "incomeStatement": "Income statement",
@@ -367,6 +368,38 @@
       "trend": "Net income trend — last 6 months",
       "revenue": "Revenue",
       "net": "Net income"
+    },
+    "journal": {
+      "title": "Journal entry / expense",
+      "sub": "Record a balanced accounting entry or an operating expense",
+      "expenseTemplate": "Expense template",
+      "clear": "Clear",
+      "description": "Description",
+      "descPlaceholder": "e.g. Office rent for January",
+      "date": "Date",
+      "reference": "Reference",
+      "account": "Account",
+      "debit": "Debit",
+      "credit": "Credit",
+      "pickAccount": "Pick an account…",
+      "removeLine": "Remove line",
+      "addLine": "Add line",
+      "totalDebit": "Total debit",
+      "totalCredit": "Total credit",
+      "balanced": "Balanced",
+      "diff": "Difference",
+      "post": "Post entry",
+      "posted": "Entry posted successfully",
+      "log": "Journal log",
+      "logSub": "Manually entered journals & expenses",
+      "empty": "No manual entries yet"
+    },
+    "acctType": {
+      "asset": "Assets",
+      "liability": "Liabilities",
+      "equity": "Equity",
+      "revenue": "Revenue",
+      "expense": "Expenses"
     }
   },
   "producers": {

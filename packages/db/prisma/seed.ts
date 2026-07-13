@@ -334,19 +334,28 @@ async function seedTenant(def: TenantDef, passwordHash: string) {
 // كود 17 رقماً مبني من المسار الهرمي. فصل داخل/خارج الميزانية لأموال العملاء.
 const COA_TEMPLATE: Array<{ path: number[]; name: string; type: string; onBal: boolean }> = [
   { path: [1], name: "الأصول", type: "asset", onBal: true },
-  { path: [1, 1], name: "الأصول المتداولة", type: "asset", onBal: true },
+  { path: [1, 1], name: "النقد والبنوك", type: "asset", onBal: true },
   { path: [1, 3], name: "ذمم العملاء المدينة", type: "asset", onBal: true },
   { path: [1, 4], name: "ذمم عمولات على شركات التأمين", type: "asset", onBal: true }, // نموذج الدفع المباشر: عمولة تُحصَّل من المؤمِّن
+  { path: [1, 5], name: "ضريبة القيمة المضافة — المدخلات (قابلة للاسترداد)", type: "asset", onBal: true },
   { path: [2], name: "الخصوم", type: "liability", onBal: true },
   { path: [2, 1], name: "ذمم شركات التأمين الدائنة", type: "liability", onBal: true },
   { path: [2, 2], name: "أمانات أقساط العملاء (خارج الميزانية)", type: "liability", onBal: false },
-  { path: [2, 3], name: "ضريبة القيمة المضافة المستحقة", type: "liability", onBal: true },
+  { path: [2, 3], name: "ضريبة القيمة المضافة المستحقة (المخرجات)", type: "liability", onBal: true },
   { path: [3], name: "حقوق الملكية", type: "equity", onBal: true },
+  { path: [3, 1], name: "رأس المال", type: "equity", onBal: true },
+  { path: [3, 2], name: "الأرباح المُبقاة", type: "equity", onBal: true },
   { path: [4], name: "الإيرادات", type: "revenue", onBal: true },
   { path: [4, 1], name: "عمولات الوساطة", type: "revenue", onBal: true },
   { path: [4, 2], name: "رسوم خدمات وإصدار الوثائق", type: "revenue", onBal: true },
   { path: [5], name: "المصروفات", type: "expense", onBal: true },
   { path: [5, 1], name: "عمولات المنتِجين (الوسطاء الفرعيون)", type: "expense", onBal: true },
+  { path: [5, 2], name: "عمولات وحوافز الموظفين", type: "expense", onBal: true },
+  { path: [5, 3], name: "الرواتب والأجور", type: "expense", onBal: true },
+  { path: [5, 4], name: "الإيجارات", type: "expense", onBal: true },
+  { path: [5, 5], name: "المرافق والخدمات", type: "expense", onBal: true },
+  { path: [5, 6], name: "التسويق والدعاية", type: "expense", onBal: true },
+  { path: [5, 9], name: "مصروفات عمومية أخرى", type: "expense", onBal: true },
 ];
 
 const coa17 = (path: number[]) => path.map((p) => String(p).padStart(2, "0")).join("").padEnd(17, "0");
@@ -360,7 +369,7 @@ async function seedFinanceFoundation(def: TenantDef) {
       name: a.name,
       level,
       isOnBalance: a.onBal,
-      isLocked: level <= 2, // المستوى 1/2 مقفل
+      isLocked: level < 2, // مستوى 1 (العناوين) فقط مقفل؛ حسابات الترحيل مفتوحة
       accountType: a.type,
       parentId: parentCode ? `coa-${def.id}-${parentCode}` : null,
     };
