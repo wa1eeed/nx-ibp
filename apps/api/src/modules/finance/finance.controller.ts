@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, Param, Post } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, Param, Post, Query } from "@nestjs/common";
 import { FinanceService } from "./finance.service";
 import { RecordReceiptDto } from "./dto/record-receipt.dto";
 import { CancelPolicyDto } from "./dto/cancel-policy.dto";
@@ -222,5 +222,12 @@ export class FinanceController {
   @Get("ledger/:account")
   ledger(@Param("account") account: string) {
     return this.finance.ledger(account);
+  }
+
+  // إقرار ضريبة القيمة المضافة عن فترة (المخرجات − المدخلات = صافي المستحق)
+  @Authorize({ module: "finance", action: "read", entitlement: "module.finance" })
+  @Get("vat-return")
+  vatReturn(@Query("from") from?: string, @Query("to") to?: string) {
+    return this.finance.vatReturn(from, to);
   }
 }

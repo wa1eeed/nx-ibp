@@ -10,7 +10,7 @@ import { StatCard } from "@/components/ui/StatCard";
 import { Badge } from "@/components/ui/Badge";
 import { usePaged, Pagination } from "@/components/ui/Pagination";
 
-type FinanceTab = "overview" | "journal" | "commissions" | "receivables" | "coa" | "invoices" | "payables" | "trial" | "balance";
+type FinanceTab = "overview" | "journal" | "commissions" | "receivables" | "coa" | "invoices" | "payables" | "trial" | "balance" | "vat";
 
 interface Summary { grossPremium: number; netPremium: number; vat: number; commission: number; serviceFees: number; offBalanceTrust: number; receivables: number; collected: number; invoiceCount: number; voucherCount: number }
 interface Overview {
@@ -38,6 +38,7 @@ interface BalanceLine { code: string; name: string; amount: number; isOnBalance:
 interface BalanceSheet { asOf: string; assets: BalanceLine[]; liabilities: BalanceLine[]; equity: BalanceLine[]; retainedEarnings: number; unclassified: Array<{ code: string; name: string; amount: number }>; totals: { assets: number; liabilities: number; equity: number; liabilitiesAndEquity: number; offBalance: number; balanced: boolean } }
 interface LedgerRow { voucherId: string; sequenceNo: string | null; type: string; date: string; description: string; reference: string | null; debit: number; credit: number; balance: number }
 interface Ledger { account: string; name: string; accountType: string | null; isOnBalance: boolean; rows: LedgerRow[]; totals: { debit: number; credit: number; balance: number } }
+interface VatReturn { from: string | null; to: string | null; standardRate: number; taxableStandard: number; outputVat: number; inputVat: number; netVat: number; refund: boolean }
 
 export default function FinancePage() {
   const t = useTranslations();
@@ -95,6 +96,7 @@ export default function FinancePage() {
     { key: "payables", icon: Building2, label: t("finance.tab.payables"), count: pay?.rows.length ?? 0 },
     { key: "trial", icon: Scale, label: t("finance.tab.trial"), count: trial?.rows.length ?? 0 },
     { key: "balance", icon: Scale, label: t("finance.tab.balance"), count: null },
+    { key: "vat", icon: Percent, label: t("finance.tab.vat"), count: null },
   ];
 
   return (
@@ -427,6 +429,9 @@ export default function FinancePage() {
 
       {/* الميزانية العمومية (بيان المركز المالي) */}
       {tab === "balance" ? <BalanceSheetTab data={bsheet} onLedger={(code, name) => setLedgerFor({ code, name })} /> : null}
+
+      {/* إقرار ضريبة القيمة المضافة */}
+      {tab === "vat" ? <VatReturnTab /> : null}
 
       {ledgerFor ? <LedgerModal account={ledgerFor} onClose={() => setLedgerFor(null)} /> : null}
       {settle ? <SettleInsurer row={settle} onClose={() => setSettle(null)} onDone={(seq) => { setSettle(null); setDone(t("finance.settleModal.done", { seq })); load(); }} /> : null}
@@ -784,6 +789,51 @@ function LedgerModal({ account, onClose }: { account: { code: string; name: stri
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+/** إقرار ضريبة القيمة المضافة — المخرجات − المدخلات = صافي المستحق للهيئة، عن فترة اختيارية. */
+function VatReturnTab() {
+  const t = useTranslations();
+  const m = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const [data, setData] = useState<VatReturn | null>(null);
+  const [loading, setLoading] = useState(false);
+  const run = useCallback(() => {
+    setLoading(true);
+    const qs = new URLSearchParams();
+    if (from) qs.set("from", from);
+    if (to) qs.set("to", to);
+    const q = qs.toString();
+    void api<VatReturn>(`/finance/vat-return${q ? `?${q}` : ""}`).then(setData).catch(() => undefined).finally(() => setLoading(false));
+  }, [from, to]);
+  useEffect(() => { run(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const field = "h-9 rounded-lg border border-line bg-card px-3 text-[13px] text-ink tnum focus:outline-none focus:ring-2 focus:ring-primary/30";
+  return (
+    <div className="space-y-4">
+      <section className="rounded-card border border-line bg-card p-5 shadow-card">
+        <div className="mb-4 flex flex-wrap items-end gap-3">
+          <div className="flex items-center gap-2"><Percent size={17} className="text-primary" /><div><h2 className="text-[15px] font-semibold text-ink">{t("finance.vat.title")}</h2><p className="text-[12px] text-subtle">{t("finance.vat.sub")}</p></div></div>
+          <div className="ms-auto flex items-end gap-2">
+            <label className="block"><span className="mb-1 block text-[11px] font-medium text-muted">{t("finance.vat.from")}</span><input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className={field} /></label>
+            <label className="block"><span className="mb-1 block text-[11px] font-medium text-muted">{t("finance.vat.to")}</span><input type="date" value={to} onChange={(e) => setTo(e.target.value)} className={field} /></label>
+            <button onClick={run} disabled={loading} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary-strong px-4 text-[12.5px] font-semibold text-primary-fg hover:bg-primary disabled:opacity-60">{loading ? "…" : t("finance.vat.run")}</button>
+          </div>
+        </div>
+        {!data ? <p className="py-8 text-center text-[13px] text-subtle">…</p> : (
+          <>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="rounded-xl border border-line bg-surface-2/40 p-4"><p className="text-[11.5px] text-subtle">{t("finance.vat.taxableStandard")}</p><p className="mt-1 text-[18px] font-bold text-ink tnum">{m(data.taxableStandard)}</p><p className="text-[10.5px] text-subtle">{t("finance.vat.stdRate", { rate: data.standardRate })}</p></div>
+              <div className="rounded-xl border border-line bg-surface-2/40 p-4"><p className="text-[11.5px] text-subtle">{t("finance.vat.output")}</p><p className="mt-1 text-[18px] font-bold text-ink tnum">{m(data.outputVat)}</p><p className="text-[10.5px] text-subtle">{t("finance.vat.outputSub")}</p></div>
+              <div className="rounded-xl border border-line bg-surface-2/40 p-4"><p className="text-[11.5px] text-subtle">{t("finance.vat.input")}</p><p className="mt-1 text-[18px] font-bold text-ink tnum">{m(data.inputVat)}</p><p className="text-[10.5px] text-subtle">{t("finance.vat.inputSub")}</p></div>
+              <div className={`rounded-xl border-2 p-4 ${data.refund ? "border-info/40 bg-info-soft/40" : "border-primary/30 bg-primary-soft/40"}`}><p className="text-[11.5px] text-subtle">{data.refund ? t("finance.vat.refund") : t("finance.vat.net")}</p><p className={`mt-1 text-[18px] font-bold tnum ${data.refund ? "text-info" : "text-ink"}`}>{m(Math.abs(data.netVat))}</p><p className="text-[10.5px] text-subtle">{t("finance.vat.netSub")}</p></div>
+            </div>
+            <p className="mt-4 rounded-lg bg-surface-2 px-4 py-2.5 text-[11px] leading-relaxed text-subtle">{t("finance.vat.note")}</p>
+          </>
+        )}
+      </section>
     </div>
   );
 }

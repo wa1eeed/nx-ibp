@@ -559,6 +559,35 @@ export class FinanceService {
     return { account: acc.code, name: acc.name, accountType: acc.accountType, isOnBalance: acc.isOnBalance, rows, totals: { debit: totalDebit, credit: totalCredit, balance } };
   }
 
+  /**
+   * **إقرار ضريبة القيمة المضافة** (ZATCA) عن فترة — يُشتقّ من حسابَي الضريبة في دفتر الأستاذ:
+   * **ضريبة المخرجات** (0203، الدائن يزيدها) = المُحصَّلة على المبيعات · **ضريبة المدخلات** (0105، المدين يزيدها) = القابلة للاسترداد على المشتريات.
+   * **صافي الضريبة المستحقّة** = المخرجات − المدخلات (موجب ⇒ يُورَّد للهيئة، سالب ⇒ رصيد استرداد).
+   * القاعدة الخاضعة القياسية مُقدَّرة من الضريبة (÷15%). المبيعات صفرية النسبة (تأمين الحياة) لا ضريبة مخرجات عليها.
+   */
+  async vatReturn(from?: string, to?: string) {
+    const fromD = from ? new Date(from) : null;
+    const toD = to ? new Date(`${to}T23:59:59.999Z`) : null;
+    if (fromD && Number.isNaN(+fromD)) throw new BadRequestException("تاريخ البداية غير صالح");
+    if (toD && Number.isNaN(+toD)) throw new BadRequestException("تاريخ النهاية غير صالح");
+    const where = fromD || toD ? { createdAt: { ...(fromD ? { gte: fromD } : {}), ...(toD ? { lte: toD } : {}) } } : {};
+    const vouchers = await this.prisma.voucher.findMany({ where, select: { lines: true } });
+    let outCredit = 0, outDebit = 0, inDebit = 0, inCredit = 0;
+    for (const v of vouchers) {
+      const entries = ((v.lines as { entries?: Array<{ account?: string; debit?: number; credit?: number }> } | null)?.entries) ?? [];
+      for (const e of entries) {
+        const code = e.account ?? "";
+        if (code.startsWith("0203")) { outCredit = r2(outCredit + num(e.credit)); outDebit = r2(outDebit + num(e.debit)); }
+        else if (code.startsWith("0105")) { inDebit = r2(inDebit + num(e.debit)); inCredit = r2(inCredit + num(e.credit)); }
+      }
+    }
+    const outputVat = r2(outCredit - outDebit); // صافي ضريبة المخرجات (تُخصم منها الإشعارات الدائنة/المرتجعات)
+    const inputVat = r2(inDebit - inCredit); // صافي ضريبة المدخلات القابلة للاسترداد
+    const netVat = r2(outputVat - inputVat); // موجب ⇒ مستحقّ للهيئة · سالب ⇒ رصيد استرداد
+    const taxableStandard = r2(outputVat / 0.15); // القاعدة الخاضعة للنسبة القياسية (تقدير من الضريبة)
+    return { from: from ?? null, to: to ?? null, standardRate: 15, taxableStandard, outputVat, inputVat, netVat, refund: netVat < 0 };
+  }
+
   /** حسابات الترحيل (leaf) القابلة للاختيار في القيد اليدوي — تستثني العناوين (المستوى 1 والحسابات ذات الأبناء). */
   async postingAccounts() {
     const accounts = await this.prisma.chartOfAccount.findMany({

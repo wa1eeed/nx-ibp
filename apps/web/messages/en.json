@@ -343,7 +343,8 @@
       "journal": "Journal & expenses",
       "commissions": "Commissions",
       "receivables": "Receivables & installments",
-      "balance": "Balance sheet"
+      "balance": "Balance sheet",
+      "vat": "VAT return"
     },
     "overview": {
       "incomeStatement": "Income statement",
@@ -496,6 +497,23 @@
       "desc": "Description",
       "empty": "No movements on this account",
       "error": "Failed to load the ledger"
+    },
+    "vat": {
+      "title": "VAT return",
+      "sub": "Output − input = net due to the authority (ZATCA) — leave the period empty for all-time",
+      "from": "From",
+      "to": "To",
+      "run": "Calculate",
+      "taxableStandard": "Taxable sales (standard)",
+      "stdRate": "at the standard {rate}% rate",
+      "output": "Output VAT",
+      "outputSub": "collected on sales",
+      "input": "Input VAT",
+      "inputSub": "recoverable on purchases",
+      "net": "Net VAT due",
+      "refund": "Refund balance",
+      "netSub": "output − input",
+      "note": "The return is derived from the two VAT ledger accounts (output 0203 · input 0105). Zero-rated sales (life insurance) carry no output VAT. The standard taxable base is estimated from the tax (÷15%)."
     }
   },
   "producers": {

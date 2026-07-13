@@ -489,6 +489,41 @@ describe("الإصدار والاعتماد المالي (e2e)", () => {
     const tbRow = (tb.rows as Array<{ account: string; balance: number }>).find((r) => r.account === AR);
     expect(last.balance).toBeCloseTo(tbRow!.balance, 2);
   });
+
+  it("#1.5 إقرار ض.ق.م: المخرجات − المدخلات = صافي المستحقّ · المدخلات تُخفّض الصافي · فترة ماضية أصفار · RBAC", async () => {
+    const srv = app.getHttpServer();
+    const requestId = await createAwardedRequest();
+    const policy = (await request(srv).post("/policies/issue").set(auth(underwriter)).send({ requestId, branchCode: "RUH" }).expect(201)).body;
+    await request(srv).post(`/policies/${policy.id}/approve-technical`).set(auth(underwriter)).expect(200);
+    await request(srv).post(`/finance/policies/${policy.id}/approve`).set(auth(accountant)).expect(200);
+
+    // المبيعات (لا finance) ⇒ 403
+    await request(srv).get("/finance/vat-return").set(auth(sales)).expect(403);
+
+    const before = (await request(srv).get("/finance/vat-return").set(auth(accountant)).expect(200)).body;
+    expect(before.outputVat).toBeGreaterThan(0); // ضريبة مخرجات من الإصدار
+    expect(before.netVat).toBeCloseTo(r2(before.outputVat - before.inputVat), 2); // الصافي = المخرجات − المدخلات
+    expect(before.taxableStandard).toBeCloseTo(r2(before.outputVat / 0.15), 2); // القاعدة الخاضعة ÷15%
+
+    // مصروف بضريبة مدخلات: مدين رواتب 1000 + مدين ضريبة مدخلات 150 + دائن نقد 1150
+    await request(srv).post("/finance/journal").set(auth(accountant)).send({
+      description: "مصروف بضريبة مدخلات", entries: [
+        { account: "05030000000000000", debit: 1000 },
+        { account: "01050000000000000", debit: 150 },
+        { account: "01010000000000000", credit: 1150 },
+      ],
+    }).expect(201);
+
+    const after = (await request(srv).get("/finance/vat-return").set(auth(accountant)).expect(200)).body;
+    expect(after.inputVat).toBeCloseTo(r2(before.inputVat + 150), 2); // ازدادت ضريبة المدخلات 150
+    expect(after.netVat).toBeCloseTo(r2(before.netVat - 150), 2); // انخفض الصافي بمقدار المدخلات
+
+    // فترة ماضية بلا حركة ⇒ أصفار
+    const past = (await request(srv).get("/finance/vat-return?from=2020-01-01&to=2020-12-31").set(auth(accountant)).expect(200)).body;
+    expect(past.outputVat).toBe(0);
+    expect(past.inputVat).toBe(0);
+    expect(past.netVat).toBe(0);
+  });
 });
 
 /** تقريب لخانتين — مساعد اختبار مطابق لمنطق الخدمة. */
