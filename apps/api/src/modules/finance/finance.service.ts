@@ -486,6 +486,79 @@ export class FinanceService {
     return { rows, totals: { debit: totalDebit, credit: totalCredit, balanced: Math.abs(totalDebit - totalCredit) < 0.01 } };
   }
 
+  /**
+   * **الميزانية العمومية** (بيان المركز المالي) — مُشتقّة من ميزان المراجعة مصنّفًا حسب نوع الحساب.
+   * الأصول (رصيد مدين) = الخصوم + حقوق الملكية (رصيد دائن) + **صافي الدخل** (إيرادات − مصروفات، يُرحَّل للأرباح المُبقاة).
+   * يتوازن حتميًا بالقيد المزدوج ما دامت كل الحسابات مُصنّفة (accountType). أي حساب بلا تصنيف يظهر في «غير مصنّف» كإشارة.
+   */
+  async balanceSheet() {
+    const tb = await this.trialBalance();
+    const coa = await this.prisma.chartOfAccount.findMany({ select: { code: true, name: true, accountType: true, isOnBalance: true } });
+    const metaOf = new Map(coa.map((a) => [a.code, a]));
+    type Line = { code: string; name: string; amount: number; isOnBalance: boolean };
+    const assets: Line[] = [];
+    const liabilities: Line[] = [];
+    const equity: Line[] = [];
+    const unclassified: Array<{ code: string; name: string; amount: number }> = [];
+    let revenue = 0;
+    let expense = 0;
+    let offBalance = 0; // مذكرة الأمانات (أموال العملaء المحتفظ بها للمؤمِّن — خارج الميزانية)
+    for (const row of tb.rows) {
+      const meta = metaOf.get(row.account);
+      const type = meta?.accountType ?? null;
+      const name = meta?.name ?? row.name;
+      const onBal = meta?.isOnBalance ?? true;
+      if (type === "asset") { if (Math.abs(row.balance) > 0.001) assets.push({ code: row.account, name, amount: row.balance, isOnBalance: onBal }); }
+      else if (type === "liability") { if (Math.abs(row.balance) > 0.001) { liabilities.push({ code: row.account, name, amount: r2(-row.balance), isOnBalance: onBal }); if (!onBal) offBalance = r2(offBalance + Math.abs(row.balance)); } }
+      else if (type === "equity") { if (Math.abs(row.balance) > 0.001) equity.push({ code: row.account, name, amount: r2(-row.balance), isOnBalance: onBal }); }
+      else if (type === "revenue") revenue = r2(revenue - row.balance); // الإيراد دائن ⇒ رصيده سالب
+      else if (type === "expense") expense = r2(expense + row.balance);
+      else if (Math.abs(row.balance) > 0.001) unclassified.push({ code: row.account, name, amount: row.balance });
+    }
+    const netIncome = r2(revenue - expense); // صافي دخل الفترة ⇒ يُرحَّل لحقوق الملكية (أرباح مُبقاة)
+    const totalAssets = r2(assets.reduce((s, a) => s + a.amount, 0));
+    const totalLiabilities = r2(liabilities.reduce((s, a) => s + a.amount, 0));
+    const totalEquityBase = r2(equity.reduce((s, a) => s + a.amount, 0));
+    const totalEquity = r2(totalEquityBase + netIncome);
+    const totalLiabEquity = r2(totalLiabilities + totalEquity);
+    return {
+      asOf: new Date().toISOString().slice(0, 10),
+      assets: assets.sort((a, b) => a.code.localeCompare(b.code)),
+      liabilities: liabilities.sort((a, b) => a.code.localeCompare(b.code)),
+      equity: equity.sort((a, b) => a.code.localeCompare(b.code)),
+      retainedEarnings: netIncome, // الأرباح المُبقاة (صافي الدخل) بند ضمن حقوق الملكية
+      unclassified,
+      totals: { assets: totalAssets, liabilities: totalLiabilities, equity: totalEquity, liabilitiesAndEquity: totalLiabEquity, offBalance, balanced: Math.abs(totalAssets - totalLiabEquity) < 0.01 },
+    };
+  }
+
+  /**
+   * **دفتر الأستاذ** (كشف حركة حساب) — كل أطراف القيود التي تمسّ حسابًا مُعيَّنًا مرتّبةً زمنيًا مع **رصيد جارٍ**.
+   * أساس التدقيق المحاسبي: يسمح بتتبّع أصل كل رصيد في ميزان المراجعة إلى سنداته.
+   */
+  async ledger(account: string) {
+    const acc = await this.prisma.chartOfAccount.findFirst({ where: { code: account }, select: { code: true, name: true, accountType: true, isOnBalance: true } });
+    if (!acc) throw new NotFoundException("الحساب غير موجود في شجرة الحسابات");
+    const vouchers = await this.prisma.voucher.findMany({ orderBy: { createdAt: "asc" }, select: { id: true, sequenceNo: true, type: true, reference: true, lines: true, createdAt: true } });
+    const rows: Array<{ voucherId: string; sequenceNo: string | null; type: string; date: string; description: string; reference: string | null; debit: number; credit: number; balance: number }> = [];
+    let balance = 0;
+    let totalDebit = 0;
+    let totalCredit = 0;
+    for (const v of vouchers) {
+      const lines = v.lines as { description?: string; date?: string; entries?: Array<{ account?: string; debit?: number; credit?: number }> } | null;
+      for (const e of lines?.entries ?? []) {
+        if (e.account !== account) continue;
+        const debit = num(e.debit);
+        const credit = num(e.credit);
+        balance = r2(balance + debit - credit);
+        totalDebit = r2(totalDebit + debit);
+        totalCredit = r2(totalCredit + credit);
+        rows.push({ voucherId: v.id, sequenceNo: v.sequenceNo, type: v.type, date: (lines?.date ?? v.createdAt.toISOString()).slice(0, 10), description: lines?.description ?? "—", reference: v.reference, debit, credit, balance });
+      }
+    }
+    return { account: acc.code, name: acc.name, accountType: acc.accountType, isOnBalance: acc.isOnBalance, rows, totals: { debit: totalDebit, credit: totalCredit, balance } };
+  }
+
   /** حسابات الترحيل (leaf) القابلة للاختيار في القيد اليدوي — تستثني العناوين (المستوى 1 والحسابات ذات الأبناء). */
   async postingAccounts() {
     const accounts = await this.prisma.chartOfAccount.findMany({

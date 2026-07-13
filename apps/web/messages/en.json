@@ -342,7 +342,8 @@
       "overview": "Overview",
       "journal": "Journal & expenses",
       "commissions": "Commissions",
-      "receivables": "Receivables & installments"
+      "receivables": "Receivables & installments",
+      "balance": "Balance sheet"
     },
     "overview": {
       "incomeStatement": "Income statement",
@@ -468,6 +469,33 @@
       "preview": "{count} payments · about {per} each",
       "cancel": "Cancel",
       "confirm": "Create plan"
+    },
+    "balanceSheet": {
+      "title": "Balance sheet",
+      "sub": "Statement of financial position — derived from the trial balance",
+      "asOf": "as of",
+      "balanced": "Balanced",
+      "notBalanced": "Not balanced",
+      "assets": "Assets",
+      "liabilities": "Liabilities",
+      "equity": "Equity",
+      "total": "Total",
+      "totalLiabEquity": "Total liabilities & equity",
+      "retainedEarnings": "Retained earnings (period net income)",
+      "offBalance": "Off-balance",
+      "offBalanceNote": "This statement includes client trust funds (held for the insurer) of SAR {amount} — a fiduciary off-balance-sheet item.",
+      "unclassified": "Note: {count} account(s) without a type classification — please review the chart of accounts.",
+      "empty": "No balances"
+    },
+    "ledger": {
+      "title": "General ledger",
+      "open": "View account activity",
+      "hint": "Click any account to open its general ledger (movement with running balance).",
+      "date": "Date",
+      "voucher": "Voucher",
+      "desc": "Description",
+      "empty": "No movements on this account",
+      "error": "Failed to load the ledger"
     }
   },
   "producers": {

@@ -442,4 +442,54 @@ describe("الإصدار والاعتماد المالي (e2e)", () => {
     expect(inst.find((r) => r.seq === 2)!.settled).toBe(2000);
     expect(inst.find((r) => r.seq === 3)!.status).toBe("overdue"); // 2020 ماضٍ + بلا تحصيل
   });
+
+  it("#1.2 الميزانية العمومية: أصول = خصوم + حقوق ملكية (+ صافي دخل) · تُصنّف الأمانات خارج الميزانية · لا حساب بلا تصنيف · RBAC", async () => {
+    const srv = app.getHttpServer();
+    // إصدار واعتماد وثيقة يضمن حركة حسابات (ذمم/أمانات/عمولة/ضريبة)
+    const requestId = await createAwardedRequest();
+    const policy = (await request(srv).post("/policies/issue").set(auth(underwriter)).send({ requestId, branchCode: "RUH" }).expect(201)).body;
+    await request(srv).post(`/policies/${policy.id}/approve-technical`).set(auth(underwriter)).expect(200);
+    await request(srv).post(`/finance/policies/${policy.id}/approve`).set(auth(accountant)).expect(200);
+
+    // المبيعات (لا finance) ⇒ 403
+    await request(srv).get("/finance/balance-sheet").set(auth(sales)).expect(403);
+
+    const bs = (await request(srv).get("/finance/balance-sheet").set(auth(accountant)).expect(200)).body;
+    // المعادلة المحاسبية متوازنة: الأصول = الخصوم + حقوق الملكية (شاملةً صافي الدخل)
+    expect(bs.totals.balanced).toBe(true);
+    expect(bs.totals.assets).toBeCloseTo(bs.totals.liabilitiesAndEquity, 2);
+    // كل الحسابات مُصنّفة (accountType مضبوط في شجرة الحسابات المُثراة)
+    expect(bs.unclassified).toHaveLength(0);
+    // الأمانات (أموال العملاء للمؤمِّن) بند خصوم لكن خارج الميزانية — مُعلَّم ومذكور
+    const trust = (bs.liabilities as Array<{ code: string; isOnBalance: boolean }>).find((l) => l.code.startsWith("0202"));
+    if (trust) { expect(trust.isOnBalance).toBe(false); expect(bs.totals.offBalance).toBeGreaterThan(0); }
+    // صافي الدخل (الأرباح المُبقاة) بند ضمن حقوق الملكية
+    expect(bs).toHaveProperty("retainedEarnings");
+    expect(typeof bs.totals.equity).toBe("number");
+  });
+
+  it("#1.4 دفتر الأستاذ: يجمع أطراف حساب برصيد جارٍ يطابق ميزان المراجعة · حساب مجهول 404 · RBAC", async () => {
+    const srv = app.getHttpServer();
+    const AR = "01030000000000000"; // ذمم العملاء المدينة (تتحرّك مع كل إصدار)
+    const requestId = await createAwardedRequest();
+    const policy = (await request(srv).post("/policies/issue").set(auth(underwriter)).send({ requestId, branchCode: "RUH" }).expect(201)).body;
+    await request(srv).post(`/policies/${policy.id}/approve-technical`).set(auth(underwriter)).expect(200);
+    await request(srv).post(`/finance/policies/${policy.id}/approve`).set(auth(accountant)).expect(200);
+
+    // المبيعات (لا finance) ⇒ 403 · حساب مجهول ⇒ 404
+    await request(srv).get(`/finance/ledger/${AR}`).set(auth(sales)).expect(403);
+    await request(srv).get("/finance/ledger/09999999999999999").set(auth(accountant)).expect(404);
+
+    const led = (await request(srv).get(`/finance/ledger/${AR}`).set(auth(accountant)).expect(200)).body;
+    expect(led.rows.length).toBeGreaterThan(0);
+    // الرصيد الجارٍ في آخر سطر = مجموع المدين − الدائن = رصيد الحساب في ميزان المراجعة
+    const last = led.rows[led.rows.length - 1];
+    expect(last.balance).toBeCloseTo(r2(led.totals.debit - led.totals.credit), 2);
+    const tb = (await request(srv).get("/finance/trial-balance").set(auth(accountant)).expect(200)).body;
+    const tbRow = (tb.rows as Array<{ account: string; balance: number }>).find((r) => r.account === AR);
+    expect(last.balance).toBeCloseTo(tbRow!.balance, 2);
+  });
 });
+
+/** تقريب لخانتين — مساعد اختبار مطابق لمنطق الخدمة. */
+function r2(n: number): number { return Math.round(n * 100) / 100; }

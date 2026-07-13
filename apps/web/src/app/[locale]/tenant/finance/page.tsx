@@ -10,7 +10,7 @@ import { StatCard } from "@/components/ui/StatCard";
 import { Badge } from "@/components/ui/Badge";
 import { usePaged, Pagination } from "@/components/ui/Pagination";
 
-type FinanceTab = "overview" | "journal" | "commissions" | "receivables" | "coa" | "invoices" | "payables" | "trial";
+type FinanceTab = "overview" | "journal" | "commissions" | "receivables" | "coa" | "invoices" | "payables" | "trial" | "balance";
 
 interface Summary { grossPremium: number; netPremium: number; vat: number; commission: number; serviceFees: number; offBalanceTrust: number; receivables: number; collected: number; invoiceCount: number; voucherCount: number }
 interface Overview {
@@ -34,6 +34,10 @@ interface Producers { rows: ProducerRow[]; summary: { producers: number; commiss
 interface RecvNote { id: string; sequenceNo: string | null; clientName: string; total: number; settled: number; outstanding: number; status: string; hasPlan: boolean }
 interface Receivables { outstanding: number; collected: number; notes: RecvNote[] }
 interface InstallmentRow { id: string; seq: number; dueDate: string; amount: number; settled: number; outstanding: number; status: string }
+interface BalanceLine { code: string; name: string; amount: number; isOnBalance: boolean }
+interface BalanceSheet { asOf: string; assets: BalanceLine[]; liabilities: BalanceLine[]; equity: BalanceLine[]; retainedEarnings: number; unclassified: Array<{ code: string; name: string; amount: number }>; totals: { assets: number; liabilities: number; equity: number; liabilitiesAndEquity: number; offBalance: number; balanced: boolean } }
+interface LedgerRow { voucherId: string; sequenceNo: string | null; type: string; date: string; description: string; reference: string | null; debit: number; credit: number; balance: number }
+interface Ledger { account: string; name: string; accountType: string | null; isOnBalance: boolean; rows: LedgerRow[]; totals: { debit: number; credit: number; balance: number } }
 
 export default function FinancePage() {
   const t = useTranslations();
@@ -49,6 +53,8 @@ export default function FinancePage() {
   const [producers, setProducers] = useState<Producers | null>(null);
   const [recv, setRecv] = useState<Receivables | null>(null);
   const [planFor, setPlanFor] = useState<RecvNote | null>(null);
+  const [bsheet, setBsheet] = useState<BalanceSheet | null>(null);
+  const [ledgerFor, setLedgerFor] = useState<{ code: string; name: string } | null>(null);
   const [settleComm, setSettleComm] = useState<{ kind: "employee" | "producer"; id: string; name: string; outstanding: number } | null>(null);
   const [settle, setSettle] = useState<PayRow | null>(null);
   const [done, setDone] = useState("");
@@ -67,6 +73,7 @@ export default function FinancePage() {
     void api<EmpComm>("/finance/employee-commissions").then(setEmpComm).catch(() => undefined);
     void api<Producers>("/producers").then(setProducers).catch(() => undefined);
     void api<Receivables>("/finance/receivables").then(setRecv).catch(() => undefined);
+    void api<BalanceSheet>("/finance/balance-sheet").then(setBsheet).catch(() => undefined);
   }, []);
   useEffect(() => { load(); }, [load]);
 
@@ -87,6 +94,7 @@ export default function FinancePage() {
     { key: "invoices", icon: QrCode, label: t("finance.tab.invoices"), count: invoices.length },
     { key: "payables", icon: Building2, label: t("finance.tab.payables"), count: pay?.rows.length ?? 0 },
     { key: "trial", icon: Scale, label: t("finance.tab.trial"), count: trial?.rows.length ?? 0 },
+    { key: "balance", icon: Scale, label: t("finance.tab.balance"), count: null },
   ];
 
   return (
@@ -394,8 +402,8 @@ export default function FinancePage() {
             </tr></thead>
             <tbody className="divide-y divide-line">
               {trialPage.pageItems.map((r) => (
-                <tr key={r.account} className="hover:bg-surface-2/60">
-                  <td className="px-5 py-2.5 text-[12.5px] text-ink">{r.name} <span className="text-[11px] text-subtle tnum">{r.account.slice(0, 4)}</span></td>
+                <tr key={r.account} onClick={() => setLedgerFor({ code: r.account, name: r.name })} className="cursor-pointer hover:bg-surface-2/60" title={t("finance.ledger.open")}>
+                  <td className="px-5 py-2.5 text-[12.5px] font-medium text-primary underline decoration-dotted underline-offset-2">{r.name} <span className="text-[11px] text-subtle tnum">{r.account.slice(0, 4)}</span></td>
                   <td className="px-5 py-2.5 text-end text-[12.5px] text-ink tnum">{r.debit ? fmt(r.debit) : "—"}</td>
                   <td className="px-5 py-2.5 text-end text-[12.5px] text-ink tnum">{r.credit ? fmt(r.credit) : "—"}</td>
                   <td className={`px-5 py-2.5 text-end text-[12.5px] tnum ${r.balance < 0 ? "text-danger" : "text-ink"}`}>{fmt(r.balance)}</td>
@@ -413,9 +421,14 @@ export default function FinancePage() {
           </table>
         </div>
         <Pagination page={trialPage.page} pageCount={trialPage.pageCount} total={trialPage.total} from={trialPage.from} to={trialPage.to} onPage={trialPage.setPage} />
+        <p className="border-t border-line px-5 py-2 text-[10.5px] text-subtle">{t("finance.ledger.hint")}</p>
       </section>
       ) : null}
 
+      {/* الميزانية العمومية (بيان المركز المالي) */}
+      {tab === "balance" ? <BalanceSheetTab data={bsheet} onLedger={(code, name) => setLedgerFor({ code, name })} /> : null}
+
+      {ledgerFor ? <LedgerModal account={ledgerFor} onClose={() => setLedgerFor(null)} /> : null}
       {settle ? <SettleInsurer row={settle} onClose={() => setSettle(null)} onDone={(seq) => { setSettle(null); setDone(t("finance.settleModal.done", { seq })); load(); }} /> : null}
       {settleComm ? <SettleCommission item={settleComm} onClose={() => setSettleComm(null)} onDone={() => { setSettleComm(null); setDone(t("finance.commissions.settled")); load(); }} /> : null}
     </div>
@@ -676,6 +689,99 @@ function SettleCommission({ item, onClose, onDone }: { item: { kind: "employee" 
             <button onClick={onClose} className="h-9 rounded-lg border border-line px-3 text-[12.5px] font-medium text-muted hover:bg-surface-2">{t("cancel")}</button>
             <button onClick={save} disabled={saving || !(Number(amount) > 0)} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary-strong px-4 text-[12.5px] font-semibold text-primary-fg hover:bg-primary disabled:opacity-60"><Check size={15} /> {saving ? "…" : t("settleConfirm")}</button>
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** الميزانية العمومية (بيان المركز المالي) — أصول = خصوم + حقوق ملكية + صافي الدخل. */
+function BalanceSheetTab({ data, onLedger }: { data: BalanceSheet | null; onLedger: (code: string, name: string) => void }) {
+  const t = useTranslations();
+  const m = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  if (!data) return <div className="rounded-card border border-line bg-card p-8 text-center text-[13px] text-muted shadow-card">…</div>;
+  const Side = ({ title, lines, total, extra }: { title: string; lines: BalanceLine[]; total: number; extra?: { label: string; amount: number } }) => (
+    <div className="overflow-hidden rounded-card border border-line bg-card shadow-card">
+      <div className="border-b border-line bg-surface-2/40 px-5 py-3"><h3 className="text-[14px] font-bold text-ink">{title}</h3></div>
+      <div className="divide-y divide-line">
+        {lines.map((l) => (
+          <button key={l.code} type="button" onClick={() => onLedger(l.code, l.name)} className="flex w-full items-center justify-between px-5 py-2.5 text-start hover:bg-surface-2/60">
+            <span className="text-[12.5px] text-ink">{l.name}{!l.isOnBalance ? <span className="ms-2 rounded-full bg-info-soft px-1.5 py-0.5 text-[10px] text-info">{t("finance.balanceSheet.offBalance")}</span> : null}</span>
+            <span className="text-[12.5px] font-medium text-ink tnum">{m(l.amount)}</span>
+          </button>
+        ))}
+        {extra ? (
+          <div className="flex items-center justify-between px-5 py-2.5">
+            <span className="text-[12.5px] italic text-muted">{extra.label}</span>
+            <span className="text-[12.5px] font-medium text-ink tnum">{m(extra.amount)}</span>
+          </div>
+        ) : null}
+        {lines.length === 0 && !extra ? <p className="px-5 py-6 text-center text-[12px] text-subtle">{t("finance.balanceSheet.empty")}</p> : null}
+      </div>
+      <div className="flex items-center justify-between border-t-2 border-line bg-surface-2/40 px-5 py-3"><span className="text-[13px] font-bold text-ink">{t("finance.balanceSheet.total")}</span><span className="text-[13px] font-bold text-ink tnum">{m(total)}</span></div>
+    </div>
+  );
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-2 rounded-card border border-line bg-card px-5 py-3 shadow-card">
+        <Scale size={17} className="text-primary" />
+        <div><h2 className="text-[15px] font-semibold text-ink">{t("finance.balanceSheet.title")}</h2><p className="text-[12px] text-subtle">{t("finance.balanceSheet.sub")} · {t("finance.balanceSheet.asOf")} {data.asOf}</p></div>
+        <span className="ms-auto"><Badge tone={data.totals.balanced ? "success" : "danger"}>{data.totals.balanced ? t("finance.balanceSheet.balanced") : t("finance.balanceSheet.notBalanced")}</Badge></span>
+      </div>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <Side title={t("finance.balanceSheet.assets")} lines={data.assets} total={data.totals.assets} />
+        <div className="space-y-4">
+          <Side title={t("finance.balanceSheet.liabilities")} lines={data.liabilities} total={data.totals.liabilities} />
+          <Side title={t("finance.balanceSheet.equity")} lines={data.equity} total={data.totals.equity} extra={{ label: t("finance.balanceSheet.retainedEarnings"), amount: data.retainedEarnings }} />
+          <div className="flex items-center justify-between rounded-card border-2 border-primary/30 bg-primary-soft/40 px-5 py-3"><span className="text-[13px] font-bold text-ink">{t("finance.balanceSheet.totalLiabEquity")}</span><span className="text-[13px] font-bold text-ink tnum">{m(data.totals.liabilitiesAndEquity)}</span></div>
+        </div>
+      </div>
+      {data.totals.offBalance > 0 ? <p className="rounded-lg bg-info-soft px-4 py-2.5 text-[11.5px] text-info">{t("finance.balanceSheet.offBalanceNote", { amount: m(data.totals.offBalance) })}</p> : null}
+      {data.unclassified.length > 0 ? <p className="rounded-lg bg-warning-soft px-4 py-2.5 text-[11.5px] text-warning">{t("finance.balanceSheet.unclassified", { count: data.unclassified.length })}</p> : null}
+    </div>
+  );
+}
+
+/** دفتر الأستاذ — كشف حركة حساب برصيد جارٍ (drill-down من ميزان المراجعة/الميزانية). */
+function LedgerModal({ account, onClose }: { account: { code: string; name: string }; onClose: () => void }) {
+  const t = useTranslations();
+  const m = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const [data, setData] = useState<Ledger | null>(null);
+  const [err, setErr] = useState(false);
+  useEffect(() => { void api<Ledger>(`/finance/ledger/${account.code}`).then(setData).catch(() => setErr(true)); }, [account.code]);
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onMouseDown={onClose}>
+      <div className="flex max-h-[85vh] w-full max-w-3xl flex-col rounded-card border border-line bg-card shadow-card" onMouseDown={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between border-b border-line px-5 py-3.5">
+          <div><h2 className="text-[15px] font-bold text-ink">{t("finance.ledger.title")}</h2><p className="text-[12px] text-subtle">{account.name} <span className="tnum">{account.code}</span></p></div>
+          <button onClick={onClose} className="text-subtle hover:text-ink"><X size={18} /></button>
+        </div>
+        <div className="overflow-auto">
+          {err ? <p className="px-5 py-8 text-center text-[13px] text-danger">{t("finance.ledger.error")}</p> : !data ? <p className="px-5 py-8 text-center text-[13px] text-subtle">…</p> : data.rows.length === 0 ? <p className="px-5 py-8 text-center text-[13px] text-subtle">{t("finance.ledger.empty")}</p> : (
+            <table className="w-full min-w-[640px]">
+              <thead className="sticky top-0 bg-card"><tr className="border-b border-line text-[11px] uppercase tracking-wide text-subtle">
+                <th className="px-4 py-2.5 text-start font-semibold">{t("finance.ledger.date")}</th>
+                <th className="px-4 py-2.5 text-start font-semibold">{t("finance.ledger.voucher")}</th>
+                <th className="px-4 py-2.5 text-start font-semibold">{t("finance.ledger.desc")}</th>
+                <th className="px-4 py-2.5 text-end font-semibold">{t("finance.tcol.debit")}</th>
+                <th className="px-4 py-2.5 text-end font-semibold">{t("finance.tcol.credit")}</th>
+                <th className="px-4 py-2.5 text-end font-semibold">{t("finance.tcol.balance")}</th>
+              </tr></thead>
+              <tbody className="divide-y divide-line">
+                {data.rows.map((r, i) => (
+                  <tr key={`${r.voucherId}-${i}`} className="hover:bg-surface-2/60">
+                    <td className="px-4 py-2 text-[12px] text-muted tnum">{r.date}</td>
+                    <td className="px-4 py-2 text-[12px] font-medium text-ink tnum">{r.sequenceNo ?? r.type}</td>
+                    <td className="px-4 py-2 text-[12px] text-muted">{r.description}</td>
+                    <td className="px-4 py-2 text-end text-[12px] text-ink tnum">{r.debit ? m(r.debit) : "—"}</td>
+                    <td className="px-4 py-2 text-end text-[12px] text-ink tnum">{r.credit ? m(r.credit) : "—"}</td>
+                    <td className={`px-4 py-2 text-end text-[12px] font-medium tnum ${r.balance < 0 ? "text-danger" : "text-ink"}`}>{m(r.balance)}</td>
+                  </tr>
+                ))}
+              </tbody>
+              {data ? <tfoot><tr className="border-t-2 border-line bg-surface-2/40 text-[12.5px] font-bold text-ink"><td colSpan={3} className="px-4 py-2.5">{t("premiums.totalRow")}</td><td className="px-4 py-2.5 text-end tnum">{m(data.totals.debit)}</td><td className="px-4 py-2.5 text-end tnum">{m(data.totals.credit)}</td><td className="px-4 py-2.5 text-end tnum">{m(data.totals.balance)}</td></tr></tfoot> : null}
+            </table>
+          )}
         </div>
       </div>
     </div>

@@ -209,4 +209,18 @@ export class FinanceController {
   trialBalance() {
     return this.finance.trialBalance();
   }
+
+  // الميزانية العمومية (بيان المركز المالي) — أصول = خصوم + حقوق ملكية + صافي الدخل
+  @Authorize({ module: "finance", action: "read", entitlement: "module.finance" })
+  @Get("balance-sheet")
+  balanceSheet() {
+    return this.finance.balanceSheet();
+  }
+
+  // دفتر الأستاذ (كشف حركة حساب برصيد جارٍ)
+  @Authorize({ module: "finance", action: "read", entitlement: "module.finance" })
+  @Get("ledger/:account")
+  ledger(@Param("account") account: string) {
+    return this.finance.ledger(account);
+  }
 }
