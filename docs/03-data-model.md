@@ -698,6 +698,20 @@ erDiagram
 | `lastVerifiedAt` | DateTime? | وقت آخر تحقّق ناجح |
 | `createdAt` / `updatedAt` | DateTime | |
 
+### `TenantPaymentSettings` (بوّابة الدفع للمستأجر — BYO Tap/Moyasar · §2.2-أ)
+**الغرض:** إعدادات بوّابة الدفع لكل مستأجر لاستقبال مدفوعات عملائه (الأقساط/الأرصدة). يفعّل الوسيط **بوّابة واحدة** بمفاتيحه الخاصة؛ المفتاح السرّي مشفّر at-rest (نفس نمط `TenantEmailSettings`).
+
+| الحقل | النوع | ملاحظة |
+|---|---|---|
+| `id` | String | المفتاح |
+| `tenantId` | String **@unique** (FK→Tenant) | مستأجر واحد ↔ إعداد واحد |
+| `provider` | String | `none` (افتراضي) \| `tap` \| `moyasar` |
+| `secretKeyEncrypted` | String? | **المفتاح السرّي مشفّر at-rest** (AES-256-GCM) — لا plaintext/عرض/سجلّ |
+| `publicKey` | String? | المفتاح العام (غير سرّي) |
+| `enabled` | Boolean | تفعيل الدفع الإلكتروني (يتطلّب بوّابة + مفتاح سرّي) |
+| `currency` | String | عملة العمليات (افتراضي `SAR`) |
+| `createdAt` / `updatedAt` | DateTime | |
+
 > دالة `sendTenantEmail` تختار المسار: `tenant` المُتحقَّق ⇒ مفتاح المستأجر؛ وإلا **fallback مركزي** بلا انقطاع. مجدول دوري يرقّي `pending`⇒`verified` آليًا.
 
 ### الهوية البصرية (White-label · P0-B)

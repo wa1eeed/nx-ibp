@@ -45,6 +45,7 @@ import { RemindersModule } from "./modules/reminders/reminders.module";
 import { ProducersModule } from "./modules/producers/producers.module";
 import { FormTemplatesModule } from "./modules/form-templates/form-templates.module";
 import { EmailModule } from "./modules/email/email.module";
+import { PaymentsModule } from "./modules/payments/payments.module";
 import { TargetsModule } from "./modules/targets/targets.module";
 import { AuditViewModule } from "./modules/audit/audit.module";
 import { InsurersModule } from "./modules/insurers/insurers.module";
@@ -99,6 +100,7 @@ import { InsurersModule } from "./modules/insurers/insurers.module";
     ProducersModule,
     FormTemplatesModule,
     EmailModule,
+    PaymentsModule,
     TargetsModule,
     AuditViewModule,
     InsurersModule,

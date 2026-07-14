@@ -29,6 +29,7 @@ export type ModuleKey =
   | "settings.staff"
   | "settings.integrations"
   | "settings.email"
+  | "settings.payment"
   | "settings.notifications"
   | "settings.approvalChain"
   | "settings.audit"
@@ -129,6 +130,7 @@ export const TENANT_NAV: NavGroup[] = [
       // التكاملات والبريد والأمان
       { key: "settings.integrations", href: "/tenant/settings/integrations", icon: "Plug" },
       { key: "settings.email", href: "/tenant/settings/email", icon: "Mail" },
+      { key: "settings.payment", href: "/tenant/settings/payment", icon: "CreditCard" },
       { key: "settings.notifications", href: "/tenant/settings/notifications", icon: "Bell" },
       { key: "settings.approvalChain", href: "/tenant/settings/approval-chain", icon: "ListChecks" },
       { key: "settings.audit", href: "/tenant/settings/audit", icon: "ScrollText", entitlement: "module.compliance" },

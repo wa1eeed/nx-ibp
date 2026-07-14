@@ -54,6 +54,7 @@ model Tenant {
   branches     Branch[]
   config       TenantConfig?
   emailSettings TenantEmailSettings?
+  paymentSettings TenantPaymentSettings?
   targets      Target[]
   insurers     Insurer[]
   wallets      Wallet[]
@@ -481,6 +482,21 @@ model TenantEmailSettings {
   lastVerifiedAt         DateTime?
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
+}
+
+// إعدادات بوّابة الدفع للمستأجر (BYO) — تستقبل شركة الوساطة مدفوعات عملائها
+// عبر بوّابة واحدة (Tap أو Moyasar) بمفاتيحها الخاصة. المفتاح السري مشفّر at-rest.
+model TenantPaymentSettings {
+  id                 String   @id @default(cuid())
+  tenantId           String   @unique
+  tenant             Tenant   @relation(fields: [tenantId], references: [id])
+  provider           String   @default("none") // none | tap | moyasar
+  secretKeyEncrypted String? // المفتاح السري مشفّر at-rest (AES-256-GCM) — لا plaintext أبداً
+  publicKey          String? // المفتاح العام (غير سرّي — يُستخدم في الواجهة/التحويل)
+  enabled            Boolean  @default(false)
+  currency           String   @default("SAR")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 }
 
 // ============================================================

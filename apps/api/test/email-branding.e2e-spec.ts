@@ -165,4 +165,52 @@ describe("البريد + الهوية البصرية (e2e)", () => {
     const staff = (await request(srv()).post("/auth/login").send({ email, password: "Worker1Pass" })).body.accessToken;
     await request(srv()).put("/config/company").set(auth(staff)).send({ nameEn: "X" }).expect(403);
   });
+
+  // ————————————————— §2.2-أ: إعدادات بوّابة الدفع (BYO Tap/Moyasar) —————————————————
+
+  it("بلا إعداد ⇒ provider none غير مُفعّل بلا كشف مفتاح", async () => {
+    const { token } = await newOwner();
+    const p = (await request(srv()).get("/config/payment").set(auth(token)).expect(200)).body;
+    expect(p.provider).toBe("none");
+    expect(p.enabled).toBe(false);
+    expect(p.hasSecret).toBe(false);
+    expect(p.secretKeyMasked).toBeNull();
+  });
+
+  it("حفظ Tap بمفاتيح + تفعيل ⇒ مفتاح masked لا خام · بوّابة غير مدعومة/تفعيل بلا مفتاح 400 · masked يبقى بحفظ فارغ", async () => {
+    const { token } = await newOwner();
+    // بوّابة غير مدعومة ⇒ 400 (DTO)
+    await request(srv()).put("/config/payment").set(auth(token)).send({ provider: "stripe" }).expect(400);
+    // تفعيل بلا مفتاح سرّي ⇒ 400
+    await request(srv()).put("/config/payment").set(auth(token)).send({ provider: "tap", enabled: true }).expect(400);
+
+    // حفظ Tap بمفاتيح + تفعيل ⇒ 200، والمفتاح masked لا خام
+    const saved = (await request(srv()).put("/config/payment").set(auth(token)).send({ provider: "tap", publicKey: "pk_test_1", secretKey: "sk_test_SECRETVALUE", enabled: true, currency: "sar" }).expect(200)).body;
+    expect(saved.provider).toBe("tap");
+    expect(saved.enabled).toBe(true);
+    expect(saved.currency).toBe("SAR");
+    expect(saved.publicKey).toBe("pk_test_1");
+    expect(saved.hasSecret).toBe(true);
+    expect(saved.secretKeyMasked).not.toContain("SECRETVALUE");
+    expect(JSON.stringify(saved)).not.toContain("sk_test_SECRETVALUE"); // لا كشف للمفتاح الخام
+
+    // تحديث بمفتاح سرّي فارغ ⇒ يُبقي المفتاح المخزَّن
+    const kept = (await request(srv()).put("/config/payment").set(auth(token)).send({ provider: "tap", publicKey: "pk_test_2" }).expect(200)).body;
+    expect(kept.hasSecret).toBe(true);
+    expect(kept.publicKey).toBe("pk_test_2");
+  });
+
+  it("عزل: إعداد دفع مستأجر لا يظهر لغيره · موظف بلا صلاحية الإعدادات ⇒ 403", async () => {
+    const a = await newOwner();
+    const b = await newOwner();
+    await request(srv()).put("/config/payment").set(auth(a.token)).send({ provider: "moyasar", publicKey: "pk_a", secretKey: "sk_a_secret", enabled: true }).expect(200);
+    const bView = (await request(srv()).get("/config/payment").set(auth(b.token)).expect(200)).body;
+    expect(bView.provider).toBe("none"); // عزل تام
+    expect(bView.hasSecret).toBe(false);
+
+    const email = `payemp-${uniq()}@brk.sa`;
+    await request(srv()).post("/staff").set(auth(a.token)).send({ fullName: "موظف", email, password: "Worker1Pass", roleName: `بلا إعدادات ${uniq()}`, permissions: [{ module: "clients", canAccess: true, canCreate: false, canEdit: false, canDelete: false }] }).expect(201);
+    const staff = (await request(srv()).post("/auth/login").send({ email, password: "Worker1Pass" })).body.accessToken;
+    await request(srv()).put("/config/payment").set(auth(staff)).send({ provider: "tap", secretKey: "x" }).expect(403);
+  });
 });
