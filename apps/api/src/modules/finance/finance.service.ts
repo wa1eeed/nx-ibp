@@ -162,6 +162,14 @@ export class FinanceService {
     for (const c of credits) { const k = c.clientId ?? "—"; creditByClient.set(k, r2((creditByClient.get(k) ?? 0) + num(c.netAmount) + num(c.vatAmount))); }
     const creditsTotal = [...creditByClient.values()].reduce((s, v) => s + v, 0);
 
+    // أعمار الذمم (AR aging): تُوزَّع كل ذمّة قائمة على شريحة حسب عمرها منذ إصدار الإشعار المدين
+    const DAY = 86_400_000;
+    const now = Date.now();
+    const bucketOf = (ageDays: number): "current" | "d3160" | "d6190" | "d90plus" =>
+      ageDays <= 30 ? "current" : ageDays <= 60 ? "d3160" : ageDays <= 90 ? "d6190" : "d90plus";
+    const aging = { current: 0, d3160: 0, d6190: 0, d90plus: 0 };
+    const agingByClient = new Map<string, { clientId: string; clientName: string; current: number; d3160: number; d6190: number; d90plus: number; total: number }>();
+
     const byClient = new Map<string, { clientId: string; clientName: string; total: number; count: number }>();
     let outstanding = 0;
     let collected = 0;
@@ -176,18 +184,30 @@ export class FinanceService {
       cur.total += out;
       cur.count += 1;
       byClient.set(key, cur);
+      // شريحة العمر
+      const b = bucketOf(Math.floor((now - new Date(n.createdAt).getTime()) / DAY));
+      aging[b] = r2(aging[b] + out);
+      const ag = agingByClient.get(key) ?? { clientId: key, clientName: nameOf[key] ?? "—", current: 0, d3160: 0, d6190: 0, d90plus: 0, total: 0 };
+      ag[b] = r2(ag[b] + out);
+      ag.total = r2(ag.total + out);
+      agingByClient.set(key, ag);
     }
     // خصم الإشعارات الدائنة من مستحقّ كل عميل
     for (const [k, credit] of creditByClient) { const cur = byClient.get(k); if (cur) cur.total = r2(Math.max(0, cur.total - credit)); }
+    const agingTotal = r2(aging.current + aging.d3160 + aging.d6190 + aging.d90plus);
     return {
       outstanding: r2(outstanding - creditsTotal),
       collected: r2(collected),
       creditNotes: r2(creditsTotal),
       byClient: [...byClient.values()].filter((c) => c.total > 0).sort((a, b) => b.total - a.total),
+      // أعمار الذمم: الشرائح تُحتسب على إجمالي الذمّة القائمة (قبل خصم الإشعارات الدائنة)
+      aging: { ...aging, overdue: r2(aging.d3160 + aging.d6190 + aging.d90plus), total: agingTotal },
+      agingByClient: [...agingByClient.values()].sort((a, b) => b.total - a.total),
       notes: notes.map((n) => {
         const gross = r2(num(n.netAmount) + num(n.vatAmount));
         const settled = r2(num(n.settledAmount));
-        return { id: n.id, sequenceNo: n.sequenceNo, clientId: n.clientId, clientName: nameOf[n.clientId ?? ""] ?? "—", total: gross, settled, outstanding: r2(gross - settled), status: settled <= 0 ? "outstanding" : settled >= gross ? "paid" : "partial", hasPlan: plannedSet.has(n.id), createdAt: n.createdAt };
+        const outNote = r2(gross - settled);
+        return { id: n.id, sequenceNo: n.sequenceNo, clientId: n.clientId, clientName: nameOf[n.clientId ?? ""] ?? "—", total: gross, settled, outstanding: outNote, status: settled <= 0 ? "outstanding" : settled >= gross ? "paid" : "partial", hasPlan: plannedSet.has(n.id), createdAt: n.createdAt, ageDays: outNote > 0 ? Math.floor((now - new Date(n.createdAt).getTime()) / DAY) : null };
       }),
     };
   }

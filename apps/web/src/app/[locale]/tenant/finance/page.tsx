@@ -31,8 +31,10 @@ interface EmpCommRow { userId: string; name: string; commissionRate: number | nu
 interface EmpComm { rows: EmpCommRow[]; summary: { employees: number; accrued: number; eligible: number; paid: number; outstanding: number } }
 interface ProducerRow { id: string; name: string; code: string | null; policies: number; commissionOwed: number; paid: number; outstanding: number; status: string | null }
 interface Producers { rows: ProducerRow[]; summary: { producers: number; commissionOwed: number; paid: number; outstanding: number } }
-interface RecvNote { id: string; sequenceNo: string | null; clientName: string; total: number; settled: number; outstanding: number; status: string; hasPlan: boolean }
-interface Receivables { outstanding: number; collected: number; notes: RecvNote[] }
+interface RecvNote { id: string; sequenceNo: string | null; clientName: string; total: number; settled: number; outstanding: number; status: string; hasPlan: boolean; ageDays: number | null }
+interface Aging { current: number; d3160: number; d6190: number; d90plus: number; overdue: number; total: number }
+interface AgingClient { clientId: string; clientName: string; current: number; d3160: number; d6190: number; d90plus: number; total: number }
+interface Receivables { outstanding: number; collected: number; notes: RecvNote[]; aging: Aging; agingByClient: AgingClient[] }
 interface InstallmentRow { id: string; seq: number; dueDate: string; amount: number; settled: number; outstanding: number; status: string }
 interface BalanceLine { code: string; name: string; amount: number; isOnBalance: boolean }
 interface BalanceSheet { asOf: string; assets: BalanceLine[]; liabilities: BalanceLine[]; equity: BalanceLine[]; retainedEarnings: number; unclassified: Array<{ code: string; name: string; amount: number }>; totals: { assets: number; liabilities: number; equity: number; liabilitiesAndEquity: number; offBalance: number; balanced: boolean } }
@@ -551,7 +553,26 @@ function ReceivablesTab({ data, onPlan }: { data: Receivables | null; onPlan: (n
     if (!sched[id]) await loadSched(id);
   }
 
+  const ag = data?.aging;
+  const bucket = (label: string, value: number, tone: string) => (
+    <div className={`rounded-xl border p-3.5 ${tone}`}>
+      <p className="text-[11px] font-medium opacity-80">{label}</p>
+      <p className="mt-1 text-[16px] font-bold tnum">{m(value)}</p>
+    </div>
+  );
   return (
+    <div className="space-y-4">
+      {ag ? (
+        <div className="rounded-card border border-line bg-card p-4 shadow-card">
+          <div className="mb-3 flex items-center gap-2"><AlertTriangle size={15} className="text-warning" /><h3 className="text-[13.5px] font-semibold text-ink">{t("finance.aging.title")}</h3><span className="text-[11px] text-subtle">{t("finance.aging.sub")}</span>{ag.overdue > 0 ? <span className="ms-auto text-[12px] text-subtle">{t("finance.aging.overdue")}: <span className="font-bold text-danger tnum">{m(ag.overdue)}</span></span> : null}</div>
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {bucket(t("finance.aging.current"), ag.current, "border-success/30 bg-success-soft/40 text-success")}
+            {bucket(t("finance.aging.d3160"), ag.d3160, "border-warning/30 bg-warning-soft/40 text-warning")}
+            {bucket(t("finance.aging.d6190"), ag.d6190, "border-warning/40 bg-warning-soft/60 text-warning")}
+            {bucket(t("finance.aging.d90plus"), ag.d90plus, "border-danger/30 bg-danger-soft/40 text-danger")}
+          </div>
+        </div>
+      ) : null}
     <section className="overflow-hidden rounded-card border border-line bg-card shadow-card">
       <div className="flex flex-wrap items-center gap-2 border-b border-line px-5 py-3.5">
         <Receipt size={17} className="text-warning" />
@@ -566,6 +587,7 @@ function ReceivablesTab({ data, onPlan }: { data: Receivables | null; onPlan: (n
             <th className="px-4 py-3 text-end font-semibold">{t("finance.receivablesTab.total")}</th>
             <th className="px-4 py-3 text-end font-semibold">{t("finance.receivablesTab.settled")}</th>
             <th className="px-4 py-3 text-end font-semibold">{t("finance.receivablesTab.outstandingCol")}</th>
+            <th className="px-4 py-3 text-center font-semibold">{t("finance.aging.age")}</th>
             <th className="px-4 py-3 text-center font-semibold">{t("finance.receivablesTab.status")}</th>
             <th className="px-4 py-3"></th>
           </tr></thead>
@@ -578,6 +600,7 @@ function ReceivablesTab({ data, onPlan }: { data: Receivables | null; onPlan: (n
                   <td className="px-4 py-3 text-end text-[12.5px] font-medium text-ink tnum">{m(n.total)}</td>
                   <td className="px-4 py-3 text-end text-[12.5px] text-success tnum">{n.settled ? m(n.settled) : "—"}</td>
                   <td className={`px-4 py-3 text-end text-[12.5px] tnum ${n.outstanding > 0 ? "font-semibold text-warning" : "text-subtle"}`}>{m(n.outstanding)}</td>
+                  <td className="px-4 py-3 text-center text-[12px] tnum">{n.ageDays == null ? "—" : <span className={n.ageDays > 90 ? "font-semibold text-danger" : n.ageDays > 30 ? "text-warning" : "text-subtle"}>{t("finance.aging.days", { n: n.ageDays })}</span>}</td>
                   <td className="px-4 py-3 text-center"><span className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-medium ${instTone(n.status)}`}>{t(`finance.receivablesTab.st.${n.status}`)}</span></td>
                   <td className="px-4 py-3 text-end">
                     <div className="flex items-center justify-end gap-1.5">
@@ -587,7 +610,7 @@ function ReceivablesTab({ data, onPlan }: { data: Receivables | null; onPlan: (n
                   </td>
                 </tr>
                 {expanded === n.id ? (
-                  <tr className="bg-surface-2/40"><td colSpan={7} className="px-5 py-3">
+                  <tr className="bg-surface-2/40"><td colSpan={8} className="px-5 py-3">
                     {busy === n.id && !sched[n.id] ? <p className="py-3 text-center text-[12px] text-subtle">…</p> : (sched[n.id]?.length ?? 0) === 0 ? (
                       <p className="py-3 text-center text-[12px] text-subtle">{t("finance.installments.none")}{n.outstanding > 0 ? <> — <button onClick={() => onPlan(n)} className="font-semibold text-primary hover:underline">{t("finance.installments.createNow")}</button></> : null}</p>
                     ) : (
@@ -618,13 +641,14 @@ function ReceivablesTab({ data, onPlan }: { data: Receivables | null; onPlan: (n
                 ) : null}
               </Fragment>
             ))}
-            {data && notes.length === 0 ? <tr><td colSpan={7} className="px-5 py-8 text-center text-[12.5px] text-subtle">{t("finance.receivablesTab.empty")}</td></tr> : null}
+            {data && notes.length === 0 ? <tr><td colSpan={8} className="px-5 py-8 text-center text-[12.5px] text-subtle">{t("finance.receivablesTab.empty")}</td></tr> : null}
           </tbody>
         </table>
       </div>
       <Pagination page={page.page} pageCount={page.pageCount} total={page.total} from={page.from} to={page.to} onPage={page.setPage} />
       <p className="border-t border-line px-5 py-2 text-[10.5px] leading-relaxed text-subtle">{t("finance.installments.note")}</p>
     </section>
+    </div>
   );
 }
 

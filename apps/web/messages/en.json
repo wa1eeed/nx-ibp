@@ -450,6 +450,17 @@
         "outstanding": "Outstanding"
       }
     },
+    "aging": {
+      "title": "AR aging",
+      "sub": "Outstanding by debit-note age",
+      "overdue": "Overdue (30+ days)",
+      "current": "Current (0–30 days)",
+      "d3160": "31–60 days",
+      "d6190": "61–90 days",
+      "d90plus": "Over 90 days",
+      "age": "Age",
+      "days": "{n}d"
+    },
     "installments": {
       "plan": "Installment plan",
       "schedule": "Schedule",

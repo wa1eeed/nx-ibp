@@ -8,6 +8,7 @@ import { Test } from "@nestjs/testing";
 import { INestApplication, ValidationPipe } from "@nestjs/common";
 import request from "supertest";
 import { AppModule } from "../src/app.module";
+import { PrismaService } from "../src/prisma/prisma.service";
 
 const PERIOD = { startDate: "2026-01-01", endDate: "2026-12-31", currency: "SAR" };
 
@@ -523,6 +524,45 @@ describe("الإصدار والاعتماد المالي (e2e)", () => {
     expect(past.outputVat).toBe(0);
     expect(past.inputVat).toBe(0);
     expect(past.netVat).toBe(0);
+  });
+
+  it("#1.3 أعمار الذمم: تُوزَّع الذمم القائمة على الشرائح حسب العمر · المجموع = الشرائح · العمر لكل إشعار · RBAC", async () => {
+    const srv = app.getHttpServer();
+    const prisma = app.get(PrismaService);
+    // 3 إشعارات مدينة غير مسدَّدة (69,000 لكلٍّ)
+    const noteIds: string[] = [];
+    for (let i = 0; i < 3; i++) {
+      const requestId = await createAwardedRequest();
+      const policy = (await request(srv).post("/policies/issue").set(auth(underwriter)).send({ requestId, branchCode: "RUH" }).expect(201)).body;
+      await request(srv).post(`/policies/${policy.id}/approve-technical`).set(auth(underwriter)).expect(200);
+      const fin = (await request(srv).post(`/finance/policies/${policy.id}/approve`).set(auth(accountant)).expect(200)).body;
+      const note = (await request(srv).get("/finance/receivables").set(auth(accountant))).body.notes.find((n: { sequenceNo: string }) => n.sequenceNo === fin.debitNote);
+      noteIds.push(note.id);
+    }
+    // تأريخ حتمي: 45 يومًا (31–60) · 75 (61–90) · 120 (+90) — تجاوز فرض المستأجر لتعديل createdAt مباشرةً
+    const daysAgo = (d: number) => new Date(Date.now() - d * 86_400_000);
+    await prisma.debitNote.update({ where: { id: noteIds[0] }, data: { createdAt: daysAgo(45) } });
+    await prisma.debitNote.update({ where: { id: noteIds[1] }, data: { createdAt: daysAgo(75) } });
+    await prisma.debitNote.update({ where: { id: noteIds[2] }, data: { createdAt: daysAgo(120) } });
+
+    // المبيعات (لا finance) ⇒ 403
+    await request(srv).get("/finance/receivables").set(auth(sales)).expect(403);
+
+    const recv = (await request(srv).get("/finance/receivables").set(auth(accountant)).expect(200)).body;
+    const ag = recv.aging;
+    // الشرائح المتأخّرة موجبة (من إشعاراتنا الثلاثة المؤرَّخة)
+    expect(ag.d3160).toBeGreaterThan(0);
+    expect(ag.d6190).toBeGreaterThan(0);
+    expect(ag.d90plus).toBeGreaterThan(0);
+    // اتّساق داخلي: المتأخّر = مجموع الشرائح بعد 30 · الإجمالي = مجموع الشرائح كلها
+    expect(ag.overdue).toBeCloseTo(r2(ag.d3160 + ag.d6190 + ag.d90plus), 2);
+    expect(ag.total).toBeCloseTo(r2(ag.current + ag.d3160 + ag.d6190 + ag.d90plus), 2);
+    // العمر محسوب لكل إشعار قائم
+    const n0 = (recv.notes as Array<{ id: string; ageDays: number | null }>).find((n) => n.id === noteIds[0]);
+    expect(n0!.ageDays).toBeGreaterThanOrEqual(44);
+    // أعمار حسب العميل: مصفوفة مرتّبة تنازليًا
+    expect(Array.isArray(recv.agingByClient)).toBe(true);
+    expect(recv.agingByClient.length).toBeGreaterThan(0);
   });
 });
 

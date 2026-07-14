@@ -625,7 +625,7 @@ curl -X POST http://localhost:4000/staff \
 | GET | `/finance/employee-commissions` | finance:read | دفتر عمولات الموظفين — **استحقاق عند التحصيل** (متوقّعة/مستحقّة/مدفوعة/متبقّية لكل مندوب) |
 | POST | `/finance/employee-commissions/:userId/settle` | finance:create | صرف عمولة موظف (سند PYV، حساب 05020) — يمنع تجاوز المتبقّي (409) |
 | POST | `/staff/:id/commission-rate` | settings:update | ضبط نسبة عمولة/حافز الموظف (% من عمولة الوساطة، 0–100؛ null = بلا عمولة) |
-| GET | `/finance/receivables` · `/finance/summary` | finance:read | تعيدان **المتبقّي بعد التحصيل والإشعارات الدائنة** + `collected` + `creditNotes` + `serviceFees` + حالة كل إشعار + `hasPlan` (وجود خطة تقسيط) |
+| GET | `/finance/receivables` · `/finance/summary` | finance:read | تعيدان **المتبقّي بعد التحصيل والإشعارات الدائنة** + `collected` + `creditNotes` + `serviceFees` + حالة كل إشعار + `hasPlan` + **أعمار الذمم** (`aging` شرائح 0–30/31–60/61–90/+90 + `agingByClient` + `ageDays` لكل إشعار) |
 | GET | `/finance/invoices` | finance:read | الفواتير الضريبية مع `kind` (COMMISSION على المؤمِّن / FEES على العميل) + `party` (الطرف) + حزمة ZATCA |
 | GET | `/finance/invoices/:id/document` | finance:read | **بيانات وثيقة الفاتورة المطبوعة** (بائع/طرف/بنود/ZATCA) لتوليد فاتورة PDF بهوية المستأجر — مجهولة ⇒ 404 |
 
