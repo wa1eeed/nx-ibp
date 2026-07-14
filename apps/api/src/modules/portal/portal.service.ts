@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { Prisma } from "@ibp/db";
 import * as bcrypt from "bcryptjs";
@@ -53,6 +53,82 @@ export class PortalService {
       email: user.email,
     });
     await this.audit.log({ tenantId: user.tenantId, userId: user.id, action: "login", entity: "client_user", entityId: user.id, meta: { portal: true } });
+    return { accessToken, user: { id: user.id, email: user.email, fullName: user.fullName, client: user.client } };
+  }
+
+  // ————————————————— توفير دخول البوّابة (تزويد + تفعيل) —————————————————
+  /** أصل الواجهة لبناء رابط الدعوة (مطابق لنمط الفوترة). */
+  private appUrl(): string {
+    return process.env.APP_PUBLIC_URL ?? process.env.CORS_ORIGINS?.split(",")[0]?.trim() ?? "http://localhost:3000";
+  }
+
+  /** يتحقّق من توكن الدعوة (JWT بنطاق `portal-invite`) ويعيد حمولته. */
+  private async verifyInvite(token: string): Promise<{ sub: string; scope: string; tenantId: string; clientId: string }> {
+    try {
+      const payload = await this.jwt.verifyAsync<{ sub: string; scope: string; tenantId: string; clientId: string }>(token);
+      if (payload.scope !== "portal-invite" || !payload.sub) throw new Error("bad scope");
+      return payload;
+    } catch {
+      throw new UnauthorizedException("رابط الدعوة غير صالح أو منتهي الصلاحية");
+    }
+  }
+
+  /** قائمة مستخدمي بوّابة العميل (للموظف) — مع حالة التفعيل. مقيَّدة بالعميل والمستأجر. */
+  async listPortalUsers(tenantId: string, clientId: string) {
+    const client = await this.prisma.client.findFirst({ where: { id: clientId, tenantId }, select: { id: true } });
+    if (!client) throw new NotFoundException("العميل غير موجود");
+    const users = await this.prisma.clientUser.findMany({ where: { clientId }, orderBy: { createdAt: "asc" }, select: { id: true, email: true, fullName: true, passwordHash: true, createdAt: true } });
+    return users.map((u) => ({ id: u.id, email: u.email, fullName: u.fullName, activated: !!u.passwordHash, createdAt: u.createdAt }));
+  }
+
+  /** دعوة عميل لبوّابته: يُنشئ (أو يُعيد استخدام) `ClientUser` بلا كلمة مرور + رابط تفعيل موقّع + بريد. */
+  async invitePortalUser(tenantId: string, clientId: string, actorId: string, dto: { email: string; fullName: string }) {
+    const client = await this.prisma.client.findFirst({ where: { id: clientId, tenantId }, select: { id: true, name: true } });
+    if (!client) throw new NotFoundException("العميل غير موجود");
+    const email = dto.email.trim().toLowerCase();
+    const existing = await this.prisma.clientUser.findFirst({ where: { email } });
+    let user = existing;
+    if (existing) {
+      if (existing.clientId !== clientId || existing.tenantId !== tenantId) throw new ConflictException("هذا البريد مُستخدَم لعميل آخر");
+    } else {
+      user = await this.prisma.clientUser.create({ data: { tenantId, clientId, email, fullName: dto.fullName.trim() } });
+    }
+    const token = await this.jwt.signAsync({ sub: user!.id, scope: "portal-invite", tenantId, clientId }, { expiresIn: "7d" });
+    const link = `${this.appUrl()}/portal/activate?token=${token}`;
+    await this.notifications
+      .notify(tenantId, "portal_invite", { email, clientId }, { name: user!.fullName, link })
+      .catch(() => undefined);
+    await this.audit.log({ tenantId, userId: actorId, action: existing ? "update" : "create", entity: "client_user", entityId: user!.id, meta: { invite: true } });
+    return { user: { id: user!.id, email: user!.email, fullName: user!.fullName, activated: !!user!.passwordHash }, inviteLink: link };
+  }
+
+  /** إلغاء دخول مستخدم البوّابة (تصفير كلمة المرور) — يمنع الدخول ويُبقي الهوية للمراسلات السابقة. */
+  async revokePortalUser(tenantId: string, clientId: string, userId: string, actorId: string) {
+    const user = await this.prisma.clientUser.findFirst({ where: { id: userId, clientId }, select: { id: true } });
+    if (!user) throw new NotFoundException("مستخدم البوّابة غير موجود");
+    await this.prisma.clientUser.update({ where: { id: userId }, data: { passwordHash: null } });
+    await this.audit.log({ tenantId, userId: actorId, action: "update", entity: "client_user", entityId: userId, meta: { revoke: true } });
+    return { id: userId, activated: false };
+  }
+
+  /** معلومات الدعوة لصفحة تعيين كلمة المرور (عام) — بريد/اسم/اسم الشركة. */
+  async inviteInfo(token: string) {
+    const payload = await this.verifyInvite(token);
+    const user = await this.prisma.clientUser.findFirst({ where: { id: payload.sub }, include: { client: { select: { name: true } } } });
+    if (!user) throw new UnauthorizedException("دعوة غير صالحة");
+    return { email: user.email, fullName: user.fullName, clientName: user.client.name, activated: !!user.passwordHash };
+  }
+
+  /** تفعيل الحساب: يتحقّق من توكن الدعوة، يضبط كلمة المرور، ويسجّل الدخول تلقائيًا. */
+  async activate(token: string, password: string) {
+    if (!password || password.length < 8) throw new BadRequestException("كلمة المرور يجب ألا تقلّ عن 8 أحرف");
+    const payload = await this.verifyInvite(token);
+    const user = await this.prisma.clientUser.findFirst({ where: { id: payload.sub }, include: { client: { select: { id: true, name: true, code: true } } } });
+    if (!user) throw new UnauthorizedException("دعوة غير صالحة");
+    const passwordHash = await bcrypt.hash(password, 10);
+    await this.prisma.clientUser.update({ where: { id: user.id }, data: { passwordHash } });
+    await this.audit.log({ tenantId: user.tenantId, userId: user.id, action: "update", entity: "client_user", entityId: user.id, meta: { activated: true } });
+    const accessToken = await this.jwt.signAsync({ sub: user.id, scope: "client", tenantId: user.tenantId, clientId: user.clientId, email: user.email });
     return { accessToken, user: { id: user.id, email: user.email, fullName: user.fullName, client: user.client } };
   }
 

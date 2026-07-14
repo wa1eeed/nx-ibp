@@ -236,4 +236,49 @@ describe("بوّابة العميل (e2e)", () => {
     const after = (await request(srv).get("/portal/notifications/unread-count").set(auth(fahd))).body;
     expect(after.count).toBeGreaterThanOrEqual(0);
   });
+
+  it("§5.1 توفير الدخول: دعوة ⇒ لا دخول قبل التفعيل · تفعيل بالتوكن ⇒ دخول · توكن فاسد 401 · كلمة ضعيفة 400", async () => {
+    const srv = app.getHttpServer();
+    // العميل (نطاق client) لا يملك مسار الموظف
+    await request(srv).get("/clients/cl-fahd/portal-users").set(auth(fahd)).expect(403);
+
+    // دعوة عميل موجود (الفهد) ببريد جديد — يُنشئ مستخدم بوّابة غير مُفعَّل
+    const email = `e2e-portal-${Date.now()}@test.sa`;
+    const inv = (await request(srv).post("/clients/cl-fahd/portal-invite").set(auth(employee)).send({ email, fullName: "مستخدم اختبار البوّابة" }).expect(201)).body;
+    expect(inv.user.activated).toBe(false);
+    expect(inv.inviteLink).toContain("/portal/activate?token=");
+    const token = inv.inviteLink.split("token=")[1];
+
+    // معلومات الدعوة (عام) — بريد/اسم الشركة
+    const info = (await request(srv).get(`/portal/invite/${token}`).expect(200)).body;
+    expect(info.email).toBe(email);
+    expect(info.activated).toBe(false);
+    expect(info.clientName).toBeTruthy();
+
+    // لا يمكن الدخول قبل التفعيل (بلا كلمة مرور)
+    await request(srv).post("/portal/login").send({ email, password: "Str0ngPass1!" }).expect(401);
+
+    // توكن فاسد ⇒ 401 · كلمة مرور ضعيفة ⇒ 400
+    await request(srv).get("/portal/invite/not-a-token").expect(401);
+    await request(srv).post("/portal/activate").send({ token, password: "short" }).expect(400);
+
+    // تفعيل صحيح ⇒ توكن دخول (auto-login) ثم الدخول ينجح
+    const act = (await request(srv).post("/portal/activate").send({ token, password: "Str0ngPass1!" }).expect(200)).body;
+    expect(act.accessToken).toBeTruthy();
+    expect(act.user.email).toBe(email);
+    await request(srv).post("/portal/login").send({ email, password: "Str0ngPass1!" }).expect(201);
+
+    // يظهر في قائمة مستخدمي البوّابة مُفعَّلاً
+    const list = (await request(srv).get("/clients/cl-fahd/portal-users").set(auth(employee)).expect(200)).body as Array<{ id: string; email: string; activated: boolean }>;
+    const created = list.find((u) => u.email === email);
+    expect(created?.activated).toBe(true);
+
+    // إلغاء الدخول ⇒ لا يمكن الدخول بعدها
+    const userId = list.find((x) => x.email === email)!.id;
+    await request(srv).post(`/clients/cl-fahd/portal-users/${userId}/revoke`).set(auth(employee)).expect(200);
+    await request(srv).post("/portal/login").send({ email, password: "Str0ngPass1!" }).expect(401);
+
+    // دعوة على عميل غير موجود ⇒ 404
+    await request(srv).post("/clients/nope-client/portal-invite").set(auth(employee)).send({ email: "x@y.sa", fullName: "لا أحد" }).expect(404);
+  });
 });

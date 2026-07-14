@@ -13,6 +13,18 @@ export class PortalLoginDto {
   @IsString() password!: string;
 }
 
+/** دعوة عميل لبوّابته (من الموظف) — بريد + اسم مستخدم البوّابة. */
+export class InvitePortalDto {
+  @IsEmail() email!: string;
+  @IsString() @MinLength(2) @MaxLength(120) fullName!: string;
+}
+
+/** تفعيل حساب البوّابة عبر توكن الدعوة + تعيين كلمة المرور. */
+export class ActivatePortalDto {
+  @IsString() token!: string;
+  @IsString() @MinLength(8) @MaxLength(72) password!: string;
+}
+
 /** تقديم مطالبة من البوّابة (على وثيقة العميل). */
 export class SubmitClaimDto {
   @IsString() policyId!: string;

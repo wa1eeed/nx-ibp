@@ -1501,7 +1501,26 @@
       "requests": "Requests",
       "documents": "Documents",
       "statement": "Statement",
+      "portal": "Portal access",
       "timeline": "Timeline"
+    },
+    "portal": {
+      "inviteTitle": "Invite the client to their portal",
+      "inviteSub": "Creates an account and sends an activation link for them to set their own password",
+      "fullName": "User name",
+      "email": "Email",
+      "send": "Send invite",
+      "sent": "Invite created — the link was emailed; you can also copy and share it manually:",
+      "copy": "Copy",
+      "copied": "Copied",
+      "user": "User",
+      "statusCol": "Status",
+      "active": "Active",
+      "pending": "Pending activation",
+      "revoke": "Revoke access",
+      "revokeTitle": "Revoke portal access",
+      "revokeDesc": "“{email}” will be blocked from the client portal (you can re-invite later).",
+      "empty": "No portal users yet — invite the client to log in and follow their policies and claims"
     },
     "endDate": "Ends",
     "daysLeft": "left",
@@ -2209,6 +2228,18 @@
       "title": "Client portal sign-in",
       "submit": "Sign in",
       "error": "Invalid credentials"
+    },
+    "activate": {
+      "title": "Activate your account",
+      "subtitle": "Set your password to access the client portal",
+      "welcome": "Hello {name}",
+      "forClient": "{client} portal",
+      "password": "New password",
+      "confirm": "Confirm password",
+      "weak": "Password must be at least 8 characters",
+      "mismatch": "Passwords do not match",
+      "submit": "Activate & sign in",
+      "invalidLink": "The invite link is invalid or expired — contact your broker for a new invite."
     },
     "dashboard": {
       "title": "Home",

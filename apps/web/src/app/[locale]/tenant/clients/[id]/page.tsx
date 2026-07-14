@@ -2,10 +2,10 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { ArrowRight, FileCheck2, ClipboardList, FileText, FolderOpen, Receipt, Clock, Send, ShieldOff } from "lucide-react";
+import { ArrowRight, FileCheck2, ClipboardList, FileText, FolderOpen, Receipt, Clock, Send, ShieldOff, UserPlus, Copy, Check, KeyRound } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
-import { api, getToken } from "@/lib/api";
+import { api, ApiError, getToken } from "@/lib/api";
 import { Badge } from "@/components/ui/Badge";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 
@@ -24,7 +24,7 @@ interface Overview {
 
 const DN_TONE: Record<string, "warning" | "info" | "success"> = { outstanding: "warning", partial: "info", paid: "success" };
 
-const TABS = ["overview", "policies", "renewals", "claims", "requests", "documents", "statement", "timeline"] as const;
+const TABS = ["overview", "policies", "renewals", "claims", "requests", "documents", "statement", "portal", "timeline"] as const;
 const fmt = (n: string | null | number) => (n == null ? "—" : Number(n).toLocaleString("en-US"));
 const dt = (s: string | null) => (s ? new Date(s).toLocaleDateString("en-GB") : "—");
 const daysLeft = (end: string | null) => (end == null ? null : Math.ceil((new Date(end).getTime() - Date.now()) / 86400000));
@@ -179,6 +179,8 @@ export default function ClientDetailPage() {
           </div>
         ) : null}
 
+        {tab === "portal" ? <PortalAccessTab clientId={id} /> : null}
+
         {tab === "timeline" ? (
           <div className="space-y-3">
             <div className="flex items-center gap-2">
@@ -200,6 +202,85 @@ export default function ClientDetailPage() {
             )}
           </div>
         ) : null}
+      </div>
+    </div>
+  );
+}
+
+interface PortalUser { id: string; email: string; fullName: string; activated: boolean; createdAt: string }
+
+/** إدارة دخول بوّابة العميل (للموظف): قائمة المستخدمين + دعوة + رابط تفعيل + إلغاء. */
+function PortalAccessTab({ clientId }: { clientId: string }) {
+  const t = useTranslations("client360.portal");
+  const [users, setUsers] = useState<PortalUser[] | null>(null);
+  const [email, setEmail] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const [link, setLink] = useState("");
+  const [copied, setCopied] = useState(false);
+  const confirm = useConfirm();
+
+  const load = useCallback(async () => {
+    try { setUsers(await api<PortalUser[]>(`/clients/${clientId}/portal-users`)); } catch { setUsers([]); }
+  }, [clientId]);
+  useEffect(() => { void load(); }, [load]);
+
+  async function invite() {
+    setErr(""); setBusy(true); setLink(""); setCopied(false);
+    try {
+      const res = await api<{ inviteLink: string }>(`/clients/${clientId}/portal-invite`, { method: "POST", body: JSON.stringify({ email: email.trim(), fullName: fullName.trim() }) });
+      setLink(res.inviteLink); setEmail(""); setFullName(""); await load();
+    } catch (e) { setErr(e instanceof ApiError ? e.message : "خطأ"); }
+    finally { setBusy(false); }
+  }
+  async function revoke(u: PortalUser) {
+    const ok = await confirm({ title: t("revokeTitle"), description: t("revokeDesc", { email: u.email }), tone: "danger", confirmLabel: t("revoke") });
+    if (!ok) return;
+    await api(`/clients/${clientId}/portal-users/${u.id}/revoke`, { method: "POST", body: JSON.stringify({}) }).catch(() => undefined);
+    await load();
+  }
+  function copyLink() { void navigator.clipboard?.writeText(link).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); }); }
+
+  const field = "h-9 w-full rounded-lg border border-line bg-card px-3 text-[13px] text-ink focus:outline-none focus:ring-2 focus:ring-primary/30";
+  return (
+    <div className="space-y-4">
+      <div className="rounded-card border border-line bg-card p-4">
+        <div className="mb-3 flex items-center gap-2"><KeyRound size={16} className="text-primary" /><div><h3 className="text-[13.5px] font-semibold text-ink">{t("inviteTitle")}</h3><p className="text-[11.5px] text-subtle">{t("inviteSub")}</p></div></div>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_1fr_auto]">
+          <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder={t("fullName")} className={field} />
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t("email")} className={`${field} tnum`} />
+          <button onClick={invite} disabled={busy || !email.trim() || fullName.trim().length < 2} className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-primary-strong px-4 text-[12.5px] font-semibold text-primary-fg hover:bg-primary disabled:opacity-60"><UserPlus size={15} /> {busy ? "…" : t("send")}</button>
+        </div>
+        {err ? <p className="mt-2 text-[12px] font-medium text-danger">{err}</p> : null}
+        {link ? (
+          <div className="mt-3 rounded-lg bg-success-soft/50 p-2.5">
+            <p className="mb-1 text-[11.5px] font-medium text-success">{t("sent")}</p>
+            <div className="flex items-center gap-2">
+              <input readOnly value={link} className="h-8 flex-1 rounded-lg border border-line bg-card px-2 text-[11px] text-muted tnum" onFocus={(e) => e.target.select()} />
+              <button onClick={copyLink} className="inline-flex h-8 items-center gap-1 rounded-lg border border-line px-2.5 text-[11.5px] font-medium text-muted hover:bg-surface-2">{copied ? <><Check size={13} className="text-success" /> {t("copied")}</> : <><Copy size={13} /> {t("copy")}</>}</button>
+            </div>
+          </div>
+        ) : null}
+      </div>
+
+      <div className="overflow-hidden rounded-card border border-line bg-card">
+        <table className="w-full"><thead><tr className="border-b border-line text-[11px] uppercase text-subtle">
+          <th className="px-3 py-2 text-start font-semibold">{t("user")}</th>
+          <th className="px-3 py-2 text-start font-semibold">{t("email")}</th>
+          <th className="px-3 py-2 text-center font-semibold">{t("statusCol")}</th>
+          <th className="px-3 py-2"></th>
+        </tr></thead><tbody>
+          {users?.map((u) => (
+            <tr key={u.id} className="border-b border-line last:border-0">
+              <td className="px-3 py-2.5 text-[12.5px] font-medium text-ink">{u.fullName}</td>
+              <td className="px-3 py-2.5 text-[12px] text-muted tnum">{u.email}</td>
+              <td className="px-3 py-2.5 text-center"><Badge tone={u.activated ? "success" : "warning"}>{u.activated ? t("active") : t("pending")}</Badge></td>
+              <td className="px-3 py-2.5 text-end">{u.activated ? <button onClick={() => revoke(u)} className="inline-flex items-center gap-1 rounded-lg border border-line px-2 py-1 text-[11.5px] font-medium text-danger hover:bg-danger-soft/40"><ShieldOff size={12} /> {t("revoke")}</button> : null}</td>
+            </tr>
+          ))}
+          {users && users.length === 0 ? <tr><td colSpan={4} className="px-3 py-8 text-center text-[12.5px] text-subtle">{t("empty")}</td></tr> : null}
+        </tbody></table>
       </div>
     </div>
   );

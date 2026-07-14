@@ -5,7 +5,7 @@ import { PortalGuard } from "./portal.guard";
 import { ConfigService } from "../config/config.service";
 import { Public } from "../auth/public.decorator";
 import { CurrentUser, type AuthUser } from "../auth/current-user.decorator";
-import { PortalLoginDto, SubmitClaimDto, SubmitServiceDto, PortalServiceReplyDto, UpdateContactDto } from "./dto/portal.dto";
+import { PortalLoginDto, SubmitClaimDto, SubmitServiceDto, PortalServiceReplyDto, UpdateContactDto, ActivatePortalDto } from "./dto/portal.dto";
 import { Put } from "@nestjs/common";
 
 /** بوّابة العميل — كل المسارات بنطاق `client` عدا الدخول. clientId يُشتقّ من التوكن. */
@@ -21,6 +21,20 @@ export class PortalController {
   @Post("login")
   login(@Body() dto: PortalLoginDto) {
     return this.portal.login(dto.email, dto.password);
+  }
+
+  // تفعيل حساب البوّابة عبر رابط الدعوة (عام — العميل لم يسجّل دخوله بعد)
+  @Public()
+  @Get("invite/:token")
+  inviteInfo(@Param("token") token: string) {
+    return this.portal.inviteInfo(token);
+  }
+
+  @Public()
+  @HttpCode(200)
+  @Post("activate")
+  activate(@Body() dto: ActivatePortalDto) {
+    return this.portal.activate(dto.token, dto.password);
   }
 
   @Get("me")
