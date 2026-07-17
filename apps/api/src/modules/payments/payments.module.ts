@@ -1,15 +1,18 @@
 import { Module } from "@nestjs/common";
 import { PaymentSettingsController } from "./payment-settings.controller";
 import { PaymentSettingsService } from "./payment-settings.service";
+import { PaymentChargeService } from "./payment-charge.service";
+import { PaymentsWebhookController } from "./payments-webhook.controller";
+import { FinanceModule } from "../finance/finance.module";
 
 /**
- * المدفوعات (§2.2): إعدادات بوّابة الدفع للمستأجر (BYO Tap/Moyasar) — الأساس الذي
- * يبني عليه دفع العميل للأقساط (اللبنة ب) واشتراكات المنصّة (اللبنة ج).
- * يُصدَّر الخدمة لتستخدمها البوّابة في إنشاء عمليات الدفع لاحقًا.
+ * المدفوعات (§2.2): إعدادات بوّابة الدفع للمستأجر (BYO Tap/Moyasar) + **دفع العميل**
+ * للأقساط/الذمم عبر البوّابة (شحنة ⇒ عودة/webhook ⇒ سند قبض تلقائي). واشتراكات المنصّة في `billing`.
  */
 @Module({
-  controllers: [PaymentSettingsController],
-  providers: [PaymentSettingsService],
-  exports: [PaymentSettingsService],
+  imports: [FinanceModule],
+  controllers: [PaymentSettingsController, PaymentsWebhookController],
+  providers: [PaymentSettingsService, PaymentChargeService],
+  exports: [PaymentSettingsService, PaymentChargeService],
 })
 export class PaymentsModule {}

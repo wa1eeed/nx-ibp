@@ -9,5 +9,6 @@ import { ConfigModule } from "../config/config.module";
   imports: [ZatcaModule, NotificationsModule, ConfigModule],
   controllers: [FinanceController],
   providers: [FinanceService],
+  exports: [FinanceService],
 })
 export class FinanceModule {}

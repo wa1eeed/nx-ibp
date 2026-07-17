@@ -3,9 +3,11 @@ import { HttpCode } from "@nestjs/common";
 import { PortalService } from "./portal.service";
 import { PortalGuard } from "./portal.guard";
 import { ConfigService } from "../config/config.service";
+import { PaymentChargeService } from "../payments/payment-charge.service";
 import { Public } from "../auth/public.decorator";
 import { CurrentUser, type AuthUser } from "../auth/current-user.decorator";
 import { PortalLoginDto, SubmitClaimDto, SubmitServiceDto, PortalServiceReplyDto, UpdateContactDto, ActivatePortalDto } from "./dto/portal.dto";
+import { CreatePortalChargeDto } from "../payments/dto/payment-settings.dto";
 import { Put } from "@nestjs/common";
 
 /** بوّابة العميل — كل المسارات بنطاق `client` عدا الدخول. clientId يُشتقّ من التوكن. */
@@ -15,6 +17,7 @@ export class PortalController {
   constructor(
     private readonly portal: PortalService,
     private readonly config: ConfigService,
+    private readonly charge: PaymentChargeService,
   ) {}
 
   @Public()
@@ -118,6 +121,19 @@ export class PortalController {
   @Get("statement")
   statement(@CurrentUser() user: AuthUser) {
     return this.portal.statement(user.clientId!);
+  }
+
+  // ——— الدفع الإلكتروني للأقساط/الذمم عبر بوّابة المستأجر (§2.2-ب) ———
+  @HttpCode(201)
+  @Post("pay")
+  pay(@CurrentUser() user: AuthUser, @Body() dto: CreatePortalChargeDto) {
+    return this.charge.createCharge(user.tenantId, user.clientId!, dto);
+  }
+
+  @HttpCode(200)
+  @Post("pay/:id/confirm")
+  payConfirm(@CurrentUser() user: AuthUser, @Param("id") id: string) {
+    return this.charge.confirm(user.tenantId, user.clientId!, id);
   }
 
   @Get("notifications")

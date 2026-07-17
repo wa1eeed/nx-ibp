@@ -1,25 +1,36 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Receipt, CalendarClock } from "lucide-react";
+import { Receipt, CalendarClock, CreditCard } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { cpapi } from "@/lib/api";
+import { cpapi, ApiError } from "@/lib/api";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatCard } from "@/components/ui/StatCard";
 import { Badge } from "@/components/ui/Badge";
 
-interface DebitNote { id: string; sequenceNo: string | null; policyId: string | null; netAmount: string | null; vatAmount: string | null; createdAt: string }
+interface DebitNote { id: string; sequenceNo: string | null; policyId: string | null; netAmount: string | null; vatAmount: string | null; outstanding: number; createdAt: string }
 interface Invoice { id: string; sequenceNo: string | null; insurerName: string | null; netAmount: string | null; vatAmount: string | null; totalAmount: string | null; status: string | null; createdAt: string }
 interface InstallmentRow { id: string; seq: number; dueDate: string; amount: number; settled: number; outstanding: number; status: string }
-interface Statement { debitNotes: DebitNote[]; invoices: Invoice[]; outstanding: number; installments: InstallmentRow[] }
+interface Statement { debitNotes: DebitNote[]; invoices: Invoice[]; outstanding: number; installments: InstallmentRow[]; paymentEnabled: boolean }
 
 const instTone: Record<string, "success" | "info" | "danger" | "warning" | "neutral"> = { paid: "success", partial: "info", overdue: "danger", due: "warning" };
 
 export default function PortalStatement() {
   const t = useTranslations();
   const [s, setS] = useState<Statement | null>(null);
+  const [paying, setPaying] = useState("");
+  const [payErr, setPayErr] = useState("");
   useEffect(() => { void cpapi<Statement>("/portal/statement").then(setS).catch(() => undefined); }, []);
+
+  async function pay(noteId: string, amount: number) {
+    setPayErr(""); setPaying(noteId);
+    try {
+      const res = await cpapi<{ redirectUrl: string | null }>("/portal/pay", { method: "POST", body: JSON.stringify({ debitNoteId: noteId, amount }) });
+      if (res.redirectUrl) window.location.href = res.redirectUrl;
+      else { setPayErr(t("portal.pay.noRedirect")); setPaying(""); }
+    } catch (e) { setPayErr(e instanceof ApiError ? e.message : t("portal.pay.error")); setPaying(""); }
+  }
 
   const fmt = (n: string | number | null) => (n == null ? "—" : Number(n).toLocaleString("en-US"));
   const date = (d: string) => new Date(d).toLocaleDateString("en-GB");
@@ -73,6 +84,8 @@ export default function PortalStatement() {
             <th className="px-5 py-3 text-start font-semibold">{t("portal.statement.col.net")}</th>
             <th className="px-5 py-3 text-start font-semibold">{t("portal.statement.col.vat")}</th>
             <th className="px-5 py-3 text-start font-semibold">{t("portal.statement.col.total")}</th>
+            <th className="px-5 py-3 text-end font-semibold">{t("portal.statement.col.outstanding")}</th>
+            {s?.paymentEnabled ? <th className="px-5 py-3"></th> : null}
           </tr></thead>
           <tbody className="divide-y divide-line">
             {s?.debitNotes.map((d) => (
@@ -82,12 +95,15 @@ export default function PortalStatement() {
                 <td className="px-5 py-3 text-[13px] tnum text-muted">{fmt(d.netAmount)}</td>
                 <td className="px-5 py-3 text-[13px] tnum text-muted">{fmt(d.vatAmount)}</td>
                 <td className="px-5 py-3 text-[13px] tnum font-semibold text-ink">{fmt(total(d.netAmount, d.vatAmount))}</td>
+                <td className={`px-5 py-3 text-end text-[13px] tnum ${d.outstanding > 0 ? "font-semibold text-warning" : "text-subtle"}`}>{d.outstanding > 0 ? fmt(d.outstanding) : "—"}</td>
+                {s?.paymentEnabled ? <td className="px-5 py-3 text-end">{d.outstanding > 0 ? <button onClick={() => pay(d.id, d.outstanding)} disabled={paying === d.id} className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-[12px] font-semibold text-white hover:opacity-90 disabled:opacity-60"><CreditCard size={13} /> {paying === d.id ? "…" : t("portal.pay.button")}</button> : null}</td> : null}
               </tr>
             ))}
-            {s && s.debitNotes.length === 0 ? <tr><td colSpan={5} className="px-5 py-8 text-center text-[13px] text-subtle">{t("portal.empty")}</td></tr> : null}
+            {s && s.debitNotes.length === 0 ? <tr><td colSpan={7} className="px-5 py-8 text-center text-[13px] text-subtle">{t("portal.empty")}</td></tr> : null}
           </tbody>
         </table>
       </div>
+      {payErr ? <p className="-mt-4 mb-6 rounded-lg bg-danger-soft/50 px-3 py-2 text-[12px] font-medium text-danger">{payErr}</p> : null}
 
       <h2 className="mb-2 text-[14px] font-bold text-ink">{t("portal.statement.invoices")}</h2>
       <div className="overflow-x-auto rounded-card border border-line bg-card shadow-card">

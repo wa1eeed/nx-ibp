@@ -712,6 +712,26 @@ erDiagram
 | `currency` | String | عملة العمليات (افتراضي `SAR`) |
 | `createdAt` / `updatedAt` | DateTime | |
 
+### `PortalPayment` (دفع العميل الإلكتروني — §2.2-ب)
+**الغرض:** يربط شحنة بوّابة الدفع بإشعار مدين؛ عند نجاح الدفع يُنشأ **سند قبض (RCV)** تلقائيًا (شلال الأقساط) وتُعلَّم العملية مدفوعة.
+
+| الحقل | النوع | ملاحظة |
+|---|---|---|
+| `id` | String | المفتاح |
+| `tenantId` | String (FK→Tenant) | المستأجر |
+| `clientId` | String | العميل الدافع |
+| `debitNoteId` | String | الإشعار المدين المدفوع |
+| `amount` | Decimal(14,2) | مبلغ الدفعة |
+| `currency` | String | العملة (افتراضي `SAR`) |
+| `gateway` | String | `tap` \| `moyasar` \| `sandbox` |
+| `gatewayChargeId` | String? | معرّف الشحنة لدى البوّابة (للمطابقة عبر الـwebhook) |
+| `redirectUrl` | String? | رابط صفحة الدفع المستضافة |
+| `status` | String | `PENDING` \| `PAID` \| `FAILED` |
+| `receiptVoucherId` | String? | سند القبض المُنشأ عند النجاح |
+| `createdAt` / `updatedAt` | DateTime | |
+
+**الفهارس:** `@@index([tenantId])` · `@@index([gatewayChargeId])` · `@@index([clientId])`. **الحتمية:** التسوية تتخطّى ما هو `PAID` فلا يتكرّر السند.
+
 > دالة `sendTenantEmail` تختار المسار: `tenant` المُتحقَّق ⇒ مفتاح المستأجر؛ وإلا **fallback مركزي** بلا انقطاع. مجدول دوري يرقّي `pending`⇒`verified` آليًا.
 
 ### الهوية البصرية (White-label · P0-B)

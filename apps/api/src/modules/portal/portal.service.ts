@@ -369,7 +369,16 @@ export class PortalService {
       const status = out <= 0.01 ? "paid" : settled > 0 ? "partial" : new Date(r.dueDate).getTime() < now ? "overdue" : "due";
       return { id: r.id, seq: r.seq, dueDate: r.dueDate, amount, settled: Math.round(settled * 100) / 100, outstanding: out, status };
     });
-    return { debitNotes, creditNotes, invoices, outstanding, collected: Math.round(collected * 100) / 100, installments };
+    // هل فعّلت شركة الوساطة الدفع الإلكتروني؟ (لعرض زرّ الدفع في البوّابة)
+    const pay = await this.prisma.tenantPaymentSettings.findFirst({ select: { enabled: true } });
+    const paymentEnabled = pay?.enabled ?? false;
+    // إثراء الإشعارات المدينة بالمتبقّي لكل إشعار (أساس زرّ الدفع)
+    const notes = debitNotes.map((d) => {
+      const gross = Math.round((num(d.netAmount) + num(d.vatAmount)) * 100) / 100;
+      const settled = Math.round(num(d.settledAmount) * 100) / 100;
+      return { ...d, outstanding: Math.round((gross - settled) * 100) / 100 };
+    });
+    return { debitNotes: notes, creditNotes, invoices, outstanding, collected: Math.round(collected * 100) / 100, installments, paymentEnabled };
   }
 
   /** كل معرّفات الكيانات التي تخصّ العميل (هو + طلباته + مطالباته + وثائقه). أساس فحص ملكية المستندات. */

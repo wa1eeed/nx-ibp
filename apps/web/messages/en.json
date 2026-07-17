@@ -2348,6 +2348,7 @@
         "net": "Net",
         "vat": "VAT",
         "total": "Total",
+        "outstanding": "Outstanding",
         "insurer": "Insurer",
         "status": "Status"
       },
@@ -2364,6 +2365,22 @@
           "due": "Upcoming"
         }
       }
+    },
+    "pay": {
+      "button": "Pay",
+      "error": "Could not start payment",
+      "noRedirect": "Could not create the payment",
+      "confirming": "Confirming payment…",
+      "confirmingSub": "We’re checking your transaction status with the payment gateway.",
+      "result": { "paid": "Payment successful ✓", "pending": "Payment processing", "failed": "Payment incomplete" },
+      "resultSub": {
+        "paid": "We received your payment and a receipt was recorded automatically in your account.",
+        "pending": "The transaction is not confirmed yet — it may take a moment. Check your statement.",
+        "failed": "The payment did not complete. You can try again from your statement."
+      },
+      "backToStatement": "Back to statement",
+      "backToHome": "Home",
+      "secured": "Secure payment via a certified gateway"
     },
     "documents": {
       "title": "My documents",

@@ -7,6 +7,7 @@
 import { Test } from "@nestjs/testing";
 import { INestApplication, ValidationPipe } from "@nestjs/common";
 import request from "supertest";
+import { createHmac } from "node:crypto";
 import { AppModule } from "../src/app.module";
 
 describe("بوّابة العميل (e2e)", () => {
@@ -280,5 +281,49 @@ describe("بوّابة العميل (e2e)", () => {
 
     // دعوة على عميل غير موجود ⇒ 404
     await request(srv).post("/clients/nope-client/portal-invite").set(auth(employee)).send({ email: "x@y.sa", fullName: "لا أحد" }).expect(404);
+  });
+
+  it("§2.2-ب الدفع الإلكتروني: دفع إشعار ⇒ تأكيد ⇒ سند قبض تلقائي (المتبقّي ينقص) · تجاوز 400 · webhook موقّع · idempotent", async () => {
+    const srv = app.getHttpServer();
+    // تفعيل بوّابة الدفع للمستأجر (البيئة test ⇒ SandboxGateway حتمي)
+    await request(srv).put("/config/payment").set(auth(employee)).send({ provider: "tap", publicKey: "pk_t", secretKey: "sk_t", enabled: true }).expect(200);
+
+    // إشعار مدين قائم لعميل الفهد (من ذمم الموظف)
+    const notes = (await request(srv).get("/finance/receivables").set(auth(employee))).body.notes as Array<{ id: string; clientId: string; outstanding: number }>;
+    const note = notes.find((n) => n.clientId === "cl-fahd" && n.outstanding > 300);
+    expect(note).toBeTruthy();
+    const before = note!.outstanding;
+
+    // تجاوز المتبقّي ⇒ 400 · إشعار عميل آخر ⇒ 404
+    await request(srv).post("/portal/pay").set(auth(fahd)).send({ debitNoteId: note!.id, amount: before + 1000 }).expect(400);
+    await request(srv).post("/portal/pay").set(auth(nukhba)).send({ debitNoteId: note!.id, amount: 10 }).expect(404);
+
+    // دفع جزئي ⇒ شحنة + رابط دفع
+    const pay = (await request(srv).post("/portal/pay").set(auth(fahd)).send({ debitNoteId: note!.id, amount: 100 }).expect(201)).body;
+    expect(pay.paymentId).toBeTruthy();
+    expect(pay.redirectUrl).toContain("sandbox=1"); // بوّابة الاختبار
+    expect(pay.status).toBe("PENDING");
+
+    // تأكيد العودة ⇒ PAID + سند قبض تلقائي ⇒ المتبقّي ينقص 100
+    const conf = (await request(srv).post(`/portal/pay/${pay.paymentId}/confirm`).set(auth(fahd)).expect(200)).body;
+    expect(conf.status).toBe("PAID");
+    const after = (await request(srv).get("/finance/receivables").set(auth(employee))).body.notes.find((n: { id: string }) => n.id === note!.id).outstanding;
+    expect(after).toBeCloseTo(before - 100, 2);
+    // idempotent: تأكيد ثانٍ لا يُنشئ سندًا آخر
+    await request(srv).post(`/portal/pay/${pay.paymentId}/confirm`).set(auth(fahd)).expect(200);
+    const after2 = (await request(srv).get("/finance/receivables").set(auth(employee))).body.notes.find((n: { id: string }) => n.id === note!.id).outstanding;
+    expect(after2).toBeCloseTo(after, 2); // لم يتغيّر
+
+    // مسار الـwebhook: شحنة جديدة (بلا تأكيد) ثم webhook موقّع صحيح ⇒ يُسجّل السند
+    const pay2 = (await request(srv).post("/portal/pay").set(auth(fahd)).send({ debitNoteId: note!.id, amount: 50 }).expect(201)).body;
+    const p2 = (await request(srv).get("/finance/receivables").set(auth(employee))).body.notes.find((n: { id: string }) => n.id === note!.id).outstanding;
+    const chargeId = `sbx_${pay2.paymentId}`; // معرّف SandboxGateway الحتميّ
+    const sig = createHmac("sha256", process.env.BILLING_WEBHOOK_SECRET ?? "sandbox_secret").update(`${chargeId}|CAPTURED`).digest("hex");
+    // توقيع فاسد ⇒ 409
+    await request(srv).post("/payments/webhook").set({ hashstring: "bad" }).send({ id: chargeId, status: "CAPTURED" }).expect(409);
+    // توقيع صحيح ⇒ 200 + سند ⇒ المتبقّي ينقص 50
+    await request(srv).post("/payments/webhook").set({ hashstring: sig }).send({ id: chargeId, status: "CAPTURED" }).expect(200);
+    const p3 = (await request(srv).get("/finance/receivables").set(auth(employee))).body.notes.find((n: { id: string }) => n.id === note!.id).outstanding;
+    expect(p3).toBeCloseTo(p2 - 50, 2);
   });
 });

@@ -16,9 +16,10 @@ export class TapGateway implements PaymentGateway {
   private readonly secret: string;
   private readonly base: string;
 
-  constructor() {
-    const key = process.env.TAP_SECRET_KEY;
-    if (!key) throw new Error("TAP_SECRET_KEY مطلوب عند BILLING_GATEWAY=tap");
+  /** `secretKey` اختياري: يُمرَّر مفتاح المستأجر لدفع العميل (BYO)؛ وإلا يُقرأ من البيئة (اشتراكات المنصّة). */
+  constructor(secretKey?: string) {
+    const key = secretKey ?? process.env.TAP_SECRET_KEY;
+    if (!key) throw new Error("مفتاح Tap السرّي مطلوب");
     this.secret = key;
     this.base = process.env.TAP_API_URL ?? "https://api.tap.company/v2";
   }

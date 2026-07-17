@@ -1,5 +1,11 @@
-import { IsBoolean, IsIn, IsOptional, IsString, MaxLength } from "class-validator";
+import { IsBoolean, IsIn, IsNumber, IsOptional, IsPositive, IsString, MaxLength } from "class-validator";
 import { PAYMENT_PROVIDERS } from "../payment-settings.service";
+
+/** بدء دفع إشعار مدين من بوّابة العميل. */
+export class CreatePortalChargeDto {
+  @IsString() debitNoteId!: string;
+  @IsNumber() @IsPositive() amount!: number;
+}
 
 /** حفظ إعدادات بوّابة الدفع للمستأجر. المفتاح السرّي اختياري (الفارغ يُبقي المخزَّن). */
 export class SavePaymentSettingsDto {
