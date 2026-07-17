@@ -6,7 +6,7 @@ import { ConfigService } from "../config/config.service";
 import { PaymentChargeService } from "../payments/payment-charge.service";
 import { Public } from "../auth/public.decorator";
 import { CurrentUser, type AuthUser } from "../auth/current-user.decorator";
-import { PortalLoginDto, SubmitClaimDto, SubmitServiceDto, PortalServiceReplyDto, UpdateContactDto, ActivatePortalDto } from "./dto/portal.dto";
+import { PortalLoginDto, SubmitClaimDto, SubmitServiceDto, PortalServiceReplyDto, UpdateContactDto, ActivatePortalDto, AcceptProposalDto, DeclineProposalDto } from "./dto/portal.dto";
 import { CreatePortalChargeDto } from "../payments/dto/payment-settings.dto";
 import { Put } from "@nestjs/common";
 
@@ -121,6 +121,29 @@ export class PortalController {
   @Get("statement")
   statement(@CurrentUser() user: AuthUser) {
     return this.portal.statement(user.clientId!);
+  }
+
+  // ——— عروض التأمين المقدَّمة للعميل + قراره (§4.1) ———
+  @Get("proposals")
+  proposals(@CurrentUser() user: AuthUser) {
+    return this.portal.proposals(user.clientId!);
+  }
+
+  @Get("proposals/:id")
+  proposalDetail(@CurrentUser() user: AuthUser, @Param("id") id: string) {
+    return this.portal.proposalDetail(user.clientId!, id);
+  }
+
+  @HttpCode(200)
+  @Post("proposals/:id/accept")
+  acceptProposal(@CurrentUser() user: AuthUser, @Param("id") id: string, @Body() dto: AcceptProposalDto) {
+    return this.portal.acceptProposal(user.tenantId, user.clientId!, id, dto.quotationId);
+  }
+
+  @HttpCode(200)
+  @Post("proposals/:id/decline")
+  declineProposal(@CurrentUser() user: AuthUser, @Param("id") id: string, @Body() dto: DeclineProposalDto) {
+    return this.portal.declineProposal(user.tenantId, user.clientId!, id, dto.note);
   }
 
   // ——— الدفع الإلكتروني للأقساط/الذمم عبر بوّابة المستأجر (§2.2-ب) ———

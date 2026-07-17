@@ -2090,6 +2090,14 @@
     "firmOrder": "Firm order",
     "selected": "Selected",
     "sentTo": "Sent to",
+    "present": {
+      "action": "Present to client",
+      "again": "Re-present to client",
+      "title": "Present proposals to client",
+      "desc": "The current quotations ({count}) will be shown to the client in their portal to accept or decline. Your commission details are hidden from them.",
+      "presented": "Presented to the client ({count} options)",
+      "decision": { "pending": "Awaiting client decision", "accepted": "Client accepted", "declined": "Client declined" }
+    },
     "noQuotations": "No quotations yet — add insurer offers",
     "hint": {
       "insurer": "Name of the insurer submitting this quotation",
@@ -2355,10 +2363,32 @@
       "dashboard": "Home",
       "policies": "My policies",
       "requests": "My requests",
+      "proposals": "Proposals",
       "claims": "My claims",
       "statement": "Statement",
       "documents": "My documents",
       "account": "My account"
+    },
+    "proposals": {
+      "title": "Insurance proposals",
+      "subtitle": "Review the proposals your broker prepared and accept the one that suits you — your policy is issued as soon as you accept",
+      "no": "No.",
+      "line": "Line",
+      "options": "Options",
+      "presented": "Presented",
+      "status": "Status",
+      "review": "Review",
+      "empty": "No proposals presented to you yet.",
+      "back": "Back to proposals",
+      "decision": { "pending": "Awaiting your decision", "accepted": "Accepted", "declined": "Declined" },
+      "pickHint": "Choose the option that suits you best",
+      "accepted": "Your choice",
+      "acceptThis": "Accept this proposal",
+      "declineAll": "Decline all proposals",
+      "acceptedNote": "You accepted this proposal — your broker is now issuing your policy, and the payment notice will appear in your statement.",
+      "declinedNote": "You declined these proposals — your broker will reach out with alternatives.",
+      "error": "Could not complete the action",
+      "q": { "premium": "Net premium", "fees": "Policy fees", "vat": "VAT", "total": "Total", "deductible": "Deductible", "limit": "Cover limit", "validUntil": "Valid until" }
     },
     "login": {
       "title": "Client portal sign-in",

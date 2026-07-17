@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { useParams } from "next/navigation";
-import { Plus, Award, Trophy, Info } from "lucide-react";
+import { Plus, Award, Trophy, Info, Send, CheckCircle2, XCircle, Clock } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/routing";
 import { api, getToken, ApiError } from "@/lib/api";
@@ -10,7 +10,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Badge, type BadgeTone } from "@/components/ui/Badge";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 
-interface Slip { id: string; sequenceNo: string | null; status: string; insurers: string[]; selectedQuotationId: string | null; vatRate: number; request: { id: string; productLineCode: string; client: { name: string; type?: string } | null } | null }
+interface Slip { id: string; sequenceNo: string | null; status: string; insurers: string[]; selectedQuotationId: string | null; presentedAt: string | null; presentedQuotationIds: string[]; clientDecision: string | null; clientDecidedAt: string | null; acceptedQuotationId: string | null; clientDecisionNote: string | null; vatRate: number; request: { id: string; productLineCode: string; client: { id?: string; name: string; type?: string } | null } | null }
 interface Column { key: string; labelAr: string; labelEn: string }
 interface Row { id: string; insurer: string; status: string; generalRemarks: string | null; [k: string]: string | number | null }
 interface Comparison { columns: Column[]; rows: Row[]; bestByPrice: string | null }
@@ -61,7 +61,27 @@ export default function SlipWorkbenchPage() {
     }
   }
 
+  async function present() {
+    if (!cmp || !cmp.rows.length) return;
+    const ok = await confirm({
+      title: t("underwriting.present.title"),
+      description: t("underwriting.present.desc", { count: cmp.rows.length }),
+      confirmLabel: t("underwriting.present.action"),
+    });
+    if (!ok) return;
+    setError("");
+    try {
+      await api(`/slips/${id}/present`, { method: "POST", body: JSON.stringify({ quotationIds: cmp.rows.map((r) => r.id) }) });
+      await load();
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "خطأ");
+    }
+  }
+
   const fmt = (n: number | null) => (n == null ? "—" : n.toLocaleString("en-US"));
+  const decisionTone: Record<string, BadgeTone> = { pending: "warning", accepted: "success", declined: "danger" };
+  const hasClient = !!slip?.request?.client;
+  const canPresent = slip && slip.status !== "SELECTED" && slip.status !== "CLOSED" && hasClient && (cmp?.rows.length ?? 0) > 0;
 
   return (
     <div>
@@ -70,9 +90,16 @@ export default function SlipWorkbenchPage() {
         subtitle={slip?.request?.client ? `${slip.request.client.name} — ${slip.request.productLineCode}` : ""}
         actions={
           slip && slip.status !== "SELECTED" ? (
-            <button onClick={() => setShowForm((v) => !v)} className="inline-flex items-center gap-1.5 rounded-lg bg-primary-strong px-3.5 py-2 text-[13px] font-semibold text-primary-fg shadow-sm hover:bg-primary">
-              <Plus size={16} /> {t("underwriting.addQuotation")}
-            </button>
+            <div className="flex items-center gap-2">
+              {canPresent ? (
+                <button onClick={present} className="inline-flex items-center gap-1.5 rounded-lg border border-primary/40 bg-primary-soft/40 px-3.5 py-2 text-[13px] font-semibold text-primary hover:bg-primary-soft">
+                  <Send size={15} /> {slip.presentedAt ? t("underwriting.present.again") : t("underwriting.present.action")}
+                </button>
+              ) : null}
+              <button onClick={() => setShowForm((v) => !v)} className="inline-flex items-center gap-1.5 rounded-lg bg-primary-strong px-3.5 py-2 text-[13px] font-semibold text-primary-fg shadow-sm hover:bg-primary">
+                <Plus size={16} /> {t("underwriting.addQuotation")}
+              </button>
+            </div>
           ) : null
         }
       />
@@ -81,6 +108,16 @@ export default function SlipWorkbenchPage() {
         <div className="mb-3 flex items-center gap-2 text-[12.5px] text-muted">
           <Badge tone={STATUS_TONE[slip.status] ?? "neutral"}>{slip.status}</Badge>
           {slip.insurers.length ? <span>{t("underwriting.sentTo")}: {slip.insurers.join("، ")}</span> : null}
+        </div>
+      ) : null}
+
+      {/* حالة عرض العروض على العميل (§4.1) */}
+      {slip?.presentedAt ? (
+        <div className={`mb-3 flex flex-wrap items-center gap-2 rounded-lg border px-3.5 py-2.5 text-[12.5px] ${slip.clientDecision === "accepted" ? "border-success/30 bg-success-soft/40" : slip.clientDecision === "declined" ? "border-danger/30 bg-danger-soft/40" : "border-warning/30 bg-warning-soft/40"}`}>
+          {slip.clientDecision === "accepted" ? <CheckCircle2 size={15} className="text-success" /> : slip.clientDecision === "declined" ? <XCircle size={15} className="text-danger" /> : <Clock size={15} className="text-warning" />}
+          <span className="font-semibold text-ink">{t("underwriting.present.presented", { count: slip.presentedQuotationIds.length })}</span>
+          <Badge tone={decisionTone[slip.clientDecision ?? "pending"] ?? "neutral"}>{t(`underwriting.present.decision.${slip.clientDecision ?? "pending"}`)}</Badge>
+          {slip.clientDecisionNote ? <span className="text-muted">— {slip.clientDecisionNote}</span> : null}
         </div>
       ) : null}
 

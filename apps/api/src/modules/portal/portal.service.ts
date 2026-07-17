@@ -338,6 +338,77 @@ export class PortalService {
     });
   }
 
+  // ── عروض التأمين المقدَّمة للعميل (§4.1) ────────────────────────────────────
+  /** حقول العرض الظاهرة للعميل — **بلا أي بيانات عمولة الوسيط** (خصوصية داخلية). */
+  private readonly quotationClientSelect = {
+    id: true, insurerName: true, rate: true, sumInsured: true, premium: true, policyFees: true, vat: true,
+    totalPremium: true, deductible: true, limit: true, validUntil: true, coverFields: true,
+    generalRemarks: true, additionalConditions: true, status: true,
+  } as const;
+
+  /** يتحقّق أن طلب الأسعار مُقدَّم لهذا العميل (عبر طلبه)، ويعيده مع طلبه. */
+  private async ownedProposal(clientId: string, slipId: string) {
+    const slip = await this.prisma.slip.findFirst({ where: { id: slipId, presentedAt: { not: null }, request: { clientId } } });
+    if (!slip) throw new NotFoundException("العرض غير موجود");
+    return slip;
+  }
+
+  /** قائمة العروض المقدَّمة للعميل (بحالة قراره) + عدد الخيارات. */
+  async proposals(clientId: string) {
+    const slips = await this.prisma.slip.findMany({
+      where: { presentedAt: { not: null }, request: { clientId } },
+      orderBy: { presentedAt: "desc" },
+      select: { id: true, sequenceNo: true, presentedAt: true, presentedQuotationIds: true, clientDecision: true, clientDecidedAt: true, request: { select: { productLineCode: true } } },
+    });
+    return slips.map((s) => ({
+      id: s.id, sequenceNo: s.sequenceNo, productLineCode: s.request.productLineCode,
+      presentedAt: s.presentedAt, decision: s.clientDecision ?? "pending", decidedAt: s.clientDecidedAt,
+      options: s.presentedQuotationIds.length,
+    }));
+  }
+
+  /** تفاصيل عرض: الخيارات المعروضة (بلا عمولة) + قرار العميل + المقبول. */
+  async proposalDetail(clientId: string, slipId: string) {
+    const slip = await this.ownedProposal(clientId, slipId);
+    const quotations = await this.prisma.quotation.findMany({
+      where: { id: { in: slip.presentedQuotationIds } },
+      orderBy: { totalPremium: "asc" },
+      select: this.quotationClientSelect,
+    });
+    return {
+      id: slip.id, sequenceNo: slip.sequenceNo, presentedAt: slip.presentedAt,
+      decision: slip.clientDecision ?? "pending", decidedAt: slip.clientDecidedAt,
+      acceptedQuotationId: slip.acceptedQuotationId, decisionNote: slip.clientDecisionNote,
+      quotations,
+    };
+  }
+
+  /** قبول العميل لعرض ⇒ أمر إسناد (الطلب AWARDED) + توثيق القبول + إشعار الوسيط. */
+  async acceptProposal(tenantId: string, clientId: string, slipId: string, quotationId: string) {
+    const slip = await this.ownedProposal(clientId, slipId);
+    if (slip.clientDecision && slip.clientDecision !== "pending") throw new ConflictException("سبق اتخاذ قرار على هذا العرض");
+    if (!slip.presentedQuotationIds.includes(quotationId)) throw new BadRequestException("العرض غير مُقدَّم ضمن هذا الطلب");
+    await this.prisma.$transaction(async (tx) => {
+      await tx.quotation.updateMany({ where: { slipId }, data: { status: "REJECTED" } });
+      await tx.quotation.update({ where: { id: quotationId }, data: { status: "SELECTED" } });
+      await tx.slip.update({ where: { id: slipId }, data: { status: "SELECTED", selectedQuotationId: quotationId, clientDecision: "accepted", acceptedQuotationId: quotationId, clientDecidedAt: new Date() } });
+      await tx.policyRequest.update({ where: { id: slip.requestId }, data: { status: "AWARDED" } });
+    });
+    await this.audit.log({ tenantId, userId: clientId, action: "accept", entity: "proposal", entityId: slipId, meta: { quotationId, scope: "client" } });
+    void this.notifications.notifyStaff(tenantId, "staff_proposal_accepted", { ref: String(slip.sequenceNo ?? slipId) }).catch(() => undefined);
+    return { id: slipId, decision: "accepted", acceptedQuotationId: quotationId, requestStatus: "AWARDED" };
+  }
+
+  /** رفض العميل للعرض (بملاحظة) + إشعار الوسيط للمتابعة. */
+  async declineProposal(tenantId: string, clientId: string, slipId: string, note?: string) {
+    const slip = await this.ownedProposal(clientId, slipId);
+    if (slip.clientDecision && slip.clientDecision !== "pending") throw new ConflictException("سبق اتخاذ قرار على هذا العرض");
+    await this.prisma.slip.update({ where: { id: slipId }, data: { clientDecision: "declined", clientDecidedAt: new Date(), clientDecisionNote: note?.trim() || null } });
+    await this.audit.log({ tenantId, userId: clientId, action: "decline", entity: "proposal", entityId: slipId, meta: { scope: "client" } });
+    void this.notifications.notifyStaff(tenantId, "staff_proposal_declined", { ref: String(slip.sequenceNo ?? slipId) }).catch(() => undefined);
+    return { id: slipId, decision: "declined" };
+  }
+
   /** كشف الحساب: إشعارات المدين (مستحقّ) + الإشعارات الدائنة + الفواتير + الرصيد المستحقّ بعد التحصيل. */
   async statement(clientId: string) {
     const [debitNotes, creditNotes] = await Promise.all([

@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ConflictException, Injectable, NotFoundException, UnprocessableEntityException } from "@nestjs/common";
 import { Prisma } from "@ibp/db";
 import { PrismaService } from "../../prisma/prisma.service";
 import { SequenceService } from "../../common/sequence/sequence.service";
@@ -49,6 +49,12 @@ export class SlipsService {
         insurers: true,
         notes: true,
         selectedQuotationId: true,
+        presentedAt: true,
+        presentedQuotationIds: true,
+        clientDecision: true,
+        clientDecidedAt: true,
+        acceptedQuotationId: true,
+        clientDecisionNote: true,
         tenantId: true,
         request: { select: { id: true, productLineCode: true, client: { select: { id: true, name: true } } } },
         quotations: { orderBy: { createdAt: "asc" } },
@@ -213,5 +219,29 @@ export class SlipsService {
 
     await this.audit.log({ tenantId, userId, action: "approve", entity: "firm_order", entityId: slipId, meta: { quotationId, requestId: slip.requestId } });
     return { slipId, selectedQuotationId: quotationId, requestStatus: "AWARDED" };
+  }
+
+  /**
+   * عرض العروض المنتقاة على العميل عبر البوّابة (§4.1) — يختار الوسيط ما يُظهره (عادةً المُوصى به + بدائل)
+   * ويبدأ قرار العميل (`pending`). العميل يقبل عرضًا (⇒ أمر إسناد) أو يرفض عبر بوّابته.
+   */
+  async present(tenantId: string, userId: string, slipId: string, quotationIds: string[]) {
+    const slip = await this.prisma.slip.findFirst({
+      where: { id: slipId },
+      include: { quotations: { select: { id: true } }, request: { select: { clientId: true, client: { select: { email: true, phone: true } } } } },
+    });
+    if (!slip) throw new NotFoundException("طلب الأسعار غير موجود");
+    if (slip.status === "SELECTED" || slip.status === "CLOSED") throw new ConflictException("لا يمكن عرض طلب أسعار مُسنَد/مغلق");
+    if (!slip.request.clientId) throw new UnprocessableEntityException("لا عميل مرتبط بهذا الطلب — لا يمكن العرض عبر البوّابة");
+    const ids = [...new Set(quotationIds)].filter((id) => slip.quotations.some((q) => q.id === id));
+    if (ids.length === 0) throw new BadRequestException("اختر عرضًا واحدًا على الأقل للعرض على العميل");
+    await this.prisma.slip.update({
+      where: { id: slipId },
+      data: { presentedAt: new Date(), presentedQuotationIds: ids, clientDecision: "pending", clientDecidedAt: null, acceptedQuotationId: null, clientDecisionNote: null },
+    });
+    await this.audit.log({ tenantId, userId, action: "present", entity: "proposal", entityId: slipId, meta: { quotationIds: ids } });
+    const c = slip.request.client;
+    void this.notifications.notify(tenantId, "proposal_ready", { email: c?.email ?? undefined, phone: c?.phone ?? undefined, clientId: slip.request.clientId }, { ref: String(slip.sequenceNo ?? slipId) }).catch(() => undefined);
+    return { slipId, presentedQuotationIds: ids, clientDecision: "pending" };
   }
 }

@@ -391,6 +391,12 @@ erDiagram
 | `insurers` | String[] | شركات التأمين المستهدفة |
 | `notes` | String? | ملاحظات |
 | `selectedQuotationId` | String? | العرض المختار (Firm Order) |
+| `presentedAt` | DateTime? | متى عُرضت العروض على العميل (§4.1) |
+| `presentedQuotationIds` | String[] | العروض المنتقاة للعرض على العميل |
+| `clientDecision` | String? | pending \| accepted \| declined |
+| `clientDecidedAt` | DateTime? | وقت قرار العميل |
+| `acceptedQuotationId` | String? | العرض الذي قبله العميل (= أمر الإسناد) |
+| `clientDecisionNote` | String? | ملاحظة العميل (سبب الرفض مثلاً) |
 | `createdAt` | DateTime | |
 
 **العلاقات:** `quotations` (1:N، onDelete Cascade على Quotation). **الفهارس:** `@@index([tenantId])` · `@@index([requestId])`.
@@ -893,7 +899,7 @@ erDiagram
 > أُضيفت في مسار ما بعد الاكتمال. كلها معزولة بالمستأجر (FK `tenantId` + Prisma `$use`).
 
 ### الإشعارات
-- **`NotificationSetting`** — إعداد نوع إشعار بمستويين: `tenantId = NULL` ⇒ **افتراضي المنصة** (يديره سوبر أدمن المنصة، يرثه الجميع)؛ قيمة ⇒ **تخصيص شركة**. حقول: `eventKey` · `channelEmail`/`channelSms` · `subject`/`body`. (30 نوعًا (ثنائية اللغة) في `notifications.constants.ts`: 11 عميلًا + 19 موظفًا.)
+- **`NotificationSetting`** — إعداد نوع إشعار بمستويين: `tenantId = NULL` ⇒ **افتراضي المنصة** (يديره سوبر أدمن المنصة، يرثه الجميع)؛ قيمة ⇒ **تخصيص شركة**. حقول: `eventKey` · `channelEmail`/`channelSms` · `subject`/`body`. (33 نوعًا (ثنائية اللغة) في `notifications.constants.ts`: 12 عميلًا + 21 موظفًا.)
 - **`Notification`** — إشعار داخل المنصة (in-app) لمستقبِل واحد: `userId` (موظف) أو `clientId` (عميل بوّابة) · `eventKey` · `audience` (client/staff) · `title`/`body` · `readAt` (NULL = غير مقروء). فهارس `[tenantId, userId, readAt]` و`[tenantId, clientId, readAt]`.
 
 ### CRM (إدارة العلاقات)

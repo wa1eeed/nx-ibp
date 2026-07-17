@@ -695,18 +695,25 @@ model RequestBlockRow {
 // ============================================================
 
 model Slip {
-  id                  String        @id @default(cuid())
-  tenantId            String
-  tenant              Tenant        @relation(fields: [tenantId], references: [id])
-  requestId           String
-  request             PolicyRequest @relation(fields: [requestId], references: [id])
-  sequenceNo          String? // RFQ-MED-2026-1001
-  status              SlipStatus    @default(DRAFT)
-  insurers            String[] // شركات التأمين المستهدفة
-  notes               String?
-  selectedQuotationId String? // العرض المختار (Firm Order)
-  createdAt           DateTime      @default(now())
-  quotations          Quotation[]
+  id                    String        @id @default(cuid())
+  tenantId              String
+  tenant                Tenant        @relation(fields: [tenantId], references: [id])
+  requestId             String
+  request               PolicyRequest @relation(fields: [requestId], references: [id])
+  sequenceNo            String? // RFQ-MED-2026-1001
+  status                SlipStatus    @default(DRAFT)
+  insurers              String[] // شركات التأمين المستهدفة
+  notes                 String?
+  selectedQuotationId   String? // العرض المختار (Firm Order)
+  // عرض العروض على العميل عبر البوّابة + قراره (§4.1)
+  presentedAt           DateTime? // متى عُرضت العروض على العميل
+  presentedQuotationIds String[] // العروض المنتقاة للعرض على العميل (يختار الوسيط ما يُظهره)
+  clientDecision        String? // pending | accepted | declined
+  clientDecidedAt       DateTime?
+  acceptedQuotationId   String? // العرض الذي قبله العميل (= أمر الإسناد)
+  clientDecisionNote    String? // ملاحظة العميل (سبب الرفض مثلاً)
+  createdAt             DateTime      @default(now())
+  quotations            Quotation[]
 
   @@index([tenantId])
   @@index([requestId])

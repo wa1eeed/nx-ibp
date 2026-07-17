@@ -3,6 +3,7 @@ import { SlipsService } from "./slips.service";
 import { CreateSlipDto } from "./dto/create-slip.dto";
 import { CreateQuotationDto } from "./dto/create-quotation.dto";
 import { SelectQuotationDto } from "./dto/select-quotation.dto";
+import { PresentProposalDto } from "./dto/present-proposal.dto";
 import { Authorize } from "../rbac/authorize.decorator";
 import { CurrentUser } from "../auth/current-user.decorator";
 
@@ -63,5 +64,18 @@ export class SlipsController {
     @Body() dto: SelectQuotationDto,
   ) {
     return this.slips.selectQuotation(tenantId, userId, id, dto.quotationId);
+  }
+
+  // عرض العروض المنتقاة على العميل عبر البوّابة (§4.1)
+  @Authorize({ module: "underwriting", action: "update", entitlement: "module.production" })
+  @HttpCode(200)
+  @Post(":id/present")
+  present(
+    @CurrentUser("tenantId") tenantId: string,
+    @CurrentUser("userId") userId: string,
+    @Param("id") id: string,
+    @Body() dto: PresentProposalDto,
+  ) {
+    return this.slips.present(tenantId, userId, id, dto.quotationIds);
   }
 }

@@ -45,3 +45,13 @@ export class SubmitServiceDto {
   @IsOptional() @IsString() @MaxLength(200) subject?: string;
   @IsOptional() @IsString() @MaxLength(2000) description?: string;
 }
+
+/** قبول العميل لعرض تأمين مُقدَّم (§4.1). */
+export class AcceptProposalDto {
+  @IsString() quotationId!: string;
+}
+
+/** رفض العميل لعرض تأمين مُقدَّم (بملاحظة اختيارية). */
+export class DeclineProposalDto {
+  @IsOptional() @IsString() @MaxLength(2000) note?: string;
+}
