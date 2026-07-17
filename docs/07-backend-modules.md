@@ -38,7 +38,7 @@
 | **الجذر** | [`app.module.ts`](../apps/api/src/app.module.ts) | تركيب الوحدات + حارسان عالميان (`JwtAuthGuard`, `AuthorizationGuard`) + middleware السياق |
 | **common المشتركة** | [`src/common/`](../apps/api/src/common) | خدمات أفقية عابرة للمجالات: سياق الطلب، التدقيق، التسلسل |
 | **البنية التحتية** | [`src/prisma/`](../apps/api/src/prisma) · [`src/redis/`](../apps/api/src/redis) | عملاء قاعدة البيانات والكاش كـ Providers |
-| **المجالية** | [`src/modules/`](../apps/api/src/modules) | منطق الأعمال: auth, rbac, catalog, clients, requests, underwriting, production, finance, **producers**, **form-templates**, documents, service, claims, renewals, verification, **platform**, **portal**, **reports**, **compliance**, **regulatory**, **finance/zatca**, **crm**, **reminders**, staff, health |
+| **المجالية** | [`src/modules/`](../apps/api/src/modules) | منطق الأعمال: auth, rbac, catalog, clients, requests, underwriting, production, finance, **producers**, **form-templates**, documents, service, claims, renewals, verification, **platform**, **portal**, **reports**, **compliance**, **regulatory**, **finance/zatca**, **crm**, **reminders**, **email** (BYO Resend)، **billing** (اشتراكات + بوّابة دفع Tap)، **payments** (إعدادات دفع المستأجر + دفع العميل)، staff, health |
 
 ```mermaid
 flowchart TB
@@ -429,7 +429,7 @@ flowchart TB
 
 | الوحدة | الغرض |
 |---|---|
-| `notifications` | نظام الإشعارات لكامل النظام (26 نوعًا، عملاء+موظفون، `notify`/`notifyStaff`/`notifyUser`) + مركز in-app + بوّابة seam (Taqnyat/Resend) |
+| `notifications` | نظام الإشعارات لكامل النظام (28 نوعًا، عملاء+موظفون، `notify`/`notifyStaff`/`notifyUser`) + مركز in-app + بوّابة seam (Taqnyat/Resend) |
 | `crm` | إدارة العلاقات — صفقات (Pipeline) + مهام + نشاط + لوحة متابعة، برؤية حسب الدور |
 | `reminders` | مجدول تذكيرات دوري (`@nestjs/schedule`، cron يومي) — مهام CRM مستحقّة + تجديد الوثائق، بلا تكرار؛ تشغيل يدوي معزول `POST /reminders/run` |
 | `config` | تهيئة المستأجر — سلسلة اعتماد الوثيقة (E2) + سياسة الأمان (إلزام MFA) |
