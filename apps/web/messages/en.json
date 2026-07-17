@@ -367,6 +367,7 @@
       "commissions": "Commissions",
       "receivables": "Receivables & installments",
       "balance": "Balance sheet",
+      "cashflow": "Cash flow",
       "vat": "VAT return"
     },
     "overview": {
@@ -548,6 +549,27 @@
       "refund": "Refund balance",
       "netSub": "output − input",
       "note": "The return is derived from the two VAT ledger accounts (output 0203 · input 0105). Zero-rated sales (life insurance) carry no output VAT. The standard taxable base is estimated from the tax (÷15%)."
+    },
+    "cashflow": {
+      "title": "Cash flow statement",
+      "sub": "Direct method — cash & bank movements classified by activity · leave the period empty for all-time",
+      "from": "From",
+      "to": "To",
+      "run": "Calculate",
+      "opening": "Opening balance",
+      "netChange": "Net change",
+      "closing": "Closing balance",
+      "reconcile": "Reconciliation",
+      "reconciled": "Reconciled",
+      "unreconciled": "Unreconciled",
+      "operating": "Operating activities",
+      "operatingSub": "Client collections · insurer settlements · expenses, salaries & commissions · VAT",
+      "investing": "Investing activities",
+      "investingSub": "Purchase/sale of non-current assets",
+      "financing": "Financing activities",
+      "financingSub": "Capital & drawings",
+      "none": "No movement in this activity for the period",
+      "note": "The statement is derived by the direct method from cash & bank account (0101) movements in their vouchers, classifying each movement by its contra account. Net change = operating + investing + financing = closing − opening (deterministic reconciliation by double entry)."
     }
   },
   "producers": {

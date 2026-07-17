@@ -564,6 +564,60 @@ describe("الإصدار والاعتماد المالي (e2e)", () => {
     expect(Array.isArray(recv.agingByClient)).toBe(true);
     expect(recv.agingByClient.length).toBeGreaterThan(0);
   });
+
+  it("#1.2 التدفّق النقدي: تصنيف الحركات تشغيلي/تمويلي · صافي التغيّر = الأنشطة · الختامي = افتتاحي + التغيّر · تسوية · فترة ماضية أصفار · RBAC", async () => {
+    const srv = app.getHttpServer();
+    const CASH = "01010000000000000";
+    const SALARY = "05030000000000000"; // مصروف (ورقة)
+    const INPUT_VAT = "01050000000000000"; // ض.مدخلات (أصل متداول ⇒ تشغيلي)
+    const CAPITAL = "03010000000000000"; // رأس المال (حقوق ملكية ⇒ تمويلي)
+
+    // المبيعات (لا finance) ⇒ 403
+    await request(srv).get("/finance/cash-flow").set(auth(sales)).expect(403);
+
+    const before = (await request(srv).get("/finance/cash-flow").set(auth(accountant)).expect(200)).body;
+    expect(before.reconciles).toBe(true);
+    expect(before.closing).toBeCloseTo(r2(before.opening + before.netChange), 2);
+    expect(before.netChange).toBeCloseTo(r2(before.operating.net + before.investing.net + before.financing.net), 2);
+
+    // إصدار وثيقة ثمّ تحصيلها ⇒ تدفّق نقدي داخل تشغيلي (طرف مقابل ذمم مدينة)
+    const requestId = await createAwardedRequest();
+    const policy = (await request(srv).post("/policies/issue").set(auth(underwriter)).send({ requestId, branchCode: "RUH" }).expect(201)).body;
+    await request(srv).post(`/policies/${policy.id}/approve-technical`).set(auth(underwriter)).expect(200);
+    const fin = (await request(srv).post(`/finance/policies/${policy.id}/approve`).set(auth(accountant)).expect(200)).body;
+    const note = (await request(srv).get("/finance/receivables").set(auth(accountant))).body.notes.find((n: { sequenceNo: string }) => n.sequenceNo === fin.debitNote);
+    await request(srv).post(`/finance/debit-notes/${note.id}/receipt`).set(auth(accountant)).send({ amount: 15000, method: "transfer" }).expect(201); // نقد داخل +15000
+
+    // مصروف رواتب بضريبة مدخلات ⇒ نقد خارج تشغيلي 1150
+    await request(srv).post("/finance/journal").set(auth(accountant)).send({
+      description: "رواتب بض.مدخلات", entries: [{ account: SALARY, debit: 1000 }, { account: INPUT_VAT, debit: 150 }, { account: CASH, credit: 1150 }],
+    }).expect(201);
+
+    // ضخّ رأس مال ⇒ نقد داخل تمويلي +50000 (طرف مقابل حقوق ملكية)
+    await request(srv).post("/finance/journal").set(auth(accountant)).send({
+      description: "ضخّ رأس مال", entries: [{ account: CASH, debit: 50000 }, { account: CAPITAL, credit: 50000 }],
+    }).expect(201);
+
+    const after = (await request(srv).get("/finance/cash-flow").set(auth(accountant)).expect(200)).body;
+    // التسوية والمعادلات تبقى صحيحة بعد الحركات
+    expect(after.reconciles).toBe(true);
+    expect(after.closing).toBeCloseTo(r2(after.opening + after.netChange), 2);
+    expect(after.netChange).toBeCloseTo(r2(after.operating.net + after.investing.net + after.financing.net), 2);
+    // صافي حركة النقد ازداد بمقدار 15000 − 1150 + 50000 = 63850
+    expect(after.netChange).toBeCloseTo(r2(before.netChange + 63850), 2);
+    // التمويلي ازداد 50000 (ضخّ رأس المال) — طرف مقابل حقوق الملكية
+    expect(after.financing.net).toBeCloseTo(r2(before.financing.net + 50000), 2);
+    expect((after.financing.lines as Array<{ code: string }>).some((l) => l.code === CAPITAL)).toBe(true);
+    // التشغيلي صافيه ازداد 15000 − 1150 = 13850 (تحصيل − رواتب/ض.مدخلات)
+    expect(after.operating.net).toBeCloseTo(r2(before.operating.net + 13850), 2);
+
+    // فترة ماضية بلا حركة ⇒ كل الأنشطة أصفار وصافي التغيّر صفر
+    const past = (await request(srv).get("/finance/cash-flow?from=2020-01-01&to=2020-12-31").set(auth(accountant)).expect(200)).body;
+    expect(past.netChange).toBe(0);
+    expect(past.operating.net).toBe(0);
+    expect(past.financing.net).toBe(0);
+    expect(past.reconciles).toBe(true);
+  });
 });
 
 /** تقريب لخانتين — مساعد اختبار مطابق لمنطق الخدمة. */

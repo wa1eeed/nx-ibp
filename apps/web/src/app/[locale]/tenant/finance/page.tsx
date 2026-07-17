@@ -10,7 +10,7 @@ import { StatCard } from "@/components/ui/StatCard";
 import { Badge } from "@/components/ui/Badge";
 import { usePaged, Pagination } from "@/components/ui/Pagination";
 
-type FinanceTab = "overview" | "journal" | "commissions" | "receivables" | "coa" | "invoices" | "payables" | "trial" | "balance" | "vat";
+type FinanceTab = "overview" | "journal" | "commissions" | "receivables" | "coa" | "invoices" | "payables" | "trial" | "balance" | "cashflow" | "vat";
 
 interface Summary { grossPremium: number; netPremium: number; vat: number; commission: number; serviceFees: number; offBalanceTrust: number; receivables: number; collected: number; invoiceCount: number; voucherCount: number }
 interface Overview {
@@ -41,6 +41,9 @@ interface BalanceSheet { asOf: string; assets: BalanceLine[]; liabilities: Balan
 interface LedgerRow { voucherId: string; sequenceNo: string | null; type: string; date: string; description: string; reference: string | null; debit: number; credit: number; balance: number }
 interface Ledger { account: string; name: string; accountType: string | null; isOnBalance: boolean; rows: LedgerRow[]; totals: { debit: number; credit: number; balance: number } }
 interface VatReturn { from: string | null; to: string | null; standardRate: number; taxableStandard: number; outputVat: number; inputVat: number; netVat: number; refund: boolean }
+interface CashFlowLine { code: string; name: string; amount: number }
+interface CashFlowActivity { lines: CashFlowLine[]; net: number }
+interface CashFlow { from: string | null; to: string | null; opening: number; operating: CashFlowActivity; investing: CashFlowActivity; financing: CashFlowActivity; netChange: number; closing: number; reconciles: boolean }
 
 export default function FinancePage() {
   const t = useTranslations();
@@ -98,6 +101,7 @@ export default function FinancePage() {
     { key: "payables", icon: Building2, label: t("finance.tab.payables"), count: pay?.rows.length ?? 0 },
     { key: "trial", icon: Scale, label: t("finance.tab.trial"), count: trial?.rows.length ?? 0 },
     { key: "balance", icon: Scale, label: t("finance.tab.balance"), count: null },
+    { key: "cashflow", icon: Banknote, label: t("finance.tab.cashflow"), count: null },
     { key: "vat", icon: Percent, label: t("finance.tab.vat"), count: null },
   ];
 
@@ -433,6 +437,8 @@ export default function FinancePage() {
       {tab === "balance" ? <BalanceSheetTab data={bsheet} onLedger={(code, name) => setLedgerFor({ code, name })} /> : null}
 
       {/* إقرار ضريبة القيمة المضافة */}
+      {tab === "cashflow" ? <CashFlowTab /> : null}
+
       {tab === "vat" ? <VatReturnTab /> : null}
 
       {ledgerFor ? <LedgerModal account={ledgerFor} onClose={() => setLedgerFor(null)} /> : null}
@@ -855,6 +861,79 @@ function VatReturnTab() {
               <div className={`rounded-xl border-2 p-4 ${data.refund ? "border-info/40 bg-info-soft/40" : "border-primary/30 bg-primary-soft/40"}`}><p className="text-[11.5px] text-subtle">{data.refund ? t("finance.vat.refund") : t("finance.vat.net")}</p><p className={`mt-1 text-[18px] font-bold tnum ${data.refund ? "text-info" : "text-ink"}`}>{m(Math.abs(data.netVat))}</p><p className="text-[10.5px] text-subtle">{t("finance.vat.netSub")}</p></div>
             </div>
             <p className="mt-4 rounded-lg bg-surface-2 px-4 py-2.5 text-[11px] leading-relaxed text-subtle">{t("finance.vat.note")}</p>
+          </>
+        )}
+      </section>
+    </div>
+  );
+}
+
+/** بيان التدفّق النقدي (الطريقة المباشرة): افتتاحي + تشغيلي/استثماري/تمويلي ⇒ ختامي. */
+function CashFlowTab() {
+  const t = useTranslations();
+  const m = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const signed = (n: number) => `${n < 0 ? "−" : ""}${m(Math.abs(n))}`;
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const [data, setData] = useState<CashFlow | null>(null);
+  const [loading, setLoading] = useState(false);
+  const run = useCallback(() => {
+    setLoading(true);
+    const qs = new URLSearchParams();
+    if (from) qs.set("from", from);
+    if (to) qs.set("to", to);
+    const q = qs.toString();
+    void api<CashFlow>(`/finance/cash-flow${q ? `?${q}` : ""}`).then(setData).catch(() => undefined).finally(() => setLoading(false));
+  }, [from, to]);
+  useEffect(() => { run(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const field = "h-9 rounded-lg border border-line bg-card px-3 text-[13px] text-ink tnum focus:outline-none focus:ring-2 focus:ring-primary/30";
+
+  const Activity = ({ title, sub, act }: { title: string; sub: string; act: CashFlowActivity }) => (
+    <div className="rounded-xl border border-line bg-surface-2/30">
+      <div className="flex items-center justify-between border-b border-line px-4 py-2.5">
+        <div><h3 className="text-[13.5px] font-semibold text-ink">{title}</h3><p className="text-[11px] text-subtle">{sub}</p></div>
+        <span className={`text-[15px] font-bold tnum ${act.net < 0 ? "text-danger" : "text-success"}`}>{signed(act.net)}</span>
+      </div>
+      {act.lines.length === 0 ? (
+        <p className="px-4 py-3 text-[12px] text-subtle">{t("finance.cashflow.none")}</p>
+      ) : (
+        <ul className="divide-y divide-line">
+          {act.lines.map((l) => (
+            <li key={l.code} className="flex items-center justify-between px-4 py-2 text-[12.5px]">
+              <span className="text-ink">{l.name} <span className="text-subtle tnum">({l.code.replace(/0+$/, "") || l.code})</span></span>
+              <span className={`tnum font-medium ${l.amount < 0 ? "text-danger" : "text-success"}`}>{signed(l.amount)}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+
+  return (
+    <div className="space-y-4">
+      <section className="rounded-card border border-line bg-card p-5 shadow-card">
+        <div className="mb-4 flex flex-wrap items-end gap-3">
+          <div className="flex items-center gap-2"><Banknote size={17} className="text-primary" /><div><h2 className="text-[15px] font-semibold text-ink">{t("finance.cashflow.title")}</h2><p className="text-[12px] text-subtle">{t("finance.cashflow.sub")}</p></div></div>
+          <div className="ms-auto flex items-end gap-2">
+            <label className="block"><span className="mb-1 block text-[11px] font-medium text-muted">{t("finance.cashflow.from")}</span><input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className={field} /></label>
+            <label className="block"><span className="mb-1 block text-[11px] font-medium text-muted">{t("finance.cashflow.to")}</span><input type="date" value={to} onChange={(e) => setTo(e.target.value)} className={field} /></label>
+            <button onClick={run} disabled={loading} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary-strong px-4 text-[12.5px] font-semibold text-primary-fg hover:bg-primary disabled:opacity-60">{loading ? "…" : t("finance.cashflow.run")}</button>
+          </div>
+        </div>
+        {!data ? <p className="py-8 text-center text-[13px] text-subtle">…</p> : (
+          <>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="rounded-xl border border-line bg-surface-2/40 p-4"><p className="text-[11.5px] text-subtle">{t("finance.cashflow.opening")}</p><p className="mt-1 text-[18px] font-bold text-ink tnum">{m(data.opening)}</p></div>
+              <div className="rounded-xl border border-line bg-surface-2/40 p-4"><p className="text-[11.5px] text-subtle">{t("finance.cashflow.netChange")}</p><p className={`mt-1 text-[18px] font-bold tnum ${data.netChange < 0 ? "text-danger" : "text-success"}`}>{signed(data.netChange)}</p></div>
+              <div className="rounded-xl border-2 border-primary/30 bg-primary-soft/40 p-4"><p className="text-[11.5px] text-subtle">{t("finance.cashflow.closing")}</p><p className="mt-1 text-[18px] font-bold text-ink tnum">{m(data.closing)}</p></div>
+              <div className="rounded-xl border border-line bg-surface-2/40 p-4"><p className="text-[11.5px] text-subtle">{t("finance.cashflow.reconcile")}</p><p className="mt-1"><Badge tone={data.reconciles ? "success" : "danger"}>{data.reconciles ? t("finance.cashflow.reconciled") : t("finance.cashflow.unreconciled")}</Badge></p></div>
+            </div>
+            <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-3">
+              <Activity title={t("finance.cashflow.operating")} sub={t("finance.cashflow.operatingSub")} act={data.operating} />
+              <Activity title={t("finance.cashflow.investing")} sub={t("finance.cashflow.investingSub")} act={data.investing} />
+              <Activity title={t("finance.cashflow.financing")} sub={t("finance.cashflow.financingSub")} act={data.financing} />
+            </div>
+            <p className="mt-4 rounded-lg bg-surface-2 px-4 py-2.5 text-[11px] leading-relaxed text-subtle">{t("finance.cashflow.note")}</p>
           </>
         )}
       </section>

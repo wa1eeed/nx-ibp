@@ -1043,6 +1043,13 @@ async function main() {
   console.log("🌱 IBP seed — بيانات وهمية فقط (وضع الديمو)");
   const passwordHash = await bcrypt.hash(DEV_PASSWORD, 10);
 
+  // قاعدة الاختبار فقط: امسح طلبات التجديد التي تُنشئها اختبارات e2e (لا تُبذَر أصلاً) —
+  // البذرة idempotent بالـupsert ولا تُفرّغ الجداول، فتتراكم التجديدات وتُشبِع مجمّع الوثائق المستحقّة.
+  // مسحها هنا يضمن أن كل دورة اختبار تبدأ من مجمّع تجديد نظيف (حتمية عبر إعادات التشغيل).
+  if ((process.env.DATABASE_URL ?? "").includes("ibp_test")) {
+    await prisma.policyRequest.deleteMany({ where: { renewedFromPolicyId: { not: null } } });
+  }
+
   for (const def of TENANTS) {
     await seedTenant(def, passwordHash);
     await prisma.auditLog.create({

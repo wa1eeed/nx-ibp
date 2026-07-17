@@ -230,4 +230,11 @@ export class FinanceController {
   vatReturn(@Query("from") from?: string, @Query("to") to?: string) {
     return this.finance.vatReturn(from, to);
   }
+
+  // بيان التدفّق النقدي (الطريقة المباشرة) — تشغيلي/استثماري/تمويلي عن فترة
+  @Authorize({ module: "finance", action: "read", entitlement: "module.finance" })
+  @Get("cash-flow")
+  cashFlow(@Query("from") from?: string, @Query("to") to?: string) {
+    return this.finance.cashFlow(from, to);
+  }
 }

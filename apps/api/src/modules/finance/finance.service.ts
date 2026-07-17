@@ -608,6 +608,72 @@ export class FinanceService {
     return { from: from ?? null, to: to ?? null, standardRate: 15, taxableStandard, outputVat, inputVat, netVat, refund: netVat < 0 };
   }
 
+  /**
+   * **بيان التدفّق النقدي** (الطريقة المباشرة) — يُشتقّ من حركة **حساب النقد والبنوك** (بادئة `0101`) في سنداتها،
+   * مصنّفًا كل حركة نقدية حسب **طرفها المقابل** إلى ثلاثة أنشطة:
+   * - **تشغيلية**: تحصيل ذمم العملاء · تسوية المؤمِّنين/الأمانات · المصروفات/الرواتب/عمولات الوسطاء · ض.ق.م (طرف مقابل إيراد/مصروف/خصوم/أصل متداول).
+   * - **استثمارية**: اقتناء/بيع أصول غير متداولة (طرف مقابل أصل غير متداول — لا شيء حاليًا في نموذج الوساطة).
+   * - **تمويلية**: رأس المال والمسحوبات (طرف مقابل حقوق ملكية).
+   * القيد المزدوج يضمن أن مجموع مساهمات الأطراف المقابلة = صافي حركة النقد للسند؛ فيتوازن **صافي التغيّر = تشغيلي + استثماري + تمويلي**،
+   * و**الرصيد الختامي = الافتتاحي + صافي التغيّر** = رصيد حساب النقد فعليًا حتى نهاية الفترة (تسوية حتمية، `reconciles`).
+   */
+  async cashFlow(from?: string, to?: string) {
+    const CASH = "0101"; // بادئة النقد والبنوك
+    const CURRENT_ASSET = ["0101", "0103", "0104", "0105"]; // أصول متداولة (نقد/ذمم مدينة/ذمم عمولة/ض.مدخلات) ⇒ تشغيلية
+    const fromD = from ? new Date(from) : null;
+    const toD = to ? new Date(`${to}T23:59:59.999Z`) : null;
+    if (fromD && Number.isNaN(+fromD)) throw new BadRequestException("تاريخ البداية غير صالح");
+    if (toD && Number.isNaN(+toD)) throw new BadRequestException("تاريخ النهاية غير صالح");
+    const coa = await this.prisma.chartOfAccount.findMany({ select: { code: true, name: true, accountType: true } });
+    const typeOf = new Map(coa.map((a) => [a.code, a.accountType]));
+    const nameOf = new Map(coa.map((a) => [a.code, a.name]));
+    const isCash = (code: string) => code.startsWith(CASH);
+    const activityOf = (code: string): "operating" | "investing" | "financing" => {
+      const t = typeOf.get(code) ?? null;
+      if (t === "equity") return "financing";
+      if (t === "asset" && !CURRENT_ASSET.some((p) => code.startsWith(p))) return "investing";
+      return "operating"; // إيراد/مصروف/خصوم/أصل متداول
+    };
+    const vouchers = await this.prisma.voucher.findMany({ orderBy: { createdAt: "asc" }, select: { lines: true, createdAt: true } });
+    const buckets = { operating: new Map<string, { code: string; name: string; amount: number }>(), investing: new Map<string, { code: string; name: string; amount: number }>(), financing: new Map<string, { code: string; name: string; amount: number }>() };
+    let opening = 0; // صافي حركة النقد قبل بداية الفترة
+    let periodCashNet = 0; // صافي حركة النقد داخل الفترة (للتسوية المستقلّة)
+    for (const v of vouchers) {
+      const lines = v.lines as { entries?: Array<{ account?: string; name?: string; debit?: number; credit?: number }> } | null;
+      const entries = lines?.entries ?? [];
+      const cashDelta = entries.filter((e) => isCash(e.account ?? "")).reduce((s, e) => r2(s + num(e.debit) - num(e.credit)), 0);
+      if (Math.abs(cashDelta) < 0.001) continue; // سند لا يمسّ النقد
+      if (fromD && v.createdAt < fromD) { opening = r2(opening + cashDelta); continue; } // قبل الفترة ⇒ رصيد افتتاحي
+      if (toD && v.createdAt > toD) continue; // بعد الفترة ⇒ تجاهل
+      periodCashNet = r2(periodCashNet + cashDelta);
+      // توزيع النقد على الأطراف المقابلة: طرف دائن ⇒ مصدر تدفّق داخل (+)، طرف مدين ⇒ استخدام تدفّق خارج (−)
+      for (const e of entries) {
+        const code = e.account ?? "—";
+        if (isCash(code)) continue;
+        const contribution = r2(num(e.credit) - num(e.debit));
+        if (Math.abs(contribution) < 0.001) continue;
+        const act = activityOf(code);
+        const g = buckets[act].get(code) ?? { code, name: nameOf.get(code) ?? e.name ?? "—", amount: 0 };
+        g.amount = r2(g.amount + contribution);
+        buckets[act].set(code, g);
+      }
+    }
+    const pack = (m: Map<string, { code: string; name: string; amount: number }>) => {
+      const lines = [...m.values()].filter((l) => Math.abs(l.amount) > 0.001).sort((a, b) => a.code.localeCompare(b.code));
+      return { lines, net: r2(lines.reduce((s, l) => s + l.amount, 0)) };
+    };
+    const operating = pack(buckets.operating);
+    const investing = pack(buckets.investing);
+    const financing = pack(buckets.financing);
+    const netChange = r2(operating.net + investing.net + financing.net);
+    const closing = r2(opening + netChange);
+    return {
+      from: from ?? null, to: to ?? null,
+      opening, operating, investing, financing, netChange, closing,
+      reconciles: Math.abs(netChange - periodCashNet) < 0.01, // صافي التغيّر المصنّف = صافي حركة النقد الفعلية
+    };
+  }
+
   /** حسابات الترحيل (leaf) القابلة للاختيار في القيد اليدوي — تستثني العناوين (المستوى 1 والحسابات ذات الأبناء). */
   async postingAccounts() {
     const accounts = await this.prisma.chartOfAccount.findMany({
