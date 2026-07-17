@@ -754,6 +754,17 @@ erDiagram
 
 **الفهارس:** `@@index([tenantId])` · `@@index([tenantId, status])`. **التأخّر** مُشتقّ: `dueDate < الآن` وحالة مفتوحة. صلاحية الوصول: وحدة **`compliance`**.
 
+### مكافحة غسل الأموال (AML/CFT — §6.2)
+**الغرض:** الامتثال الترخيصي لمكافحة غسل الأموال وتمويل الإرهاب (هيئة التأمين/ساما) — تقييم مخاطر العميل، فرز العقوبات/PEP، وسجلّ بلاغات الاشتباه. كل الكيانات معزولة بالمستأجر وبصلاحية **`compliance`**.
+
+**حقول AML على `Client`:** `amlRiskLevel` (low\|medium\|high) · `amlRiskScore` (Int 0..100) · `amlRiskAssessedAt` · `amlReviewDue` (موعد إعادة التقييم الدوري — بصمة آخر تقييم).
+
+**`AmlRiskAssessment`** (تاريخ التقييمات): `clientId`, `level`, `score`, `factors` (Json: pep/sanctionsHit/highRiskCountry/complexStructure/cashIntensive/adverseMedia/nonResident), `rationale?`, `assessedById?`, `reviewDue?`. الدرجة = مجموع أوزان العوامل (محدودة بـ100)؛ المستوى بالنطاقات (≥60 مرتفع · ≥30 متوسّط) و**تطابق العقوبات يفرض «مرتفع» حتمًا**. `@@index([tenantId])` · `@@index([tenantId, clientId])`.
+
+**`AmlScreening`** (سجلّ الفرز): `clientId?`, `screenedName`, `lists` (CSV القوائم المفحوصة), `result` (clear\|potential_match\|confirmed_match), `matches?` (Json: قائمة/اسم مطابق/درجة/نوع), `disposition` (pending\|cleared\|escalated), `note?`, `screenedById?`. النتيجة النظيفة تُغلَق تلقائيًا (`cleared`)؛ غيرها بانتظار التصرّف. `@@index([tenantId])` · `@@index([tenantId, clientId])`.
+
+**`SuspiciousReport`** (بلاغ اشتباه — STR): `sequenceNo?` (`STR-2026-1001`), `clientId?`, `indicators` (Json: مؤشّرات معيارية), `subject`, `description`, `status` (draft\|filed\|closed), `reference?` (مرجع الوحدة SAFIU), `filedAt?`/`filedById?`, `closedAt?`. `@@index([tenantId])` · `@@index([tenantId, status])`. إشعار `staff_aml_alert` عند مخاطر مرتفعة/تطابق فرز/بلاغ.
+
 > دالة `sendTenantEmail` تختار المسار: `tenant` المُتحقَّق ⇒ مفتاح المستأجر؛ وإلا **fallback مركزي** بلا انقطاع. مجدول دوري يرقّي `pending`⇒`verified` آليًا.
 
 ### الهوية البصرية (White-label · P0-B)
@@ -882,7 +893,7 @@ erDiagram
 > أُضيفت في مسار ما بعد الاكتمال. كلها معزولة بالمستأجر (FK `tenantId` + Prisma `$use`).
 
 ### الإشعارات
-- **`NotificationSetting`** — إعداد نوع إشعار بمستويين: `tenantId = NULL` ⇒ **افتراضي المنصة** (يديره سوبر أدمن المنصة، يرثه الجميع)؛ قيمة ⇒ **تخصيص شركة**. حقول: `eventKey` · `channelEmail`/`channelSms` · `subject`/`body`. (29 نوعًا (ثنائية اللغة) في `notifications.constants.ts`: 11 عميلًا + 18 موظفًا.)
+- **`NotificationSetting`** — إعداد نوع إشعار بمستويين: `tenantId = NULL` ⇒ **افتراضي المنصة** (يديره سوبر أدمن المنصة، يرثه الجميع)؛ قيمة ⇒ **تخصيص شركة**. حقول: `eventKey` · `channelEmail`/`channelSms` · `subject`/`body`. (30 نوعًا (ثنائية اللغة) في `notifications.constants.ts`: 11 عميلًا + 19 موظفًا.)
 - **`Notification`** — إشعار داخل المنصة (in-app) لمستقبِل واحد: `userId` (موظف) أو `clientId` (عميل بوّابة) · `eventKey` · `audience` (client/staff) · `title`/`body` · `readAt` (NULL = غير مقروء). فهارس `[tenantId, userId, readAt]` و`[tenantId, clientId, readAt]`.
 
 ### CRM (إدارة العلاقات)

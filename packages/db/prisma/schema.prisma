@@ -30,71 +30,74 @@ model PlatformAdmin {
 }
 
 model Tenant {
-  id           String       @id @default(cuid())
-  name         String
-  nameEn       String?
-  crNumber     String? // السجل التجاري لشركة الوساطة
+  id            String       @id @default(cuid())
+  name          String
+  nameEn        String?
+  crNumber      String? // السجل التجاري لشركة الوساطة
   unifiedNumber String? // الرقم الموحد للمنشأة (700-series، 10 أرقام)
-  vatNumber    String? // الرقم الضريبي (15 رقمًا)
-  phone        String? // رقم التواصل (جوال سعودي 05XXXXXXXX)
+  vatNumber     String? // الرقم الضريبي (15 رقمًا)
+  phone         String? // رقم التواصل (جوال سعودي 05XXXXXXXX)
   // العنوان الوطني (لفاتورة ZATCA — عنوان البائع)
-  buildingNo   String? // رقم المبنى (4 أرقام)
-  street       String? // اسم الشارع
-  district     String? // الحي
-  city         String? // المدينة
-  postalCode   String? // الرمز البريدي (5 أرقام)
-  status       TenantStatus @default(ACTIVE)
-  billingModel BillingModel @default(PASS_THROUGH) // نموذج التحقق: عبر حسابات الشركة نفسها (PASS_THROUGH) أو عبر المنصة برسوم+هامش (RESELLER)
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
+  buildingNo    String? // رقم المبنى (4 أرقام)
+  street        String? // اسم الشارع
+  district      String? // الحي
+  city          String? // المدينة
+  postalCode    String? // الرمز البريدي (5 أرقام)
+  status        TenantStatus @default(ACTIVE)
+  billingModel  BillingModel @default(PASS_THROUGH) // نموذج التحقق: عبر حسابات الشركة نفسها (PASS_THROUGH) أو عبر المنصة برسوم+هامش (RESELLER)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
 
-  subscription Subscription?
-  users        User[]
-  clientUsers  ClientUser[]
-  branches     Branch[]
-  config       TenantConfig?
-  emailSettings TenantEmailSettings?
+  subscription    Subscription?
+  users           User[]
+  clientUsers     ClientUser[]
+  branches        Branch[]
+  config          TenantConfig?
+  emailSettings   TenantEmailSettings?
   paymentSettings TenantPaymentSettings?
-  portalPayments PortalPayment[]
-  targets      Target[]
-  insurers     Insurer[]
-  wallets      Wallet[]
+  portalPayments  PortalPayment[]
+  targets         Target[]
+  insurers        Insurer[]
+  wallets         Wallet[]
 
   // العلاقات التشغيلية — كلها مرتبطة بـ tenantId كمفتاح أجنبي لفرض العزل والتكامل المرجعي
-  roles              Role[]
-  clients            Client[]
-  policyRequests     PolicyRequest[]
-  policies           Policy[]
-  installments       Installment[]
-  complaints         Complaint[]
-  serviceRequests    ServiceRequest[]
-  claims             Claim[]
-  chartOfAccounts    ChartOfAccount[]
-  vouchers           Voucher[]
-  invoices           Invoice[]
-  commissions        Commission[]
-  verificationChecks VerificationCheck[]
-  documents          Document[]
-  auditLogs          AuditLog[]
-  requestBlockRows   RequestBlockRow[]
-  slips              Slip[]
-  quotations         Quotation[]
-  endorsements       Endorsement[]
-  costCenters        CostCenter[]
-  debitNotes         DebitNote[]
-  creditNotes        CreditNote[]
-  zatcaConfig        TenantZatcaConfig?
-  billingDocuments   BillingDocument[]
+  roles                Role[]
+  clients              Client[]
+  policyRequests       PolicyRequest[]
+  policies             Policy[]
+  installments         Installment[]
+  complaints           Complaint[]
+  amlAssessments       AmlRiskAssessment[]
+  amlScreenings        AmlScreening[]
+  suspiciousReports    SuspiciousReport[]
+  serviceRequests      ServiceRequest[]
+  claims               Claim[]
+  chartOfAccounts      ChartOfAccount[]
+  vouchers             Voucher[]
+  invoices             Invoice[]
+  commissions          Commission[]
+  verificationChecks   VerificationCheck[]
+  documents            Document[]
+  auditLogs            AuditLog[]
+  requestBlockRows     RequestBlockRow[]
+  slips                Slip[]
+  quotations           Quotation[]
+  endorsements         Endorsement[]
+  costCenters          CostCenter[]
+  debitNotes           DebitNote[]
+  creditNotes          CreditNote[]
+  zatcaConfig          TenantZatcaConfig?
+  billingDocuments     BillingDocument[]
   subscriptionInvoices SubscriptionInvoice[]
-  departments        Department[]
-  storage            TenantStorage?
+  departments          Department[]
+  storage              TenantStorage?
   notificationSettings NotificationSetting[]
-  notifications      Notification[]
-  deals              Deal[]
-  crmActivities      CrmActivity[]
-  crmTasks           CrmTask[]
-  producers          Producer[]
-  formTemplates      FormTemplate[]
+  notifications        Notification[]
+  deals                Deal[]
+  crmActivities        CrmActivity[]
+  crmTasks             CrmTask[]
+  producers            Producer[]
+  formTemplates        FormTemplate[]
 }
 
 // إعداد إشعار — NULL tenantId = افتراضي المنصة (يديره سوبر أدمن المنصة)؛
@@ -134,31 +137,31 @@ model Notification {
 
 /// صفقة/فرصة CRM — تمرّ بمراحل (Pipeline)، قابلة للإسناد لموظف، ومرتبطة بعميل. معزولة بالمستأجر.
 model Deal {
-  id              String    @id @default(cuid())
-  tenantId        String
-  tenant          Tenant    @relation(fields: [tenantId], references: [id])
-  clientId        String? // العميل المرتبط
-  title           String
-  stage           String    @default("new") // new | contacted | quoting | proposal | negotiation
-  status          String    @default("open") // open | won | lost
-  value           Decimal?  @db.Decimal(14, 2) // القسط المتوقّع
-  productLineCode String?
-  assigneeId      String? // الموظف المُسنَد إليه
-  lostReason      String?
-  requestId       String? // ربط بطلب تأمين عند التحويل (won)
-  createdById     String?
+  id                String    @id @default(cuid())
+  tenantId          String
+  tenant            Tenant    @relation(fields: [tenantId], references: [id])
+  clientId          String? // العميل المرتبط
+  title             String
+  stage             String    @default("new") // new | contacted | quoting | proposal | negotiation
+  status            String    @default("open") // open | won | lost
+  value             Decimal?  @db.Decimal(14, 2) // القسط المتوقّع
+  productLineCode   String?
+  assigneeId        String? // الموظف المُسنَد إليه
+  lostReason        String?
+  requestId         String? // ربط بطلب تأمين عند التحويل (won)
+  createdById       String?
   // إثراء الفرصة البيعية (Sales Lead) وفق معايير الوساطة (أويسس)
-  exclusivity      String? // exclusive | non_exclusive (حالة BOR — وسيط السجل)
-  estimatedPremium Decimal? @db.Decimal(14, 2) // القسط التقديري (يُقارَن بقسط الإصدار)
+  exclusivity       String? // exclusive | non_exclusive (حالة BOR — وسيط السجل)
+  estimatedPremium  Decimal?  @db.Decimal(14, 2) // القسط التقديري (يُقارَن بقسط الإصدار)
   expectedCloseDate DateTime? // تاريخ الإغلاق المتوقّع
-  source           String? // direct | producer (مصدر الفرصة)
-  producerName     String? // اسم المنتِج/الوسيط الفرعي عند source=producer
-  currentInsurer   String? // شركة التأمين الحالية (للأعمال المُحوَّلة/التجديد)
-  lossRatio        Decimal? @db.Decimal(6, 2) // نسبة الخسارة الحالية %
+  source            String? // direct | producer (مصدر الفرصة)
+  producerName      String? // اسم المنتِج/الوسيط الفرعي عند source=producer
+  currentInsurer    String? // شركة التأمين الحالية (للأعمال المُحوَّلة/التجديد)
+  lossRatio         Decimal?  @db.Decimal(6, 2) // نسبة الخسارة الحالية %
   preferredInsurers String[] // شركات التأمين المفضّلة للعميل
-  notes            String? // ملاحظات/متطلبات
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  notes             String? // ملاحظات/متطلبات
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   @@index([tenantId, stage])
   @@index([tenantId, assigneeId])
@@ -183,19 +186,19 @@ model CrmActivity {
 
 /// مهمة/تذكير CRM — قابلة للإسناد + تاريخ استحقاق + أولوية. تُطلق إشعارًا عند الإسناد.
 model CrmTask {
-  id          String    @id @default(cuid())
-  tenantId    String
-  tenant      Tenant    @relation(fields: [tenantId], references: [id])
-  title       String
-  entityType  String? // مرتبطة بكيان اختياريًا
-  entityId    String?
-  assigneeId  String?
-  dueDate     DateTime?
-  priority    String    @default("normal") // low | normal | high
-  status      String    @default("open") // open | done
-  createdById String?
-  createdAt   DateTime  @default(now())
-  completedAt DateTime?
+  id             String    @id @default(cuid())
+  tenantId       String
+  tenant         Tenant    @relation(fields: [tenantId], references: [id])
+  title          String
+  entityType     String? // مرتبطة بكيان اختياريًا
+  entityId       String?
+  assigneeId     String?
+  dueDate        DateTime?
+  priority       String    @default("normal") // low | normal | high
+  status         String    @default("open") // open | done
+  createdById    String?
+  createdAt      DateTime  @default(now())
+  completedAt    DateTime?
   reminderSentAt DateTime? // تذكير الاستحقاق أُرسِل (idempotency للمجدول)
 
   @@index([tenantId, assigneeId, status])
@@ -215,16 +218,16 @@ enum BillingModel {
 }
 
 model Plan {
-  id            String         @id @default(cuid())
-  code          String         @unique // basic | premium | enterprise
-  name          String
-  seatLimit     Int // الحد الأقصى للمستخدمين (المقاعد)
-  priceMonthly  Decimal        @db.Decimal(12, 2) // السعر لكل مستخدم/شهر
-  priceYearly   Decimal        @db.Decimal(12, 2) // السعر لكل مستخدم/سنة
-  trialDays     Int            @default(0) // مدة التجربة المجانية (0 = بلا تجربة)
-  slaResponseHours Int?        // زمن استجابة الدعم المتعهَّد به (ساعات؛ 24=يوم عمل) — P1-A
-  entitlements  Entitlement[]
-  subscriptions Subscription[]
+  id               String         @id @default(cuid())
+  code             String         @unique // basic | premium | enterprise
+  name             String
+  seatLimit        Int // الحد الأقصى للمستخدمين (المقاعد)
+  priceMonthly     Decimal        @db.Decimal(12, 2) // السعر لكل مستخدم/شهر
+  priceYearly      Decimal        @db.Decimal(12, 2) // السعر لكل مستخدم/سنة
+  trialDays        Int            @default(0) // مدة التجربة المجانية (0 = بلا تجربة)
+  slaResponseHours Int? // زمن استجابة الدعم المتعهَّد به (ساعات؛ 24=يوم عمل) — P1-A
+  entitlements     Entitlement[]
+  subscriptions    Subscription[]
 }
 
 // الصلاحية/الحد لميزة ضمن باقة: مشمول/حصّة/رسوم/إضافة/معطّل
@@ -296,7 +299,7 @@ model SubscriptionInvoice {
   status          BillingInvoiceStatus @default(PENDING)
   gateway         String // sandbox | tap
   gatewayChargeId String? // معرّف الشحنة لدى البوّابة (chg_…)
-  redirectUrl     String? @db.Text // رابط صفحة الدفع المستضافة
+  redirectUrl     String?              @db.Text // رابط صفحة الدفع المستضافة
   reference       String? // مرجعنا الداخلي المُمرَّر للبوّابة
   periodStart     DateTime?
   periodEnd       DateTime?
@@ -313,24 +316,24 @@ model SubscriptionInvoice {
 // ============================================================
 
 model User {
-  id           String     @id @default(cuid())
-  tenantId     String
-  tenant       Tenant     @relation(fields: [tenantId], references: [id])
-  email        String
-  fullName     String
-  passwordHash String? // bcrypt — يُضبط عند الإنشاء/الدعوة (المرحلة 1)
-  mfaSecret    String? // سرّ TOTP (Base32) — يُضبط عند بدء الإعداد
-  mfaEnabled   Boolean    @default(false) // المصادقة الثنائية مفعّلة لهذا المستخدم
-  status       UserStatus @default(ACTIVE)
-  roleId       String?
-  role         Role?      @relation(fields: [roleId], references: [id])
-  departmentId String?
-  department   Department? @relation(fields: [departmentId], references: [id])
+  id                  String      @id @default(cuid())
+  tenantId            String
+  tenant              Tenant      @relation(fields: [tenantId], references: [id])
+  email               String
+  fullName            String
+  passwordHash        String? // bcrypt — يُضبط عند الإنشاء/الدعوة (المرحلة 1)
+  mfaSecret           String? // سرّ TOTP (Base32) — يُضبط عند بدء الإعداد
+  mfaEnabled          Boolean     @default(false) // المصادقة الثنائية مفعّلة لهذا المستخدم
+  status              UserStatus  @default(ACTIVE)
+  roleId              String?
+  role                Role?       @relation(fields: [roleId], references: [id])
+  departmentId        String?
+  department          Department? @relation(fields: [departmentId], references: [id])
   // نطاق المنتجات: أكواد فروع التأمين المسموح بها لهذا المستخدم. فارغة = بلا تقييد (كل الفروع)
   // — متوافق رجعيًا: السلوك الافتراضي بلا تغيير ولا يتأثّر أي مستخدم قائم.
-  allowedProductLines String[] @default([])
-  commissionRate Decimal? @db.Decimal(6, 3) // نسبة عمولة/حافز الموظف (% من عمولة الوساطة) — لمندوبي المبيعات
-  createdAt    DateTime   @default(now())
+  allowedProductLines String[]    @default([])
+  commissionRate      Decimal?    @db.Decimal(6, 3) // نسبة عمولة/حافز الموظف (% من عمولة الوساطة) — لمندوبي المبيعات
+  createdAt           DateTime    @default(now())
 
   @@unique([tenantId, email])
   @@index([tenantId])
@@ -343,13 +346,13 @@ enum UserStatus {
 }
 
 model Role {
-  id          String       @id @default(cuid())
-  tenantId    String // الأدوار قابلة للتخصيص لكل مستأجر
-  tenant      Tenant       @relation(fields: [tenantId], references: [id])
-  name        String // المدير العام، مدير المبيعات ...
-  isPreset    Boolean      @default(false)
-  permissions Permission[]
-  users       User[]
+  id                    String       @id @default(cuid())
+  tenantId              String // الأدوار قابلة للتخصيص لكل مستأجر
+  tenant                Tenant       @relation(fields: [tenantId], references: [id])
+  name                  String // المدير العام، مدير المبيعات ...
+  isPreset              Boolean      @default(false)
+  permissions           Permission[]
+  users                 User[]
   defaultForDepartments Department[]
 
   @@index([tenantId])
@@ -420,26 +423,26 @@ model Branch {
 // كيان «شركة تأمين» كمرجع لكل مستأجر: النسبة المتّفق عليها، دورة التسوية (مهلة السداد)،
 // الحساب البنكي للتوريد، وبيانات الترخيص/التواصل. تُربط تشغيليًا بالوثائق عبر الاسم.
 model Insurer {
-  id             String   @id @default(cuid())
-  tenantId       String
-  tenant         Tenant   @relation(fields: [tenantId], references: [id])
-  name           String // الاسم (يطابق insurerName على الوثائق)
-  nameEn         String?
-  code           String? // رمز داخلي اختياري
-  licenseNo      String? // رقم ترخيص هيئة التأمين
-  vatNumber      String? // الرقم الضريبي (15 رقمًا) — للمشتري في فاتورة العمولة
+  id              String   @id @default(cuid())
+  tenantId        String
+  tenant          Tenant   @relation(fields: [tenantId], references: [id])
+  name            String // الاسم (يطابق insurerName على الوثائق)
+  nameEn          String?
+  code            String? // رمز داخلي اختياري
+  licenseNo       String? // رقم ترخيص هيئة التأمين
+  vatNumber       String? // الرقم الضريبي (15 رقمًا) — للمشتري في فاتورة العمولة
   nationalAddress String? // العنوان الوطني (لفاتورة ZATCA)
-  commissionRate Decimal? @db.Decimal(6, 3) // نسبة العمولة المتّفق عليها (%)
-  settlementDays Int? // دورة التسوية: مهلة توريد الأقساط (أيام)
-  bankName       String?
-  iban           String? // حساب التوريد
-  contactName    String?
-  contactEmail   String?
-  contactPhone   String?
-  notes          String?
-  status         String   @default("active") // active | inactive
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  commissionRate  Decimal? @db.Decimal(6, 3) // نسبة العمولة المتّفق عليها (%)
+  settlementDays  Int? // دورة التسوية: مهلة توريد الأقساط (أيام)
+  bankName        String?
+  iban            String? // حساب التوريد
+  contactName     String?
+  contactEmail    String?
+  contactPhone    String?
+  notes           String?
+  status          String   @default("active") // active | inactive
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   @@index([tenantId])
 }
@@ -470,20 +473,20 @@ model Target {
 // كل مستأجر يرسل من إيميله الرسمي عبر حساب Resend خاص (BYO)، مع fallback مركزي
 // يضمن عدم الانقطاع، وترقية تلقائية إلى وضع المستأجر بعد التحقّق من النطاق (DNS).
 model TenantEmailSettings {
-  id                     String   @id @default(cuid())
-  tenantId               String   @unique
-  tenant                 Tenant   @relation(fields: [tenantId], references: [id])
-  fromEmail              String? // العنوان الرسمي للمرسِل (noreply@broker.sa)
-  fromName               String? // اسم العرض (شركة الوساطة)
-  resendApiKeyEncrypted  String? // مفتاح Resend مشفّر at-rest (AES-256-GCM) — لا plaintext أبداً
-  domain                 String? // يُستخرج من fromEmail
-  resendDomainId         String? // معرّف النطاق في Resend
-  verificationStatus     String   @default("unconfigured") // unconfigured | pending | verified | failed
-  dnsRecords             Json? // سجلّات DNS للعرض (SPF/DKIM/DMARC)
-  sendingMode            String   @default("fallback") // fallback | tenant
-  lastVerifiedAt         DateTime?
-  createdAt              DateTime @default(now())
-  updatedAt              DateTime @updatedAt
+  id                    String    @id @default(cuid())
+  tenantId              String    @unique
+  tenant                Tenant    @relation(fields: [tenantId], references: [id])
+  fromEmail             String? // العنوان الرسمي للمرسِل (noreply@broker.sa)
+  fromName              String? // اسم العرض (شركة الوساطة)
+  resendApiKeyEncrypted String? // مفتاح Resend مشفّر at-rest (AES-256-GCM) — لا plaintext أبداً
+  domain                String? // يُستخرج من fromEmail
+  resendDomainId        String? // معرّف النطاق في Resend
+  verificationStatus    String    @default("unconfigured") // unconfigured | pending | verified | failed
+  dnsRecords            Json? // سجلّات DNS للعرض (SPF/DKIM/DMARC)
+  sendingMode           String    @default("fallback") // fallback | tenant
+  lastVerifiedAt        DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 }
 
 // إعدادات بوّابة الدفع للمستأجر (BYO) — تستقبل شركة الوساطة مدفوعات عملائها
@@ -559,42 +562,50 @@ model FormSchema {
 // ============================================================
 
 model Client {
-  id               String           @id @default(cuid())
-  tenantId         String
-  tenant           Tenant           @relation(fields: [tenantId], references: [id])
-  code             String? // معرّف تجاري مقروء (CLI-RUH-2026-1001)
-  type             ClientType
-  name             String
-  crNumber         String? // للمنشآت
-  nationalId       String? // للأفراد
-  email            String?
-  phone            String? // جوال سعودي 05XXXXXXXX (رقم التواصل الأساسي)
-  landline         String? // هاتف ثابت 01XXXXXXXX (اختياري)
-  contactName      String? // اسم شخص التواصل لدى العميل
-  city             String?
-  nationalAddress  String?
+  id                String              @id @default(cuid())
+  tenantId          String
+  tenant            Tenant              @relation(fields: [tenantId], references: [id])
+  code              String? // معرّف تجاري مقروء (CLI-RUH-2026-1001)
+  type              ClientType
+  name              String
+  crNumber          String? // للمنشآت
+  nationalId        String? // للأفراد
+  email             String?
+  phone             String? // جوال سعودي 05XXXXXXXX (رقم التواصل الأساسي)
+  landline          String? // هاتف ثابت 01XXXXXXXX (اختياري)
+  contactName       String? // اسم شخص التواصل لدى العميل
+  city              String?
+  nationalAddress   String?
   // حقول معيارية لوساطة التأمين (إثراء سجل المؤمن له)
-  vatNumber        String? // الرقم الضريبي (15 رقماً للمنشآت)
-  relationStatus   String? // captive | non_captive (أسير/غير أسير)
-  legalForm        String? // llc | joint_stock | partnership | jv | joint_liability | sole_proprietor | individual
-  source           String? // direct | producer (مصدر العميل)
-  producerName     String? // اسم المنتِج/الوسيط الفرعي عند source=producer
-  businessActivity String? // النشاط التجاري
-  iban             String? // للاسترداد/الدفعات
+  vatNumber         String? // الرقم الضريبي (15 رقماً للمنشآت)
+  relationStatus    String? // captive | non_captive (أسير/غير أسير)
+  legalForm         String? // llc | joint_stock | partnership | jv | joint_liability | sole_proprietor | individual
+  source            String? // direct | producer (مصدر العميل)
+  producerName      String? // اسم المنتِج/الوسيط الفرعي عند source=producer
+  businessActivity  String? // النشاط التجاري
+  iban              String? // للاسترداد/الدفعات
   // آلية التحصيل الافتراضية لوثائق هذا العميل — تُبصَم على الوثيقة عند الإصدار:
   //   collect_full = الوسيط يُحصّل كامل القسط ويحتجز الأمانة ويورّدها للمؤمِّن (الافتراضي، متوافق رجعيًا)
   //   direct       = العميل يدفع القسط للمؤمِّن مباشرةً؛ الوسيط يُفوتر عمولته فقط (لا أمانة ولا تسوية)
-  collectionModel  String           @default("collect_full")
-  contacts         Json? // قائمة جهات الاتصال: [{ name, title, phone, email }]
-  accountManagerId String? // مدير الحساب المُعيَّن (نقطة تواصل العميل — معيار الوساطة)
-  status           String?          @default("active")
-  complianceStatus ComplianceStatus @default(PENDING)
-  complianceNote   String?
-  createdAt        DateTime         @default(now())
-  erasedAt         DateTime? // إتلاف/إخفاء PII (حق المحو — PDPL) — يُبقي الهيكل المالي
-  erasedBy         String? // المستخدم الذي نفّذ المحو (سجلّ الإتلاف)
-  policyRequests   PolicyRequest[]
-  portalUsers      ClientUser[]
+  collectionModel   String              @default("collect_full")
+  contacts          Json? // قائمة جهات الاتصال: [{ name, title, phone, email }]
+  accountManagerId  String? // مدير الحساب المُعيَّن (نقطة تواصل العميل — معيار الوساطة)
+  status            String?             @default("active")
+  complianceStatus  ComplianceStatus    @default(PENDING)
+  complianceNote    String?
+  // مكافحة غسل الأموال (AML) — آخر تقييم مخاطر (المصدر الكامل في AmlRiskAssessment)
+  amlRiskLevel      String? // low | medium | high
+  amlRiskScore      Int? // 0..100 (مشتقّ من عوامل الخطر)
+  amlRiskAssessedAt DateTime?
+  amlReviewDue      DateTime? // موعد إعادة التقييم الدوري (EDD أقصر للمخاطر العالية)
+  createdAt         DateTime            @default(now())
+  erasedAt          DateTime? // إتلاف/إخفاء PII (حق المحو — PDPL) — يُبقي الهيكل المالي
+  erasedBy          String? // المستخدم الذي نفّذ المحو (سجلّ الإتلاف)
+  policyRequests    PolicyRequest[]
+  portalUsers       ClientUser[]
+  AmlRiskAssessment AmlRiskAssessment[]
+  AmlScreening      AmlScreening[]
+  SuspiciousReport  SuspiciousReport[]
 
   // تفرّد لكل مستأجر (NULL لا يتعارض ⇒ الأفراد بلا CR والمنشآت بلا هوية مسموح بهما)
   @@unique([tenantId, code])
@@ -632,20 +643,20 @@ enum ComplianceStatus {
 }
 
 model PolicyRequest {
-  id              String            @id @default(cuid())
-  tenantId        String
-  tenant          Tenant            @relation(fields: [tenantId], references: [id])
-  sequenceNo      String? // SL/POL-RUH-MED-2025-1001
-  clientId        String
-  client          Client            @relation(fields: [clientId], references: [id])
-  productLineCode String
-  status          RequestStatus     @default(DRAFT)
-  base            Json // الحقول الأساسية المعبّأة (محقّقة ضد FormSchema)
-  details         Json? // حقول خاصة بالفرع
+  id                  String            @id @default(cuid())
+  tenantId            String
+  tenant              Tenant            @relation(fields: [tenantId], references: [id])
+  sequenceNo          String? // SL/POL-RUH-MED-2025-1001
+  clientId            String
+  client              Client            @relation(fields: [clientId], references: [id])
+  productLineCode     String
+  status              RequestStatus     @default(DRAFT)
+  base                Json // الحقول الأساسية المعبّأة (محقّقة ضد FormSchema)
+  details             Json? // حقول خاصة بالفرع
   renewedFromPolicyId String? // الوثيقة المنتهية التي بُني عليها هذا الطلب (سلسلة التجديد)
-  blockRows       RequestBlockRow[]
-  slips           Slip[]
-  createdAt       DateTime          @default(now())
+  blockRows           RequestBlockRow[]
+  slips               Slip[]
+  createdAt           DateTime          @default(now())
 
   @@index([tenantId])
   @@index([clientId])
@@ -768,44 +779,44 @@ model Endorsement {
 
 // الوثيقة المُصدَرة (المرحلة 4ب): تنشأ من طلب AWARDED وتمرّ باعتماد فني ← مالي.
 model Policy {
-  id               String        @id @default(cuid())
-  tenantId         String
-  tenant           Tenant        @relation(fields: [tenantId], references: [id])
-  requestId        String?
-  clientId         String?
-  productLineCode  String?
-  insurerName      String?
-  sequenceNo       String? // POL-RUH-MED-2026-1001
-  premium          Decimal?      @db.Decimal(14, 2) // القسط الصافي
-  vat              Decimal?      @db.Decimal(14, 2)
-  totalPremium     Decimal?      @db.Decimal(14, 2)
-  commissionRate   Decimal?      @db.Decimal(6, 3)
-  commissionAmount Decimal?      @db.Decimal(14, 2)
+  id                    String        @id @default(cuid())
+  tenantId              String
+  tenant                Tenant        @relation(fields: [tenantId], references: [id])
+  requestId             String?
+  clientId              String?
+  productLineCode       String?
+  insurerName           String?
+  sequenceNo            String? // POL-RUH-MED-2026-1001
+  premium               Decimal?      @db.Decimal(14, 2) // القسط الصافي
+  vat                   Decimal?      @db.Decimal(14, 2)
+  totalPremium          Decimal?      @db.Decimal(14, 2)
+  commissionRate        Decimal?      @db.Decimal(6, 3)
+  commissionAmount      Decimal?      @db.Decimal(14, 2)
   // حقول معيارية للوثيقة (إثراء سجل الوثيقة)
-  insurerPolicyNo    String? // رقم الوثيقة الرسمي الصادر من المؤمِّن
-  issuanceType       String        @default("POLICY") // POLICY | RENEWAL | ENDORSEMENT
-  issueDate          DateTime? // تاريخ الإصدار (يختلف عن بدء التغطية)
-  policyFees         Decimal?      @db.Decimal(14, 2) // رسوم إصدار الوثيقة
-  sumInsured         Decimal?      @db.Decimal(16, 2) // مبلغ التأمين الإجمالي
-  paymentTerms       String? // شروط/جدول السداد
-  producerName       String? // المنتِج (الوسيط الفرعي) — نص حرّ (توافق خلفي)
-  producerId         String? // مرجع سجلّ المنتِجين
-  producerCommission Decimal?      @db.Decimal(14, 2) // عمولة المنتِج (من عمولة الوسيط)
-  salespersonId      String? // الموظف (مندوب المبيعات) المُستحِقّ للعمولة الداخلية
-  salespersonCommission Decimal?   @db.Decimal(14, 2) // عمولة/حافز الموظف (تُحتسب من عمولة الوساطة عند الإصدار)
+  insurerPolicyNo       String? // رقم الوثيقة الرسمي الصادر من المؤمِّن
+  issuanceType          String        @default("POLICY") // POLICY | RENEWAL | ENDORSEMENT
+  issueDate             DateTime? // تاريخ الإصدار (يختلف عن بدء التغطية)
+  policyFees            Decimal?      @db.Decimal(14, 2) // رسوم إصدار الوثيقة
+  sumInsured            Decimal?      @db.Decimal(16, 2) // مبلغ التأمين الإجمالي
+  paymentTerms          String? // شروط/جدول السداد
+  producerName          String? // المنتِج (الوسيط الفرعي) — نص حرّ (توافق خلفي)
+  producerId            String? // مرجع سجلّ المنتِجين
+  producerCommission    Decimal?      @db.Decimal(14, 2) // عمولة المنتِج (من عمولة الوسيط)
+  salespersonId         String? // الموظف (مندوب المبيعات) المُستحِقّ للعمولة الداخلية
+  salespersonCommission Decimal?      @db.Decimal(14, 2) // عمولة/حافز الموظف (تُحتسب من عمولة الوساطة عند الإصدار)
   // آلية التحصيل المبصومة عند الإصدار (collect_full | direct) — مصدر الحقيقة للترحيل المالي.
   // NULL على الوثائق القديمة ⇒ تُعامَل كـ collect_full (السلوك التاريخي). لا تتأثّر بتغيير إعداد العميل لاحقًا.
-  collectionModel    String?
-  status           PolicyStatus  @default(TECHNICAL_REVIEW)
+  collectionModel       String?
+  status                PolicyStatus  @default(TECHNICAL_REVIEW)
   // E2 — سلاسل الاعتماد: مفاتيح خطوات الاعتماد الإضافية المتبقّية (بين الفني والمالي).
   // فارغ = السلسلة الافتراضية (فني ⇒ مالي)؛ يُملأ من TenantConfig.approvalChains عند الموافقة الفنية،
   // ويُفرَّغ خطوةً خطوة؛ الاعتماد المالي محجوب حتى تُفرَّغ (وثيقة معزولة بالمستأجر).
-  pendingApprovals String[]      @default([])
-  startDate        DateTime?
-  endDate          DateTime?
-  renewalRemindedAt DateTime? // تذكير التجديد أُرسِل (idempotency للمجدول)
-  createdAt        DateTime      @default(now())
-  endorsements     Endorsement[]
+  pendingApprovals      String[]      @default([])
+  startDate             DateTime?
+  endDate               DateTime?
+  renewalRemindedAt     DateTime? // تذكير التجديد أُرسِل (idempotency للمجدول)
+  createdAt             DateTime      @default(now())
+  endorsements          Endorsement[]
 
   @@index([tenantId])
   @@index([requestId])
@@ -906,6 +917,70 @@ model Complaint {
   @@index([tenantId, status])
 }
 
+// ── مكافحة غسل الأموال وتمويل الإرهاب (AML/CFT) — متطلّب ترخيصي (هيئة التأمين/ساما) ──
+
+// تقييم مخاطر AML لكل عميل (عوامل خطر موزونة ⇒ درجة/مستوى؛ يحكم شدّة العناية الواجبة EDD ودورية المراجعة).
+model AmlRiskAssessment {
+  id           String    @id @default(cuid())
+  tenantId     String
+  tenant       Tenant    @relation(fields: [tenantId], references: [id])
+  clientId     String
+  client       Client    @relation(fields: [clientId], references: [id])
+  level        String // low | medium | high
+  score        Int // 0..100 (مشتقّ من العوامل)
+  factors      Json // { pep, highRiskCountry, cashIntensive, complexStructure, sanctionsHit, adverseMedia, nonResident }
+  rationale    String?
+  assessedById String?
+  reviewDue    DateTime? // موعد إعادة التقييم الدوري
+  createdAt    DateTime  @default(now())
+
+  @@index([tenantId])
+  @@index([tenantId, clientId])
+}
+
+// سجلّ فرز العقوبات/الأشخاص المعرّضين سياسياً (PEP) — كل عملية فرز ونتيجتها والتصرّف حيالها.
+model AmlScreening {
+  id           String   @id @default(cuid())
+  tenantId     String
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+  clientId     String?
+  client       Client?  @relation(fields: [clientId], references: [id])
+  screenedName String
+  lists        String // القوائم المفحوصة (CSV): un,ofac,eu,local,pep
+  result       String // clear | potential_match | confirmed_match
+  matches      Json? // [{ list, matchedName, score, type }]
+  disposition  String   @default("pending") // pending | cleared (إيجابي كاذب) | escalated (تطابق حقيقي ⇒ بلاغ)
+  note         String?
+  screenedById String?
+  createdAt    DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([tenantId, clientId])
+}
+
+// سجلّ بلاغات الاشتباه (STR) المرفوعة للوحدة (SAFIU) — دورة حياة: مسودّة ← مرفوع ← مغلق.
+model SuspiciousReport {
+  id          String    @id @default(cuid())
+  tenantId    String
+  tenant      Tenant    @relation(fields: [tenantId], references: [id])
+  sequenceNo  String? // STR-2026-1001
+  clientId    String?
+  client      Client?   @relation(fields: [clientId], references: [id])
+  indicators  Json // مؤشّرات الاشتباه (مصفوفة رموز)
+  subject     String
+  description String
+  status      String    @default("draft") // draft | filed | closed
+  reference   String? // مرجع البلاغ لدى الوحدة
+  filedAt     DateTime?
+  filedById   String?
+  closedAt    DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+}
+
 // ============================================================
 // المالية — بنية مهيّأة للمرحلة 4ب (المنطق يُبنى لاحقاً)
 // ============================================================
@@ -998,17 +1073,17 @@ model Invoice {
 
 // إشعار مدين/دائن للعميل (يُولَّد عند الاعتماد المالي)
 model DebitNote {
-  id            String   @id @default(cuid())
+  id            String    @id @default(cuid())
   tenantId      String
-  tenant        Tenant   @relation(fields: [tenantId], references: [id])
+  tenant        Tenant    @relation(fields: [tenantId], references: [id])
   sequenceNo    String?
   clientId      String?
   policyId      String?
-  netAmount     Decimal? @db.Decimal(14, 2)
-  vatAmount     Decimal? @db.Decimal(14, 2)
-  settledAmount Decimal  @default(0) @db.Decimal(14, 2) // المُحصَّل من العميل عبر سندات القبض (RCV)
+  netAmount     Decimal?  @db.Decimal(14, 2)
+  vatAmount     Decimal?  @db.Decimal(14, 2)
+  settledAmount Decimal   @default(0) @db.Decimal(14, 2) // المُحصَّل من العميل عبر سندات القبض (RCV)
   settledAt     DateTime? // تاريخ اكتمال التحصيل (settledAmount ≥ الإجمالي)
-  createdAt     DateTime @default(now())
+  createdAt     DateTime  @default(now())
 
   @@index([tenantId])
   @@index([tenantId, clientId])
@@ -1130,28 +1205,28 @@ enum ZatcaOnboardingStatus {
 /// هوية ZATCA التشفيرية وإعدادات الوساطة (broker settings) المستقلّة لكل مستأجر — معزولة منطقياً.
 /// تجمع: بيانات المورِّد + بيانات الاعتماد المشفّرة + حالة التهيئة + عدّاد وتجزئة معزولَين بالمستأجر.
 model TenantZatcaConfig {
-  id                 String                @id @default(cuid())
-  tenantId           String                @unique
-  tenant             Tenant                @relation(fields: [tenantId], references: [id])
-  vatNumber          String // 15 رقماً تبدأ وتنتهي بـ 3 (يُتحقَّق في الخدمة)
-  businessNameAr     String
-  businessNameEn     String?
-  environment        ZatcaEnvironment      @default(SANDBOX)
+  id                String                @id @default(cuid())
+  tenantId          String                @unique
+  tenant            Tenant                @relation(fields: [tenantId], references: [id])
+  vatNumber         String // 15 رقماً تبدأ وتنتهي بـ 3 (يُتحقَّق في الخدمة)
+  businessNameAr    String
+  businessNameEn    String?
+  environment       ZatcaEnvironment      @default(SANDBOX)
   // EGS (حل توليد الفواتير الإلكترونية) + حالة التهيئة
-  egsSerialNumber    String? // رقم تسلسلي فريد لوحدة EGS
-  onboardingStatus   ZatcaOnboardingStatus @default(NOT_STARTED)
+  egsSerialNumber   String? // رقم تسلسلي فريد لوحدة EGS
+  onboardingStatus  ZatcaOnboardingStatus @default(NOT_STARTED)
   // مفاتيح/شهادات مشفّرة at-rest (AES-256-GCM) — تُخزَّن نصاً مشفّراً لا خاماً أبداً
-  privateKeyEnc      String?               @db.Text // المفتاح الخاص (ECDSA secp256k1)
-  csrPem             String?               @db.Text // طلب توقيع الشهادة (CSR)
-  complianceCsidEnc  String?               @db.Text // شهادة الامتثال المؤقتة (CCSID)
-  productionCsidEnc  String?               @db.Text // شهادة الإنتاج الدائمة (PCSID)
-  publicKey          String?               @db.Text
-  lastActivatedAt    DateTime?
+  privateKeyEnc     String?               @db.Text // المفتاح الخاص (ECDSA secp256k1)
+  csrPem            String?               @db.Text // طلب توقيع الشهادة (CSR)
+  complianceCsidEnc String?               @db.Text // شهادة الامتثال المؤقتة (CCSID)
+  productionCsidEnc String?               @db.Text // شهادة الإنتاج الدائمة (PCSID)
+  publicKey         String?               @db.Text
+  lastActivatedAt   DateTime?
   // تسلسل وسلسلة تجزئة معزولان بالمستأجر (anti-tampering)
-  invoiceCounter     Int                   @default(0)
-  lastDocumentHash   String? // تجزئة SHA-256 (Base64) لآخر مستند صادر لهذا المستأجر
-  createdAt          DateTime              @default(now())
-  updatedAt          DateTime              @updatedAt
+  invoiceCounter    Int                   @default(0)
+  lastDocumentHash  String? // تجزئة SHA-256 (Base64) لآخر مستند صادر لهذا المستأجر
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
 
   @@index([tenantId])
 }

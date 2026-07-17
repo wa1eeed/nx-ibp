@@ -718,6 +718,11 @@ curl -X POST http://localhost:4000/staff \
 | `GET` | `/complaints/report` | `compliance:read` | **التقرير التنظيمي**: تجميع بالفئة/الحالة + التزام SLA % + متوسّط زمن المعالجة + المُصعَّدة/المتأخّرة |
 | `GET`/`PUT` | `/complaints/:id` | `compliance:read`/`update` | تفاصيل (+خط زمني) / تحديث حالة/إسناد/أولوية |
 | `POST` | `/complaints/:id/{resolve,escalate,notes}` | `compliance:update` | معالجة `{resolution}` · تصعيد للهيئة · ملاحظة داخلية |
+| `GET` | `/aml/{overview,report}` | `compliance:read` | **AML**: نظرة عامة (توزيع مخاطر/بلا تقييم/فرز معلّق/STR) · تقرير تنظيمي (تغطية % + مؤشّرات) |
+| `GET` | `/aml/clients` · `/aml/clients/:id` | `compliance:read` | سجلّ العملاء بملفّهم الرقابي (فلترة `?level`) · ملفّ AML كامل (تقييمات/فرز/بلاغات) |
+| `POST` | `/aml/clients/:id/assess` | `compliance:update` | **تقييم مخاطر** `{factors, rationale?}` ⇒ درجة/مستوى (عقوبات ⇒ مرتفع حتمًا) + بصمة على العميل + موعد مراجعة |
+| `POST` | `/aml/screen` · `PUT /aml/screenings/:id/disposition` | `compliance:update` | **فرز عقوبات/PEP** `{name\|clientId}` ⇒ نظيف/محتمل/مؤكّد · التصرّف `{disposition}` (إيجابي كاذب/تصعيد) |
+| `GET`/`POST` | `/aml/reports` · `PUT /aml/reports/:id` | `compliance:read`/`create`/`update` | **بلاغات الاشتباه (STR)**: قائمة (فلترة `?status`) / إنشاء `STR-` `{subject,description,indicators,fileNow?}` / حالة (مسودّة⇒مرفوع⇒مغلق) |
 | `GET` | `/staff` | `settings:read` | 200 |
 | `GET` | `/staff/roles` | `settings:read` | 200 |
 | `POST` | `/staff` | `settings:create` | 201 |

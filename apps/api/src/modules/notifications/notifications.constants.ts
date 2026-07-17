@@ -56,6 +56,7 @@ export const NOTIFICATION_TYPES: readonly NotificationTypeDef[] = [
   { key: "staff_service_reply", audience: "staff", module: "service", name: "رد العميل على طلب الخدمة", subject: "رد جديد من العميل", body: "ردّ العميل على طلب الخدمة {ref} — بانتظار المتابعة.", subjectEn: "New reply from client", bodyEn: "The client replied to service request {ref} — awaiting follow-up.", email: true, sms: false },
   { key: "staff_claim_reply", audience: "staff", module: "claims", name: "رد العميل على المطالبة", subject: "رد جديد من العميل على مطالبة", body: "ردّ العميل على المطالبة {ref} — بانتظار المتابعة.", subjectEn: "New reply from client on a claim", bodyEn: "The client replied to claim {ref} — awaiting follow-up.", email: true, sms: false },
   { key: "staff_complaint_created", audience: "staff", module: "compliance", name: "شكوى جديدة", subject: "شكوى جديدة مسجَّلة", body: "سُجِّلت شكوى جديدة {ref} — بانتظار المعالجة ضمن مهلة المعالجة.", subjectEn: "New complaint logged", bodyEn: "A new complaint {ref} was logged — awaiting handling within the resolution SLA.", email: true, sms: false },
+  { key: "staff_aml_alert", audience: "staff", module: "compliance", name: "تنبيه مكافحة غسل الأموال", subject: "تنبيه AML", body: "تنبيه امتثال (AML): {ref} — يتطلّب مراجعة فورية.", subjectEn: "AML alert", bodyEn: "Compliance (AML) alert: {ref} — requires immediate review.", email: true, sms: false },
 ] as const;
 
 export const NOTIFICATION_KEYS = NOTIFICATION_TYPES.map((t) => t.key);

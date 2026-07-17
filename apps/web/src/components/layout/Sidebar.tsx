@@ -32,6 +32,7 @@ import {
   Boxes,
   FolderOpen,
   MessageSquareWarning,
+  ShieldAlert,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -77,6 +78,7 @@ const ICONS: Record<string, LucideIcon> = {
   Boxes,
   FolderOpen,
   MessageSquareWarning,
+  ShieldAlert,
 };
 
 type Perms = Record<string, { access?: boolean }>;

@@ -67,6 +67,12 @@ export class SequenceService {
     return `CMP-${this.year()}-${1001 + count}`;
   }
 
+  /** رقم بلاغ اشتباه (STR): STR-2026-1001 */
+  async nextStrSeq(): Promise<string> {
+    const count = await this.prisma.suspiciousReport.count();
+    return `STR-${this.year()}-${1001 + count}`;
+  }
+
   /** رقم مطالبة: CL-2026-1001 */
   async nextClaimSeq(): Promise<string> {
     const count = await this.prisma.claim.count();
