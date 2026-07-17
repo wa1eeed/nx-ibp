@@ -16,6 +16,7 @@ export type ModuleKey =
   | "premiums"
   | "commissions"
   | "claims"
+  | "complaints"
   | "reports"
   | "targets"
   | "insurers"
@@ -93,6 +94,7 @@ export const TENANT_NAV: NavGroup[] = [
     items: [
       { key: "service", href: "/tenant/service", icon: "Headset", entitlement: "module.service" },
       { key: "claims", href: "/tenant/claims", icon: "ClipboardList", entitlement: "module.claims" },
+      { key: "complaints", href: "/tenant/complaints", icon: "MessageSquareWarning", entitlement: "module.compliance" },
       { key: "documents", href: "/tenant/documents", icon: "FolderOpen", entitlement: "module.clients" },
     ],
   },

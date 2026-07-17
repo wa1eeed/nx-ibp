@@ -46,6 +46,7 @@ import { ProducersModule } from "./modules/producers/producers.module";
 import { FormTemplatesModule } from "./modules/form-templates/form-templates.module";
 import { EmailModule } from "./modules/email/email.module";
 import { PaymentsModule } from "./modules/payments/payments.module";
+import { ComplaintsModule } from "./modules/complaints/complaints.module";
 import { TargetsModule } from "./modules/targets/targets.module";
 import { AuditViewModule } from "./modules/audit/audit.module";
 import { InsurersModule } from "./modules/insurers/insurers.module";
@@ -101,6 +102,7 @@ import { InsurersModule } from "./modules/insurers/insurers.module";
     FormTemplatesModule,
     EmailModule,
     PaymentsModule,
+    ComplaintsModule,
     TargetsModule,
     AuditViewModule,
     InsurersModule,

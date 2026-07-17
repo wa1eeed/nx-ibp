@@ -61,6 +61,12 @@ export class SequenceService {
     return `RQ-${this.year()}-${1001 + count}`;
   }
 
+  /** رقم شكوى: CMP-2026-1001 */
+  async nextComplaintSeq(): Promise<string> {
+    const count = await this.prisma.complaint.count();
+    return `CMP-${this.year()}-${1001 + count}`;
+  }
+
   /** رقم مطالبة: CL-2026-1001 */
   async nextClaimSeq(): Promise<string> {
     const count = await this.prisma.claim.count();

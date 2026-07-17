@@ -66,6 +66,7 @@ model Tenant {
   policyRequests     PolicyRequest[]
   policies           Policy[]
   installments       Installment[]
+  complaints         Complaint[]
   serviceRequests    ServiceRequest[]
   claims             Claim[]
   chartOfAccounts    ChartOfAccount[]
@@ -875,6 +876,34 @@ enum ClaimStatus {
   SETTLED
   CLOSED
   REJECTED
+}
+
+// سجلّ الشكاوى (متطلب هيئة التأمين) — كل شكوى بفئتها ومصدرها ومهلة حلّها (SLA)
+// وإسنادها وتصعيدها للهيئة عند اللزوم. أساس التقرير التنظيمي الدوري.
+model Complaint {
+  id          String    @id @default(cuid())
+  tenantId    String
+  tenant      Tenant    @relation(fields: [tenantId], references: [id])
+  sequenceNo  String? // CMP-2026-1001
+  clientId    String?
+  policyId    String?
+  category    String // pricing | claims | service | sales_conduct | billing | data_privacy | other
+  source      String // phone | email | portal | walk_in | regulator | social
+  subject     String
+  description String
+  status      String    @default("open") // open | investigating | resolved | escalated | closed
+  priority    String    @default("normal") // urgent | high | normal | low
+  assigneeId  String? // الموظف المسؤول
+  dueDate     DateTime? // مهلة الحلّ (SLA)
+  resolution  String? // ملخّص المعالجة
+  resolvedAt  DateTime?
+  escalated   Boolean   @default(false) // صُعِّدت لهيئة التأمين
+  escalatedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([tenantId])
+  @@index([tenantId, status])
 }
 
 // ============================================================

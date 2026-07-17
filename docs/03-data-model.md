@@ -732,6 +732,28 @@ erDiagram
 
 **الفهارس:** `@@index([tenantId])` · `@@index([gatewayChargeId])` · `@@index([clientId])`. **الحتمية:** التسوية تتخطّى ما هو `PAID` فلا يتكرّر السند.
 
+### `Complaint` (سجلّ الشكاوى — §6.1)
+**الغرض:** سجلّ شكاوى العملاء (متطلب هيئة التأمين) — كل شكوى بفئتها ومصدرها ومهلة معالجتها (SLA) وإسنادها وتصعيدها للهيئة، مع تقرير تنظيمي دوري. الملاحظات عبر `CrmActivity(entityType="complaint")`.
+
+| الحقل | النوع | ملاحظة |
+|---|---|---|
+| `id` | String | المفتاح |
+| `tenantId` | String (FK→Tenant) | المستأجر |
+| `sequenceNo` | String? | `CMP-2026-1001` |
+| `clientId` / `policyId` | String? | المراجع (اختياري) |
+| `category` | String | pricing \| claims \| service \| sales_conduct \| billing \| data_privacy \| other |
+| `source` | String | phone \| email \| portal \| walk_in \| regulator \| social |
+| `subject` / `description` | String | الموضوع والوصف |
+| `status` | String | open \| investigating \| resolved \| escalated \| closed |
+| `priority` | String | urgent \| high \| normal \| low |
+| `assigneeId` | String? | الموظف المسؤول |
+| `dueDate` | DateTime? | مهلة المعالجة (SLA — 5 أيام من الاستلام) |
+| `resolution` / `resolvedAt` | String? / DateTime? | ملخّص المعالجة ووقتها |
+| `escalated` / `escalatedAt` | Boolean / DateTime? | التصعيد لهيئة التأمين |
+| `createdAt` / `updatedAt` | DateTime | |
+
+**الفهارس:** `@@index([tenantId])` · `@@index([tenantId, status])`. **التأخّر** مُشتقّ: `dueDate < الآن` وحالة مفتوحة. صلاحية الوصول: وحدة **`compliance`**.
+
 > دالة `sendTenantEmail` تختار المسار: `tenant` المُتحقَّق ⇒ مفتاح المستأجر؛ وإلا **fallback مركزي** بلا انقطاع. مجدول دوري يرقّي `pending`⇒`verified` آليًا.
 
 ### الهوية البصرية (White-label · P0-B)
@@ -860,7 +882,7 @@ erDiagram
 > أُضيفت في مسار ما بعد الاكتمال. كلها معزولة بالمستأجر (FK `tenantId` + Prisma `$use`).
 
 ### الإشعارات
-- **`NotificationSetting`** — إعداد نوع إشعار بمستويين: `tenantId = NULL` ⇒ **افتراضي المنصة** (يديره سوبر أدمن المنصة، يرثه الجميع)؛ قيمة ⇒ **تخصيص شركة**. حقول: `eventKey` · `channelEmail`/`channelSms` · `subject`/`body`. (28 نوعًا (ثنائية اللغة) في `notifications.constants.ts`: 11 عميلًا + 17 موظفًا.)
+- **`NotificationSetting`** — إعداد نوع إشعار بمستويين: `tenantId = NULL` ⇒ **افتراضي المنصة** (يديره سوبر أدمن المنصة، يرثه الجميع)؛ قيمة ⇒ **تخصيص شركة**. حقول: `eventKey` · `channelEmail`/`channelSms` · `subject`/`body`. (29 نوعًا (ثنائية اللغة) في `notifications.constants.ts`: 11 عميلًا + 18 موظفًا.)
 - **`Notification`** — إشعار داخل المنصة (in-app) لمستقبِل واحد: `userId` (موظف) أو `clientId` (عميل بوّابة) · `eventKey` · `audience` (client/staff) · `title`/`body` · `readAt` (NULL = غير مقروء). فهارس `[tenantId, userId, readAt]` و`[tenantId, clientId, readAt]`.
 
 ### CRM (إدارة العلاقات)

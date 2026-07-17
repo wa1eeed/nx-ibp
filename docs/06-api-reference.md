@@ -713,6 +713,10 @@ curl -X POST http://localhost:4000/staff \
 | `GET` | `/claims` · `POST` `/claims` · `POST` `/claims/:id/status` | `claims:*` + `module.claims` | 200/201 |
 | `GET` | `/claims/:id` | `claims:read` + `module.claims` | تفاصيل المطالبة: بيانات العميل (مُخفاة PII بـDLP) + الوثيقة + خطّ زمني بأسماء الكُتّاب |
 | `POST` | `/claims/:id/notes` | `claims:update` + `module.claims` | `{ body, visibility? }` — `internal` (داخلي) أو `client` (رد ظاهر + يُشعِر العميل `claim_reply`) |
+| `GET`/`POST` | `/complaints` | `compliance:read`/`create` | **سجلّ الشكاوى**: قائمة (فلترة `?status&category`) / تسجيل `{category, source, subject, description, priority?, clientId?}` ⇒ `CMP-` + مهلة SLA + إشعار `staff_complaint_created` |
+| `GET` | `/complaints/report` | `compliance:read` | **التقرير التنظيمي**: تجميع بالفئة/الحالة + التزام SLA % + متوسّط زمن المعالجة + المُصعَّدة/المتأخّرة |
+| `GET`/`PUT` | `/complaints/:id` | `compliance:read`/`update` | تفاصيل (+خط زمني) / تحديث حالة/إسناد/أولوية |
+| `POST` | `/complaints/:id/{resolve,escalate,notes}` | `compliance:update` | معالجة `{resolution}` · تصعيد للهيئة · ملاحظة داخلية |
 | `GET` | `/staff` | `settings:read` | 200 |
 | `GET` | `/staff/roles` | `settings:read` | 200 |
 | `POST` | `/staff` | `settings:create` | 201 |
