@@ -735,6 +735,7 @@ curl -X POST http://localhost:4000/staff \
 | `GET` | `/reports/dashboard` | `dashboard:read` | 200 |
 | `GET` | `/reports/commissions` | `finance:read` + `module.finance` | 200 |
 | `GET` | `/reports/production` · `/claims` · `/regulatory` · `/catalog` | `reports:read` + `module.reports` | 200 |
+| `GET` | `/reports/bordereau?insurer&from&to` | `reports:read` + `module.reports` | 200 — كشف المؤمِّن الدوري (صافي للمؤمِّن = إجمالي − عمولة) |
 | `GET` | `/finance/summary` · `/coa` · `/invoices` · `/receivables` | `finance:read` + `module.finance` | 200 |
 | `GET` | `/compliance/overview` | `compliance:read` + `module.compliance` | 200 |
 | `GET` | `/regulatory/status` | `settings:read` | 200 |

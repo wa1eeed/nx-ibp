@@ -92,4 +92,46 @@ describe("التقارير والتحليلات (e2e)", () => {
     // الأمان لديه عمولة واحدة مستحقّة (2240) — أقلّ بكثير من الخليج (78900)
     expect(res.body.kpis.commissions).toBeLessThan(78900);
   });
+
+  // ── كشف المؤمِّن الدوري (Bordereau) — §6.3 ───────────────────────────────
+  it("كشف المؤمِّن: صفوف الوثائق المُصدرة + الصافي للمؤمِّن = الإجمالي − العمولة", async () => {
+    const res = await request(app.getHttpServer()).get("/reports/bordereau").set(auth(gm)).expect(200);
+    expect(Array.isArray(res.body.rows)).toBe(true);
+    expect(res.body.rows.length).toBeGreaterThanOrEqual(1);
+    expect(Array.isArray(res.body.insurers)).toBe(true);
+    for (const r of res.body.rows) {
+      expect(Math.abs(r.netToInsurer - (r.gross - r.commission))).toBeLessThan(0.011);
+    }
+    // المجاميع تساوي مجموع الصفوف
+    const sumNet = res.body.rows.reduce((s: number, r: { netToInsurer: number }) => s + r.netToInsurer, 0);
+    expect(Math.abs(res.body.totals.netToInsurer - sumNet)).toBeLessThan(0.1);
+    expect(res.body.totals.count).toBe(res.body.rows.length);
+  });
+
+  it("كشف المؤمِّن: التصفية بشركة تأمين تُرجع صفوف تلك الشركة فقط", async () => {
+    const all = (await request(app.getHttpServer()).get("/reports/bordereau").set(auth(gm))).body;
+    const insurer = all.insurers[0]?.name as string;
+    expect(insurer).toBeTruthy();
+    const res = await request(app.getHttpServer()).get(`/reports/bordereau?insurer=${encodeURIComponent(insurer)}`).set(auth(gm)).expect(200);
+    expect(res.body.rows.length).toBeGreaterThanOrEqual(1);
+    expect(res.body.rows.every((r: { insurerName: string }) => r.insurerName === insurer)).toBe(true);
+    expect(res.body.rows.length).toBeLessThanOrEqual(all.rows.length);
+  });
+
+  it("كشف المؤمِّن: التصفية بفترة مستقبلية تُرجع صفرًا", async () => {
+    const res = await request(app.getHttpServer()).get("/reports/bordereau?from=2099-01-01&to=2099-12-31").set(auth(gm)).expect(200);
+    expect(res.body.rows.length).toBe(0);
+    expect(res.body.totals.count).toBe(0);
+    expect(res.body.totals.netToInsurer).toBe(0);
+  });
+
+  it("كشف المؤمِّن: عزل — كل مستأجر يرى وثائقه فقط (الأمان ⊄ الخليج)", async () => {
+    const srv = app.getHttpServer();
+    const gulf = (await request(srv).get("/reports/bordereau").set(auth(gm)).expect(200)).body;
+    const aman = (await request(srv).get("/reports/bordereau").set(auth(omar)).expect(200)).body; // module.reports أساسي لكل الباقات
+    const gulfPolicies = new Set(gulf.rows.map((r: { sequenceNo: string }) => r.sequenceNo));
+    // لا تتقاطع أرقام وثائق الأمان مع الخليج
+    expect(aman.rows.every((r: { sequenceNo: string }) => !gulfPolicies.has(r.sequenceNo))).toBe(true);
+    expect(gulf.totals.netToInsurer).not.toBe(aman.totals.netToInsurer);
+  });
 });

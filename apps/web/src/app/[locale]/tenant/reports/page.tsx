@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { TrendingUp, HandCoins, Percent, ShieldAlert, FileBarChart } from "lucide-react";
+import { TrendingUp, HandCoins, Percent, ShieldAlert, FileBarChart, FileSpreadsheet } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { api } from "@/lib/api";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -17,6 +17,13 @@ interface Production {
 interface Claims { byStatus: { status: string; count: number }[]; totalClaimed: number; totalSettled: number; lossRatio: number }
 interface Regulatory { grossWrittenPremium: number; netPremium: number; vat: number; brokerageCommission: number; claimsCount: number; claimsSettled: number; byProductLine: { line: string; premium: number; count: number }[] }
 interface CatalogItem { key: string; name: string; category: string }
+interface BordereauRow { sequenceNo: string; clientName: string; productLine: string | null; insurerName: string | null; startDate: string | null; endDate: string | null; netPremium: number; vat: number; gross: number; commission: number; netToInsurer: number }
+interface Bordereau {
+  insurer: string | null; from: string | null; to: string | null;
+  insurers: { name: string; count: number }[];
+  rows: BordereauRow[];
+  totals: { count: number; netPremium: number; vat: number; gross: number; commission: number; netToInsurer: number };
+}
 
 export default function ReportsPage() {
   const t = useTranslations();
@@ -24,12 +31,26 @@ export default function ReportsPage() {
   const [claims, setClaims] = useState<Claims | null>(null);
   const [reg, setReg] = useState<Regulatory | null>(null);
   const [catalog, setCatalog] = useState<CatalogItem[]>([]);
+  const [bord, setBord] = useState<Bordereau | null>(null);
+  const [bInsurer, setBInsurer] = useState("");
+  const [bFrom, setBFrom] = useState("");
+  const [bTo, setBTo] = useState("");
+
+  const loadBordereau = () => {
+    const qs = new URLSearchParams();
+    if (bInsurer) qs.set("insurer", bInsurer);
+    if (bFrom) qs.set("from", bFrom);
+    if (bTo) qs.set("to", bTo);
+    const q = qs.toString();
+    void api<Bordereau>(`/reports/bordereau${q ? `?${q}` : ""}`).then(setBord).catch(() => undefined);
+  };
 
   useEffect(() => {
     void api<Production>("/reports/production").then(setProd).catch(() => undefined);
     void api<Claims>("/reports/claims").then(setClaims).catch(() => undefined);
     void api<Regulatory>("/reports/regulatory").then(setReg).catch(() => undefined);
     void api<CatalogItem[]>("/reports/catalog").then(setCatalog).catch(() => undefined);
+    void api<Bordereau>("/reports/bordereau").then(setBord).catch(() => undefined);
   }, []);
 
   const fmt = (n: number) => n.toLocaleString("en-US");
@@ -112,6 +133,81 @@ export default function ReportsPage() {
           </dl>
         </section>
       </div>
+
+      {/* كشف المؤمِّن الدوري (Bordereau) */}
+      <section className="rounded-card border border-line bg-card shadow-card">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-3.5">
+          <div className="flex items-center gap-2">
+            <FileSpreadsheet size={17} className="text-primary" />
+            <h2 className="text-[15px] font-semibold text-ink">{t("reports.bordereau.title")}</h2>
+          </div>
+          <div className="flex flex-wrap items-end gap-2">
+            <label className="flex flex-col gap-1">
+              <span className="text-[11px] text-subtle">{t("reports.bordereau.insurer")}</span>
+              <select value={bInsurer} onChange={(e) => setBInsurer(e.target.value)} className="h-9 rounded-lg border border-line bg-surface-2/40 px-2.5 text-[13px] text-ink outline-none focus:border-primary">
+                <option value="">{t("reports.bordereau.allInsurers")}</option>
+                {bord?.insurers.map((i) => <option key={i.name} value={i.name}>{i.name} ({i.count})</option>)}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1">
+              <span className="text-[11px] text-subtle">{t("reports.bordereau.from")}</span>
+              <input type="date" value={bFrom} onChange={(e) => setBFrom(e.target.value)} className="h-9 rounded-lg border border-line bg-surface-2/40 px-2.5 text-[13px] text-ink outline-none focus:border-primary" />
+            </label>
+            <label className="flex flex-col gap-1">
+              <span className="text-[11px] text-subtle">{t("reports.bordereau.to")}</span>
+              <input type="date" value={bTo} onChange={(e) => setBTo(e.target.value)} className="h-9 rounded-lg border border-line bg-surface-2/40 px-2.5 text-[13px] text-ink outline-none focus:border-primary" />
+            </label>
+            <button onClick={loadBordereau} className="h-9 rounded-lg bg-primary px-4 text-[13px] font-medium text-white hover:bg-primary/90">{t("reports.bordereau.apply")}</button>
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[860px]">
+            <thead>
+              <tr className="border-b border-line text-[11.5px] text-subtle">
+                <th className="px-4 py-2.5 text-start font-medium">{t("reports.bordereau.col.policy")}</th>
+                <th className="px-4 py-2.5 text-start font-medium">{t("reports.bordereau.col.client")}</th>
+                <th className="px-4 py-2.5 text-start font-medium">{t("reports.bordereau.col.line")}</th>
+                <th className="px-4 py-2.5 text-start font-medium">{t("reports.bordereau.col.insurer")}</th>
+                <th className="px-4 py-2.5 text-end font-medium">{t("reports.bordereau.col.net")}</th>
+                <th className="px-4 py-2.5 text-end font-medium">{t("reports.bordereau.col.vat")}</th>
+                <th className="px-4 py-2.5 text-end font-medium">{t("reports.bordereau.col.gross")}</th>
+                <th className="px-4 py-2.5 text-end font-medium">{t("reports.bordereau.col.commission")}</th>
+                <th className="px-4 py-2.5 text-end font-medium">{t("reports.bordereau.col.netToInsurer")}</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-line">
+              {bord?.rows.map((r) => (
+                <tr key={r.sequenceNo} className="text-[12.5px]">
+                  <td className="px-4 py-2.5 font-medium text-ink tnum">{r.sequenceNo}</td>
+                  <td className="px-4 py-2.5 text-ink">{r.clientName}</td>
+                  <td className="px-4 py-2.5 text-muted">{r.productLine ?? "—"}</td>
+                  <td className="px-4 py-2.5 text-muted">{r.insurerName ?? "—"}</td>
+                  <td className="px-4 py-2.5 text-end text-ink tnum">{fmt(r.netPremium)}</td>
+                  <td className="px-4 py-2.5 text-end text-muted tnum">{fmt(r.vat)}</td>
+                  <td className="px-4 py-2.5 text-end text-ink tnum">{fmt(r.gross)}</td>
+                  <td className="px-4 py-2.5 text-end text-danger tnum">{fmt(r.commission)}</td>
+                  <td className="px-4 py-2.5 text-end font-semibold text-success tnum">{fmt(r.netToInsurer)}</td>
+                </tr>
+              ))}
+              {bord && bord.rows.length === 0 && (
+                <tr><td colSpan={9} className="px-4 py-8 text-center text-[13px] text-subtle">{t("reports.bordereau.empty")}</td></tr>
+              )}
+            </tbody>
+            {bord && bord.rows.length > 0 && (
+              <tfoot>
+                <tr className="border-t-2 border-line bg-surface-2/30 text-[12.5px] font-semibold text-ink">
+                  <td className="px-4 py-3" colSpan={4}>{t("reports.bordereau.total")} <span className="text-subtle tnum">({bord.totals.count})</span></td>
+                  <td className="px-4 py-3 text-end tnum">{fmt(bord.totals.netPremium)}</td>
+                  <td className="px-4 py-3 text-end tnum">{fmt(bord.totals.vat)}</td>
+                  <td className="px-4 py-3 text-end tnum">{fmt(bord.totals.gross)}</td>
+                  <td className="px-4 py-3 text-end text-danger tnum">{fmt(bord.totals.commission)}</td>
+                  <td className="px-4 py-3 text-end text-success tnum">{fmt(bord.totals.netToInsurer)}</td>
+                </tr>
+              </tfoot>
+            )}
+          </table>
+        </div>
+      </section>
 
       {/* كتالوج التقارير الـ12 */}
       <section className="rounded-card border border-line bg-card shadow-card">

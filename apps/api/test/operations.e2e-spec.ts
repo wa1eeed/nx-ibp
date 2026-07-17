@@ -119,11 +119,19 @@ describe("الموديولز التشغيلية (e2e)", () => {
     const srv = app.getHttpServer();
     const due = (await request(srv).get("/renewals?days=120").set(auth(underwriter))).body as Array<{ id: string }>;
     expect(due.length).toBeGreaterThan(0);
-    const policyId = due[0].id;
-    const res = await request(srv).post(`/renewals/${policyId}/initiate`).set(auth(underwriter)).expect(201);
-    expect(res.body.sequenceNo).toMatch(/^SL-/); // طلب تأمين جديد (لا مجرّد تذكرة RQ)
-    expect(res.body.status).toBe("DRAFT");
-    // منع التكرار: طلب تجديد قائم لنفس الوثيقة ⇒ 409
+    // اختر أول وثيقة قابلة للتجديد فعلًا — قد يكون لبعض الوثائق طلب تجديد قائم مسبقًا
+    // (بيانات عرض واقعية أو تشغيل سابق للاختبار)؛ نتخطّاها ونتحقّق أنها تُرفض بـ409.
+    let created: { body: { sequenceNo?: string; status?: string } } | null = null;
+    let policyId = "";
+    for (const d of due) {
+      const r = await request(srv).post(`/renewals/${d.id}/initiate`).set(auth(underwriter));
+      if (r.status === 201) { created = r; policyId = d.id; break; }
+      expect(r.status).toBe(409); // الحالة الوحيدة المقبولة عدا 201: «طلب تجديد قائم»
+    }
+    expect(created).not.toBeNull();
+    expect(created!.body.sequenceNo).toMatch(/^SL-/); // طلب تأمين جديد (لا مجرّد تذكرة RQ)
+    expect(created!.body.status).toBe("DRAFT");
+    // منع التكرار: إعادة بدء التجديد لنفس الوثيقة ⇒ 409
     await request(srv).post(`/renewals/${policyId}/initiate`).set(auth(underwriter)).expect(409);
   });
 

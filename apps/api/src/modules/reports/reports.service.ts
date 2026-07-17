@@ -128,6 +128,43 @@ export class ReportsService {
     };
   }
 
+  /**
+   * **كشف المؤمِّن الدوري (Bordereau)** (§6.3) — وثائق مؤمِّن مُصدَرة خلال فترة، بصافي التوريد
+   * (الإجمالي − عمولة الوسيط). أساس تسوية الوسيط مع المؤمِّن وكشوف التقديم التنظيمي الدورية.
+   */
+  async bordereau(insurer?: string, from?: string, to?: string) {
+    const r2 = (n: number) => Math.round(n * 100) / 100;
+    const fromD = from ? new Date(from) : null;
+    const toD = to ? new Date(`${to}T23:59:59.999Z`) : null;
+    const where = {
+      status: "ISSUED" as const,
+      ...(insurer ? { insurerName: insurer } : {}),
+      ...(fromD || toD ? { createdAt: { ...(fromD ? { gte: fromD } : {}), ...(toD ? { lte: toD } : {}) } } : {}),
+    };
+    const policies = await this.prisma.policy.findMany({
+      where,
+      orderBy: { createdAt: "asc" },
+      select: { sequenceNo: true, clientId: true, insurerName: true, productLineCode: true, premium: true, vat: true, totalPremium: true, commissionAmount: true, startDate: true, endDate: true },
+    });
+    const clientIds = [...new Set(policies.map((p) => p.clientId).filter((x): x is string => !!x))];
+    const clients = clientIds.length ? await this.prisma.client.findMany({ where: { id: { in: clientIds } }, select: { id: true, name: true } }) : [];
+    const nameOf = Object.fromEntries(clients.map((c) => [c.id, c.name]));
+    const rows = policies.map((p) => {
+      const net = this.num(p.premium), vat = this.num(p.vat);
+      const gross = this.num(p.totalPremium) || r2(net + vat);
+      const commission = this.num(p.commissionAmount);
+      return { sequenceNo: p.sequenceNo, clientName: p.clientId ? (nameOf[p.clientId] ?? "—") : "—", productLine: p.productLineCode, insurerName: p.insurerName, startDate: p.startDate, endDate: p.endDate, netPremium: net, vat, gross, commission, netToInsurer: r2(gross - commission) };
+    });
+    const sum = (f: (r: (typeof rows)[number]) => number) => r2(rows.reduce((s, x) => s + f(x), 0));
+    const insurersGroup = await this.prisma.policy.groupBy({ by: ["insurerName"], where: { status: "ISSUED" }, _count: true });
+    return {
+      insurer: insurer ?? null, from: from ?? null, to: to ?? null,
+      insurers: insurersGroup.map((g) => ({ name: g.insurerName ?? "—", count: g._count })).sort((a, b) => b.count - a.count),
+      rows,
+      totals: { count: rows.length, netPremium: sum((r) => r.netPremium), vat: sum((r) => r.vat), gross: sum((r) => r.gross), commission: sum((r) => r.commission), netToInsurer: sum((r) => r.netToInsurer) },
+    };
+  }
+
   /** كتالوج التقارير الـ12 المنصوص عليها (BLUEPRINT §3.8) — وصفية للواجهة. */
   catalog() {
     return [

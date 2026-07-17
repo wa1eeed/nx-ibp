@@ -272,6 +272,27 @@
       "claims": "Claims",
       "compliance": "Compliance",
       "regulatory": "Regulatory"
+    },
+    "bordereau": {
+      "title": "Insurer bordereau",
+      "insurer": "Insurer",
+      "allInsurers": "All insurers",
+      "from": "From",
+      "to": "To",
+      "apply": "Apply",
+      "empty": "No policies match the criteria.",
+      "total": "Total",
+      "col": {
+        "policy": "Policy no.",
+        "client": "Client",
+        "line": "Line",
+        "insurer": "Insurer",
+        "net": "Net premium",
+        "vat": "VAT",
+        "gross": "Gross",
+        "commission": "Commission",
+        "netToInsurer": "Net to insurer"
+      }
     }
   },
   "finance": {

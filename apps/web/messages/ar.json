@@ -272,6 +272,27 @@
       "claims": "مطالبات",
       "compliance": "التزام",
       "regulatory": "تنظيمي"
+    },
+    "bordereau": {
+      "title": "كشف المؤمِّن الدوري (Bordereau)",
+      "insurer": "شركة التأمين",
+      "allInsurers": "كل الشركات",
+      "from": "من",
+      "to": "إلى",
+      "apply": "تطبيق",
+      "empty": "لا توجد وثائق مطابقة للمعايير.",
+      "total": "الإجمالي",
+      "col": {
+        "policy": "رقم الوثيقة",
+        "client": "العميل",
+        "line": "الفرع",
+        "insurer": "شركة التأمين",
+        "net": "القسط الصافي",
+        "vat": "ض.ق.م",
+        "gross": "الإجمالي",
+        "commission": "العمولة",
+        "netToInsurer": "الصافي للمؤمِّن"
+      }
     }
   },
   "finance": {

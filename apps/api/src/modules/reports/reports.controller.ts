@@ -1,4 +1,4 @@
-import { Controller, Get } from "@nestjs/common";
+import { Controller, Get, Query } from "@nestjs/common";
 import { ReportsService } from "./reports.service";
 import { Authorize } from "../rbac/authorize.decorator";
 
@@ -42,6 +42,13 @@ export class ReportsController {
   @Authorize({ module: "reports", action: "read", entitlement: "module.reports" })
   regulatory() {
     return this.reports.regulatory();
+  }
+
+  // كشف المؤمِّن الدوري (Bordereau) — متطلّب تنظيمي/تسوية
+  @Get("bordereau")
+  @Authorize({ module: "reports", action: "read", entitlement: "module.reports" })
+  bordereau(@Query("insurer") insurer?: string, @Query("from") from?: string, @Query("to") to?: string) {
+    return this.reports.bordereau(insurer, from, to);
   }
 
   @Get("catalog")
