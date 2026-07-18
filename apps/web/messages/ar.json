@@ -275,6 +275,34 @@
       "regulatory": "تنظيمي"
     },
     "exportCsv": "تصدير CSV",
+    "scheduled": {
+      "title": "التقارير المجدولة",
+      "subtitle": "أرسِل ملخّص تقرير دوريًا بالبريد لإدارة الشركة",
+      "reportKey": "التقرير",
+      "frequency": "الدورية",
+      "recipients": "المستلمون (بريد)",
+      "recipientsHint": "بريد أو أكثر مفصولة بفاصلة",
+      "add": "جدولة",
+      "sendNow": "إرسال الآن",
+      "sent": "أُرسل",
+      "active": "مُفعَّل",
+      "inactive": "مُعطَّل",
+      "nextRun": "الإرسال القادم",
+      "lastSent": "آخر إرسال",
+      "never": "لم يُرسَل",
+      "remove": "حذف",
+      "empty": "لا تقارير مجدولة — أضِف جدولًا أعلاه",
+      "error": "تعذّرت العملية",
+      "report": {
+        "dashboard": "ملخّص لوحة التحكّم",
+        "commissions": "تقرير العمولات",
+        "bordereau": "كشف المؤمِّن الدوري"
+      },
+      "freq": {
+        "weekly": "أسبوعي",
+        "monthly": "شهري"
+      }
+    },
     "bordereau": {
       "title": "كشف المؤمِّن الدوري (Bordereau)",
       "insurer": "شركة التأمين",

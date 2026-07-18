@@ -7,6 +7,7 @@ import { api, downloadFile } from "@/lib/api";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatCard } from "@/components/ui/StatCard";
 import { Badge, type BadgeTone } from "@/components/ui/Badge";
+import { ScheduledReports } from "@/components/reports/ScheduledReports";
 
 interface Production {
   totalGwp: number; netPremium: number; vat: number; commission: number; policyCount: number;
@@ -209,6 +210,9 @@ export default function ReportsPage() {
           </table>
         </div>
       </section>
+
+      {/* §7.3 — التقارير المجدولة/بالبريد */}
+      <ScheduledReports />
 
       {/* كتالوج التقارير الـ12 */}
       <section className="rounded-card border border-line bg-card shadow-card">

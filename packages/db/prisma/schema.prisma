@@ -74,6 +74,7 @@ model Tenant {
   bankAccounts         BankAccount[]
   bankTransactions     BankTransaction[]
   budgetLines          BudgetLine[]
+  reportSchedules      ReportSchedule[]
   serviceRequests      ServiceRequest[]
   claims               Claim[]
   chartOfAccounts      ChartOfAccount[]
@@ -1063,6 +1064,26 @@ model BudgetLine {
 
   @@unique([tenantId, fiscalYear, period, accountCode])
   @@index([tenantId, fiscalYear])
+}
+
+/// §7.3 — تقرير مجدول يُرسَل دوريًا بالبريد لإدارة الشركة (ملخّص + رابط للتقرير الكامل).
+/// يُوزَّع عبر مجدول التذكيرات اليومي عند حلول `nextRunAt`. معزول بالمستأجر.
+model ReportSchedule {
+  id         String    @id @default(cuid())
+  tenantId   String
+  tenant     Tenant    @relation(fields: [tenantId], references: [id])
+  reportKey  String // dashboard | commissions | bordereau
+  frequency  String // weekly | monthly
+  recipients String[] // بريد المستلمين (إدارة الشركة)
+  isActive   Boolean   @default(true)
+  lastSentAt DateTime?
+  nextRunAt  DateTime // موعد الإرسال القادم (يُحسب عند الإنشاء ويُقدَّم بعد كل إرسال)
+  createdBy  String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([tenantId])
+  @@index([isActive, nextRunAt])
 }
 
 // مذكرة التغطية المؤقتة (Cover Note / Binder — §4.2): تغطية فورية عند أمر الإسناد قبل إصدار الوثيقة،

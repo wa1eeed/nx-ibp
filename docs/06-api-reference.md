@@ -784,6 +784,8 @@ curl -X POST http://localhost:4000/staff \
 | `GET` | `/reports/production` · `/claims` · `/regulatory` · `/catalog` | `reports:read` + `module.reports` | 200 |
 | `GET` | `/reports/bordereau?insurer&from&to` | `reports:read` + `module.reports` | 200 — كشف المؤمِّن الدوري (صافي للمؤمِّن = إجمالي − عمولة) |
 | `GET` | `/reports/export/:key?insurer&from&to` | `reports:read` + `module.reports` | **تصدير CSV** (§7.1): `text/csv` + BOM (Excel عربي) + `Content-Disposition`. المفاتيح: `bordereau`/`commissions`؛ غيرها ⇒ 400 |
+| `GET`/`POST` | `/reports/schedules` · `…/:id/run-now` | `reports:read/create/update` + `module.reports` | **التقارير المجدولة** (§7.3): سرد/إنشاء `{ reportKey, frequency: weekly\|monthly, recipients[] }` (قيمة غير مدعومة/بريد غير صالح ⇒ 400) · **«إرسال الآن»** يوزّع فورًا |
+| `PATCH`/`DELETE` | `/reports/schedules/:id` | `reports:update/delete` + `module.reports` | تعديل (دورية/مستلمون/تفعيل) / حذف. التوزيع الدوري عبر مجدول التذكيرات اليومي عند حلول `nextRunAt` |
 | `GET` | `/finance/summary` · `/coa` · `/invoices` · `/receivables` | `finance:read` + `module.finance` | 200 |
 | `GET` | `/compliance/overview` | `compliance:read` + `module.compliance` | 200 |
 | `GET` | `/regulatory/status` | `settings:read` | 200 |

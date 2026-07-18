@@ -275,6 +275,34 @@
       "regulatory": "Regulatory"
     },
     "exportCsv": "Export CSV",
+    "scheduled": {
+      "title": "Scheduled reports",
+      "subtitle": "Email a periodic report summary to company management",
+      "reportKey": "Report",
+      "frequency": "Frequency",
+      "recipients": "Recipients (email)",
+      "recipientsHint": "One or more emails, comma-separated",
+      "add": "Schedule",
+      "sendNow": "Send now",
+      "sent": "Sent",
+      "active": "Active",
+      "inactive": "Inactive",
+      "nextRun": "Next run",
+      "lastSent": "Last sent",
+      "never": "Never",
+      "remove": "Delete",
+      "empty": "No scheduled reports — add one above",
+      "error": "Operation failed",
+      "report": {
+        "dashboard": "Dashboard summary",
+        "commissions": "Commissions report",
+        "bordereau": "Insurer bordereau"
+      },
+      "freq": {
+        "weekly": "Weekly",
+        "monthly": "Monthly"
+      }
+    },
     "bordereau": {
       "title": "Insurer bordereau",
       "insurer": "Insurer",

@@ -3,6 +3,7 @@ import { Cron, CronExpression } from "@nestjs/schedule";
 import { PrismaService } from "../../prisma/prisma.service";
 import { RequestContextService } from "../../common/request-context/request-context.service";
 import { NotificationsService } from "../notifications/notifications.service";
+import { ReportSchedulesService } from "../reports/report-schedules.service";
 
 /**
  * مجدول التذكيرات الدورية (cron داخلي عبر @nestjs/schedule).
@@ -27,13 +28,14 @@ export class RemindersService {
     private readonly prisma: PrismaService,
     private readonly ctx: RequestContextService,
     private readonly notifications: NotificationsService,
+    private readonly reportSchedules: ReportSchedulesService,
   ) {}
 
   /** المسح اليومي — كل المستأجرين. الوقت الفعلي (بيئة تشغيل، لا اختبار). */
   @Cron(CronExpression.EVERY_DAY_AT_8AM, { name: "reminders-daily" })
   async runDaily(): Promise<void> {
     const r = await this.sweep(new Date());
-    this.logger.log(`تذكيرات يومية: ${r.tasks} مهمّة مستحقّة · ${r.renewals} وثيقة للتجديد · ${r.installments} قسط مستحقّ`);
+    this.logger.log(`تذكيرات يومية: ${r.tasks} مهمّة مستحقّة · ${r.renewals} وثيقة للتجديد · ${r.installments} قسط مستحقّ · ${r.reports} تقرير مجدول`);
   }
 
   /**
@@ -41,13 +43,16 @@ export class RemindersService {
    * @param now الزمن المرجعي (يُمرَّر صراحةً للحتمية والاختبار).
    * @param tenantId إن حُدِّد، يُقصَر المسح على مستأجر واحد (التشغيل اليدوي من داخل الشركة).
    */
-  async sweep(now: Date, tenantId?: string): Promise<{ tasks: number; renewals: number; installments: number }> {
-    return this.ctx.run({}, async () => {
+  async sweep(now: Date, tenantId?: string): Promise<{ tasks: number; renewals: number; installments: number; reports: number }> {
+    const core = await this.ctx.run({}, async () => {
       const tasks = await this.remindDueTasks(now, tenantId);
       const renewals = await this.remindDueRenewals(now, tenantId);
       const installments = await this.remindDueInstallments(now, tenantId);
       return { tasks, renewals, installments };
     });
+    // §7.3 — التقارير المجدولة المستحقّة (تدير سياق المستأجر داخليًا لكل جدول)
+    const reports = await this.reportSchedules.dispatchDue(now, tenantId);
+    return { ...core, reports };
   }
 
   /** أقساط بلغت الاستحقاق ولم تُسدَّد ولم تُذكَّر ⇒ تذكير العميل (`installment_due`). حتمية بـ`remindedAt`. */
