@@ -6,6 +6,7 @@ import { SettleInsurerDto } from "./dto/settle-insurer.dto";
 import { CreateJournalDto } from "./dto/create-journal.dto";
 import { SettleCommissionDto } from "./dto/settle-commission.dto";
 import { CreateInstallmentPlanDto } from "./dto/installments.dto";
+import { RefundCreditNoteDto } from "./dto/refund-credit-note.dto";
 import { Authorize } from "../rbac/authorize.decorator";
 import { CurrentUser } from "../auth/current-user.decorator";
 
@@ -111,6 +112,28 @@ export class FinanceController {
   @Get("invoices/:id/document")
   invoiceDocument(@CurrentUser("tenantId") tenantId: string, @Param("id") id: string) {
     return this.finance.invoiceDocument(tenantId, id);
+  }
+
+  // مستند سند مطبوع (قبض/صرف/يومية) — §1.7
+  @Authorize({ module: "finance", action: "read", entitlement: "module.finance" })
+  @Get("vouchers/:id/document")
+  voucherDocument(@CurrentUser("tenantId") tenantId: string, @Param("id") id: string) {
+    return this.finance.voucherDocument(tenantId, id);
+  }
+
+  // الإشعارات الدائنة على العملاء (CNP) + حالة الصرف — §1.7
+  @Authorize({ module: "finance", action: "read", entitlement: "module.finance" })
+  @Get("credit-notes")
+  creditNotes() {
+    return this.finance.creditNotes();
+  }
+
+  // صرف مرتجع فعلي للعميل مقابل إشعار دائن (CNP) — §1.7
+  @Authorize({ module: "finance", action: "create", entitlement: "module.finance" })
+  @HttpCode(201)
+  @Post("credit-notes/:id/refund")
+  refundCreditNote(@CurrentUser("tenantId") tenantId: string, @CurrentUser("userId") userId: string, @Param("id") id: string, @Body() dto: RefundCreditNoteDto) {
+    return this.finance.refundCreditNote(tenantId, userId, id, dto);
   }
 
   @Authorize({ module: "finance", action: "read", entitlement: "module.finance" })

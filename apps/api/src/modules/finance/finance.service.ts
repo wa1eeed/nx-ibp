@@ -137,6 +137,80 @@ export class FinanceService {
     };
   }
 
+  /**
+   * بيانات المستند المطبوع لسند (قبض RCV / صرف PYV / يومية JRV) — تُصيَّر في الواجهة.
+   * يجمع هوية المستأجر + أطراف القيد + الطرف المقابل (عميل/مؤمِّن) والوصف وطريقة الدفع.
+   */
+  async voucherDocument(tenantId: string, id: string) {
+    const v = await this.prisma.voucher.findFirst({ where: { id }, select: { id: true, type: true, sequenceNo: true, amount: true, status: true, reference: true, lines: true, createdAt: true } });
+    if (!v) throw new NotFoundException("السند غير موجود");
+    const tenant = await this.prisma.tenant.findFirst({ where: { id: tenantId }, select: { name: true, nameEn: true, crNumber: true, vatNumber: true, phone: true, buildingNo: true, street: true, district: true, city: true, postalCode: true } });
+    const lines = (v.lines ?? {}) as { description?: string; method?: string; ref?: string | null; clientId?: string | null; entries?: Array<{ account?: string; name?: string; debit?: number; credit?: number }> };
+    // الطرف المقابل: عميل (من lines.clientId) أو مؤمِّن (RCV/PYV مرجعه اسم المؤمِّن)
+    let partyName: string | null = null;
+    let partyType: "client" | "insurer" | null = null;
+    if (lines.clientId) {
+      const client = await this.prisma.client.findFirst({ where: { id: lines.clientId }, select: { name: true } });
+      partyName = client?.name ?? null; partyType = "client";
+    } else if (v.type === "PYV" && v.reference) { partyName = v.reference; partyType = "insurer"; }
+    return {
+      voucher: {
+        id: v.id, type: v.type, sequenceNo: v.sequenceNo, amount: num(v.amount), status: v.status,
+        description: lines.description ?? null, method: lines.method ?? null, ref: lines.ref ?? null,
+        issuedAt: new Date(v.createdAt).toISOString(),
+      },
+      seller: { name: tenant?.name ?? "—", nameEn: tenant?.nameEn ?? null, vatNumber: tenant?.vatNumber ?? null, crNumber: tenant?.crNumber ?? null, phone: tenant?.phone ?? null, address: { buildingNo: tenant?.buildingNo ?? null, street: tenant?.street ?? null, district: tenant?.district ?? null, city: tenant?.city ?? null, postalCode: tenant?.postalCode ?? null } },
+      party: partyName ? { name: partyName, type: partyType } : null,
+      entries: (lines.entries ?? []).map((e) => ({ account: e.account ?? "—", name: e.name ?? "—", debit: e.debit ?? 0, credit: e.credit ?? 0 })),
+    };
+  }
+
+  /**
+   * **صرف مرتجع فعلي للعميل** (§1.7): الإشعار الدائن (CNP) خفّض الذمّة فقط؛ هذا السند يدفع المبلغ نقدًا
+   * (مدين ذمم العملاء = يُصفّي الرصيد الدائن · دائن النقد = خروج نقدي). يُعلَّم الإشعار «مصروف».
+   */
+  async refundCreditNote(tenantId: string, userId: string, creditNoteId: string, dto: { method?: string; reference?: string }) {
+    const cn = await this.prisma.creditNote.findFirst({ where: { id: creditNoteId } });
+    if (!cn) throw new NotFoundException("الإشعار الدائن غير موجود");
+    if (cn.kind !== "CNP" || !cn.clientId) throw new BadRequestException("الصرف يخصّ الإشعارات الدائنة على العملاء فقط");
+    if (cn.refundedAt) throw new ConflictException("سبق صرف هذا المرتجع");
+    const amount = r2(num(cn.netAmount) + num(cn.vatAmount));
+    if (amount <= 0) throw new BadRequestException("مبلغ المرتجع غير صالح");
+    const seq = await this.seq.nextVoucherSeq("PYV");
+    const result = await this.prisma.$transaction(async (tx) => {
+      const voucher = await tx.voucher.create({
+        data: {
+          tenantId, type: "PYV", sequenceNo: seq, amount, status: "posted", isAuto: false, reference: creditNoteId,
+          lines: asJson({
+            description: `صرف مرتجع للعميل مقابل الإشعار الدائن ${cn.sequenceNo ?? creditNoteId}`,
+            method: dto.method ?? "transfer", ref: dto.reference ?? null, clientId: cn.clientId,
+            entries: [
+              { account: "01030000000000000", name: "ذمم العملاء المدينة", debit: amount, credit: 0 },
+              { account: "01010000000000000", name: "النقد والبنوك", debit: 0, credit: amount },
+            ],
+          }),
+        },
+        select: { id: true, sequenceNo: true, amount: true },
+      });
+      await tx.creditNote.update({ where: { id: creditNoteId }, data: { refundedAt: new Date(), refundVoucherId: voucher.id } });
+      return voucher;
+    });
+    await this.audit.log({ tenantId, userId, action: "create", entity: "credit_note_refund", entityId: creditNoteId, meta: { voucher: seq, amount } });
+    return { creditNoteId, voucher: { id: result.id, sequenceNo: result.sequenceNo, amount: num(result.amount) }, refunded: true };
+  }
+
+  /** الإشعارات الدائنة على العملاء (CNP) — مع حالة صرف المرتجع (لواجهة الصرف). */
+  async creditNotes() {
+    const rows = await this.prisma.creditNote.findMany({ where: { kind: "CNP", clientId: { not: null } }, orderBy: { createdAt: "desc" }, take: 500 });
+    const ids = [...new Set(rows.map((r) => r.clientId).filter((x): x is string => !!x))];
+    const clients = ids.length ? await this.prisma.client.findMany({ where: { id: { in: ids } }, select: { id: true, name: true } }) : [];
+    const nameOf = Object.fromEntries(clients.map((c) => [c.id, c.name]));
+    return rows.map((r) => ({
+      id: r.id, sequenceNo: r.sequenceNo, clientName: r.clientId ? (nameOf[r.clientId] ?? "—") : null,
+      total: r2(num(r.netAmount) + num(r.vatAmount)), refundedAt: r.refundedAt, refundVoucherId: r.refundVoucherId, policyId: r.policyId, createdAt: r.createdAt,
+    }));
+  }
+
   /** الذمم المدينة (المستحقّ على العملاء) من إشعارات المدين، مُجمّعة حسب العميل. */
   async receivables() {
     const [notes, credits] = await Promise.all([

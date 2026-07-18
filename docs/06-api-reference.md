@@ -663,6 +663,9 @@ curl -X POST http://localhost:4000/staff \
 | GET | `/finance/receivables` · `/finance/summary` | finance:read | تعيدان **المتبقّي بعد التحصيل والإشعارات الدائنة** + `collected` + `creditNotes` + `serviceFees` + حالة كل إشعار + `hasPlan` + **أعمار الذمم** (`aging` شرائح 0–30/31–60/61–90/+90 + `agingByClient` + `ageDays` لكل إشعار) |
 | GET | `/finance/invoices` | finance:read | الفواتير الضريبية مع `kind` (COMMISSION على المؤمِّن / FEES على العميل) + `party` (الطرف) + حزمة ZATCA |
 | GET | `/finance/invoices/:id/document` | finance:read | **بيانات وثيقة الفاتورة المطبوعة** (بائع/طرف/بنود/ZATCA) لتوليد فاتورة PDF بهوية المستأجر — مجهولة ⇒ 404 |
+| GET | `/finance/vouchers/:id/document` | finance:read | **مستند السند المطبوع** (§1.7) — سند قبض/صرف/يومية بهوية المستأجر + الطرف المقابل + أطراف القيد · مجهول ⇒ 404 |
+| GET | `/finance/credit-notes` | finance:read | الإشعارات الدائنة على العملاء (CNP) + حالة صرف المرتجع (`refundedAt`/`refundVoucherId`) |
+| POST | `/finance/credit-notes/:id/refund` | finance:create | **صرف مرتجع فعلي للعميل** (§1.7): `{ method?, reference? }` ⇒ سند PYV (مدين 0103/دائن 0101) + تعليم CNP «مصروف». تكرار ⇒ 409 · غير CNP ⇒ 400 |
 
 **تصويب اتجاه الفاتورة:** الاعتماد المالي يُصدِر فاتورة **العمولة على المؤمِّن** (`kind=COMMISSION`) و—عند وجود `policyFees`—فاتورة **رسوم الخدمة على العميل** (`kind=FEES`، إيراد COA `04020` + ضريبة مخرجات 15%)، وتُضاف الرسوم لإشعار مدين العميل. بوّابة العميل تعرض فواتير رسومه فقط.
 

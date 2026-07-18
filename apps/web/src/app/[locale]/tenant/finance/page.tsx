@@ -654,7 +654,59 @@ function ReceivablesTab({ data, onPlan }: { data: Receivables | null; onPlan: (n
       <Pagination page={page.page} pageCount={page.pageCount} total={page.total} from={page.from} to={page.to} onPage={page.setPage} />
       <p className="border-t border-line px-5 py-2 text-[10.5px] leading-relaxed text-subtle">{t("finance.installments.note")}</p>
     </section>
+
+    <RefundsSection />
     </div>
+  );
+}
+
+/** المرتجعات: الإشعارات الدائنة على العملاء (CNP) — صرف المرتجع فعليًا + طباعة سند الصرف (§1.7). */
+function RefundsSection() {
+  const t = useTranslations("finance.refunds");
+  const m = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  interface CreditNote { id: string; sequenceNo: string | null; clientName: string | null; total: number; refundedAt: string | null; refundVoucherId: string | null; createdAt: string }
+  const [rows, setRows] = useState<CreditNote[]>([]);
+  const [busy, setBusy] = useState("");
+  const load = useCallback(() => { void api<CreditNote[]>("/finance/credit-notes").then(setRows).catch(() => setRows([])); }, []);
+  useEffect(() => { load(); }, [load]);
+  async function refund(id: string) {
+    setBusy(id);
+    try { await api(`/finance/credit-notes/${id}/refund`, { method: "POST", body: JSON.stringify({ method: "transfer" }) }); load(); }
+    finally { setBusy(""); }
+  }
+  if (rows.length === 0) return null;
+  return (
+    <section className="overflow-hidden rounded-card border border-line bg-card shadow-card">
+      <div className="border-b border-line px-5 py-3 text-[14px] font-semibold text-ink">{t("title")}</div>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[560px]">
+          <thead><tr className="border-b border-line text-[11px] uppercase tracking-wide text-subtle">
+            <th className="px-5 py-3 text-start font-semibold">{t("no")}</th>
+            <th className="px-4 py-3 text-start font-semibold">{t("client")}</th>
+            <th className="px-4 py-3 text-end font-semibold">{t("amount")}</th>
+            <th className="px-4 py-3 text-center font-semibold">{t("status")}</th>
+            <th className="px-4 py-3 text-end font-semibold"></th>
+          </tr></thead>
+          <tbody className="divide-y divide-line">
+            {rows.map((r) => (
+              <tr key={r.id} className="hover:bg-surface-2/60">
+                <td className="px-5 py-3 text-[12.5px] font-medium tnum text-ink">{r.sequenceNo ?? "—"}</td>
+                <td className="px-4 py-3 text-[12.5px] text-muted">{r.clientName ?? "—"}</td>
+                <td className="px-4 py-3 text-end text-[13px] font-medium tnum text-ink">{m(r.total)}</td>
+                <td className="px-4 py-3 text-center">{r.refundedAt ? <Badge tone="success">{t("refunded")}</Badge> : <Badge tone="warning">{t("pending")}</Badge>}</td>
+                <td className="px-4 py-3 text-end">
+                  {r.refundedAt && r.refundVoucherId ? (
+                    <Link href={`/tenant/documents/voucher/${r.refundVoucherId}`} className="inline-flex items-center gap-1 text-[12px] font-medium text-primary hover:underline"><Printer size={12} /> {t("printVoucher")}</Link>
+                  ) : (
+                    <button onClick={() => refund(r.id)} disabled={!!busy} className="h-8 rounded-lg bg-primary-strong px-3 text-[12px] font-semibold text-primary-fg hover:bg-primary disabled:opacity-60">{busy === r.id ? "…" : t("payRefund")}</button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
   );
 }
 
@@ -1066,6 +1118,9 @@ function JournalTab({ accounts, vouchers, onPosted }: { accounts: PostAccount[];
                         <tr key={j}><td className="py-1 text-muted">{e.name}</td><td className="py-1 text-end tnum text-ink">{e.debit ? money(e.debit) : ""}</td><td className="py-1 text-end tnum text-ink">{e.credit ? money(e.credit) : ""}</td></tr>
                       ))}
                     </tbody></table>
+                    <div className="pt-1.5 text-end">
+                      <Link href={`/tenant/documents/voucher/${v.id}`} className="inline-flex items-center gap-1 text-[11.5px] font-medium text-primary hover:underline"><Printer size={12} /> {t("finance.printVoucher")}</Link>
+                    </div>
                   </div>
                 ) : null}
               </li>

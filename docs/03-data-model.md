@@ -638,9 +638,11 @@ erDiagram
 | `insurerName` | String? | للإشعار على المؤمِّن (عكس العمولة) |
 | `policyId` | String? | الوثيقة |
 | `netAmount` / `vatAmount` | Decimal(14,2)? | المبالغ |
+| `refundedAt` | DateTime? | وقت صرف المرتجع الفعلي للعميل (§1.7) |
+| `refundVoucherId` | String? | سند الصرف (PYV) المرتبط |
 | `createdAt` | DateTime | |
 
-**الفهرس:** `@@index([tenantId])`. تُجمَّع الإشعارات على العملاء (`clientId` غير فارغ) في مستحقّات العميل؛ CNC (على المؤمِّن) تُستثنى.
+**الفهرس:** `@@index([tenantId])`. تُجمَّع الإشعارات على العملاء (`clientId` غير فارغ) في مستحقّات العميل؛ CNC (على المؤمِّن) تُستثنى. **صرف المرتجع** (§1.7): `refundCreditNote` يُنشئ سند PYV (مدين 0103/دائن 0101) ويضبط `refundedAt`/`refundVoucherId` (منع تكرار).
 
 ### `Commission`
 **الغرض:** عمولة (مبسّط الآن، يُفصّل في المالية).

@@ -618,6 +618,63 @@ describe("الإصدار والاعتماد المالي (e2e)", () => {
     expect(past.financing.net).toBe(0);
     expect(past.reconciles).toBe(true);
   });
+
+  it("#1.7 مستند السند المطبوع: سند القبض (RCV) بأطرافه وطرفه المقابل وهوية المستأجر", async () => {
+    const srv = app.getHttpServer();
+    const requestId = await createAwardedRequest();
+    const policy = (await request(srv).post("/policies/issue").set(auth(underwriter)).send({ requestId, branchCode: "RUH" }).expect(201)).body;
+    await request(srv).post(`/policies/${policy.id}/approve-technical`).set(auth(underwriter)).expect(200);
+    const fin = (await request(srv).post(`/finance/policies/${policy.id}/approve`).set(auth(accountant)).expect(200)).body;
+    const note = (await request(srv).get("/finance/receivables").set(auth(accountant))).body.notes.find((n: { sequenceNo: string }) => n.sequenceNo === fin.debitNote);
+    const rcv = (await request(srv).post(`/finance/debit-notes/${note.id}/receipt`).set(auth(accountant)).send({ amount: 10000, method: "transfer" }).expect(201)).body;
+
+    const doc = (await request(srv).get(`/finance/vouchers/${rcv.voucher.id}/document`).set(auth(accountant)).expect(200)).body;
+    expect(doc.voucher.type).toBe("RCV");
+    expect(doc.voucher.amount).toBe(10000);
+    expect(doc.seller.name).toBeTruthy();
+    expect(doc.party?.type).toBe("client"); // الطرف المقابل عميل (من lines.clientId)
+    // أطراف القيد متوازنة: مدين النقد = دائن الذمم
+    const totD = doc.entries.reduce((s: number, e: { debit: number }) => s + e.debit, 0);
+    const totC = doc.entries.reduce((s: number, e: { credit: number }) => s + e.credit, 0);
+    expect(totD).toBeCloseTo(totC, 2);
+    // سند مجهول ⇒ 404
+    await request(srv).get("/finance/vouchers/nonexistent/document").set(auth(accountant)).expect(404);
+  });
+
+  it("#1.7 صرف مرتجع العميل: إلغاء ⇒ CNP ⇒ صرف (سند PYV: مدين ذمم/دائن نقد) ⇒ مُعلَّم مصروف · التكرار 409 · RBAC", async () => {
+    const srv = app.getHttpServer();
+    const requestId = await createAwardedRequest();
+    const policy = (await request(srv).post("/policies/issue").set(auth(underwriter)).send({ requestId, branchCode: "RUH" }).expect(201)).body;
+    await request(srv).post(`/policies/${policy.id}/approve-technical`).set(auth(underwriter)).expect(200);
+    await request(srv).post(`/finance/policies/${policy.id}/approve`).set(auth(accountant)).expect(200);
+    await request(srv).post(`/finance/policies/${policy.id}/cancel`).set(auth(accountant)).send({ effectiveDate: "2026-07-01", reason: "طلب العميل" }).expect(200);
+
+    // الإشعار الدائن (CNP) يظهر في قائمة المرتجعات بحالة «بانتظار الصرف»
+    const cns = (await request(srv).get("/finance/credit-notes").set(auth(accountant)).expect(200)).body as Array<{ id: string; total: number; refundedAt: string | null; clientName: string | null }>;
+    const cn = cns.find((x) => x.clientName && x.total > 0 && !x.refundedAt);
+    expect(cn).toBeTruthy();
+
+    // المكتتب (لا finance:create) ممنوع من الصرف
+    await request(srv).post(`/finance/credit-notes/${cn!.id}/refund`).set(auth(underwriter)).send({}).expect(403);
+
+    // الصرف ⇒ سند PYV بمبلغ الإشعار (net+vat)
+    const ref = (await request(srv).post(`/finance/credit-notes/${cn!.id}/refund`).set(auth(accountant)).send({ method: "transfer" }).expect(201)).body;
+    expect(ref.voucher.sequenceNo).toMatch(/^PYV-/);
+    expect(ref.voucher.amount).toBeCloseTo(cn!.total, 2);
+
+    // سند الصرف: مدين ذمم العملاء (0103) · دائن النقد (0101)
+    const doc = (await request(srv).get(`/finance/vouchers/${ref.voucher.id}/document`).set(auth(accountant)).expect(200)).body;
+    const debitAcc = doc.entries.find((e: { debit: number }) => e.debit > 0);
+    const creditAcc = doc.entries.find((e: { credit: number }) => e.credit > 0);
+    expect(debitAcc.account.startsWith("0103")).toBe(true);
+    expect(creditAcc.account.startsWith("0101")).toBe(true);
+
+    // الإشعار صار «مصروف» + التكرار ⇒ 409
+    const after = (await request(srv).get("/finance/credit-notes").set(auth(accountant))).body.find((x: { id: string }) => x.id === cn!.id);
+    expect(after.refundedAt).toBeTruthy();
+    expect(after.refundVoucherId).toBe(ref.voucher.id);
+    await request(srv).post(`/finance/credit-notes/${cn!.id}/refund`).set(auth(accountant)).send({}).expect(409);
+  });
 });
 
 /** تقريب لخانتين — مساعد اختبار مطابق لمنطق الخدمة. */

@@ -1207,17 +1207,20 @@ model Producer {
 
 // إشعار دائن: CNP = قسط مُرتجَع للعميل (إلغاء)؛ CNC = عكس عمولة على المؤمِّن (إلغاء).
 model CreditNote {
-  id          String   @id @default(cuid())
-  tenantId    String
-  tenant      Tenant   @relation(fields: [tenantId], references: [id])
-  sequenceNo  String?
-  kind        String?  @default("CNP") // CNP (على العميل: قسط مُرتجَع) | CNC (على المؤمِّن: عكس عمولة)
-  clientId    String? // للإشعار الدائن على العميل
-  insurerName String? // للإشعار الدائن على المؤمِّن (عكس العمولة)
-  policyId    String?
-  netAmount   Decimal? @db.Decimal(14, 2)
-  vatAmount   Decimal? @db.Decimal(14, 2)
-  createdAt   DateTime @default(now())
+  id              String    @id @default(cuid())
+  tenantId        String
+  tenant          Tenant    @relation(fields: [tenantId], references: [id])
+  sequenceNo      String?
+  kind            String?   @default("CNP") // CNP (على العميل: قسط مُرتجَع) | CNC (على المؤمِّن: عكس عمولة)
+  clientId        String? // للإشعار الدائن على العميل
+  insurerName     String? // للإشعار الدائن على المؤمِّن (عكس العمولة)
+  policyId        String?
+  netAmount       Decimal?  @db.Decimal(14, 2)
+  vatAmount       Decimal?  @db.Decimal(14, 2)
+  // صرف المرتجع الفعلي للعميل (§1.7) — الإشعار الدائن يخفض الذمّة؛ الصرف يدفعها نقدًا
+  refundedAt      DateTime?
+  refundVoucherId String?
+  createdAt       DateTime  @default(now())
 
   @@index([tenantId])
 }
