@@ -9,6 +9,7 @@ import { vatTreatmentForClass } from "../../common/tax/vat";
 import { zatcaPackage } from "../../common/zatca/zatca.util";
 import { ZatcaBillingService } from "./zatca/zatca-billing.service";
 import { ZatcaInvoiceRouter } from "./zatca/zatca-invoice.router";
+import type { CreateInstallmentPlanDto } from "./dto/installments.dto";
 
 const asJson = (v: unknown) => v as Prisma.InputJsonValue;
 const r2 = (n: number) => +n.toFixed(2);
@@ -357,44 +358,134 @@ export class FinanceService {
     });
   }
 
-  /**
-   * إنشاء خطة تقسيط لإشعار مدين: تقسيم الإجمالي إلى `count` دفعة **شهرية** من `firstDueDate`
-   * (الأخيرة تمتصّ فرق التقريب). مستقلّة عن تسوية المؤمِّن. تُطبَّق التحصيلات لاحقًا بالأقدم استحقاقًا.
-   */
-  async generateInstallments(tenantId: string, userId: string, debitNoteId: string, count: number, firstDueDate?: string) {
-    const note = await this.prisma.debitNote.findFirst({ where: { id: debitNoteId }, select: { id: true, clientId: true, policyId: true, netAmount: true, vatAmount: true, settledAmount: true } });
-    if (!note) throw new NotFoundException("إشعار المدين غير موجود");
-    if (!Number.isInteger(count) || count < 2 || count > 36) throw new BadRequestException("عدد الدفعات يجب أن يكون عددًا صحيحًا بين 2 و36");
-    if ((await this.prisma.installment.count({ where: { debitNoteId } })) > 0) throw new ConflictException("توجد خطة تقسيط بالفعل لهذا الإشعار");
-    const total = r2(num(note.netAmount) + num(note.vatAmount));
-    if (total <= 0) throw new BadRequestException("لا مبلغ للتقسيط");
-    const base = firstDueDate ? new Date(firstDueDate) : new Date();
+  /** نوع صفّ الأقساط الجاهز للإدراج. */
+  private buildInstallmentRows(
+    tenantId: string,
+    debitNoteId: string,
+    note: { clientId: string | null; policyId: string | null },
+    total: number,
+    dto: CreateInstallmentPlanDto,
+  ): Array<{ tenantId: string; debitNoteId: string; clientId: string | null; policyId: string | null; seq: number; dueDate: Date; amount: number }> {
+    const meta = { tenantId, debitNoteId, clientId: note.clientId, policyId: note.policyId };
+    // النمط المخصّص: تاريخ ومبلغ لكل قسط — يجب أن يساوي مجموعها إجمالي الإشعار.
+    if (dto.schedule && dto.schedule.length) {
+      const rows = dto.schedule.map((r) => ({ dueDate: new Date(r.dueDate), amount: r2(Number(r.amount)) }));
+      for (const r of rows) {
+        if (Number.isNaN(+r.dueDate)) throw new BadRequestException("تاريخ استحقاق غير صالح في الجدول");
+        if (!(r.amount > 0)) throw new BadRequestException("مبلغ القسط يجب أن يكون أكبر من صفر");
+      }
+      const sum = r2(rows.reduce((a, r) => a + r.amount, 0));
+      if (Math.abs(sum - total) > 0.01) throw new BadRequestException(`مجموع الأقساط (${sum}) يجب أن يساوي إجمالي الإشعار (${total})`);
+      rows.sort((a, b) => +a.dueDate - +b.dueDate);
+      return rows.map((r, i) => ({ ...meta, seq: i + 1, dueDate: r.dueDate, amount: r.amount }));
+    }
+    // النمط السريع: دفعات شهرية متساوية (الأخيرة تمتصّ فرق التقريب).
+    const count = dto.count;
+    if (!Number.isInteger(count) || (count as number) < 2 || (count as number) > 36) throw new BadRequestException("عدد الدفعات يجب أن يكون عددًا صحيحًا بين 2 و36");
+    const c = count as number;
+    const base = dto.firstDueDate ? new Date(dto.firstDueDate) : new Date();
     if (Number.isNaN(+base)) throw new BadRequestException("تاريخ أول قسط غير صالح");
-    const per = r2(total / count);
+    const per = r2(total / c);
     const rows: Array<{ tenantId: string; debitNoteId: string; clientId: string | null; policyId: string | null; seq: number; dueDate: Date; amount: number }> = [];
     let allocated = 0;
-    for (let i = 0; i < count; i++) {
-      const amount = i === count - 1 ? r2(total - allocated) : per;
+    for (let i = 0; i < c; i++) {
+      const amount = i === c - 1 ? r2(total - allocated) : per;
       allocated = r2(allocated + amount);
       const due = new Date(base);
       due.setMonth(due.getMonth() + i);
-      rows.push({ tenantId, debitNoteId, clientId: note.clientId, policyId: note.policyId, seq: i + 1, dueDate: due, amount });
+      rows.push({ ...meta, seq: i + 1, dueDate: due, amount });
     }
+    return rows;
+  }
+
+  /** يوزّع مبلغًا مُحصَّلًا على أقساط إشعار **بالأقدم استحقاقًا** (waterfall). يعمل داخل معاملة أو خارجها. */
+  private async applyInstallmentWaterfall(client: Prisma.TransactionClient | PrismaService, debitNoteId: string, amount: number) {
+    if (amount <= 0.001) return;
+    const insts = await client.installment.findMany({ where: { debitNoteId }, orderBy: [{ dueDate: "asc" }, { seq: "asc" }] });
+    let rem = amount;
+    for (const inst of insts) {
+      if (rem <= 0.001) break;
+      const instRem = r2(num(inst.amount) - num(inst.settledAmount));
+      if (instRem <= 0) continue;
+      const apply = Math.min(rem, instRem);
+      const ns = r2(num(inst.settledAmount) + apply);
+      await client.installment.update({ where: { id: inst.id }, data: { settledAmount: ns, settledAt: ns >= num(inst.amount) - 0.001 ? new Date() : null } });
+      rem = r2(rem - apply);
+    }
+  }
+
+  /**
+   * إنشاء خطة تقسيط لإشعار مدين — توزيع سريع (شهري متساوٍ) أو **جدول مخصّص** (تاريخ ومبلغ لكل قسط).
+   * مستقلّة عن تسوية المؤمِّن. التحصيلات تُطبَّق لاحقًا بالأقدم استحقاقًا.
+   */
+  async generateInstallments(tenantId: string, userId: string, debitNoteId: string, dto: CreateInstallmentPlanDto) {
+    const note = await this.prisma.debitNote.findFirst({ where: { id: debitNoteId }, select: { id: true, clientId: true, policyId: true, netAmount: true, vatAmount: true, settledAmount: true } });
+    if (!note) throw new NotFoundException("إشعار المدين غير موجود");
+    if ((await this.prisma.installment.count({ where: { debitNoteId } })) > 0) throw new ConflictException("توجد خطة تقسيط بالفعل لهذا الإشعار");
+    const total = r2(num(note.netAmount) + num(note.vatAmount));
+    if (total <= 0) throw new BadRequestException("لا مبلغ للتقسيط");
+    const rows = this.buildInstallmentRows(tenantId, debitNoteId, note, total, dto);
     await this.prisma.installment.createMany({ data: rows });
     // تطبيق ما سبق تحصيله (إن وُجد) على الأقساط بالأقدم استحقاقًا
-    const paid = num(note.settledAmount);
-    if (paid > 0) {
-      const insts = await this.prisma.installment.findMany({ where: { debitNoteId }, orderBy: [{ dueDate: "asc" }, { seq: "asc" }] });
-      let rem = paid;
-      for (const inst of insts) {
-        if (rem <= 0.001) break;
-        const apply = Math.min(rem, num(inst.amount));
-        await this.prisma.installment.update({ where: { id: inst.id }, data: { settledAmount: r2(apply), settledAt: apply >= num(inst.amount) - 0.001 ? new Date() : null } });
-        rem = r2(rem - apply);
-      }
-    }
-    await this.audit.log({ tenantId, userId, action: "create", entity: "installment_plan", entityId: debitNoteId, meta: { count, total } });
-    return { debitNoteId, count, total, installments: await this.installments(debitNoteId) };
+    await this.applyInstallmentWaterfall(this.prisma, debitNoteId, num(note.settledAmount));
+    await this.audit.log({ tenantId, userId, action: "create", entity: "installment_plan", entityId: debitNoteId, meta: { count: rows.length, total, mode: dto.schedule ? "custom" : "quick" } });
+    return { debitNoteId, count: rows.length, total, installments: await this.installments(debitNoteId) };
+  }
+
+  /**
+   * تعديل/استبدال خطة تقسيط قائمة (تنسيق مع العميل على تواريخ/مبالغ جديدة) — يستبدل الجدول بالكامل
+   * ثم يُعيد توزيع ما سبق تحصيله بالأقدم استحقاقًا. مجموع الجدول الجديد يجب أن يساوي إجمالي الإشعار.
+   */
+  async replaceInstallments(tenantId: string, userId: string, debitNoteId: string, dto: CreateInstallmentPlanDto) {
+    const note = await this.prisma.debitNote.findFirst({ where: { id: debitNoteId }, select: { id: true, clientId: true, policyId: true, netAmount: true, vatAmount: true, settledAmount: true } });
+    if (!note) throw new NotFoundException("إشعار المدين غير موجود");
+    if ((await this.prisma.installment.count({ where: { debitNoteId } })) === 0) throw new NotFoundException("لا توجد خطة تقسيط لهذا الإشعار");
+    const total = r2(num(note.netAmount) + num(note.vatAmount));
+    const rows = this.buildInstallmentRows(tenantId, debitNoteId, note, total, dto);
+    await this.prisma.$transaction(async (tx) => {
+      await tx.installment.deleteMany({ where: { debitNoteId } });
+      await tx.installment.createMany({ data: rows });
+      await this.applyInstallmentWaterfall(tx, debitNoteId, num(note.settledAmount));
+    });
+    await this.audit.log({ tenantId, userId, action: "update", entity: "installment_plan", entityId: debitNoteId, meta: { count: rows.length, total, mode: dto.schedule ? "custom" : "quick" } });
+    return { debitNoteId, count: rows.length, total, installments: await this.installments(debitNoteId) };
+  }
+
+  /**
+   * متابعة الأقساط عبر كل الإشعارات: القائمة غير المسدَّدة مرتّبة بتاريخ الاستحقاق + ملخّص
+   * (متأخّرة / تستحقّ خلال 7 أيام / قادمة) — لوحة تحصيل لرصد التأخّرات والاستحقاقات.
+   */
+  async installmentsTracking() {
+    const rows = await this.prisma.installment.findMany({
+      where: { settledAt: null },
+      orderBy: [{ dueDate: "asc" }, { seq: "asc" }],
+      select: { id: true, seq: true, dueDate: true, amount: true, settledAmount: true, clientId: true, debitNoteId: true },
+    });
+    const clientIds = [...new Set(rows.map((r) => r.clientId).filter((x): x is string => !!x))];
+    const noteIds = [...new Set(rows.map((r) => r.debitNoteId))];
+    const [clients, notes] = await Promise.all([
+      clientIds.length ? this.prisma.client.findMany({ where: { id: { in: clientIds } }, select: { id: true, name: true } }) : Promise.resolve([]),
+      noteIds.length ? this.prisma.debitNote.findMany({ where: { id: { in: noteIds } }, select: { id: true, sequenceNo: true } }) : Promise.resolve([]),
+    ]);
+    const nameOf = new Map(clients.map((c) => [c.id, c.name]));
+    const refOf = new Map(notes.map((n) => [n.id, n.sequenceNo]));
+    const now = Date.now();
+    const soon = now + 7 * 86_400_000;
+    const summary = { overdue: { count: 0, amount: 0 }, dueSoon: { count: 0, amount: 0 }, upcoming: { count: 0, amount: 0 }, totalOutstanding: 0 };
+    const installments = rows
+      .map((r) => {
+        const outstanding = r2(num(r.amount) - num(r.settledAmount));
+        if (outstanding <= 0.001) return null;
+        const t = new Date(r.dueDate).getTime();
+        const status = t < now ? "overdue" : t <= soon ? "due_soon" : "upcoming";
+        const bucket = status === "overdue" ? summary.overdue : status === "due_soon" ? summary.dueSoon : summary.upcoming;
+        bucket.count += 1;
+        bucket.amount = r2(bucket.amount + outstanding);
+        summary.totalOutstanding = r2(summary.totalOutstanding + outstanding);
+        return { id: r.id, seq: r.seq, dueDate: r.dueDate, amount: r2(num(r.amount)), settled: r2(num(r.settledAmount)), outstanding, status, clientName: r.clientId ? nameOf.get(r.clientId) ?? "—" : "—", noteRef: refOf.get(r.debitNoteId) ?? r.debitNoteId };
+      })
+      .filter((x): x is NonNullable<typeof x> => x !== null);
+    return { summary, installments };
   }
 
   async recordCommissionReceipt(tenantId: string, userId: string, commissionId: string, dto: { amount: number; reference?: string; receivedDate?: string }) {

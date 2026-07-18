@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useCallback, useEffect, useState } from "react";
-import { Landmark, Wallet2, ShieldCheck, FileText, QrCode, Building2, Scale, Banknote, X, Check, Printer, LineChart, Users, Percent, Coins, AlertTriangle, BookText, Plus, Trash2, Receipt, Target } from "lucide-react";
+import { Landmark, Wallet2, ShieldCheck, FileText, QrCode, Building2, Scale, Banknote, X, Check, Printer, LineChart, Users, Percent, Coins, AlertTriangle, BookText, Plus, Trash2, Receipt, Target, CalendarClock, Pencil } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
 import { api, ApiError } from "@/lib/api";
@@ -36,6 +36,8 @@ interface Aging { current: number; d3160: number; d6190: number; d90plus: number
 interface AgingClient { clientId: string; clientName: string; current: number; d3160: number; d6190: number; d90plus: number; total: number }
 interface Receivables { outstanding: number; collected: number; notes: RecvNote[]; aging: Aging; agingByClient: AgingClient[] }
 interface InstallmentRow { id: string; seq: number; dueDate: string; amount: number; settled: number; outstanding: number; status: string }
+interface TrackInst { id: string; seq: number; dueDate: string; amount: number; settled: number; outstanding: number; status: string; clientName: string; noteRef: string }
+interface Tracking { summary: { overdue: { count: number; amount: number }; dueSoon: { count: number; amount: number }; upcoming: { count: number; amount: number }; totalOutstanding: number }; installments: TrackInst[] }
 interface BalanceLine { code: string; name: string; amount: number; isOnBalance: boolean }
 interface BalanceSheet { asOf: string; assets: BalanceLine[]; liabilities: BalanceLine[]; equity: BalanceLine[]; retainedEarnings: number; unclassified: Array<{ code: string; name: string; amount: number }>; totals: { assets: number; liabilities: number; equity: number; liabilitiesAndEquity: number; offBalance: number; balanced: boolean } }
 interface LedgerRow { voucherId: string; sequenceNo: string | null; type: string; date: string; description: string; reference: string | null; debit: number; credit: number; balance: number }
@@ -543,6 +545,15 @@ function instTone(status: string): string {
   }
 }
 
+/** لون حالة قسط في لوحة المتابعة (متأخّر/قريب/قادم). */
+function trackTone(status: string): string {
+  switch (status) {
+    case "overdue": return "bg-danger-soft text-danger";
+    case "due_soon": return "bg-warning-soft text-warning";
+    default: return "bg-success-soft text-success"; // upcoming
+  }
+}
+
 /** الذمم المدينة (إشعارات مدينة) + إدارة خطط التقسيط لكل إشعار. */
 function ReceivablesTab({ data, onPlan }: { data: Receivables | null; onPlan: (n: RecvNote) => void }) {
   const t = useTranslations();
@@ -550,8 +561,12 @@ function ReceivablesTab({ data, onPlan }: { data: Receivables | null; onPlan: (n
   const [expanded, setExpanded] = useState<string | null>(null);
   const [sched, setSched] = useState<Record<string, InstallmentRow[]>>({});
   const [busy, setBusy] = useState<string | null>(null);
+  const [track, setTrack] = useState<Tracking | null>(null);
   const notes = data?.notes ?? [];
   const page = usePaged(notes);
+
+  // متابعة الأقساط — تُعاد مع كل تحديث للذمم
+  useEffect(() => { void api<Tracking>("/finance/installments/tracking").then(setTrack).catch(() => setTrack(null)); }, [data]);
 
   const loadSched = useCallback(async (id: string) => {
     setBusy(id);
@@ -583,6 +598,42 @@ function ReceivablesTab({ data, onPlan }: { data: Receivables | null; onPlan: (n
             {bucket(t("finance.aging.d6190"), ag.d6190, "border-warning/40 bg-warning-soft/60 text-warning")}
             {bucket(t("finance.aging.d90plus"), ag.d90plus, "border-danger/30 bg-danger-soft/40 text-danger")}
           </div>
+        </div>
+      ) : null}
+      {track && (track.summary.overdue.count + track.summary.dueSoon.count + track.summary.upcoming.count) > 0 ? (
+        <div className="rounded-card border border-line bg-card p-4 shadow-card">
+          <div className="mb-3 flex items-center gap-2"><CalendarClock size={15} className="text-primary" /><h3 className="text-[13.5px] font-semibold text-ink">{t("finance.instTrack.title")}</h3><span className="text-[11px] text-subtle">{t("finance.instTrack.sub")}</span></div>
+          <div className="grid grid-cols-3 gap-3">
+            {bucket(`${t("finance.instTrack.overdue")} · ${track.summary.overdue.count}`, track.summary.overdue.amount, "border-danger/30 bg-danger-soft/40 text-danger")}
+            {bucket(`${t("finance.instTrack.dueSoon")} · ${track.summary.dueSoon.count}`, track.summary.dueSoon.amount, "border-warning/40 bg-warning-soft/60 text-warning")}
+            {bucket(`${t("finance.instTrack.upcoming")} · ${track.summary.upcoming.count}`, track.summary.upcoming.amount, "border-success/30 bg-success-soft/40 text-success")}
+          </div>
+          {track.installments.length ? (
+            <div className="mt-3 max-h-72 overflow-auto rounded-lg border border-line">
+              <table className="w-full min-w-[620px]">
+                <thead className="sticky top-0 bg-surface-2"><tr className="border-b border-line text-[10.5px] uppercase tracking-wide text-subtle">
+                  <th className="px-4 py-2 text-start font-semibold">{t("finance.installments.due")}</th>
+                  <th className="px-4 py-2 text-start font-semibold">{t("finance.receivablesTab.client")}</th>
+                  <th className="px-4 py-2 text-start font-semibold">{t("finance.receivablesTab.note")}</th>
+                  <th className="px-4 py-2 text-end font-semibold">{t("finance.installments.amount")}</th>
+                  <th className="px-4 py-2 text-end font-semibold">{t("finance.receivablesTab.outstandingCol")}</th>
+                  <th className="px-4 py-2 text-center font-semibold">{t("finance.receivablesTab.status")}</th>
+                </tr></thead>
+                <tbody className="divide-y divide-line">
+                  {track.installments.slice(0, 60).map((r) => (
+                    <tr key={r.id} className="hover:bg-surface-2/50">
+                      <td className="px-4 py-2 text-[12px] font-medium text-ink tnum">{r.dueDate.slice(0, 10)} <span className="text-subtle">#{r.seq}</span></td>
+                      <td className="px-4 py-2 text-[12.5px] text-ink">{r.clientName}</td>
+                      <td className="px-4 py-2 text-[12px] text-muted tnum">{r.noteRef}</td>
+                      <td className="px-4 py-2 text-end text-[12px] text-ink tnum">{m(r.amount)}</td>
+                      <td className="px-4 py-2 text-end text-[12px] font-medium text-warning tnum">{m(r.outstanding)}</td>
+                      <td className="px-4 py-2 text-center"><span className={`inline-block rounded-full px-2 py-0.5 text-[10.5px] font-medium ${trackTone(r.status)}`}>{t(`finance.instTrack.st.${r.status}`)}</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : null}
         </div>
       ) : null}
     <section className="overflow-hidden rounded-card border border-line bg-card shadow-card">
@@ -618,6 +669,7 @@ function ReceivablesTab({ data, onPlan }: { data: Receivables | null; onPlan: (n
                     <div className="flex items-center justify-end gap-1.5">
                       {n.outstanding > 0 && !n.hasPlan ? <button onClick={() => onPlan(n)} className="inline-flex items-center gap-1 rounded-lg border border-line px-2.5 py-1.5 text-[12px] font-medium text-muted hover:bg-surface-2"><Coins size={13} /> {t("finance.installments.plan")}</button> : null}
                       {n.hasPlan ? <button onClick={() => toggle(n.id)} className="inline-flex items-center gap-1 rounded-lg border border-line px-2.5 py-1.5 text-[12px] font-medium text-muted hover:bg-surface-2">{expanded === n.id ? t("finance.installments.hide") : t("finance.installments.schedule")}</button> : null}
+                      {n.hasPlan ? <button onClick={() => onPlan(n)} className="inline-flex items-center gap-1 rounded-lg border border-line px-2.5 py-1.5 text-[12px] font-medium text-muted hover:bg-surface-2"><Pencil size={13} /> {t("finance.installments.edit")}</button> : null}
                     </div>
                   </td>
                 </tr>
@@ -716,38 +768,119 @@ function RefundsSection() {
   );
 }
 
-/** إنشاء خطة تقسيط لإشعار مدين — عدد دفعات + تاريخ أول قسط. */
+/** إنشاء/تعديل خطة تقسيط — توزيع سريع (شهري) أو جدول مخصّص (تاريخ ومبلغ لكل قسط). */
 function InstallmentPlanModal({ note, onClose, onDone }: { note: RecvNote; onClose: () => void; onDone: () => void }) {
   const t = useTranslations("finance.installments");
+  const editing = note.hasPlan;
+  const [mode, setMode] = useState<"quick" | "custom">("quick");
   const [count, setCount] = useState("3");
   const [firstDueDate, setFirstDueDate] = useState("");
+  const [rows, setRows] = useState<Array<{ dueDate: string; amount: string }>>([]);
+  const [loading, setLoading] = useState(editing);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
   const field = "h-9 w-full rounded-lg border border-line bg-card px-3 text-[13px] text-ink focus:outline-none focus:ring-2 focus:ring-primary/30";
+  const money = (v: number) => v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  // تحميل الجدول القائم عند التعديل
+  useEffect(() => {
+    if (!editing) return;
+    void api<InstallmentRow[]>(`/finance/debit-notes/${note.id}/installments`)
+      .then((r) => { setRows(r.map((x) => ({ dueDate: x.dueDate.slice(0, 10), amount: String(x.amount) }))); setMode("custom"); })
+      .catch(() => undefined)
+      .finally(() => setLoading(false));
+  }, [editing, note.id]);
+
   const n = Number(count);
   const per = n >= 2 && note.total > 0 ? note.total / n : 0;
+  const sum = rows.reduce((a, r) => a + (Number(r.amount) || 0), 0);
+  const diff = Math.round((note.total - sum) * 100) / 100;
+  const sumOk = Math.abs(diff) < 0.01;
+
+  function prefillCustom() {
+    const c = Math.max(2, Math.min(36, Number(count) || 3));
+    const base = firstDueDate ? new Date(firstDueDate) : new Date();
+    const p = Math.round((note.total / c) * 100) / 100;
+    let alloc = 0;
+    const out: Array<{ dueDate: string; amount: string }> = [];
+    for (let i = 0; i < c; i++) {
+      const amt = i === c - 1 ? Math.round((note.total - alloc) * 100) / 100 : p;
+      alloc = Math.round((alloc + amt) * 100) / 100;
+      const d = new Date(base); d.setMonth(d.getMonth() + i);
+      out.push({ dueDate: d.toISOString().slice(0, 10), amount: String(amt) });
+    }
+    setRows(out); setMode("custom");
+  }
+  const setRow = (i: number, k: "dueDate" | "amount", v: string) => setRows((r) => r.map((x, j) => (j === i ? { ...x, [k]: v } : x)));
+  const addRow = () => setRows((r) => [...r, { dueDate: "", amount: "" }]);
+  const removeRow = (i: number) => setRows((r) => r.filter((_, j) => j !== i));
+
   async function save() {
     setErr(""); setSaving(true);
     try {
-      await api(`/finance/debit-notes/${note.id}/installments`, { method: "POST", body: JSON.stringify({ count: n, firstDueDate: firstDueDate || undefined }) });
+      const body = mode === "custom"
+        ? { schedule: rows.map((r) => ({ dueDate: r.dueDate, amount: Number(r.amount) })) }
+        : { count: n, firstDueDate: firstDueDate || undefined };
+      await api(`/finance/debit-notes/${note.id}/installments`, { method: editing ? "PUT" : "POST", body: JSON.stringify(body) });
       onDone();
     } catch (e) { setErr(e instanceof ApiError ? e.message : "خطأ"); setSaving(false); }
   }
+
+  const canSave = !saving && (mode === "custom"
+    ? rows.length >= 2 && rows.every((r) => r.dueDate && Number(r.amount) > 0) && sumOk
+    : n >= 2 && n <= 36);
+
+  const tabBtn = (val: "quick" | "custom", label: string) => (
+    <button onClick={() => setMode(val)} className={`h-8 flex-1 rounded-lg text-[12px] font-semibold transition ${mode === val ? "bg-primary-strong text-primary-fg" : "border border-line text-muted hover:bg-surface-2"}`}>{label}</button>
+  );
+
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onMouseDown={onClose}>
-      <div className="w-full max-w-sm rounded-card border border-line bg-card p-5 shadow-card" onMouseDown={(e) => e.stopPropagation()}>
-        <div className="mb-1 flex items-center justify-between"><h2 className="text-[15px] font-bold text-ink">{t("planTitle")}</h2><button onClick={onClose} className="text-subtle hover:text-ink"><X size={18} /></button></div>
-        <p className="mb-3 text-[12px] text-subtle">{note.clientName} · {t("total")}: <span className="tnum text-ink">{note.total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></p>
+      <div className={`w-full ${mode === "custom" ? "max-w-lg" : "max-w-sm"} rounded-card border border-line bg-card p-5 shadow-card`} onMouseDown={(e) => e.stopPropagation()}>
+        <div className="mb-1 flex items-center justify-between"><h2 className="text-[15px] font-bold text-ink">{editing ? t("editTitle") : t("planTitle")}</h2><button onClick={onClose} className="text-subtle hover:text-ink"><X size={18} /></button></div>
+        <p className="mb-3 text-[12px] text-subtle">{note.clientName} · {t("total")}: <span className="tnum text-ink">{money(note.total)}</span></p>
+        {loading ? <p className="py-6 text-center text-[12px] text-subtle">…</p> : (
         <div className="space-y-3">
-          <label className="block"><span className="mb-1 block text-[11.5px] font-medium text-muted">{t("count")}</span><input type="number" min={2} max={36} value={count} onChange={(e) => setCount(e.target.value)} className={`${field} tnum`} /></label>
-          <label className="block"><span className="mb-1 block text-[11.5px] font-medium text-muted">{t("firstDue")}</span><input type="date" value={firstDueDate} onChange={(e) => setFirstDueDate(e.target.value)} className={`${field} tnum`} /><span className="mt-1 block text-[10.5px] text-subtle">{t("firstDueHint")}</span></label>
-          {per > 0 ? <p className="rounded-lg bg-surface-2 px-3 py-2 text-[12px] text-muted">{t("preview", { count: n, per: per.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) })}</p> : null}
+          <div className="flex gap-2">{tabBtn("quick", t("modeQuick"))}{tabBtn("custom", t("modeCustom"))}</div>
+
+          {mode === "quick" ? (
+            <>
+              <label className="block"><span className="mb-1 block text-[11.5px] font-medium text-muted">{t("count")}</span><input type="number" min={2} max={36} value={count} onChange={(e) => setCount(e.target.value)} className={`${field} tnum`} /></label>
+              <label className="block"><span className="mb-1 block text-[11.5px] font-medium text-muted">{t("firstDue")}</span><input type="date" value={firstDueDate} onChange={(e) => setFirstDueDate(e.target.value)} className={`${field} tnum`} /><span className="mt-1 block text-[10.5px] text-subtle">{t("firstDueHint")}</span></label>
+              {per > 0 ? <p className="rounded-lg bg-surface-2 px-3 py-2 text-[12px] text-muted">{t("preview", { count: n, per: money(per) })}</p> : null}
+            </>
+          ) : (
+            <>
+              <div className="flex items-center justify-between">
+                <span className="text-[11.5px] font-medium text-muted">{t("customHint")}</span>
+                <button onClick={prefillCustom} className="text-[11.5px] font-semibold text-primary hover:underline">{t("prefill")}</button>
+              </div>
+              <div className="max-h-64 space-y-2 overflow-auto pe-1">
+                {rows.map((r, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <span className="w-5 text-center text-[11px] font-medium text-subtle tnum">{i + 1}</span>
+                    <input type="date" value={r.dueDate} onChange={(e) => setRow(i, "dueDate", e.target.value)} className={`${field} tnum flex-1`} />
+                    <input type="number" min={0} step="0.01" placeholder={t("amount")} value={r.amount} onChange={(e) => setRow(i, "amount", e.target.value)} className={`${field} tnum w-32`} />
+                    <button onClick={() => removeRow(i)} className="text-subtle hover:text-danger" aria-label={t("removeRow")}><Trash2 size={15} /></button>
+                  </div>
+                ))}
+                {rows.length === 0 ? <p className="py-3 text-center text-[11.5px] text-subtle">{t("noRows")}</p> : null}
+              </div>
+              <button onClick={addRow} className="inline-flex items-center gap-1 rounded-lg border border-line px-2.5 py-1.5 text-[12px] font-medium text-muted hover:bg-surface-2"><Plus size={13} /> {t("addRow")}</button>
+              <div className={`flex items-center justify-between rounded-lg px-3 py-2 text-[12px] ${sumOk ? "bg-success-soft text-success" : "bg-warning-soft text-warning"}`}>
+                <span>{t("sumLabel")}: <span className="tnum font-semibold">{money(sum)}</span> / {money(note.total)}</span>
+                <span className="tnum font-semibold">{sumOk ? t("sumOk") : t("sumDiff", { diff: money(diff) })}</span>
+              </div>
+            </>
+          )}
+
           {err ? <p className="text-[12px] font-medium text-danger">{err}</p> : null}
           <div className="flex justify-end gap-2 pt-1">
             <button onClick={onClose} className="h-9 rounded-lg border border-line px-3 text-[12.5px] font-medium text-muted hover:bg-surface-2">{t("cancel")}</button>
-            <button onClick={save} disabled={saving || !(n >= 2 && n <= 36)} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary-strong px-4 text-[12.5px] font-semibold text-primary-fg hover:bg-primary disabled:opacity-60"><Check size={15} /> {saving ? "…" : t("confirm")}</button>
+            <button onClick={save} disabled={!canSave} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary-strong px-4 text-[12.5px] font-semibold text-primary-fg hover:bg-primary disabled:opacity-60"><Check size={15} /> {saving ? "…" : editing ? t("saveEdit") : t("confirm")}</button>
           </div>
         </div>
+        )}
       </div>
     </div>
   );

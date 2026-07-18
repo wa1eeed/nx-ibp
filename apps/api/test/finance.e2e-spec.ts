@@ -444,6 +444,80 @@ describe("الإصدار والاعتماد المالي (e2e)", () => {
     expect(inst.find((r) => r.seq === 3)!.status).toBe("overdue"); // 2020 ماضٍ + بلا تحصيل
   });
 
+  it("#2.1 التقسيط المرن: جدول مخصّص (تاريخ+مبلغ لكل قسط) + تحقّق المجموع + تعديل الخطة (PUT) + RBAC", async () => {
+    const srv = app.getHttpServer();
+    const requestId = await createAwardedRequest();
+    const policy = (await request(srv).post("/policies/issue").set(auth(underwriter)).send({ requestId, branchCode: "RUH" }).expect(201)).body;
+    await request(srv).post(`/policies/${policy.id}/approve-technical`).set(auth(underwriter)).expect(200);
+    const fin = (await request(srv).post(`/finance/policies/${policy.id}/approve`).set(auth(accountant)).expect(200)).body;
+    const note = (await request(srv).get("/finance/receivables").set(auth(accountant))).body.notes.find((n: { sequenceNo: string }) => n.sequenceNo === fin.debitNote);
+    const total = note.total as number; // 69000
+
+    // مجموع مخصّص خاطئ ⇒ 400
+    await request(srv).post(`/finance/debit-notes/${note.id}/installments`).set(auth(accountant))
+      .send({ schedule: [{ dueDate: "2030-01-10", amount: 30000 }, { dueDate: "2030-03-10", amount: 30000 }] }).expect(400);
+    // مبلغ سالب في صفّ ⇒ 400 (تحقّق DTO)
+    await request(srv).post(`/finance/debit-notes/${note.id}/installments`).set(auth(accountant))
+      .send({ schedule: [{ dueDate: "2030-01-10", amount: -5 }, { dueDate: "2030-03-10", amount: total + 5 }] }).expect(400);
+
+    // جدول مخصّص صحيح: تواريخ ومبالغ غير متساوية (بترتيب غير مرتّب) ⇒ يُرتَّب بالتاريخ ومجموعه == الإجمالي
+    const custom = [
+      { dueDate: "2099-01-01", amount: 19000 },
+      { dueDate: "2020-01-01", amount: 30000 },
+      { dueDate: "2030-06-15", amount: 20000 },
+    ];
+    const plan = (await request(srv).post(`/finance/debit-notes/${note.id}/installments`).set(auth(accountant)).send({ schedule: custom }).expect(201)).body;
+    expect(plan.installments).toHaveLength(3);
+    expect(plan.installments.map((r: { dueDate: string }) => r.dueDate.slice(0, 10))).toEqual(["2020-01-01", "2030-06-15", "2099-01-01"]); // مرتّب بالتاريخ
+    expect(plan.installments.map((r: { amount: number }) => r.amount)).toEqual([30000, 20000, 19000]);
+    expect(Number(plan.installments.reduce((s: number, r: { amount: number }) => s + r.amount, 0).toFixed(2))).toBe(total);
+
+    // تعديل الخطة (PUT): استبدال بجدول من دفعتين ⇒ يحلّ محلّ القديم
+    const edited = (await request(srv).put(`/finance/debit-notes/${note.id}/installments`).set(auth(accountant))
+      .send({ schedule: [{ dueDate: "2031-02-01", amount: 40000 }, { dueDate: "2031-08-01", amount: total - 40000 }] }).expect(200)).body;
+    expect(edited.installments).toHaveLength(2);
+    expect(edited.installments[0].dueDate.slice(0, 10)).toBe("2031-02-01");
+    // PUT بمجموع خاطئ ⇒ 400 · مبيعات ⇒ 403
+    await request(srv).put(`/finance/debit-notes/${note.id}/installments`).set(auth(accountant)).send({ schedule: [{ dueDate: "2031-02-01", amount: 1 }, { dueDate: "2031-08-01", amount: 2 }] }).expect(400);
+    await request(srv).put(`/finance/debit-notes/${note.id}/installments`).set(auth(sales)).send({ schedule: [{ dueDate: "2031-02-01", amount: 40000 }, { dueDate: "2031-08-01", amount: total - 40000 }] }).expect(403);
+  });
+
+  it("#2.1 متابعة الأقساط: تصنيف متأخّر/قريب/قادم لكل قسط بتاريخه المخصّص + تشغيل تذكيرات لا يفشل", async () => {
+    const srv = app.getHttpServer();
+    const requestId = await createAwardedRequest();
+    const policy = (await request(srv).post("/policies/issue").set(auth(underwriter)).send({ requestId, branchCode: "RUH" }).expect(201)).body;
+    await request(srv).post(`/policies/${policy.id}/approve-technical`).set(auth(underwriter)).expect(200);
+    const fin = (await request(srv).post(`/finance/policies/${policy.id}/approve`).set(auth(accountant)).expect(200)).body;
+    const note = (await request(srv).get("/finance/receivables").set(auth(accountant))).body.notes.find((n: { sequenceNo: string }) => n.sequenceNo === fin.debitNote);
+    const total = note.total as number;
+
+    const dISO = (offsetDays: number) => { const x = new Date(); x.setUTCDate(x.getUTCDate() + offsetDays); return x.toISOString().slice(0, 10); };
+    // قسط متأخّر (ماضٍ) + قسط يستحقّ خلال يومين (قريب) + قسط بعيد (قادم)
+    await request(srv).post(`/finance/debit-notes/${note.id}/installments`).set(auth(accountant))
+      .send({ schedule: [{ dueDate: "2020-01-01", amount: 30000 }, { dueDate: dISO(2), amount: 20000 }, { dueDate: "2099-01-01", amount: total - 50000 }] }).expect(201);
+
+    const track = (await request(srv).get("/finance/installments/tracking").set(auth(accountant)).expect(200)).body as {
+      summary: { overdue: { count: number; amount: number }; dueSoon: { count: number; amount: number }; upcoming: { count: number; amount: number }; totalOutstanding: number };
+      installments: Array<{ id: string; status: string; outstanding: number; noteRef: string }>;
+    };
+    const mine = track.installments.filter((i) => i.noteRef === fin.debitNote);
+    expect(mine).toHaveLength(3);
+    expect(mine.find((i) => i.status === "overdue")!.outstanding).toBe(30000);
+    expect(mine.find((i) => i.status === "due_soon")!.outstanding).toBe(20000);
+    expect(mine.find((i) => i.status === "upcoming")).toBeTruthy();
+    // الملخّص يشمل مساهمتنا على الأقلّ
+    expect(track.summary.overdue.amount).toBeGreaterThanOrEqual(30000);
+    expect(track.summary.dueSoon.amount).toBeGreaterThanOrEqual(20000);
+
+    // RBAC: مبيعات ⇒ 403
+    await request(srv).get("/finance/installments/tracking").set(auth(sales)).expect(403);
+
+    // تشغيل التذكيرات (يشمل ما قبل الاستحقاق) لا يفشل ويُعيد عدّادًا رقميًا — حتمية بلا تكرار
+    const sweep1 = (await request(srv).post("/reminders/run").set(auth(gm)).expect(201)).body;
+    expect(typeof sweep1.installments).toBe("number");
+    await request(srv).post("/reminders/run").set(auth(gm)).expect(201);
+  });
+
   it("#1.2 الميزانية العمومية: أصول = خصوم + حقوق ملكية (+ صافي دخل) · تُصنّف الأمانات خارج الميزانية · لا حساب بلا تصنيف · RBAC", async () => {
     const srv = app.getHttpServer();
     // إصدار واعتماد وثيقة يضمن حركة حسابات (ذمم/أمانات/عمولة/ضريبة)

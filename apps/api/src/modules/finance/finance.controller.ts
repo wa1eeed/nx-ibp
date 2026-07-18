@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, Param, Post, Query } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, Param, Post, Put, Query } from "@nestjs/common";
 import { FinanceService } from "./finance.service";
 import { RecordReceiptDto } from "./dto/record-receipt.dto";
 import { CancelPolicyDto } from "./dto/cancel-policy.dto";
@@ -155,7 +155,14 @@ export class FinanceController {
     return this.finance.recordReceipt(tenantId, userId, id, dto);
   }
 
-  // خطة تقسيط إشعار مدين — عرض/إنشاء
+  // متابعة الأقساط عبر كل الإشعارات (متأخّرة/قريبة/قادمة)
+  @Authorize({ module: "finance", action: "read", entitlement: "module.finance" })
+  @Get("installments/tracking")
+  installmentsTracking() {
+    return this.finance.installmentsTracking();
+  }
+
+  // خطة تقسيط إشعار مدين — عرض/إنشاء/تعديل
   @Authorize({ module: "finance", action: "read", entitlement: "module.finance" })
   @Get("debit-notes/:id/installments")
   installments(@Param("id") id: string) {
@@ -171,7 +178,18 @@ export class FinanceController {
     @Param("id") id: string,
     @Body() dto: CreateInstallmentPlanDto,
   ) {
-    return this.finance.generateInstallments(tenantId, userId, id, dto.count, dto.firstDueDate);
+    return this.finance.generateInstallments(tenantId, userId, id, dto);
+  }
+
+  @Authorize({ module: "finance", action: "update", entitlement: "module.finance" })
+  @Put("debit-notes/:id/installments")
+  replaceInstallments(
+    @CurrentUser("tenantId") tenantId: string,
+    @CurrentUser("userId") userId: string,
+    @Param("id") id: string,
+    @Body() dto: CreateInstallmentPlanDto,
+  ) {
+    return this.finance.replaceInstallments(tenantId, userId, id, dto);
   }
 
   // استلام عمولة من المؤمِّن (RCV)

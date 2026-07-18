@@ -55,16 +55,38 @@ export class RemindersService {
     return { ...core, reports };
   }
 
-  /** أقساط بلغت الاستحقاق ولم تُسدَّد ولم تُذكَّر ⇒ تذكير العميل (`installment_due`). حتمية بـ`remindedAt`. */
+  /**
+   * تذكيرات الأقساط — تحترم **تاريخ الاستحقاق المخصّص لكل قسط**:
+   *  1) **قبل الاستحقاق** بـ`REMIND_LEAD_DAYS` أيام ⇒ `installment_upcoming` (حتمية بـ`preRemindedAt`).
+   *  2) **عند/بعد الاستحقاق** ⇒ `installment_due` (حتمية بـ`remindedAt`).
+   */
   private async remindDueInstallments(now: Date, tenantId?: string): Promise<number> {
+    const REMIND_LEAD_DAYS = 3;
+    const scope = tenantId ? { tenantId } : {};
+    const day = 86_400_000;
+
+    // (1) قبل الاستحقاق — الأقساط التي تستحقّ خلال المدّة القادمة ولم تُذكَّر مسبقًا
+    const leadEnd = new Date(now.getTime() + REMIND_LEAD_DAYS * day);
+    const upcoming = await this.prisma.installment.findMany({
+      where: { ...scope, dueDate: { gt: now, lte: leadEnd }, settledAt: null, preRemindedAt: null, clientId: { not: null } },
+      select: { id: true, tenantId: true, seq: true, amount: true, settledAmount: true, dueDate: true, clientId: true },
+    });
+    for (const inst of upcoming) {
+      if (Number(inst.settledAmount) < Number(inst.amount) - 0.001) {
+        const client = await this.prisma.client.findFirst({ where: { id: inst.clientId as string, tenantId: inst.tenantId }, select: { email: true, phone: true } });
+        if (client) {
+          const days = Math.max(1, Math.ceil((inst.dueDate.getTime() - now.getTime()) / day));
+          await this.notifications
+            .notify(inst.tenantId, "installment_upcoming", { email: client.email ?? undefined, phone: client.phone ?? undefined, clientId: inst.clientId as string }, { seq: String(inst.seq), amount: String(Number(inst.amount)), dueDate: inst.dueDate.toISOString().slice(0, 10), days: String(days) })
+            .catch((e: unknown) => this.logger.warn(`تعذّر تذكير قسط قادم ${inst.id}: ${String(e)}`));
+        }
+      }
+      await this.prisma.installment.update({ where: { id: inst.id }, data: { preRemindedAt: now } });
+    }
+
+    // (2) عند/بعد الاستحقاق
     const due = await this.prisma.installment.findMany({
-      where: {
-        ...(tenantId ? { tenantId } : {}),
-        dueDate: { lte: now },
-        settledAt: null,
-        remindedAt: null,
-        clientId: { not: null },
-      },
+      where: { ...scope, dueDate: { lte: now }, settledAt: null, remindedAt: null, clientId: { not: null } },
       select: { id: true, tenantId: true, seq: true, amount: true, settledAmount: true, dueDate: true, clientId: true },
     });
     for (const inst of due) {
@@ -78,7 +100,7 @@ export class RemindersService {
       }
       await this.prisma.installment.update({ where: { id: inst.id }, data: { remindedAt: now } });
     }
-    return due.length;
+    return upcoming.length + due.length;
   }
 
   /** مهام CRM بلغت الاستحقاق ولم تُذكَّر ⇒ إشعار المُسنَد إليه. */
