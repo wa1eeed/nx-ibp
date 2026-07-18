@@ -236,6 +236,8 @@ export class ProductionService {
         select: POLICY_FIELDS,
       });
       await tx.policyRequest.update({ where: { id: request.id }, data: { status: skipTechnical ? "FINANCE_REVIEW" : "UNDER_REVIEW" } });
+      // مذكرة التغطية المؤقتة (§4.2) تُستبدَل بالوثيقة الرسمية عند إصدارها
+      await tx.coverNote.updateMany({ where: { requestId: request.id, status: "active" }, data: { status: "superseded", policyId: created.id } });
       return created;
     });
 

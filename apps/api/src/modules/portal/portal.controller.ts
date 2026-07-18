@@ -146,6 +146,17 @@ export class PortalController {
     return this.portal.declineProposal(user.tenantId, user.clientId!, id, dto.note);
   }
 
+  // ——— مذكرات التغطية المؤقتة (§4.2) ———
+  @Get("cover-notes")
+  coverNotes(@CurrentUser() user: AuthUser) {
+    return this.portal.clientCoverNotes(user.clientId!);
+  }
+
+  @Get("cover-notes/:id/document")
+  coverNoteDocument(@CurrentUser() user: AuthUser, @Param("id") id: string) {
+    return this.portal.clientCoverNoteDocument(user.tenantId, user.clientId!, id);
+  }
+
   // ——— الدفع الإلكتروني للأقساط/الذمم عبر بوّابة المستأجر (§2.2-ب) ———
   @HttpCode(201)
   @Post("pay")

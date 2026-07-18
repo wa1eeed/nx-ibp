@@ -15,6 +15,7 @@ interface Policy { id: string; sequenceNo: string | null; insurerName: string | 
 interface Claim { id: string; status: string }
 interface Req { policyRequests: { id: string }[]; serviceRequests: { status: string }[] }
 interface Statement { outstanding: number }
+interface CoverNote { id: string; sequenceNo: string | null; insurerName: string | null; productLineCode: string | null; validUntil: string; status: string; expired: boolean }
 
 const DAY = 86_400_000;
 
@@ -26,6 +27,7 @@ export default function PortalDashboard() {
   const [claims, setClaims] = useState<Claim[]>([]);
   const [reqs, setReqs] = useState<Req | null>(null);
   const [statement, setStatement] = useState<Statement | null>(null);
+  const [covers, setCovers] = useState<CoverNote[]>([]);
 
   useEffect(() => {
     void cpapi<Me>("/portal/me").then(setMe).catch(() => undefined);
@@ -33,7 +35,9 @@ export default function PortalDashboard() {
     void cpapi<Claim[]>("/portal/claims").then(setClaims).catch(() => undefined);
     void cpapi<Req>("/portal/requests").then(setReqs).catch(() => undefined);
     void cpapi<Statement>("/portal/statement").then(setStatement).catch(() => undefined);
+    void cpapi<CoverNote[]>("/portal/cover-notes").then(setCovers).catch(() => undefined);
   }, []);
+  const activeCovers = covers.filter((c) => c.status === "active" && !c.expired);
 
   const openClaims = claims.filter((c) => c.status !== "CLOSED" && c.status !== "SETTLED" && c.status !== "REJECTED").length;
   const openReqs = (reqs?.policyRequests.length ?? 0) + (reqs?.serviceRequests.filter((s) => s.status !== "CLOSED").length ?? 0);
@@ -58,6 +62,28 @@ export default function PortalDashboard() {
         <StatCard tone="warning" icon={<ClipboardList size={18} />} title={t("portal.dashboard.openClaims")} value={openClaims} />
         <StatCard tone="info" icon={<FileText size={18} />} title={t("portal.dashboard.openRequests")} value={openReqs} />
       </div>
+
+      {activeCovers.length > 0 ? (
+        <div className="mt-6 rounded-card border border-primary/25 bg-primary-soft/20 shadow-card">
+          <div className="flex items-center gap-2 border-b border-line px-5 py-3">
+            <ShieldCheck size={16} className="text-primary" />
+            <h2 className="text-[13.5px] font-bold text-ink">{t("portal.dashboard.coverNotesTitle")}</h2>
+          </div>
+          <ul className="divide-y divide-line">
+            {activeCovers.map((c) => (
+              <li key={c.id} className="flex items-center justify-between gap-3 px-5 py-3">
+                <div className="min-w-0">
+                  <p className="truncate text-[13px] font-medium text-ink">{c.sequenceNo ?? "—"} · <span className="text-muted">{c.insurerName ?? "—"}</span></p>
+                  <p className="text-[11.5px] text-subtle">{t("portal.dashboard.coverValidUntil", { date: new Date(c.validUntil).toLocaleDateString("en-GB") })}</p>
+                </div>
+                <Link href={`/${locale}/portal/cover-notes/${c.id}`} className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-line bg-card px-2.5 py-1.5 text-[12px] font-medium text-primary hover:bg-surface-2">
+                  {t("portal.dashboard.viewCover")} <ArrowLeft size={13} className="ltr:rotate-180" />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
 
       {expiring.length > 0 ? (
         <div className="mt-6 rounded-card border border-line bg-card shadow-card">

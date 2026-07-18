@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { useParams } from "next/navigation";
-import { Plus, Award, Trophy, Info, Send, CheckCircle2, XCircle, Clock } from "lucide-react";
+import { Plus, Award, Trophy, Info, Send, CheckCircle2, XCircle, Clock, FileSignature } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/routing";
 import { api, getToken, ApiError } from "@/lib/api";
@@ -78,6 +78,17 @@ export default function SlipWorkbenchPage() {
     }
   }
 
+  async function issueCoverNote() {
+    if (!slip?.request?.id) return;
+    setError("");
+    try {
+      const cn = await api<{ id: string }>("/cover-notes", { method: "POST", body: JSON.stringify({ requestId: slip.request.id }) });
+      router.push(`/tenant/cover-notes/${cn.id}`);
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "خطأ");
+    }
+  }
+
   const fmt = (n: number | null) => (n == null ? "—" : n.toLocaleString("en-US"));
   const decisionTone: Record<string, BadgeTone> = { pending: "warning", accepted: "success", declined: "danger" };
   const hasClient = !!slip?.request?.client;
@@ -118,6 +129,16 @@ export default function SlipWorkbenchPage() {
           <span className="font-semibold text-ink">{t("underwriting.present.presented", { count: slip.presentedQuotationIds.length })}</span>
           <Badge tone={decisionTone[slip.clientDecision ?? "pending"] ?? "neutral"}>{t(`underwriting.present.decision.${slip.clientDecision ?? "pending"}`)}</Badge>
           {slip.clientDecisionNote ? <span className="text-muted">— {slip.clientDecisionNote}</span> : null}
+        </div>
+      ) : null}
+
+      {/* أمر إسناد قائم ⇒ إتاحة إصدار مذكرة تغطية مؤقتة (§4.2) */}
+      {slip?.status === "SELECTED" ? (
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-line bg-surface-2/40 px-3.5 py-2.5">
+          <span className="text-[12.5px] text-muted">{t("underwriting.coverNote.hint")}</span>
+          <button onClick={issueCoverNote} className="inline-flex items-center gap-1.5 rounded-lg border border-primary/40 bg-primary-soft/40 px-3.5 py-2 text-[13px] font-semibold text-primary hover:bg-primary-soft">
+            <FileSignature size={15} /> {t("underwriting.coverNote.issue")}
+          </button>
         </div>
       ) : null}
 

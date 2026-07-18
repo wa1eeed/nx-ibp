@@ -8,6 +8,7 @@ import { AuditService } from "../../common/audit/audit.service";
 import { SequenceService } from "../../common/sequence/sequence.service";
 import { RateLimitService } from "../../common/security/rate-limit.service";
 import { NotificationsService } from "../notifications/notifications.service";
+import { CoverNotesService } from "../cover-notes/cover-notes.service";
 import type { SubmitClaimDto, SubmitServiceDto } from "./dto/portal.dto";
 
 const asJson = (v: unknown) => v as Prisma.InputJsonValue;
@@ -27,7 +28,22 @@ export class PortalService {
     private readonly seq: SequenceService,
     private readonly rateLimit: RateLimitService,
     private readonly notifications: NotificationsService,
+    private readonly coverNotes: CoverNotesService,
   ) {}
+
+  /** مذكرات التغطية المؤقتة للعميل (§4.2). */
+  async clientCoverNotes(clientId: string) {
+    const rows = await this.prisma.coverNote.findMany({ where: { clientId }, orderBy: { createdAt: "desc" }, select: { id: true, sequenceNo: true, insurerName: true, productLineCode: true, totalPremium: true, validUntil: true, status: true, createdAt: true } });
+    const now = Date.now();
+    return rows.map((r) => ({ ...r, totalPremium: r.totalPremium ? Number(r.totalPremium) : null, expired: r.status === "active" && new Date(r.validUntil).getTime() < now }));
+  }
+
+  /** مستند مذكرة التغطية المطبوع (بعد التحقّق من ملكية العميل). */
+  async clientCoverNoteDocument(tenantId: string, clientId: string, id: string) {
+    const owned = await this.prisma.coverNote.findFirst({ where: { id, clientId }, select: { id: true } });
+    if (!owned) throw new NotFoundException("مذكرة التغطية غير موجودة");
+    return this.coverNotes.document(tenantId, id);
+  }
 
   /** إشعارات العميل داخل البوّابة (in-app). */
   notifications_list(clientId: string) { return this.notifications.inboxClient(clientId); }

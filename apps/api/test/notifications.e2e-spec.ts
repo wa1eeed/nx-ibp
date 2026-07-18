@@ -30,7 +30,7 @@ describe("نظام الإشعارات (e2e)", () => {
   it("الشركة: قائمة كل الأنواع (عملاء + موظفين) بقنواتها ونصوصها", async () => {
     const t = await owner();
     const list = (await request(srv()).get("/notifications").set(auth(t)).expect(200)).body;
-    expect(list.length).toBe(33); // 12 عملاء + 21 موظفين (+ شكوى + AML + عرض جاهز + قبول/رفض عرض)
+    expect(list.length).toBe(34); // 13 عملاء + 21 موظفين (+ شكوى + AML + عرض/قبول/رفض + مذكرة تغطية)
     expect(find(list, "policy_issued").channelEmail).toBe(true);
     expect(find(list, "policy_issued").audience).toBe("client");
     expect(find(list, "tax_invoice").source).toBe("default"); // نوع لا يُخصَّص في هذا الملف ⇒ افتراضي النظام

@@ -483,6 +483,17 @@ curl -X POST http://localhost:4000/slips/slip-1/select \
 | `POST` | `/portal/proposals/:id/accept` | `{ quotationId }` ⇒ **أمر إسناد** (العرض SELECTED · الطلب AWARDED) + إشعار الوسيط. قرار مكرّر `409` · غير مُقدَّم `400` · عزل `404` |
 | `POST` | `/portal/proposals/:id/decline` | `{ note? }` ⇒ توثيق الرفض + إشعار الوسيط |
 
+**مذكرة التغطية المؤقتة (§4.2 — تحت `production`):**
+
+| الفعل | المسار | ملاحظة |
+|---|---|---|
+| `GET`/`POST` | `/cover-notes` | قائمة / إصدار `{ requestId, validityDays?, notes? }` لطلب مُسنَد بشروط العرض المختار ⇒ `COV-`. منع تكرار/غير مُسنَد `409` · بلا عرض مختار `400` · إشعار `cover_note_issued` |
+| `GET` | `/cover-notes/:id` · `/cover-notes/:id/document` | تفاصيل · مستند مطبوع (بهوية المستأجر) |
+| `POST` | `/cover-notes/:id/cancel` | إلغاء مذكرة قائمة (`409` لغير القائمة) |
+| `GET` | `/portal/cover-notes` · `/portal/cover-notes/:id/document` | نطاق العميل — مذكرات تغطيته ومستندها المطبوع (بحارس ملكية) |
+
+> **الاستبدال:** عند `POST /policies/issue` تُعلَّم مذكرات التغطية القائمة للطلب **`superseded`** وتُربط بالوثيقة (ذرّيًا).
+
 ---
 
 ## 9. المطالبات (Claims)

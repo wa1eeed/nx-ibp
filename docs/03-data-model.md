@@ -404,6 +404,25 @@ erDiagram
 ### `enum SlipStatus`
 `DRAFT · SENT · QUOTED · SELECTED · CLOSED`
 
+### `CoverNote` (مذكرة التغطية المؤقتة — §4.2)
+**الغرض:** تغطية فورية (Binder) تُصدَر لطلب **مُسنَد (AWARDED)** بشروط العرض المختار، بصلاحية زمنية محدودة، ريثما تُصدَر الوثيقة النهائية. تحت وحدة **`production`** ومعزولة بالمستأجر.
+
+| الحقل | النوع | ملاحظة |
+|---|---|---|
+| `id` / `tenantId` | String | المفتاح / المستأجر |
+| `sequenceNo` | String? | `COV-2026-1001` |
+| `requestId` | String | الطلب المُسنَد المبنيّة عليه |
+| `clientId` / `quotationId` | String? | العميل / العرض المصدر للشروط |
+| `insurerName` / `productLineCode` | String? | المؤمِّن / الفرع |
+| `sumInsured` / `premium` / `totalPremium` / `deductible` / `limit` | Decimal? | شروط التغطية (من العرض) |
+| `startDate` / `endDate` | DateTime? | فترة التغطية (من بيانات الطلب) |
+| `validUntil` | DateTime | انتهاء صلاحية المذكرة المؤقتة (افتراضي 30 يومًا) |
+| `status` | String | active \| superseded (صدرت الوثيقة) \| expired \| cancelled |
+| `policyId` | String? | الوثيقة التي حلّت محلّها عند الإصدار |
+| `notes` / `issuedById` / `createdAt` | String? / String? / DateTime | |
+
+**الفهارس:** `@@index([tenantId])` · `@@index([tenantId, requestId])`. **الاستبدال:** عند إصدار الوثيقة من الطلب تُعلَّم كل مذكرات الطلب القائمة `superseded` وتُربط بالوثيقة (ذرّيًا). إشعار العميل `cover_note_issued`.
+
 ### `Quotation`
 **الغرض:** عرض شركة تأمين — **هجين**: حقول معيارية للمقارنة الآلية + نص حر للشروط.
 
@@ -899,7 +918,7 @@ erDiagram
 > أُضيفت في مسار ما بعد الاكتمال. كلها معزولة بالمستأجر (FK `tenantId` + Prisma `$use`).
 
 ### الإشعارات
-- **`NotificationSetting`** — إعداد نوع إشعار بمستويين: `tenantId = NULL` ⇒ **افتراضي المنصة** (يديره سوبر أدمن المنصة، يرثه الجميع)؛ قيمة ⇒ **تخصيص شركة**. حقول: `eventKey` · `channelEmail`/`channelSms` · `subject`/`body`. (33 نوعًا (ثنائية اللغة) في `notifications.constants.ts`: 12 عميلًا + 21 موظفًا.)
+- **`NotificationSetting`** — إعداد نوع إشعار بمستويين: `tenantId = NULL` ⇒ **افتراضي المنصة** (يديره سوبر أدمن المنصة، يرثه الجميع)؛ قيمة ⇒ **تخصيص شركة**. حقول: `eventKey` · `channelEmail`/`channelSms` · `subject`/`body`. (34 نوعًا (ثنائية اللغة) في `notifications.constants.ts`: 12 عميلًا + 21 موظفًا.)
 - **`Notification`** — إشعار داخل المنصة (in-app) لمستقبِل واحد: `userId` (موظف) أو `clientId` (عميل بوّابة) · `eventKey` · `audience` (client/staff) · `title`/`body` · `readAt` (NULL = غير مقروء). فهارس `[tenantId, userId, readAt]` و`[tenantId, clientId, readAt]`.
 
 ### CRM (إدارة العلاقات)

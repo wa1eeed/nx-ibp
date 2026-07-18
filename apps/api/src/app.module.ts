@@ -48,6 +48,7 @@ import { EmailModule } from "./modules/email/email.module";
 import { PaymentsModule } from "./modules/payments/payments.module";
 import { ComplaintsModule } from "./modules/complaints/complaints.module";
 import { AmlModule } from "./modules/aml/aml.module";
+import { CoverNotesModule } from "./modules/cover-notes/cover-notes.module";
 import { TargetsModule } from "./modules/targets/targets.module";
 import { AuditViewModule } from "./modules/audit/audit.module";
 import { InsurersModule } from "./modules/insurers/insurers.module";
@@ -105,6 +106,7 @@ import { InsurersModule } from "./modules/insurers/insurers.module";
     PaymentsModule,
     ComplaintsModule,
     AmlModule,
+    CoverNotesModule,
     TargetsModule,
     AuditViewModule,
     InsurersModule,

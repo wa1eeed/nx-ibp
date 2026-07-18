@@ -70,6 +70,7 @@ model Tenant {
   amlAssessments       AmlRiskAssessment[]
   amlScreenings        AmlScreening[]
   suspiciousReports    SuspiciousReport[]
+  coverNotes           CoverNote[]
   serviceRequests      ServiceRequest[]
   claims               Claim[]
   chartOfAccounts      ChartOfAccount[]
@@ -986,6 +987,36 @@ model SuspiciousReport {
 
   @@index([tenantId])
   @@index([tenantId, status])
+}
+
+// مذكرة التغطية المؤقتة (Cover Note / Binder — §4.2): تغطية فورية عند أمر الإسناد قبل إصدار الوثيقة،
+// بصلاحية زمنية محدودة. تُلغى/تُستبدَل تلقائيًا عند إصدار الوثيقة الكاملة.
+model CoverNote {
+  id              String    @id @default(cuid())
+  tenantId        String
+  tenant          Tenant    @relation(fields: [tenantId], references: [id])
+  sequenceNo      String? // COV-2026-1001
+  requestId       String // الطلب المُسنَد (AWARDED) المبنيّة عليه
+  clientId        String?
+  quotationId     String? // العرض المصدر لشروط التغطية
+  insurerName     String?
+  productLineCode String?
+  sumInsured      Decimal?  @db.Decimal(16, 2)
+  premium         Decimal?  @db.Decimal(14, 2)
+  totalPremium    Decimal?  @db.Decimal(14, 2)
+  deductible      Decimal?  @db.Decimal(14, 2)
+  limit           Decimal?  @db.Decimal(16, 2)
+  startDate       DateTime?
+  endDate         DateTime?
+  validUntil      DateTime // انتهاء صلاحية المذكرة المؤقتة
+  status          String    @default("active") // active | superseded (صدرت الوثيقة) | expired | cancelled
+  policyId        String? // الوثيقة التي حلّت محلّها عند الإصدار
+  notes           String?
+  issuedById      String?
+  createdAt       DateTime  @default(now())
+
+  @@index([tenantId])
+  @@index([tenantId, requestId])
 }
 
 // ============================================================

@@ -73,6 +73,12 @@ export class SequenceService {
     return `STR-${this.year()}-${1001 + count}`;
   }
 
+  /** رقم مذكرة تغطية مؤقتة: COV-2026-1001 */
+  async nextCoverNoteSeq(): Promise<string> {
+    const count = await this.prisma.coverNote.count();
+    return `COV-${this.year()}-${1001 + count}`;
+  }
+
   /** رقم مطالبة: CL-2026-1001 */
   async nextClaimSeq(): Promise<string> {
     const count = await this.prisma.claim.count();

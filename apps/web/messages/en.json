@@ -1057,6 +1057,32 @@
     "netTotal": "Subtotal (before VAT)",
     "vatTotal": "VAT"
   },
+  "coverNoteDoc": {
+    "title": "Temporary cover note",
+    "back": "Slips",
+    "print": "Print / Save PDF",
+    "notFound": "Cover note not found",
+    "broker": "Insurance broker",
+    "insured": "Insured",
+    "vat": "VAT number",
+    "cr": "CR number",
+    "no": "Cover note no.",
+    "issuedAt": "Issue date",
+    "insurer": "Insurer",
+    "line": "Insurance line",
+    "coverTerms": "Cover terms",
+    "sumInsured": "Sum insured",
+    "limit": "Cover limit",
+    "deductible": "Deductible",
+    "premium": "Net premium",
+    "total": "Total premium",
+    "period": "Cover period",
+    "validUntil": "Valid until",
+    "status": { "active": "Active", "superseded": "Policy issued", "expired": "Expired", "cancelled": "Cancelled" },
+    "disclaimerTitle": "Temporary cover note",
+    "disclaimer": "This is a temporary cover note confirming that cover is in force on the terms above until the final insurance policy is issued or the note expires, whichever is earlier. The final policy supersedes it upon issuance.",
+    "footer": "Issued electronically via {brand} — no signature required."
+  },
   "insurers": {
     "title": "Insurers",
     "subtitle": "Insurer registry & agreements — commission rates, settlement cycle, bank account — with each insurer's production.",
@@ -2098,6 +2124,10 @@
       "presented": "Presented to the client ({count} options)",
       "decision": { "pending": "Awaiting client decision", "accepted": "Client accepted", "declined": "Client declined" }
     },
+    "coverNote": {
+      "hint": "Firm order is in place — you can issue a temporary cover note confirming cover until the policy is issued.",
+      "issue": "Issue cover note"
+    },
     "noQuotations": "No quotations yet — add insurer offers",
     "hint": {
       "insurer": "Name of the insurer submitting this quotation",
@@ -2421,7 +2451,10 @@
       "daysLeft": "{days} days left",
       "urgent": "Urgent",
       "soon": "Soon",
-      "view": "View"
+      "view": "View",
+      "coverNotesTitle": "Active temporary cover notes",
+      "coverValidUntil": "Valid until {date}",
+      "viewCover": "View note"
     },
     "policies": {
       "title": "My policies",
