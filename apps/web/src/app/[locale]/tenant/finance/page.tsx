@@ -36,7 +36,7 @@ interface Aging { current: number; d3160: number; d6190: number; d90plus: number
 interface AgingClient { clientId: string; clientName: string; current: number; d3160: number; d6190: number; d90plus: number; total: number }
 interface Receivables { outstanding: number; collected: number; notes: RecvNote[]; aging: Aging; agingByClient: AgingClient[] }
 interface InstallmentRow { id: string; seq: number; dueDate: string; amount: number; settled: number; outstanding: number; status: string }
-interface TrackInst { id: string; seq: number; dueDate: string; amount: number; settled: number; outstanding: number; status: string; clientName: string; noteRef: string }
+interface TrackInst { id: string; seq: number; dueDate: string; amount: number; settled: number; outstanding: number; status: string; days: number; clientName: string; noteRef: string }
 interface Tracking { summary: { overdue: { count: number; amount: number }; dueSoon: { count: number; amount: number }; upcoming: { count: number; amount: number }; totalOutstanding: number }; installments: TrackInst[] }
 interface BalanceLine { code: string; name: string; amount: number; isOnBalance: boolean }
 interface BalanceSheet { asOf: string; assets: BalanceLine[]; liabilities: BalanceLine[]; equity: BalanceLine[]; retainedEarnings: number; unclassified: Array<{ code: string; name: string; amount: number }>; totals: { assets: number; liabilities: number; equity: number; liabilitiesAndEquity: number; offBalance: number; balanced: boolean } }
@@ -562,6 +562,7 @@ function ReceivablesTab({ data, onPlan }: { data: Receivables | null; onPlan: (n
   const [sched, setSched] = useState<Record<string, InstallmentRow[]>>({});
   const [busy, setBusy] = useState<string | null>(null);
   const [track, setTrack] = useState<Tracking | null>(null);
+  const [trackFilter, setTrackFilter] = useState<"overdue" | "due_soon" | "upcoming" | null>(null);
   const notes = data?.notes ?? [];
   const page = usePaged(notes);
 
@@ -600,42 +601,56 @@ function ReceivablesTab({ data, onPlan }: { data: Receivables | null; onPlan: (n
           </div>
         </div>
       ) : null}
-      {track && (track.summary.overdue.count + track.summary.dueSoon.count + track.summary.upcoming.count) > 0 ? (
+      {track && (track.summary.overdue.count + track.summary.dueSoon.count + track.summary.upcoming.count) > 0 ? (() => {
+        const shown = trackFilter ? track.installments.filter((r) => r.status === trackFilter) : track.installments;
+        const period = (r: TrackInst) => r.days === 0 ? t("finance.instTrack.today") : r.status === "overdue" ? t("finance.instTrack.lateBy", { n: r.days }) : t("finance.instTrack.dueIn", { n: r.days });
+        const filterCard = (key: "overdue" | "due_soon" | "upcoming", label: string, sum: { count: number; amount: number }, tone: string, ring: string) => (
+          <button type="button" onClick={() => setTrackFilter((f) => (f === key ? null : key))} aria-pressed={trackFilter === key}
+            className={`rounded-xl border p-3.5 text-start transition ${tone} ${trackFilter === key ? `ring-2 ${ring} ring-offset-1 ring-offset-card` : "hover:brightness-[.98]"} ${trackFilter && trackFilter !== key ? "opacity-55" : ""}`}>
+            <p className="flex items-center justify-between text-[11px] font-medium opacity-80"><span>{label}</span><span className="rounded-full bg-card/70 px-1.5 py-0.5 text-[10px] font-bold tnum">{sum.count}</span></p>
+            <p className="mt-1 text-[16px] font-bold tnum">{m(sum.amount)}</p>
+          </button>
+        );
+        return (
         <div className="rounded-card border border-line bg-card p-4 shadow-card">
-          <div className="mb-3 flex items-center gap-2"><CalendarClock size={15} className="text-primary" /><h3 className="text-[13.5px] font-semibold text-ink">{t("finance.instTrack.title")}</h3><span className="text-[11px] text-subtle">{t("finance.instTrack.sub")}</span></div>
-          <div className="grid grid-cols-3 gap-3">
-            {bucket(`${t("finance.instTrack.overdue")} · ${track.summary.overdue.count}`, track.summary.overdue.amount, "border-danger/30 bg-danger-soft/40 text-danger")}
-            {bucket(`${t("finance.instTrack.dueSoon")} · ${track.summary.dueSoon.count}`, track.summary.dueSoon.amount, "border-warning/40 bg-warning-soft/60 text-warning")}
-            {bucket(`${t("finance.instTrack.upcoming")} · ${track.summary.upcoming.count}`, track.summary.upcoming.amount, "border-success/30 bg-success-soft/40 text-success")}
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <CalendarClock size={15} className="text-primary" /><h3 className="text-[13.5px] font-semibold text-ink">{t("finance.instTrack.title")}</h3><span className="text-[11px] text-subtle">{t("finance.instTrack.sub")}</span>
+            {trackFilter ? <button onClick={() => setTrackFilter(null)} className="ms-auto inline-flex items-center gap-1 rounded-full border border-line px-2.5 py-1 text-[11px] font-medium text-muted hover:bg-surface-2"><X size={12} /> {t("finance.instTrack.clear")}</button>
+              : <span className="ms-auto text-[10.5px] text-subtle">{t("finance.instTrack.filterHint")}</span>}
           </div>
-          {track.installments.length ? (
-            <div className="mt-3 max-h-72 overflow-auto rounded-lg border border-line">
-              <table className="w-full min-w-[620px]">
-                <thead className="sticky top-0 bg-surface-2"><tr className="border-b border-line text-[10.5px] uppercase tracking-wide text-subtle">
-                  <th className="px-4 py-2 text-start font-semibold">{t("finance.installments.due")}</th>
-                  <th className="px-4 py-2 text-start font-semibold">{t("finance.receivablesTab.client")}</th>
-                  <th className="px-4 py-2 text-start font-semibold">{t("finance.receivablesTab.note")}</th>
-                  <th className="px-4 py-2 text-end font-semibold">{t("finance.installments.amount")}</th>
-                  <th className="px-4 py-2 text-end font-semibold">{t("finance.receivablesTab.outstandingCol")}</th>
-                  <th className="px-4 py-2 text-center font-semibold">{t("finance.receivablesTab.status")}</th>
-                </tr></thead>
-                <tbody className="divide-y divide-line">
-                  {track.installments.slice(0, 60).map((r) => (
-                    <tr key={r.id} className="hover:bg-surface-2/50">
-                      <td className="px-4 py-2 text-[12px] font-medium text-ink tnum">{r.dueDate.slice(0, 10)} <span className="text-subtle">#{r.seq}</span></td>
-                      <td className="px-4 py-2 text-[12.5px] text-ink">{r.clientName}</td>
-                      <td className="px-4 py-2 text-[12px] text-muted tnum">{r.noteRef}</td>
-                      <td className="px-4 py-2 text-end text-[12px] text-ink tnum">{m(r.amount)}</td>
-                      <td className="px-4 py-2 text-end text-[12px] font-medium text-warning tnum">{m(r.outstanding)}</td>
-                      <td className="px-4 py-2 text-center"><span className={`inline-block rounded-full px-2 py-0.5 text-[10.5px] font-medium ${trackTone(r.status)}`}>{t(`finance.instTrack.st.${r.status}`)}</span></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : null}
+          <div className="grid grid-cols-3 gap-3">
+            {filterCard("overdue", t("finance.instTrack.overdue"), track.summary.overdue, "border-danger/30 bg-danger-soft/40 text-danger", "ring-danger/50")}
+            {filterCard("due_soon", t("finance.instTrack.dueSoon"), track.summary.dueSoon, "border-warning/40 bg-warning-soft/60 text-warning", "ring-warning/50")}
+            {filterCard("upcoming", t("finance.instTrack.upcoming"), track.summary.upcoming, "border-success/30 bg-success-soft/40 text-success", "ring-success/50")}
+          </div>
+          <div className="mt-3 max-h-72 overflow-auto rounded-lg border border-line">
+            <table className="w-full min-w-[680px]">
+              <thead className="sticky top-0 bg-surface-2"><tr className="border-b border-line text-[10.5px] uppercase tracking-wide text-subtle">
+                <th className="px-4 py-2 text-start font-semibold">{t("finance.installments.due")}</th>
+                <th className="px-4 py-2 text-start font-semibold">{t("finance.instTrack.period")}</th>
+                <th className="px-4 py-2 text-start font-semibold">{t("finance.receivablesTab.client")}</th>
+                <th className="px-4 py-2 text-start font-semibold">{t("finance.receivablesTab.note")}</th>
+                <th className="px-4 py-2 text-end font-semibold">{t("finance.receivablesTab.outstandingCol")}</th>
+                <th className="px-4 py-2 text-center font-semibold">{t("finance.receivablesTab.status")}</th>
+              </tr></thead>
+              <tbody className="divide-y divide-line">
+                {shown.slice(0, 80).map((r) => (
+                  <tr key={r.id} className="hover:bg-surface-2/50">
+                    <td className="px-4 py-2 text-[12px] font-medium text-ink tnum">{r.dueDate.slice(0, 10)} <span className="text-subtle">#{r.seq}</span></td>
+                    <td className={`px-4 py-2 text-[12px] font-medium tnum ${r.status === "overdue" ? "text-danger" : r.status === "due_soon" ? "text-warning" : "text-subtle"}`}>{period(r)}</td>
+                    <td className="px-4 py-2 text-[12.5px] text-ink">{r.clientName}</td>
+                    <td className="px-4 py-2 text-[12px] text-muted tnum">{r.noteRef}</td>
+                    <td className="px-4 py-2 text-end text-[12px] font-medium text-warning tnum">{m(r.outstanding)}</td>
+                    <td className="px-4 py-2 text-center"><span className={`inline-block rounded-full px-2 py-0.5 text-[10.5px] font-medium ${trackTone(r.status)}`}>{t(`finance.instTrack.st.${r.status}`)}</span></td>
+                  </tr>
+                ))}
+                {shown.length === 0 ? <tr><td colSpan={6} className="px-4 py-6 text-center text-[12px] text-subtle">{t("finance.instTrack.emptyFiltered")}</td></tr> : null}
+              </tbody>
+            </table>
+          </div>
         </div>
-      ) : null}
+        );
+      })() : null}
     <section className="overflow-hidden rounded-card border border-line bg-card shadow-card">
       <div className="flex flex-wrap items-center gap-2 border-b border-line px-5 py-3.5">
         <Receipt size={17} className="text-warning" />

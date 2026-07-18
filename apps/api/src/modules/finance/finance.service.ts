@@ -478,11 +478,13 @@ export class FinanceService {
         if (outstanding <= 0.001) return null;
         const t = new Date(r.dueDate).getTime();
         const status = t < now ? "overdue" : t <= soon ? "due_soon" : "upcoming";
+        // days: عدد أيام التأخير (للمتأخّر) أو الأيام المتبقّية للاستحقاق (للقادم/القريب) — 0 = اليوم
+        const days = Math.max(0, Math.ceil(Math.abs(t - now) / 86_400_000));
         const bucket = status === "overdue" ? summary.overdue : status === "due_soon" ? summary.dueSoon : summary.upcoming;
         bucket.count += 1;
         bucket.amount = r2(bucket.amount + outstanding);
         summary.totalOutstanding = r2(summary.totalOutstanding + outstanding);
-        return { id: r.id, seq: r.seq, dueDate: r.dueDate, amount: r2(num(r.amount)), settled: r2(num(r.settledAmount)), outstanding, status, clientName: r.clientId ? nameOf.get(r.clientId) ?? "—" : "—", noteRef: refOf.get(r.debitNoteId) ?? r.debitNoteId };
+        return { id: r.id, seq: r.seq, dueDate: r.dueDate, amount: r2(num(r.amount)), settled: r2(num(r.settledAmount)), outstanding, status, days, clientName: r.clientId ? nameOf.get(r.clientId) ?? "—" : "—", noteRef: refOf.get(r.debitNoteId) ?? r.debitNoteId };
       })
       .filter((x): x is NonNullable<typeof x> => x !== null);
     return { summary, installments };

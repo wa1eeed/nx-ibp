@@ -498,13 +498,16 @@ describe("الإصدار والاعتماد المالي (e2e)", () => {
 
     const track = (await request(srv).get("/finance/installments/tracking").set(auth(accountant)).expect(200)).body as {
       summary: { overdue: { count: number; amount: number }; dueSoon: { count: number; amount: number }; upcoming: { count: number; amount: number }; totalOutstanding: number };
-      installments: Array<{ id: string; status: string; outstanding: number; noteRef: string }>;
+      installments: Array<{ id: string; status: string; outstanding: number; days: number; noteRef: string }>;
     };
     const mine = track.installments.filter((i) => i.noteRef === fin.debitNote);
     expect(mine).toHaveLength(3);
     expect(mine.find((i) => i.status === "overdue")!.outstanding).toBe(30000);
     expect(mine.find((i) => i.status === "due_soon")!.outstanding).toBe(20000);
     expect(mine.find((i) => i.status === "upcoming")).toBeTruthy();
+    // مدّة التأخير/الاستحقاق: المتأخّر (2020) أيامه كبيرة، والقريب (بعد يومين) ضمن النافذة
+    expect(mine.find((i) => i.status === "overdue")!.days).toBeGreaterThan(1000);
+    expect(mine.find((i) => i.status === "due_soon")!.days).toBeLessThanOrEqual(7);
     // الملخّص يشمل مساهمتنا على الأقلّ
     expect(track.summary.overdue.amount).toBeGreaterThanOrEqual(30000);
     expect(track.summary.dueSoon.amount).toBeGreaterThanOrEqual(20000);

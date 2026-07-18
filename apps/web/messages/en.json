@@ -616,6 +616,13 @@
       "overdue": "Overdue",
       "dueSoon": "Within 7 days",
       "upcoming": "Upcoming",
+      "period": "Timing",
+      "lateBy": "{n} days late",
+      "dueIn": "in {n} days",
+      "today": "Today",
+      "clear": "Show all",
+      "filterHint": "Tap a card to filter",
+      "emptyFiltered": "No installments in this category",
       "st": { "overdue": "Overdue", "due_soon": "Due soon", "upcoming": "Upcoming" }
     },
     "balanceSheet": {

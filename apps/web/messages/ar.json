@@ -616,6 +616,13 @@
       "overdue": "متأخّرة",
       "dueSoon": "خلال 7 أيام",
       "upcoming": "قادمة",
+      "period": "المدّة",
+      "lateBy": "متأخّر {n} يوم",
+      "dueIn": "خلال {n} يوم",
+      "today": "اليوم",
+      "clear": "عرض الكل",
+      "filterHint": "اضغط بطاقة للتصفية",
+      "emptyFiltered": "لا أقساط في هذه الفئة",
       "st": { "overdue": "متأخّر", "due_soon": "قريب", "upcoming": "قادم" }
     },
     "balanceSheet": {
