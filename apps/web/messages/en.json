@@ -1567,6 +1567,28 @@
       "underwriting": "Underwriting"
     }
   },
+  "leave": {
+    "nav": "Leave",
+    "title": "Leave requests",
+    "subtitle": "Submit and approve leave requests (lightweight HR layer)",
+    "backToStaff": "Back to staff",
+    "submit": "Submit a leave request",
+    "myRequests": "My requests",
+    "manage": "Manage requests",
+    "from": "From",
+    "to": "To",
+    "dates": "Period",
+    "days": "Days",
+    "reason": "Reason",
+    "send": "Send",
+    "employee": "Employee",
+    "approve": "Approve",
+    "reject": "Reject",
+    "empty": "No requests",
+    "error": "Operation failed",
+    "type": { "label": "Type", "annual": "Annual", "sick": "Sick", "unpaid": "Unpaid", "other": "Other" },
+    "status": { "label": "Status", "pending": "Pending", "approved": "Approved", "rejected": "Rejected" }
+  },
   "crm": {
     "title": "CRM",
     "subtitle": "Deals pipeline + tasks & reminders + activity log",

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { Plus, UserPlus, ShieldCheck, X, Users } from "lucide-react";
+import { Plus, UserPlus, ShieldCheck, X, Users, CalendarDays } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { RBAC_MODULES, type RbacModule } from "@ibp/shared";
 import { Link, useRouter } from "@/i18n/routing";
@@ -126,6 +126,7 @@ export default function StaffPage() {
         subtitle={t("staff.subtitle")}
         actions={
           <div className="flex items-center gap-2.5">
+            <Link href="/tenant/settings/leave" className="inline-flex items-center gap-1.5 rounded-lg border border-line px-3 py-2 text-[12.5px] font-medium text-primary hover:bg-surface-2"><CalendarDays size={14} /> {t("leave.nav")}</Link>
             {seats && seats.limit != null ? (
               <span className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] font-semibold ${seats.used >= seats.limit ? "bg-danger/10 text-danger" : "bg-surface-2 text-subtle"}`}>
                 <Users size={14} /> {seats.used} / {seats.limit} {t("staff.seats")}{seats.planName ? ` · ${seats.planName}` : ""}

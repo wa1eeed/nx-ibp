@@ -52,6 +52,7 @@ import { CoverNotesModule } from "./modules/cover-notes/cover-notes.module";
 import { BankModule } from "./modules/bank/bank.module";
 import { BudgetModule } from "./modules/budget/budget.module";
 import { PayrollModule } from "./modules/payroll/payroll.module";
+import { LeaveModule } from "./modules/leave/leave.module";
 import { TargetsModule } from "./modules/targets/targets.module";
 import { AuditViewModule } from "./modules/audit/audit.module";
 import { InsurersModule } from "./modules/insurers/insurers.module";
@@ -113,6 +114,7 @@ import { InsurersModule } from "./modules/insurers/insurers.module";
     BankModule,
     BudgetModule,
     PayrollModule,
+    LeaveModule,
     TargetsModule,
     AuditViewModule,
     InsurersModule,

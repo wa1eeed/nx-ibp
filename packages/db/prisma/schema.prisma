@@ -76,6 +76,7 @@ model Tenant {
   budgetLines          BudgetLine[]
   reportSchedules      ReportSchedule[]
   payrollRuns          PayrollRun[]
+  leaveRequests        LeaveRequest[]
   serviceRequests      ServiceRequest[]
   claims               Claim[]
   chartOfAccounts      ChartOfAccount[]
@@ -1069,6 +1070,28 @@ model BudgetLine {
 
   @@unique([tenantId, fiscalYear, period, accountCode])
   @@index([tenantId, fiscalYear])
+}
+
+/// §8.2 — طلب إجازة موظف (سنوية/مرضية/بلا راتب/أخرى) بدورة اعتماد (معلّق → موافَق/مرفوض).
+model LeaveRequest {
+  id           String    @id @default(cuid())
+  tenantId     String
+  tenant       Tenant    @relation(fields: [tenantId], references: [id])
+  userId       String // الموظف مقدّم الطلب
+  employeeName String // لقطة الاسم
+  type         String // annual | sick | unpaid | other
+  startDate    DateTime
+  endDate      DateTime
+  days         Int // عدد الأيام (يشمل الطرفين)
+  reason       String?
+  status       String    @default("pending") // pending | approved | rejected
+  decidedBy    String?
+  decidedAt    DateTime?
+  decisionNote String?
+  createdAt    DateTime  @default(now())
+
+  @@index([tenantId])
+  @@index([tenantId, userId])
 }
 
 /// §8.1 — كشف رواتب لفترة (شهر). عند الترحيل يولّد سند مصروف (مدين رواتب 05030 / دائن نقد 0101).

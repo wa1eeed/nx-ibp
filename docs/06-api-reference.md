@@ -614,6 +614,8 @@ curl -X POST http://localhost:4000/staff \
 | GET/PUT | `/config/operations` | settings | **§6.4 سياسات التشغيل**: `{ freeLookDays }` (مدّة حق العدول 0–90؛ 0 = مُعطَّل). >90 ⇒ 400 |
 | GET/POST | `/payroll` · `/payroll/:id` | finance:read/create | **§8.1 الرواتب**: سرد الكشوف / كشف مع بنوده / إنشاء `{ period: YYYY-MM }` (يُعبَّأ بالموظفين النشطين؛ تكرار فترة 409، صيغة خاطئة 400) |
 | PATCH/POST/DELETE | `/payroll/lines/:id` · `/payroll/:id/post` · `/payroll/:id` | finance:update/create/delete | تعديل بند (مُرحَّل ⇒ 409) · **ترحيل** (سند مصروف، صافي≤0 ⇒ 400، إعادة ⇒ 409) · حذف مسودّة |
+| GET/POST | `/leave/mine` · `/leave` (POST) | مصادقة | **§8.2 الإجازات**: طلباتي / **تقديم** `{ type, startDate, endDate, reason? }` (نوع مجهول/نهاية قبل بداية ⇒ 400) |
+| GET/POST | `/leave` · `/leave/:id/decide` | settings:read/update | عرض الكل (الإدارة) / **البتّ** `{ status: approved\|rejected }` (مبتوت ⇒ 409؛ **لا يبتّ الموظف طلبه** ⇒ 403) |
 | GET/PUT | `/config/security` | settings | سياسة الأمان — إلزام المصادقة الثنائية لكل الموظفين (`{ mfaRequired }`) |
 | GET/PUT | `/config/retention` | settings | مدّة الاحتفاظ بالبيانات (`{ retentionYears }`، 1–30، افتراضي 10 — PDPL/هيئة التأمين) |
 | GET/PUT | `/config/email` | settings | **بريد المستأجر (BYO Resend)**: `{ fromEmail, fromName, apiKey? }` — يُنشئ النطاق ويعيد DNS/الحالة. المفتاح masked لا خام |
