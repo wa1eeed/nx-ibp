@@ -134,4 +134,24 @@ describe("التقارير والتحليلات (e2e)", () => {
     expect(aman.rows.every((r: { sequenceNo: string }) => !gulfPolicies.has(r.sequenceNo))).toBe(true);
     expect(gulf.totals.netToInsurer).not.toBe(aman.totals.netToInsurer);
   });
+
+  // ── تصدير CSV (§7.1) ────────────────────────────────────────────────────
+  it("تصدير CSV: كشف المؤمِّن يُرجع ملفًّا نصيًّا (text/csv) بترويسة الأعمدة + صفوف + صفّ الإجمالي", async () => {
+    const res = await request(app.getHttpServer()).get("/reports/export/bordereau").set(auth(gm)).expect(200);
+    expect(res.headers["content-type"]).toContain("text/csv");
+    expect(res.headers["content-disposition"]).toContain("bordereau");
+    const csv = res.text;
+    expect(csv.charCodeAt(0)).toBe(0xfeff); // BOM لدعم العربية في Excel
+    const lines = csv.replace(/^﻿/, "").trim().split("\r\n");
+    expect(lines[0]).toContain("الصافي للمؤمِّن"); // ترويسة الأعمدة
+    expect(lines.length).toBeGreaterThanOrEqual(2); // ترويسة + صفّ إجمالي على الأقل
+    expect(lines[lines.length - 1].startsWith("الإجمالي")).toBe(true);
+  });
+
+  it("تصدير CSV: العمولات تُصدَّر · مفتاح غير معروف ⇒ 400", async () => {
+    const res = await request(app.getHttpServer()).get("/reports/export/commissions").set(auth(gm)).expect(200);
+    expect(res.headers["content-type"]).toContain("text/csv");
+    expect(res.text.replace(/^﻿/, "").split("\r\n")[0]).toContain("المؤمِّن");
+    await request(app.getHttpServer()).get("/reports/export/nope").set(auth(gm)).expect(400);
+  });
 });

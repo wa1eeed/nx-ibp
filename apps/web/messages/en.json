@@ -274,6 +274,7 @@
       "compliance": "Compliance",
       "regulatory": "Regulatory"
     },
+    "exportCsv": "Export CSV",
     "bordereau": {
       "title": "Insurer bordereau",
       "insurer": "Insurer",

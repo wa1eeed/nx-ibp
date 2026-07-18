@@ -780,6 +780,7 @@ curl -X POST http://localhost:4000/staff \
 | `GET` | `/reports/commissions` | `finance:read` + `module.finance` | 200 |
 | `GET` | `/reports/production` · `/claims` · `/regulatory` · `/catalog` | `reports:read` + `module.reports` | 200 |
 | `GET` | `/reports/bordereau?insurer&from&to` | `reports:read` + `module.reports` | 200 — كشف المؤمِّن الدوري (صافي للمؤمِّن = إجمالي − عمولة) |
+| `GET` | `/reports/export/:key?insurer&from&to` | `reports:read` + `module.reports` | **تصدير CSV** (§7.1): `text/csv` + BOM (Excel عربي) + `Content-Disposition`. المفاتيح: `bordereau`/`commissions`؛ غيرها ⇒ 400 |
 | `GET` | `/finance/summary` · `/coa` · `/invoices` · `/receivables` | `finance:read` + `module.finance` | 200 |
 | `GET` | `/compliance/overview` | `compliance:read` + `module.compliance` | 200 |
 | `GET` | `/regulatory/status` | `settings:read` | 200 |

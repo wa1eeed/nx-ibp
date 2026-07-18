@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { TrendingUp, HandCoins, Percent, ShieldAlert, FileBarChart, FileSpreadsheet } from "lucide-react";
+import { TrendingUp, HandCoins, Percent, ShieldAlert, FileBarChart, FileSpreadsheet, Download } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { api } from "@/lib/api";
+import { api, downloadFile } from "@/lib/api";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatCard } from "@/components/ui/StatCard";
 import { Badge, type BadgeTone } from "@/components/ui/Badge";
@@ -158,6 +158,7 @@ export default function ReportsPage() {
               <input type="date" value={bTo} onChange={(e) => setBTo(e.target.value)} className="h-9 rounded-lg border border-line bg-surface-2/40 px-2.5 text-[13px] text-ink outline-none focus:border-primary" />
             </label>
             <button onClick={loadBordereau} className="h-9 rounded-lg bg-primary px-4 text-[13px] font-medium text-white hover:bg-primary/90">{t("reports.bordereau.apply")}</button>
+            <button onClick={() => { const qs = new URLSearchParams(); if (bInsurer) qs.set("insurer", bInsurer); if (bFrom) qs.set("from", bFrom); if (bTo) qs.set("to", bTo); const q = qs.toString(); void downloadFile(`/reports/export/bordereau${q ? `?${q}` : ""}`, "bordereau.csv").catch(() => undefined); }} className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-line bg-card px-3.5 text-[13px] font-medium text-muted hover:bg-surface-2"><Download size={15} /> {t("reports.exportCsv")}</button>
           </div>
         </div>
         <div className="overflow-x-auto">

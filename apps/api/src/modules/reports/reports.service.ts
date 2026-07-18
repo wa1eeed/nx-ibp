@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { BadRequestException, Injectable } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
 
 /**
@@ -163,6 +163,38 @@ export class ReportsService {
       rows,
       totals: { count: rows.length, netPremium: sum((r) => r.netPremium), vat: sum((r) => r.vat), gross: sum((r) => r.gross), commission: sum((r) => r.commission), netToInsurer: sum((r) => r.netToInsurer) },
     };
+  }
+
+  /** بناء CSV مع BOM (UTF-8) لدعم العربية في Excel. الفواصل بالإنجليزية، التهريب قياسي. */
+  private csv(headers: string[], rows: (string | number | null)[][]): string {
+    const esc = (v: string | number | null) => {
+      const s = v == null ? "" : String(v);
+      return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const lines = [headers.map(esc).join(","), ...rows.map((r) => r.map(esc).join(","))];
+    return "﻿" + lines.join("\r\n");
+  }
+
+  /**
+   * تصدير تقرير جدولي إلى CSV (§7.1) — bordereau/commissions/receivables.
+   * تُصيَّر البيانات نفسها المعروضة في الواجهة كملفّ قابل للفتح في Excel (بترميز عربي سليم).
+   */
+  async exportCsv(key: string, params: { insurer?: string; from?: string; to?: string } = {}): Promise<{ filename: string; csv: string }> {
+    const d = (x: string | Date | null) => (x ? new Date(x).toISOString().slice(0, 10) : "");
+    if (key === "bordereau") {
+      const b = await this.bordereau(params.insurer, params.from, params.to);
+      const headers = ["رقم الوثيقة", "العميل", "الفرع", "المؤمِّن", "بداية", "نهاية", "القسط الصافي", "ض.ق.م", "الإجمالي", "العمولة", "الصافي للمؤمِّن"];
+      const rows: (string | number | null)[][] = b.rows.map((r) => [r.sequenceNo, r.clientName, r.productLine ?? "", r.insurerName ?? "", d(r.startDate), d(r.endDate), r.netPremium, r.vat, r.gross, r.commission, r.netToInsurer]);
+      rows.push(["الإجمالي", "", "", "", "", "", b.totals.netPremium, b.totals.vat, b.totals.gross, b.totals.commission, b.totals.netToInsurer]);
+      return { filename: `bordereau-${params.from ?? "all"}.csv`, csv: this.csv(headers, rows) };
+    }
+    if (key === "commissions") {
+      const c = await this.commissions();
+      const headers = ["المؤمِّن", "العميل", "الفرع", "النسبة%", "العمولة", "المستلَم", "الحالة", "الشهر"];
+      const rows = c.rows.map((r) => [r.insurerName, r.clientName, r.productLine, this.num(r.rate), this.num(r.amount), this.num(r.receivedAmount), r.status, r.periodMonth]);
+      return { filename: "commissions.csv", csv: this.csv(headers, rows) };
+    }
+    throw new BadRequestException("تقرير غير قابل للتصدير");
   }
 
   /** كتالوج التقارير الـ12 المنصوص عليها (BLUEPRINT §3.8) — وصفية للواجهة. */

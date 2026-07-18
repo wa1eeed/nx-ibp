@@ -1,4 +1,5 @@
-import { Controller, Get, Query } from "@nestjs/common";
+import { Controller, Get, Header, Param, Query, Res } from "@nestjs/common";
+import type { Response } from "express";
 import { ReportsService } from "./reports.service";
 import { Authorize } from "../rbac/authorize.decorator";
 
@@ -49,6 +50,16 @@ export class ReportsController {
   @Authorize({ module: "reports", action: "read", entitlement: "module.reports" })
   bordereau(@Query("insurer") insurer?: string, @Query("from") from?: string, @Query("to") to?: string) {
     return this.reports.bordereau(insurer, from, to);
+  }
+
+  // تصدير تقرير جدولي إلى CSV (§7.1) — bordereau/commissions
+  @Get("export/:key")
+  @Authorize({ module: "reports", action: "read", entitlement: "module.reports" })
+  @Header("Content-Type", "text/csv; charset=utf-8")
+  async export(@Param("key") key: string, @Res({ passthrough: true }) res: Response, @Query("insurer") insurer?: string, @Query("from") from?: string, @Query("to") to?: string) {
+    const { filename, csv } = await this.reports.exportCsv(key, { insurer, from, to });
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    return csv;
   }
 
   @Get("catalog")

@@ -274,6 +274,7 @@
       "compliance": "التزام",
       "regulatory": "تنظيمي"
     },
+    "exportCsv": "تصدير CSV",
     "bordereau": {
       "title": "كشف المؤمِّن الدوري (Bordereau)",
       "insurer": "شركة التأمين",
