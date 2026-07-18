@@ -75,6 +75,7 @@ model Tenant {
   bankTransactions     BankTransaction[]
   budgetLines          BudgetLine[]
   reportSchedules      ReportSchedule[]
+  payrollRuns          PayrollRun[]
   serviceRequests      ServiceRequest[]
   claims               Claim[]
   chartOfAccounts      ChartOfAccount[]
@@ -1068,6 +1069,39 @@ model BudgetLine {
 
   @@unique([tenantId, fiscalYear, period, accountCode])
   @@index([tenantId, fiscalYear])
+}
+
+/// §8.1 — كشف رواتب لفترة (شهر). عند الترحيل يولّد سند مصروف (مدين رواتب 05030 / دائن نقد 0101).
+model PayrollRun {
+  id        String        @id @default(cuid())
+  tenantId  String
+  tenant    Tenant        @relation(fields: [tenantId], references: [id])
+  period    String // YYYY-MM
+  status    String        @default("draft") // draft | posted
+  notes     String?
+  voucherId String? // سند المصروف عند الترحيل
+  postedAt  DateTime?
+  createdBy String?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  lines     PayrollLine[]
+
+  @@unique([tenantId, period])
+  @@index([tenantId])
+}
+
+/// بند كشف الرواتب لموظف: الأساسي + البدلات − الاستقطاعات = الصافي.
+model PayrollLine {
+  id           String     @id @default(cuid())
+  payrollRunId String
+  run          PayrollRun @relation(fields: [payrollRunId], references: [id], onDelete: Cascade)
+  userId       String?
+  employeeName String
+  baseSalary   Decimal    @default(0) @db.Decimal(14, 2)
+  allowances   Decimal    @default(0) @db.Decimal(14, 2)
+  deductions   Decimal    @default(0) @db.Decimal(14, 2)
+
+  @@index([payrollRunId])
 }
 
 /// §7.3 — تقرير مجدول يُرسَل دوريًا بالبريد لإدارة الشركة (ملخّص + رابط للتقرير الكامل).

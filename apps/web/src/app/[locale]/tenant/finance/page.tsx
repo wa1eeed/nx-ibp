@@ -109,6 +109,7 @@ export default function FinancePage() {
     <div className="space-y-6">
       <PageHeader title={t("finance.title")} subtitle={t("finance.subtitle")} actions={
         <div className="flex items-center gap-2">
+          <Link href="/tenant/finance/payroll" className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-line px-3.5 text-[13px] font-medium text-primary hover:bg-surface-2"><Users size={15} /> {t("finance.payroll.nav")}</Link>
           <Link href="/tenant/finance/budget" className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-line px-3.5 text-[13px] font-medium text-primary hover:bg-surface-2"><Target size={15} /> {t("finance.budget.nav")}</Link>
           <Link href="/tenant/finance/bank" className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-line px-3.5 text-[13px] font-medium text-primary hover:bg-surface-2"><Landmark size={15} /> {t("finance.bankRecon")}</Link>
         </div>

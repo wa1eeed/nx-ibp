@@ -936,6 +936,7 @@ erDiagram
 - **`ReportSchedule`** (§7.3 — التقارير المجدولة) — إرسال دوري لملخّص تقرير بالبريد: `reportKey` (dashboard/commissions/bordereau) + `frequency` (weekly/monthly) + `recipients[]` + `isActive` + `nextRunAt`/`lastSentAt`. يُوزَّع عبر مجدول التذكيرات اليومي عند حلول `nextRunAt` (يُقدَّم بعد كل إرسال).
 - **§6.4 — حق العدول (Free-look):** `Policy.freeLookUntil` (نهاية نافذة الإلغاء بالاسترداد الكامل، تُحتسب عند الإصدار) + `TenantConfig.operationsPolicy` (JSON يحمل `freeLookDays` — 0–90، افتراضي 0 = مُعطَّل). الإلغاء ضمن النافذة يُطبِّق `frac=1` (استرداد كامل).
 - **§9.4 — تعدّد العملات:** `Policy.currency` (افتراضي `SAR`) + `Policy.fxRate` (`Decimal(12,6)`، سعر التحويل للريال، افتراضي 1). يُلتقطان عند الإصدار (عملة أجنبية تُلزِم سعرًا موجبًا). **الدفاتر بالريال (العملة الوظيفية):** الاعتماد المالي/الإلغاء يُرحّلان المبالغ × `fxRate`؛ الوثيقة تحتفظ بعملتها للعرض.
+- **`PayrollRun` + `PayrollLine`** (§8.1 — الرواتب) — كشف رواتب لفترة (`period` = YYYY-MM، `status` draft/posted) ببنود لكل موظف (`baseSalary`/`allowances`/`deductions` ⇒ صافي). الترحيل يولّد سند مصروف (مدين 05030 / دائن 0101) بصافي الكشف. مفتاح فريد `[tenantId, period]`.
 
 ### CRM (إدارة العلاقات)
 - **`Deal`** — صفقة/فرصة في خطّ الأنابيب: `title` · `stage` (new/contacted/quoting/proposal/negotiation) · `status` (open/won/lost) · `value` · `clientId` · **`assigneeId`** (الموظف المُسنَد) · `createdById` · `requestId` (عند التحويل). فهارس `[tenantId, stage]` و`[tenantId, assigneeId]`.

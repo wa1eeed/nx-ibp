@@ -51,6 +51,7 @@ import { AmlModule } from "./modules/aml/aml.module";
 import { CoverNotesModule } from "./modules/cover-notes/cover-notes.module";
 import { BankModule } from "./modules/bank/bank.module";
 import { BudgetModule } from "./modules/budget/budget.module";
+import { PayrollModule } from "./modules/payroll/payroll.module";
 import { TargetsModule } from "./modules/targets/targets.module";
 import { AuditViewModule } from "./modules/audit/audit.module";
 import { InsurersModule } from "./modules/insurers/insurers.module";
@@ -111,6 +112,7 @@ import { InsurersModule } from "./modules/insurers/insurers.module";
     CoverNotesModule,
     BankModule,
     BudgetModule,
+    PayrollModule,
     TargetsModule,
     AuditViewModule,
     InsurersModule,
