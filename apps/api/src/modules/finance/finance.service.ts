@@ -470,10 +470,12 @@ export class FinanceService {
     const totalDays = Math.max(1, Math.round((+policy.endDate - +policy.startDate) / DAY));
     const unexpired = withinFreeLook ? totalDays : Math.max(0, Math.min(totalDays, Math.round((+policy.endDate - +eff) / DAY)));
     const frac = withinFreeLook ? 1 : unexpired / totalDays;
-    const returnNet = r2(num(policy.premium) * frac);
-    const returnVat = r2(num(policy.vat) * frac);
+    // §9.4 — الاسترداد بالريال (العملة الوظيفية): مبالغ الوثيقة × الكسر × سعر الصرف (SAR ⇒ fx=1)
+    const fx = Number(policy.fxRate ?? 1) || 1;
+    const returnNet = r2(num(policy.premium) * frac * fx);
+    const returnVat = r2(num(policy.vat) * frac * fx);
     const returnTotal = r2(returnNet + returnVat);
-    const returnCommission = r2(num(policy.commissionAmount) * frac);
+    const returnCommission = r2(num(policy.commissionAmount) * frac * fx);
     const returnCommVat = r2(returnCommission * 0.15);
     const returnTrust = r2(returnTotal - returnCommission - returnCommVat);
 
@@ -1059,13 +1061,15 @@ export class FinanceService {
       ? await this.prisma.productLine.findFirst({ where: { code: policy.productLineCode }, include: { class: true } })
       : null;
     const treatment = vatTreatmentForClass(line?.class.code);
-    const premium = Number(policy.premium ?? 0);
-    const vat = treatment.rate === 0 ? 0 : Number(policy.vat ?? 0);
+    // §9.4 — العملة الوظيفية للدفاتر هي الريال: تُحوَّل مبالغ الوثيقة (بعملتها) × سعر الصرف. SAR ⇒ fx=1 (بلا تغيير).
+    const fx = Number(policy.fxRate ?? 1) || 1;
+    const premium = r2(Number(policy.premium ?? 0) * fx);
+    const vat = treatment.rate === 0 ? 0 : r2(Number(policy.vat ?? 0) * fx);
     const total = r2(premium + vat);
-    const commission = Number(policy.commissionAmount ?? 0);
+    const commission = r2(Number(policy.commissionAmount ?? 0) * fx);
     const commVat = r2(commission * 0.15); // ضريبة القيمة المضافة على عمولة الوساطة (مخرجات الوسيط)
     // رسوم الخدمة/الإصدار = إيراد الوسيط الخاص (خدمة خاضعة دائماً للضريبة القياسية 15%، فئة "S")، مستقلّة عن أمانة القسط.
-    const fees = r2(Number(policy.policyFees ?? 0));
+    const fees = r2(Number(policy.policyFees ?? 0) * fx);
     const feesVat = r2(fees * 0.15);
     const feesTotal = r2(fees + feesVat);
 

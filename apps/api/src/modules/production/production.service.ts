@@ -39,6 +39,8 @@ const POLICY_FIELDS = {
   startDate: true,
   endDate: true,
   freeLookUntil: true, // §6.4 — نافذة حق العدول (لشارة الواجهة)
+  currency: true, // §9.4 — عملة الوثيقة
+  fxRate: true,
   createdAt: true,
 } as const;
 
@@ -197,6 +199,11 @@ export class ProductionService {
     const startDate = parseDate(base.startDate) ?? new Date();
     const endDate = parseDate(base.endDate) ?? new Date(+startDate + 365 * 86_400_000);
 
+    // §9.4 — عملة الوثيقة وسعر صرفها للريال (يُلزَم للأجنبية). SAR ⇒ 1 (لا أثر رجعي)
+    const currency = String(dto.currency ?? base.currency ?? "SAR").toUpperCase();
+    const fxRate = currency === "SAR" ? 1 : Number(dto.fxRate ?? 0);
+    if (currency !== "SAR" && !(fxRate > 0)) throw new ConflictException("يلزم سعر صرف موجب للعملة الأجنبية");
+
     // E2 — سلسلة الاعتماد: البوّابة الفنية قابلة للتعطيل من الشركة (المالية تبقى إلزامية)
     const approvalCfg = await this.config.getPolicyApprovalConfig(tenantId);
     const skipTechnical = !approvalCfg.technicalGate;
@@ -217,6 +224,8 @@ export class ProductionService {
           totalPremium: total,
           commissionRate: rate,
           commissionAmount: commission,
+          currency,
+          fxRate,
           // حقول الوثيقة المعيارية
           insurerPolicyNo: dto.insurerPolicyNo ?? null,
           issuanceType: dto.issuanceType ?? "POLICY",

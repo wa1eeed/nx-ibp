@@ -20,6 +20,7 @@ interface Policy {
   productLineCode: string | null;
   pendingApprovals?: string[];
   freeLookUntil?: string | null;
+  currency?: string | null;
 }
 
 const STATUS_TONE: Record<string, BadgeTone> = {
@@ -144,7 +145,7 @@ export default function PoliciesPage() {
                   <tr key={p.id} className="transition-colors hover:bg-surface-2/60">
                     <td className="px-5 py-3 text-[12.5px] font-medium tnum"><Link href={`/tenant/policies/${p.id}`} className="text-ink hover:text-primary hover:underline">{p.sequenceNo ?? "—"}</Link></td>
                     <td className="px-5 py-3 text-[13px] text-ink">{p.insurerName ?? "—"}</td>
-                    <td className="px-5 py-3 text-[12.5px] tnum">{fmt(p.totalPremium)}</td>
+                    <td className="px-5 py-3 text-[12.5px] tnum">{fmt(p.totalPremium)}{p.currency && p.currency !== "SAR" ? <span className="ms-1 text-[10.5px] font-medium text-warning">{p.currency}</span> : null}</td>
                     <td className="px-5 py-3 text-[12.5px] text-muted tnum">{fmt(p.commissionAmount)}</td>
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-1.5">

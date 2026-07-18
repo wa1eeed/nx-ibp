@@ -24,4 +24,7 @@ export class IssuePolicyDto {
   @IsOptional() @IsString() producerId?: string; // مرجع سجلّ المنتِجين
   @IsOptional() @IsNumber() producerCommission?: number; // عمولة المنتِج (تُحتسب آليًا من نسبته إن غابت)
   @IsOptional() @IsString() salespersonId?: string; // الموظف المُستحِقّ للعمولة الداخلية (افتراضيًا المُصدِر)
+  // §9.4 — تعدّد العملات: عملة الوثيقة + سعر صرفها للريال (يُلزَم للأجنبية)
+  @IsOptional() @IsString() currency?: string; // افتراضيًا من الطلب أو SAR
+  @IsOptional() @IsNumber() fxRate?: number; // سعر التحويل للريال (>0 عند غير SAR)
 }

@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "Policy" ADD COLUMN     "currency" TEXT NOT NULL DEFAULT 'SAR',
+ADD COLUMN     "fxRate" DECIMAL(12,6) NOT NULL DEFAULT 1;
+

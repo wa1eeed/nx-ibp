@@ -844,6 +844,8 @@ model Policy {
   // فارغ = السلسلة الافتراضية (فني ⇒ مالي)؛ يُملأ من TenantConfig.approvalChains عند الموافقة الفنية،
   // ويُفرَّغ خطوةً خطوة؛ الاعتماد المالي محجوب حتى تُفرَّغ (وثيقة معزولة بالمستأجر).
   pendingApprovals      String[]      @default([])
+  currency              String        @default("SAR") // §9.4 — عملة الوثيقة (بحري/طيران قد تكون USD)
+  fxRate                Decimal       @default(1) @db.Decimal(12, 6) // سعر التحويل للعملة الوظيفية (SAR): 1 للريال
   startDate             DateTime?
   endDate               DateTime?
   freeLookUntil         DateTime? // §6.4 — نهاية مدّة حق العدول (Free-look): الإلغاء ضمنها استرداد كامل
