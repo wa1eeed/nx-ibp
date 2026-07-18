@@ -672,6 +672,8 @@ curl -X POST http://localhost:4000/staff \
 | POST | `/finance/bank/accounts/:id/import` | finance:create | **استيراد كشف البنك**: `{ lines: [{ txnDate, description, amount, reference? }] }` (موجب إيداع/سالب سحب). فارغ ⇒ 400 |
 | POST | `/finance/bank/transactions/:id/match` | finance:update | مطابقة حركة بسند **قبض/صرف** (RCV/PYV فقط ⇒ غيره 400 · مطابَق مسبقًا/مكرّر 409) |
 | PUT | `/finance/bank/transactions/:id/status` | finance:update | `{ status: unmatched\|ignored }` — فكّ المطابقة أو تجاهل (رسوم بنك) |
+| GET | `/finance/budget?year` · `/finance/budget/vs-actual?year&period` | finance:read | **الموازنة التقديرية** (§1.8): بنود السنة · **الموازنة مقابل الفعلي** (الفعلي مُشتقّ من السندات ضمن نطاق الفترة · انحراف +نسبة). `period`=`annual`/`Q1`..`Q4` (غيره ⇒ 400) |
+| POST/DELETE | `/finance/budget` · `/finance/budget/:id` | finance:create/delete | ضبط بند `{ fiscalYear, period, accountCode, amount }` (upsert؛ فترة/حساب مجهول ⇒ 400) / حذف بند |
 
 **تصويب اتجاه الفاتورة:** الاعتماد المالي يُصدِر فاتورة **العمولة على المؤمِّن** (`kind=COMMISSION`) و—عند وجود `policyFees`—فاتورة **رسوم الخدمة على العميل** (`kind=FEES`، إيراد COA `04020` + ضريبة مخرجات 15%)، وتُضاف الرسوم لإشعار مدين العميل. بوّابة العميل تعرض فواتير رسومه فقط.
 

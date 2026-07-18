@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useCallback, useEffect, useState } from "react";
-import { Landmark, Wallet2, ShieldCheck, FileText, QrCode, Building2, Scale, Banknote, X, Check, Printer, LineChart, Users, Percent, Coins, AlertTriangle, BookText, Plus, Trash2, Receipt } from "lucide-react";
+import { Landmark, Wallet2, ShieldCheck, FileText, QrCode, Building2, Scale, Banknote, X, Check, Printer, LineChart, Users, Percent, Coins, AlertTriangle, BookText, Plus, Trash2, Receipt, Target } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
 import { api, ApiError } from "@/lib/api";
@@ -108,7 +108,10 @@ export default function FinancePage() {
   return (
     <div className="space-y-6">
       <PageHeader title={t("finance.title")} subtitle={t("finance.subtitle")} actions={
-        <Link href="/tenant/finance/bank" className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-line px-3.5 text-[13px] font-medium text-primary hover:bg-surface-2"><Landmark size={15} /> {t("finance.bankRecon")}</Link>
+        <div className="flex items-center gap-2">
+          <Link href="/tenant/finance/budget" className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-line px-3.5 text-[13px] font-medium text-primary hover:bg-surface-2"><Target size={15} /> {t("finance.budget.nav")}</Link>
+          <Link href="/tenant/finance/bank" className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-line px-3.5 text-[13px] font-medium text-primary hover:bg-surface-2"><Landmark size={15} /> {t("finance.bankRecon")}</Link>
+        </div>
       } />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">

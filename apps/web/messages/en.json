@@ -320,6 +320,31 @@
     "printDoc": "Document",
     "printVoucher": "Print voucher",
     "bankRecon": "Bank reconciliation",
+    "budget": {
+      "nav": "Budget",
+      "title": "Budget vs Actual",
+      "subtitle": "Set each account's budget for the year/quarter and compare against actuals derived from vouchers",
+      "backToFinance": "Back to finance",
+      "year": "Year",
+      "account": "Account",
+      "selectAccount": "Select an account…",
+      "amount": "Budgeted amount",
+      "budget": "Budget",
+      "actual": "Actual",
+      "variance": "Variance",
+      "add": "Add",
+      "remove": "Delete",
+      "total": "Total",
+      "empty": "No budget lines for this period — add an account above",
+      "error": "Failed to save",
+      "period": {
+        "annual": "Annual",
+        "Q1": "Q1",
+        "Q2": "Q2",
+        "Q3": "Q3",
+        "Q4": "Q4"
+      }
+    },
     "refunds": {
       "title": "Refunds (paid to clients)",
       "no": "Credit note no.",

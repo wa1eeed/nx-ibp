@@ -73,6 +73,7 @@ model Tenant {
   coverNotes           CoverNote[]
   bankAccounts         BankAccount[]
   bankTransactions     BankTransaction[]
+  budgetLines          BudgetLine[]
   serviceRequests      ServiceRequest[]
   claims               Claim[]
   chartOfAccounts      ChartOfAccount[]
@@ -1045,6 +1046,23 @@ model BankTransaction {
 
   @@index([tenantId])
   @@index([tenantId, bankAccountId])
+}
+
+/// §1.8 — بند موازنة تقديرية (Budget vs Actual): مبلغ مُقدَّر لحساب من شجرة الحسابات في فترة مالية.
+/// الفعلي يُشتقّ آليًا من حركة السندات على الحساب ضمن نطاق تاريخ الفترة. معزول بالمستأجر.
+model BudgetLine {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  fiscalYear  Int // السنة المالية (مثال 2026)
+  period      String // annual | Q1 | Q2 | Q3 | Q4
+  accountCode String // كود الحساب في شجرة الحسابات (17 رقمًا)
+  amount      Decimal  @db.Decimal(18, 2) // المبلغ المُقدَّر (موجب)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([tenantId, fiscalYear, period, accountCode])
+  @@index([tenantId, fiscalYear])
 }
 
 // مذكرة التغطية المؤقتة (Cover Note / Binder — §4.2): تغطية فورية عند أمر الإسناد قبل إصدار الوثيقة،

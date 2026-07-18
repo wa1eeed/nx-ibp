@@ -38,7 +38,7 @@
 | **الجذر** | [`app.module.ts`](../apps/api/src/app.module.ts) | تركيب الوحدات + حارسان عالميان (`JwtAuthGuard`, `AuthorizationGuard`) + middleware السياق |
 | **common المشتركة** | [`src/common/`](../apps/api/src/common) | خدمات أفقية عابرة للمجالات: سياق الطلب، التدقيق، التسلسل |
 | **البنية التحتية** | [`src/prisma/`](../apps/api/src/prisma) · [`src/redis/`](../apps/api/src/redis) | عملاء قاعدة البيانات والكاش كـ Providers |
-| **المجالية** | [`src/modules/`](../apps/api/src/modules) | منطق الأعمال: auth, rbac, catalog, clients, requests, underwriting, production, finance, **producers**, **form-templates**, documents, service, claims, renewals, verification, **platform**, **portal**, **reports**, **compliance**, **regulatory**, **finance/zatca**, **crm**, **reminders**, **email** (BYO Resend)، **billing** (اشتراكات + بوّابة دفع Tap)، **payments** (إعدادات دفع المستأجر + دفع العميل)، **complaints** (سجلّ الشكاوى + تقرير تنظيمي)، **aml** (مكافحة غسل الأموال: مخاطر/فرز/STR)، **cover-notes** (مذكرة التغطية المؤقتة §4.2)، **bank** (الحسابات والتسوية البنكية §1.6)، staff, health |
+| **المجالية** | [`src/modules/`](../apps/api/src/modules) | منطق الأعمال: auth, rbac, catalog, clients, requests, underwriting, production, finance, **producers**, **form-templates**, documents, service, claims, renewals, verification, **platform**, **portal**, **reports**, **compliance**, **regulatory**, **finance/zatca**, **crm**, **reminders**, **email** (BYO Resend)، **billing** (اشتراكات + بوّابة دفع Tap)، **payments** (إعدادات دفع المستأجر + دفع العميل)، **complaints** (سجلّ الشكاوى + تقرير تنظيمي)، **aml** (مكافحة غسل الأموال: مخاطر/فرز/STR)، **cover-notes** (مذكرة التغطية المؤقتة §4.2)، **bank** (الحسابات والتسوية البنكية §1.6)، **budget** (الموازنة التقديرية مقابل الفعلي §1.8)، staff, health |
 
 ```mermaid
 flowchart TB
@@ -439,7 +439,7 @@ flowchart TB
 | `form-templates` | مكتبة قوالب النماذج الديناميكية (تعبئة `base`+`blocks` مسبقة، تطبيق يزيد العدّاد) — تحت المبيعات |
 | `signup` · `billing` · `org` | تسجيل ذاتي · فوترة اشتراكات (Tap) · الهيكل الإداري |
 
-> **الحالة الفعلية:** كل المراحل 0–9 + ZATCA P2 + مسارات ما بعد الاكتمال (E1–E5/الإشعارات/الأمن) + **خارطة تجاوز أويسس 8/8** + سجلّ الوسطاء الفرعيين + مكتبة قوالب النماذج **مبنية ومُختبَرة** + إكمال القسم المالي (القوائم المالية الثلاث) + عنقود الامتثال (شكاوى/كشف المؤمِّن/AML) (e2e 332/332). راجع [`docs/00`](./00-project-status.md) و[`docs/29`](./29-roadmap-next.md).
+> **الحالة الفعلية:** كل المراحل 0–9 + ZATCA P2 + مسارات ما بعد الاكتمال (E1–E5/الإشعارات/الأمن) + **خارطة تجاوز أويسس 8/8** + سجلّ الوسطاء الفرعيين + مكتبة قوالب النماذج **مبنية ومُختبَرة** + إكمال القسم المالي (القوائم المالية الثلاث) + عنقود الامتثال (شكاوى/كشف المؤمِّن/AML) (e2e 339/339). راجع [`docs/00`](./00-project-status.md) و[`docs/29`](./29-roadmap-next.md).
 
 ---
 
