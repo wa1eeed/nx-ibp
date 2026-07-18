@@ -84,6 +84,18 @@
 - **سند القبض تلقائي:** عند العودة (`POST /portal/pay/:id/confirm`) أو الـ**webhook** (`POST /payments/webhook`، **توقيع مُتحقَّق لكل مستأجر**) ⇒ عند النجاح `finance.recordReceipt` (شلال الأقساط بالأقدم استحقاقًا) + `PortalPayment=PAID` — **بحتمية** (لا سند مكرّر).
 - زرّ «ادفع» يظهر في كشف الحساب فقط إن كان `paymentEnabled`؛ والنتيجة تُعرض في `/portal/pay/return`.
 
+## 3د. عروض التأمين: مراجعة العميل وقراره (§4.1)
+
+يعرض الوسيط عروضًا منتقاة على العميل (`POST /slips/:id/present`)، فيراها في بوّابته ويقرّر:
+- `GET /portal/proposals` · `GET /portal/proposals/:id` — قائمة العروض المقدَّمة + خياراتها، **بلا أيّ بيانات عمولة الوسيط** (تُحجب `commissionRate`/`commissionAmount`/`commissionVat` — خصوصية داخلية).
+- `POST /portal/proposals/:id/accept {quotationId}` ⇒ **أمر إسناد** (العرض `SELECTED` · الطلب `AWARDED`) + توثيق القبول + إشعار الوسيط `staff_proposal_accepted`. قرار مكرّر ⇒ 409.
+- `POST /portal/proposals/:id/decline {note?}` ⇒ توثيق الرفض + إشعار `staff_proposal_declined`.
+- صفحة `/portal/proposals` (بطاقات خيارات: القسط/الرسوم/ض.ق.م/الإجمالي/التحمّل/الحد/السريان + قبول/رفض). إشعار `proposal_ready`. **الرحلة الذاتية الكاملة**: يرى ⇒ يقبل ⇒ تُصدَر الوثيقة ⇒ يدفع (§3ج).
+
+## 3ه. مذكرة التغطية المؤقتة (§4.2)
+
+`GET /portal/cover-notes` · `GET /portal/cover-notes/:id/document` (بحارس ملكية) — العميل يرى مذكرات تغطيته المؤقتة (COV-) ويطبع مستندها بهوية المستأجر. تُصدَر عند أمر الإسناد بشروط العرض المختار وصلاحية زمنية، وتُستبدَل تلقائيًا عند إصدار الوثيقة. قسم «مذكرات تغطية سارية» على لوحة البوّابة. إشعار `cover_note_issued`. النموذج في [03](./03-data-model.md).
+
 ## 4. الواجهة (Portal)
 
 مسار `/[locale]/portal/*` بـ token مستقلّ (`ibp_portal_token`) ودالة نداء مستقلّة (`cpapi()` في [api.ts](../apps/web/src/lib/api.ts)).

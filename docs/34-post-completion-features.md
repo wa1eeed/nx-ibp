@@ -26,8 +26,8 @@
 ### 1.4 الأحداث الموصولة (E3)
 | الحدث | نقطة الإطلاق | الجمهور |
 |---|---|---|
-| `policy_issued` · `debit_note` · `request_ack` · `claim_ack` · `renewal_reminder` | إصدار/اعتماد مالي/طلب/مطالبة/تجديد | عميل |
-| `staff_request_created` · `staff_quotation_added` · `staff_policy_technical_review` · `staff_policy_finance_review` · `staff_policy_issued` · `staff_claim_created` · `staff_renewal_due` · `staff_verification_result` · `staff_wallet_low` · `staff_member_added` · `staff_subscription_status` · `staff_task_assigned` · `staff_deal_assigned` · `staff_task_due` · **`staff_service_assigned`** | أحداث التشغيل | موظفون |
+| `policy_issued` · `debit_note` · `request_ack` · `claim_ack` · `renewal_reminder` · `installment_due` · `portal_invite` · **`proposal_ready`** · **`cover_note_issued`** | إصدار/اعتماد مالي/طلب/مطالبة/تجديد/قسط/دعوة بوّابة/**عرض جاهز**/**مذكرة تغطية** | عميل |
+| `staff_request_created` · `staff_quotation_added` · `staff_policy_technical_review` · `staff_policy_finance_review` · `staff_policy_issued` · `staff_claim_created` · `staff_renewal_due` · `staff_verification_result` · `staff_wallet_low` · `staff_member_added` · `staff_subscription_status` · `staff_task_assigned` · `staff_deal_assigned` · `staff_task_due` · `staff_service_assigned` · **`staff_complaint_created`** · **`staff_aml_alert`** · **`staff_proposal_accepted`** · **`staff_proposal_declined`** | أحداث التشغيل + الامتثال + العروض | موظفون |
 
 كلها **fire-and-forget** — لا تُفشِل العملية الأصل عند تعذّر الإرسال.
 
@@ -299,7 +299,17 @@ CRM بلا تذكير آلي نصف حلّ: المهام تفوت والوثائ
 - **جهة العميل** (`/portal/claims/[id]`): يرى **التحديثات الظاهرة فقط** (`visibility=client` — الملاحظات الداخلية لا تتسرّب) ويردّ عبر `POST /portal/claims/:id/reply` ⇒ يُشعِر فريق المطالبات (`staff_claim_reply`). صفوف قائمة مطالبات البوّابة قابلة للنقر.
 - **البنية:** يُعاد استخدام `CrmActivity(entityType="claim", visibility)` والنمط ذاته (تفريع النوع + الإشعار + عزل `clientId` ⇒ 404). أنواع الإشعارات: `claim_reply` (عميل) و`staff_claim_reply` (موظف) ⇒ الإجمالي **26**. مُغطّى e2e (الرؤية الانتقائية + الرد + تفاصيل الموظف + العزل + تحديث التواصل) — الإجمالي **287/287**.
 
-> **حالة البوّابة:** الرئيسية (بطاقات مؤشّرات + الوثائق المقتربة) · الوثائق (+تفاصيل) · الطلبات (+محادثة الخدمة) · المطالبات (+محادثة) · كشف الحساب · المستندات · **حسابي** · الإشعارات (جرس + توجيه بالنقر). بوّابة عميل متكاملة للعرض والخدمة الذاتية والتواصل ثنائي الاتجاه.
+> **حالة البوّابة:** الرئيسية (بطاقات مؤشّرات + الوثائق المقتربة) · الوثائق (+تفاصيل) · الطلبات (+محادثة الخدمة) · **العروض** (مراجعة/قبول/رفض) · المطالبات (+محادثة) · كشف الحساب (+دفع) · **مذكرات التغطية** · المستندات · **حسابي** · الإشعارات (جرس + توجيه بالنقر). بوّابة عميل متكاملة للعرض والخدمة الذاتية والدفع والتواصل ثنائي الاتجاه.
+
+## 35. إكمال القسم المالي + عنقود الامتثال + الرحلة الذاتية (بعد تدقيق [35](./35-gap-audit.md))
+
+بعد التدقيق الشامل، اكتمل **تير P0 بالكامل** وبدأ **تير P1**. لتفادي التكرار، السرد التفصيلي في الوثائق المجالية؛ هذا فهرس حاكم:
+
+- **المالية (P0):** القيود اليدوية/المصروفات · عمولات الموظفين · **تقسيط الأقساط** (شلال) · **القوائم المالية الثلاث** (ميزانية عمومية + دفتر أستاذ + إقرار ض.ق.م + **تدفّق نقدي**) · **أعمار الذمم** · **السندات المطبوعة + صرف المرتجع الفعلي** (§1.7) — التفصيل في [20 §9ب–9د](./20-issuance-and-finance-core.md).
+- **الدفع والبوّابة:** توفير دخول العميل + **الدفع الإلكتروني** (Tap/Moyasar BYO، سند قبض آلي) + **عرض العروض على العميل وقبوله** (حجب العمولة ⇒ أمر إسناد) + **مذكرة التغطية المؤقتة** — [25](./25-client-portal.md) · [10 §6ب–6ج](./10-underwriting-rfq.md).
+- **عنقود الامتثال الترخيصي:** سجلّ الشكاوى · **كشف المؤمِّن الدوري (Bordereau)** · **مكافحة غسل الأموال (AML)** — [17 §8](./17-compliance-and-regulatory.md).
+
+الحالة: **e2e 321/321** (44 ملفًا) · القوائم المالية الثلاث + عنقود الامتثال مكتملان. المتبقّي في [35](./35-gap-audit.md): التسوية البنكية (§1.6) + تصدير التقارير (§7).
 
 ## انظر أيضاً
-[00 — الحالة](./00-project-status.md) · [03 — البيانات](./03-data-model.md) · [06 — API](./06-api-reference.md) · [07 — الوحدات](./07-backend-modules.md) · [20 — الإصدار والمالية](./20-issuance-and-finance-core.md) · [30 — الأمن](./30-security-and-compliance.md) · [31 — كتالوج المزايا](./31-feature-catalog.md) · [CHANGELOG](../CHANGELOG.md)
+[00 — الحالة](./00-project-status.md) · [03 — البيانات](./03-data-model.md) · [06 — API](./06-api-reference.md) · [07 — الوحدات](./07-backend-modules.md) · [10 — الاكتتاب/العروض](./10-underwriting-rfq.md) · [17 — الامتثال](./17-compliance-and-regulatory.md) · [20 — الإصدار والمالية](./20-issuance-and-finance-core.md) · [25 — بوّابة العميل](./25-client-portal.md) · [30 — الأمن](./30-security-and-compliance.md) · [31 — كتالوج المزايا](./31-feature-catalog.md) · [35 — تدقيق النواقص](./35-gap-audit.md) · [CHANGELOG](../CHANGELOG.md)
