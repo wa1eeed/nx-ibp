@@ -7,8 +7,8 @@ import { api } from "@/lib/api";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Badge } from "@/components/ui/Badge";
 
-interface Connector { key: string; name: string; category: string; environment: string; status: string; note: string }
-interface Status { environment: string; dataResidency: string; connectors: Connector[]; summary: { total: number; active: number; planned: number } }
+interface Connector { key: string; name: string; category: string; environment: string; status: string; configured?: boolean; note: string }
+interface Status { environment: string; gatewayMode?: string; dataResidency: string; connectors: Connector[]; summary: { total: number; active: number; planned: number; live?: number } }
 
 export default function IntegrationsPage() {
   const t = useTranslations();
@@ -20,9 +20,9 @@ export default function IntegrationsPage() {
       <PageHeader title={t("integrations.title")} subtitle={t("integrations.subtitle")} />
 
       <div className="flex flex-wrap items-center gap-2 rounded-card border border-line bg-card px-5 py-3 text-[12.5px] shadow-card">
-        <Badge tone="warning">{t("integrations.sandbox")}</Badge>
+        <Badge tone={s?.gatewayMode === "live" ? "success" : "warning"}>{s?.gatewayMode === "live" ? t("integrations.gatewayLive") : t("integrations.sandbox")}</Badge>
         <span className="text-muted">{t("integrations.residencyNote")}</span>
-        {s ? <span className="ms-auto text-subtle tnum">{s.summary.active}/{s.summary.total} {t("integrations.active")}</span> : null}
+        {s ? <span className="ms-auto text-subtle tnum">{s.summary.live ? `${s.summary.live} ${t("integrations.env.live")} · ` : ""}{s.summary.active}/{s.summary.total} {t("integrations.active")}</span> : null}
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -34,7 +34,10 @@ export default function IntegrationsPage() {
                 {c.status === "active" ? <CheckCircle2 size={12} /> : <Clock size={12} />} {t(`integrations.status.${c.status}`)}
               </Badge>
             </div>
-            <div className="text-[13.5px] font-semibold text-ink">{c.name}</div>
+            <div className="flex items-center gap-2">
+              <div className="text-[13.5px] font-semibold text-ink">{c.name}</div>
+              <span className={["rounded-full px-1.5 py-0.5 text-[10px] font-medium", c.environment === "live" ? "bg-success/10 text-success" : "bg-surface-2 text-subtle"].join(" ")}>{c.environment === "live" ? t("integrations.env.live") : t("integrations.env.sandbox")}</span>
+            </div>
             <div className="mt-0.5 text-[11px] uppercase tracking-wide text-subtle">{t(`integrations.cat.${c.category}`)}</div>
             <p className="mt-2 text-[12px] text-muted">{c.note}</p>
           </div>

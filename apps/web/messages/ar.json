@@ -801,8 +801,13 @@
     "title": "التكاملات التنظيمية",
     "subtitle": "الموصِّلات الحكومية وحالتها — Sandbox في بيئة التطوير",
     "sandbox": "بيئة Sandbox",
+    "gatewayLive": "بوّابة حيّة",
     "residencyNote": "بيانات الإنتاج الحقيقية داخل المملكة فقط (PDPL/NCA)",
     "active": "مفعّل",
+    "env": {
+      "live": "حيّ",
+      "sandbox": "تجريبي"
+    },
     "status": {
       "active": "مفعّل",
       "planned": "مُخطّط"

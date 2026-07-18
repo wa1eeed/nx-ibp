@@ -1,7 +1,8 @@
-import { HttpException, HttpStatus, Injectable, NotFoundException } from "@nestjs/common";
+import { HttpException, HttpStatus, Inject, Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
 import { AuditService } from "../../common/audit/audit.service";
 import { NotificationsService } from "../notifications/notifications.service";
+import { VERIFICATION_GATEWAY, type VerificationGateway } from "./verification.gateway";
 
 /**
  * طبقة موفّري التحقّق (المرحلة 7) — تعمل عبر Sandbox تجريبي أولاً (GUIDELINES.md/BLUEPRINT).
@@ -31,35 +32,22 @@ export class VerificationService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly notifications: NotificationsService,
+    @Inject(VERIFICATION_GATEWAY) private readonly gateway: VerificationGateway,
   ) {}
 
-  // ----- بيانات Sandbox تجريبية (تُستبدل بالـ APIs الحقيقية في المرحلة 9) -----
-  private mockYaqeen(nationalId: string) {
-    return { nationalId, name: "محمد بن أحمد الشهري", dob: "1990-05-15", gender: "male", nationality: "SA", idExpiry: "2028-03-01", idStatus: "valid" };
+  // ----- جلب البيانات عبر البوّابة (Sandbox افتراضيًا · موفّرون فعليون عند VERIFY_GATEWAY=live) -----
+  async yaqeen(tenantId: string, userId: string, nationalId: string, clientId?: string) {
+    return this.perform(tenantId, userId, "yaqeen", await this.gateway.identity(nationalId), clientId);
   }
-  private mockWathiq(crNumber: string) {
-    return { crNumber, companyName: "شركة العميل التجارية", crStatus: "active", issueCity: "الرياض", partners: ["أحمد الشهري", "سعود القحطاني"], ubo: "أحمد الشهري", authorizedSignatories: ["أحمد الشهري"] };
+  async wathiq(tenantId: string, userId: string, crNumber: string, clientId?: string) {
+    return this.perform(tenantId, userId, "wathiq", await this.gateway.commercialRegistration(crNumber), clientId);
   }
-  private mockAddress(id: string) {
-    return { id, buildingNo: "2347", street: "طريق الملك فهد", district: "العليا", city: "الرياض", postalCode: "12211", additionalNo: "8901" };
+  async address(tenantId: string, userId: string, id: string, clientId?: string) {
+    return this.perform(tenantId, userId, "address", await this.gateway.address(id), clientId);
   }
-  private mockScreening(name: string) {
-    const flagged = /sanction|عقوب|إرهاب/i.test(name);
-    return { name, riskLevel: flagged ? "high" : "low", pepMatch: false, sanctionsMatch: flagged };
-  }
-
-  yaqeen(tenantId: string, userId: string, nationalId: string, clientId?: string) {
-    return this.perform(tenantId, userId, "yaqeen", this.mockYaqeen(nationalId), clientId);
-  }
-  wathiq(tenantId: string, userId: string, crNumber: string, clientId?: string) {
-    return this.perform(tenantId, userId, "wathiq", this.mockWathiq(crNumber), clientId);
-  }
-  address(tenantId: string, userId: string, id: string, clientId?: string) {
-    return this.perform(tenantId, userId, "address", this.mockAddress(id), clientId);
-  }
-  screening(tenantId: string, userId: string, name: string, clientId?: string) {
-    const result = this.mockScreening(name);
-    return this.perform(tenantId, userId, "screening", result, clientId, result.riskLevel);
+  async screening(tenantId: string, userId: string, name: string, clientId?: string) {
+    const result = await this.gateway.screening(name);
+    return this.perform(tenantId, userId, "screening", result as unknown as Record<string, unknown>, clientId, result.riskLevel);
   }
 
   wallets() {

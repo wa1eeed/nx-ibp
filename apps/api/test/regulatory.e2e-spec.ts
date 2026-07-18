@@ -77,4 +77,15 @@ describe("التكاملات التنظيمية والمالية (e2e)", () => {
     expect(res.body.connectors.length).toBe(9);
     expect(res.body.connectors.some((c: { key: string }) => c.key === "zatca")).toBe(true);
   });
+
+  it("§9.3: لوحة الجاهزية تعكس وضع البوّابة والمفاتيح (بلا مفاتيح ⇒ sandbox/غير مُهيّأ)", async () => {
+    const res = await request(app.getHttpServer()).get("/regulatory/status").set(auth(gm)).expect(200);
+    expect(res.body.gatewayMode).toBe("sandbox"); // VERIFY_GATEWAY غير مضبوط في الاختبار
+    expect(res.body.summary.live).toBe(0);
+    // كل موصِّلات التحقّق تحمل علَم configured (بلا مفاتيح ⇒ false)؛ ومنها نفاذ/يقين/واثق
+    const y = res.body.connectors.find((c: { key: string }) => c.key === "yaqeen");
+    expect(y.configured).toBe(false);
+    expect(y.environment).toBe("sandbox");
+    expect(res.body.connectors.every((c: { configured?: unknown }) => typeof c.configured === "boolean")).toBe(true);
+  });
 });

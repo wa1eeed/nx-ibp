@@ -801,8 +801,13 @@
     "title": "Regulatory integrations",
     "subtitle": "Government connectors and their status — Sandbox in development",
     "sandbox": "Sandbox environment",
+    "gatewayLive": "Live gateway",
     "residencyNote": "Real production data in-Kingdom only (PDPL/NCA)",
     "active": "active",
+    "env": {
+      "live": "Live",
+      "sandbox": "Sandbox"
+    },
     "status": {
       "active": "Active",
       "planned": "Planned"

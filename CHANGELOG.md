@@ -2,6 +2,14 @@
 
 كل التغييرات الملموسة في منصة IBP، منظّمة حسب المراحل. الصيغة مستلهمة من [Keep a Changelog](https://keepachangelog.com).
 
+## [التكاملات: جاهزية التحقّق الحكومي للإنتاج — §9.3] ✅
+البند الخامس في تير **P2** ([docs/35](docs/35-gap-audit.md) بند 9.3) — من *stub* ثابت إلى **طبقة تكامل جاهزة للإنتاج**:
+- **بوّابة تحقّق قابلة للتبديل** (`VerificationGateway`): `SandboxVerificationGateway` (افتراضي — بيانات تجريبية) · `LiveVerificationGateway` تُنادي endpoints الموفّرين الفعليين (يقين/واثق/العنوان الوطني/الفرز) **بمفاتيح كل موفّر من البيئة (BYO)** مع **تراجُع آمن** إلى Sandbox عند غياب المفتاح أو فشل النداء — نفس نمط البريد (Resend) والدفع (Tap/Moyasar). تُختار بـ`VERIFY_GATEWAY=live` (بلا تبعية — `fetch` فقط).
+- **`verification.service`** يفوّض جلب البيانات للبوّابة (بلا كسر السلوك: Sandbox افتراضيًا ⇒ الاختبارات القائمة تمرّ).
+- **لوحة `/regulatory/status`** صارت تعكس **الجاهزية الفعلية من البيئة**: لكل موصِّل `configured` (بولياني) و`environment` (`live` عند ضبط مفاتيحه، وإلا `sandbox`) + `gatewayMode` + `summary.live`. صفحة `/tenant/settings/integrations` تعرض شارة «حيّ/تجريبي» لكل موصِّل.
+- **التفعيل الفعلي يتطلّب عقود/مفاتيح الجهات** (نفاذ/يقين/نجم/CCHI) — خارج نطاق الكود؛ الطبقة **جاهزة** لاستقبالها دون تغيير برمجي.
+- e2e (+1): اللوحة بلا مفاتيح ⇒ `gatewayMode=sandbox`، كل موصِّل `configured=false`/`environment=sandbox`، `summary.live=0` ⇒ **347/347** (تسلسلي). بناء الإنتاج ✅.
+
 ## [التقارير: تقارير مجدولة/بالبريد — §7.3] ✅
 البند الرابع في تير **P2** ([docs/35](docs/35-gap-audit.md) بند 7.3) — إرسال دوري لملخّصات الإدارة بلا تدخّل:
 - **نموذج `ReportSchedule`** (تقرير `dashboard`/`commissions`/`bordereau` · دورية `weekly`/`monthly` · مستلمون · `nextRunAt`/`lastSentAt`/`isActive`). migration `report_schedule`.
