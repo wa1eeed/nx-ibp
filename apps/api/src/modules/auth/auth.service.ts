@@ -1,10 +1,15 @@
 import { BadRequestException, Injectable, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import * as bcrypt from "bcryptjs";
+import { createHash, randomBytes } from "node:crypto";
 import { PrismaService } from "../../prisma/prisma.service";
 import { AuditService } from "../../common/audit/audit.service";
 import { RateLimitService } from "../../common/security/rate-limit.service";
 import { generateTotpSecret, otpauthUri, verifyTotp } from "../../common/security/totp";
+
+/** مدّة صلاحية رمز التحديث (أيام). */
+const REFRESH_DAYS = 7;
+const sha256 = (s: string) => createHash("sha256").update(s).digest("hex");
 
 @Injectable()
 export class AuthService {
@@ -44,8 +49,8 @@ export class AuthService {
     }
     await this.rateLimit.clear("login", email); // نجاح كامل ⇒ تصفير العدّاد
 
-    const payload = { sub: user.id, tenantId: user.tenantId, roleId: user.roleId ?? null, email: user.email };
-    const accessToken = await this.jwt.signAsync(payload);
+    const accessToken = await this.signAccess(user);
+    const refreshToken = await this.issueRefresh(user.id);
 
     // تسجيل دخول ناجح في سجل التدقيق (لا سياق مستأجر بعد ⇒ نمرّره صراحةً)
     await this.audit.log({ tenantId: user.tenantId, userId: user.id, action: "login", entity: "auth", entityId: user.id });
@@ -55,6 +60,7 @@ export class AuthService {
 
     return {
       accessToken,
+      refreshToken,
       mfaEnrollmentRequired,
       user: {
         id: user.id,
@@ -65,6 +71,42 @@ export class AuthService {
         mfaEnabled: user.mfaEnabled,
       },
     };
+  }
+
+  /** يوقّع رمز الوصول (access JWT) من بيانات المستخدم. */
+  private signAccess(user: { id: string; tenantId: string; roleId: string | null; email: string }) {
+    return this.jwt.signAsync({ sub: user.id, tenantId: user.tenantId, roleId: user.roleId ?? null, email: user.email });
+  }
+
+  /** يُصدر رمز تحديث خامًا (يُعاد للعميل مرّة واحدة) ويُخزّن **جزيئته** فقط. */
+  private async issueRefresh(userId: string): Promise<string> {
+    const raw = randomBytes(32).toString("hex");
+    await this.prisma.refreshToken.create({ data: { userId, tokenHash: sha256(raw), expiresAt: new Date(Date.now() + REFRESH_DAYS * 86_400_000) } });
+    return raw;
+  }
+
+  /**
+   * تدوير الجلسة: يستبدل رمز تحديث صالحًا برمز وصول جديد **ورمز تحديث جديد**، ويُبطِل القديم.
+   * الرمز المُبطَل/المنتهي/المجهول ⇒ 401. يُشغَّل بلا سياق مستأجر (بوّابة عامة كالدخول).
+   */
+  async refresh(token: string) {
+    if (!token) throw new UnauthorizedException("رمز تحديث مطلوب");
+    const row = await this.prisma.refreshToken.findFirst({ where: { tokenHash: sha256(token) } });
+    if (!row || row.revokedAt || +row.expiresAt < Date.now()) throw new UnauthorizedException("رمز التحديث غير صالح");
+    const user = await this.prisma.user.findFirst({ where: { id: row.userId, status: "ACTIVE" }, select: { id: true, tenantId: true, roleId: true, email: true } });
+    if (!user) throw new UnauthorizedException("الحساب غير نشط");
+    // تدوير: أبطِل القديم وأصدر جديدًا (اكتشاف إعادة الاستخدام يبقى بسيطًا — القديم لن يُقبل ثانيةً)
+    await this.prisma.refreshToken.update({ where: { id: row.id }, data: { revokedAt: new Date() } });
+    const accessToken = await this.signAccess(user);
+    const refreshToken = await this.issueRefresh(user.id);
+    await this.audit.log({ tenantId: user.tenantId, userId: user.id, action: "login", entity: "auth_refresh", entityId: user.id });
+    return { accessToken, refreshToken };
+  }
+
+  /** خروج: إبطال رمز التحديث (إن مُرِّر). idempotent. */
+  async logout(token?: string) {
+    if (token) await this.prisma.refreshToken.updateMany({ where: { tokenHash: sha256(token), revokedAt: null }, data: { revokedAt: new Date() } });
+    return { ok: true };
   }
 
   /** بيانات المستخدم الحالي — ضمن سياق المستأجر فتُفلتر تلقائياً. */

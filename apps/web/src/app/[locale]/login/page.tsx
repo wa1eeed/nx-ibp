@@ -4,7 +4,7 @@ import { useState, type FormEvent } from "react";
 import { ShieldCheck, LogIn, KeyRound } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/routing";
-import { api, ApiError, setToken } from "@/lib/api";
+import { api, ApiError, setToken, setRefreshToken } from "@/lib/api";
 
 // تعبئة مسبقة لبيانات الدخول التجريبية في التطوير المحلي فقط — فارغة في الإنتاج/staging.
 const DEV_PREFILL = process.env.NODE_ENV !== "production";
@@ -24,11 +24,12 @@ export default function LoginPage() {
     setLoading(true);
     setError("");
     try {
-      const res = await api<{ accessToken: string; mfaEnrollmentRequired?: boolean }>("/auth/login", {
+      const res = await api<{ accessToken: string; refreshToken?: string; mfaEnrollmentRequired?: boolean }>("/auth/login", {
         method: "POST",
         body: JSON.stringify({ email, password, ...(mfaStep && mfaCode ? { mfaCode } : {}) }),
       });
       setToken(res.accessToken);
+      if (res.refreshToken) setRefreshToken(res.refreshToken);
       // بعد الدخول ⇒ الصفحة الافتراضية (لوحة المعلومات، متاحة لكل الأدوار) — لا آخر صفحة
       // من جلسة سابقة قد تكون خارج صلاحية الموظف. إلزام MFA غير المُفعّل ⇒ صفحة التفعيل أولاً.
       // نستخدم replace كي لا تبقى صفحة الدخول في سجلّ التصفّح.

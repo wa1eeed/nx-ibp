@@ -1072,6 +1072,19 @@ model BudgetLine {
   @@index([tenantId, fiscalYear])
 }
 
+/// أمن — رمز تحديث الجلسة (Refresh Token). يُخزَّن **مُجزَّأً (SHA-256)** لا خامًا، بدورة تدوير:
+/// كل تحديث يُبطِل الرمز القديم ويُصدر جديدًا. أصل مصادقة (بلا tenantId — يُلتمس بالسرّ لا بالمستأجر).
+model RefreshToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique // SHA-256(الرمز الخام) — لا يُخزَّن الخام أبدًا
+  expiresAt DateTime
+  revokedAt DateTime? // مُبطَل (تدوير/خروج)
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
 /// §8.2 — طلب إجازة موظف (سنوية/مرضية/بلا راتب/أخرى) بدورة اعتماد (معلّق → موافَق/مرفوض).
 model LeaveRequest {
   id           String    @id @default(cuid())

@@ -1,6 +1,7 @@
 // عميل API بسيط للواجهة — يرفق توكن JWT من التخزين المحلي.
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 const TOKEN_KEY = "ibp_token";
+const REFRESH_KEY = "ibp_refresh"; // رمز تحديث جلسة المستأجر (تدوير عند 401)
 const PLATFORM_TOKEN_KEY = "ibp_platform_token";
 const PORTAL_TOKEN_KEY = "ibp_portal_token";
 
@@ -12,6 +13,11 @@ export function setToken(token: string): void {
 }
 export function clearToken(): void {
   window.localStorage.removeItem(TOKEN_KEY);
+  window.localStorage.removeItem(REFRESH_KEY);
+}
+/** يخزّن رمز تحديث جلسة المستأجر (عند الدخول). */
+export function setRefreshToken(token: string): void {
+  if (typeof window !== "undefined" && token) window.localStorage.setItem(REFRESH_KEY, token);
 }
 
 // ----- توكن السوبر أدمن (لوحة المنصّة) -----
@@ -78,7 +84,26 @@ function handleSessionExpired(scope: Scope): void {
   if (!window.location.pathname.includes(`/${login}`)) window.location.replace(`/${locale}/${login}`);
 }
 
-async function request<T>(path: string, opts: RequestInit, token: string | null, scope: Scope = "tenant"): Promise<T> {
+/**
+ * تدوير جلسة المستأجر: يبادل رمز التحديث المخزّن برمز وصول جديد (fetch خام تفاديًا للتكرار).
+ * ينجح ⇒ يخزّن الرمزين الجديدين ويعيد رمز الوصول؛ يفشل ⇒ null.
+ */
+async function refreshTenantSession(): Promise<string | null> {
+  if (typeof window === "undefined") return null;
+  const rt = window.localStorage.getItem(REFRESH_KEY);
+  if (!rt) return null;
+  try {
+    const res = await fetch(`${BASE}/auth/refresh`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ refreshToken: rt }) });
+    if (!res.ok) return null;
+    const body = (await res.json()) as { accessToken?: string; refreshToken?: string };
+    if (!body.accessToken) return null;
+    setToken(body.accessToken);
+    if (body.refreshToken) setRefreshToken(body.refreshToken);
+    return body.accessToken;
+  } catch { return null; }
+}
+
+async function request<T>(path: string, opts: RequestInit, token: string | null, scope: Scope = "tenant", retried = false): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     ...opts,
     headers: {
@@ -88,8 +113,14 @@ async function request<T>(path: string, opts: RequestInit, token: string | null,
     },
   });
 
-  // جلسة منتهية: أُرسل توكن لكنه رُفض ⇒ إعادة توجيه نظيفة للدخول (لا نُظهر مستخدمًا آخر)
-  if (res.status === 401 && token) handleSessionExpired(scope);
+  // جلسة منتهية: نحاول **تدوير** رمز المستأجر مرّة واحدة قبل الإخراج (نطاق المستأجر فقط)
+  if (res.status === 401 && token) {
+    if (scope === "tenant" && !retried) {
+      const fresh = await refreshTenantSession();
+      if (fresh) return request<T>(path, opts, fresh, scope, true);
+    }
+    handleSessionExpired(scope);
+  }
 
   if (!res.ok) {
     let message: string = res.statusText;

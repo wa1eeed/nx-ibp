@@ -5,7 +5,7 @@
 ## 1. الحالة العامة
 - **المنصّة مكتملة وظيفياً** (المراحل 0–9 + **ZATCA Fatoora المرحلة 2**)، ويجري تنفيذ **مسارات ما بعد الاكتمال** (تجاري/أمني/امتثال) بالتدريج حسب الأولوية.
 - **منشورة على staging** 🚀 (2026-07-05): `https://ibp.nx.sa` (واجهة) + `https://api.ibp.nx.sa` (API) عبر Coolify — بيانات ديمو GIB، تكاملات Sandbox، تُحاكي الإنتاج. البيئات الثلاث: **dev** (جهازك) · **staging** (السيرفر الحالي) · **production** (لاحقًا، داخل المملكة) — التفصيل في [32](./32-environments.md).
-- **الاختبارات:** **e2e 364/364** (51 ملفاً) على قاعدة اختبار منفصلة `ibp_test`.
+- **الاختبارات:** **e2e 368/368** (52 ملفاً) على قاعدة اختبار منفصلة `ibp_test`.
 - **المستودع:** `github.com/wa1eeed/nx-ibp` — فرع **`main`** مرفوع ومتزامن. (ملاحظة: الدفع يتطلّب `git config http.version HTTP/1.1` — علّة HTTP/2 curl، مضبوط محليًا.)
 - **التموضع:** InsurTech SaaS · «نظام تشغيل وساطة التأمين» — مع لاندينق بيج تسويقي على جذر الدومين.
 - **دستور المشروع:** [`GUIDELINES.md`](../GUIDELINES.md) (يُقرأ ويُلتزم في كل جلسة).
@@ -97,7 +97,7 @@ pnpm --filter @ibp/api dev                 # nest --watch على http://localhos
 pnpm --filter @ibp/web dev                 # http://localhost:3000
 
 # 4) الاختبارات
-pnpm --filter @ibp/api test:e2e            # 364/364
+pnpm --filter @ibp/api test:e2e            # 368/368
 ```
 > **إن ظهر 404 لمسار API جديد:** عملية الـ watch قديمة — اقتل عمليات NX-IBP فقط (ليس مشاريع أخرى) وأعد `pnpm --filter @ibp/api dev`.
 

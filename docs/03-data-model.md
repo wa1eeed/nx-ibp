@@ -938,6 +938,7 @@ erDiagram
 - **§9.4 — تعدّد العملات:** `Policy.currency` (افتراضي `SAR`) + `Policy.fxRate` (`Decimal(12,6)`، سعر التحويل للريال، افتراضي 1). يُلتقطان عند الإصدار (عملة أجنبية تُلزِم سعرًا موجبًا). **الدفاتر بالريال (العملة الوظيفية):** الاعتماد المالي/الإلغاء يُرحّلان المبالغ × `fxRate`؛ الوثيقة تحتفظ بعملتها للعرض.
 - **`PayrollRun` + `PayrollLine`** (§8.1 — الرواتب) — كشف رواتب لفترة (`period` = YYYY-MM، `status` draft/posted) ببنود لكل موظف (`baseSalary`/`allowances`/`deductions` ⇒ صافي). الترحيل يولّد سند مصروف (مدين 05030 / دائن 0101) بصافي الكشف. مفتاح فريد `[tenantId, period]`.
 - **`LeaveRequest`** (§8.2 — طلبات الإجازات) — `userId` + `employeeName` + `type` (annual/sick/unpaid/other) + `startDate`/`endDate`/`days` + `reason` + `status` (pending/approved/rejected) + `decidedBy`/`decidedAt`/`decisionNote`. الموظف يقدّم؛ الإدارة تبتّ (لا يبتّ الموظف طلبه). الحضور/الـHRIS العميق خارج النطاق.
+- **`RefreshToken`** (أمن — تدوير الجلسة) — `userId` + `tokenHash` (SHA-256 للرمز الخام، فريد) + `expiresAt` (7 أيام) + `revokedAt`. **بلا `tenantId`** (أصل مصادقة يُلتمس بالسرّ). كل تحديث يُبطِل القديم ويُصدر جديدًا (تدوير).
 
 ### CRM (إدارة العلاقات)
 - **`Deal`** — صفقة/فرصة في خطّ الأنابيب: `title` · `stage` (new/contacted/quoting/proposal/negotiation) · `status` (open/won/lost) · `value` · `clientId` · **`assigneeId`** (الموظف المُسنَد) · `createdById` · `requestId` (عند التحويل). فهارس `[tenantId, stage]` و`[tenantId, assigneeId]`.

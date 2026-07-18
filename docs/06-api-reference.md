@@ -637,6 +637,7 @@ curl -X POST http://localhost:4000/staff \
 | GET | `/clients/erasures` · `/clients/retention/due` | clients:read | سجلّ الإتلاف (الممحوّون) · تقرير الاستحقاق للإتلاف (تجاوز مدّة الاحتفاظ). **DLP**: الهوية/الآيبان مُخفاة لغير الالتزام/المالية |
 | GET | `/auth/mfa/status` | مصادقة | حالة MFA للمستخدم + إلزام الشركة |
 | POST | `/auth/mfa/setup` · `/auth/mfa/enable` · `/auth/mfa/disable` | مصادقة | تسجيل/تفعيل/إلغاء MFA (TOTP، **مُطفأة افتراضيًا**). `login` بكلمة المرور وحدها ⇒ `401 MFA_REQUIRED`، ومع `mfaCode` ⇒ توكن |
+| POST | `/auth/refresh` · `/auth/logout` | Public | **تدوير الجلسة**: `/auth/refresh {refreshToken}` ⇒ رمز وصول + تحديث جديدان (والقديم يُبطَل؛ مجهول/منتهٍ/مُبطَل ⇒ 401) · `/auth/logout {refreshToken}` يُبطِل الرمز. الدخول يُصدر `refreshToken` بجانب `accessToken` |
 | POST | `/staff/:id/mfa/reset` | settings:update | **إعادة تعيين إدارية**: أدمن الشركة يُعطّل مصادقة موظف (فقدان جهاز) — يعيد التسجيل لاحقًا |
 | POST | `/policies/:id/approve-step` | ديناميكي (وحدة الخطوة) | اعتماد خطوة إضافية مُهيّأة |
 | POST | `/revert/:entityType/:id` | `canRevert` للوحدة | التراجع خطوة للوراء (policy/claim/service_request/request) |
