@@ -71,6 +71,8 @@ model Tenant {
   amlScreenings        AmlScreening[]
   suspiciousReports    SuspiciousReport[]
   coverNotes           CoverNote[]
+  bankAccounts         BankAccount[]
+  bankTransactions     BankTransaction[]
   serviceRequests      ServiceRequest[]
   claims               Claim[]
   chartOfAccounts      ChartOfAccount[]
@@ -987,6 +989,43 @@ model SuspiciousReport {
 
   @@index([tenantId])
   @@index([tenantId, status])
+}
+
+// حساب بنكي للوساطة (§1.6) — قد يكون للشركة عدّة حسابات؛ التسوية تُطابق كشف البنك بسندات النظام.
+model BankAccount {
+  id             String            @id @default(cuid())
+  tenantId       String
+  tenant         Tenant            @relation(fields: [tenantId], references: [id])
+  name           String // «الجاري — الراجحي»
+  bankName       String?
+  iban           String?
+  accountNo      String?
+  currency       String            @default("SAR")
+  openingBalance Decimal           @default(0) @db.Decimal(16, 2)
+  isActive       Boolean           @default(true)
+  createdAt      DateTime          @default(now())
+  transactions   BankTransaction[]
+
+  @@index([tenantId])
+}
+
+// حركة كشف البنك المستوردة (§1.6) — تُطابَق يدويًا/آليًا بسند نظام (RCV/PYV) لإتمام التسوية.
+model BankTransaction {
+  id               String      @id @default(cuid())
+  tenantId         String
+  tenant           Tenant      @relation(fields: [tenantId], references: [id])
+  bankAccountId    String
+  bankAccount      BankAccount @relation(fields: [bankAccountId], references: [id], onDelete: Cascade)
+  txnDate          DateTime
+  description      String
+  amount           Decimal     @db.Decimal(16, 2) // موجب = إيداع (وارد) · سالب = سحب (صادر)
+  reference        String?
+  matchedVoucherId String? // السند المطابق (Voucher)
+  status           String      @default("unmatched") // unmatched | matched | ignored
+  createdAt        DateTime    @default(now())
+
+  @@index([tenantId])
+  @@index([tenantId, bankAccountId])
 }
 
 // مذكرة التغطية المؤقتة (Cover Note / Binder — §4.2): تغطية فورية عند أمر الإسناد قبل إصدار الوثيقة،

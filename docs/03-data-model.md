@@ -423,6 +423,15 @@ erDiagram
 
 **الفهارس:** `@@index([tenantId])` · `@@index([tenantId, requestId])`. **الاستبدال:** عند إصدار الوثيقة من الطلب تُعلَّم كل مذكرات الطلب القائمة `superseded` وتُربط بالوثيقة (ذرّيًا). إشعار العميل `cover_note_issued`.
 
+### `BankAccount` + `BankTransaction` (التسوية البنكية — §1.6)
+**الغرض:** إدارة حسابات الشركة البنكية ومطابقة كشف البنك بسندات النظام (وحدة `bank` تحت `finance`).
+
+**`BankAccount`:** `name` · `bankName?` · `iban?` · `accountNo?` · `currency` (SAR) · `openingBalance` (Decimal 16,2) · `isActive`. الرصيد الجارٍ = الافتتاحي + صافي حركات الكشف.
+
+**`BankTransaction`:** `bankAccountId` (FK cascade) · `txnDate` · `description` · `amount` (Decimal 16,2 — **موجب إيداع/سالب سحب**) · `reference?` · `matchedVoucherId?` (السند المطابق) · `status` (unmatched \| matched \| ignored). `@@index([tenantId])` · `@@index([tenantId, bankAccountId])`.
+
+**التسوية:** تُطابَق كل حركة بسند **قبض/صرف** (RCV/PYV)؛ الرسوم البنكية تُوسَم `ignored`؛ `reconciled` عند صفر حركات غير مطابَقة. سندات النقد غير المرتبطة تُعرَض مرشّحةً للمطابقة (إيداعات/شيكات معلّقة).
+
 ### `Quotation`
 **الغرض:** عرض شركة تأمين — **هجين**: حقول معيارية للمقارنة الآلية + نص حر للشروط.
 

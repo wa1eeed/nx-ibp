@@ -666,6 +666,11 @@ curl -X POST http://localhost:4000/staff \
 | GET | `/finance/vouchers/:id/document` | finance:read | **مستند السند المطبوع** (§1.7) — سند قبض/صرف/يومية بهوية المستأجر + الطرف المقابل + أطراف القيد · مجهول ⇒ 404 |
 | GET | `/finance/credit-notes` | finance:read | الإشعارات الدائنة على العملاء (CNP) + حالة صرف المرتجع (`refundedAt`/`refundVoucherId`) |
 | POST | `/finance/credit-notes/:id/refund` | finance:create | **صرف مرتجع فعلي للعميل** (§1.7): `{ method?, reference? }` ⇒ سند PYV (مدين 0103/دائن 0101) + تعليم CNP «مصروف». تكرار ⇒ 409 · غير CNP ⇒ 400 |
+| GET/POST | `/finance/bank/accounts` | finance:read/create | **الحسابات البنكية** (§1.6): قائمة (برصيد كل حساب) / إنشاء `{ name, bankName?, iban?, accountNo?, openingBalance? }` |
+| GET | `/finance/bank/accounts/:id/transactions` · `/reconciliation` | finance:read | حركات الكشف + حالتها · **ملخّص التسوية** (رصيد الكشف/المطابَق/الفرق + حركات وسندات غير مطابَقة + `reconciled`) · مجهول ⇒ 404 |
+| POST | `/finance/bank/accounts/:id/import` | finance:create | **استيراد كشف البنك**: `{ lines: [{ txnDate, description, amount, reference? }] }` (موجب إيداع/سالب سحب). فارغ ⇒ 400 |
+| POST | `/finance/bank/transactions/:id/match` | finance:update | مطابقة حركة بسند **قبض/صرف** (RCV/PYV فقط ⇒ غيره 400 · مطابَق مسبقًا/مكرّر 409) |
+| PUT | `/finance/bank/transactions/:id/status` | finance:update | `{ status: unmatched\|ignored }` — فكّ المطابقة أو تجاهل (رسوم بنك) |
 
 **تصويب اتجاه الفاتورة:** الاعتماد المالي يُصدِر فاتورة **العمولة على المؤمِّن** (`kind=COMMISSION`) و—عند وجود `policyFees`—فاتورة **رسوم الخدمة على العميل** (`kind=FEES`، إيراد COA `04020` + ضريبة مخرجات 15%)، وتُضاف الرسوم لإشعار مدين العميل. بوّابة العميل تعرض فواتير رسومه فقط.
 

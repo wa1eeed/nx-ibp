@@ -107,7 +107,9 @@ export default function FinancePage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title={t("finance.title")} subtitle={t("finance.subtitle")} />
+      <PageHeader title={t("finance.title")} subtitle={t("finance.subtitle")} actions={
+        <Link href="/tenant/finance/bank" className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-line px-3.5 text-[13px] font-medium text-primary hover:bg-surface-2"><Landmark size={15} /> {t("finance.bankRecon")}</Link>
+      } />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard tone="primary" icon={<Landmark size={18} />} title={t("finance.grossPremium")} value={<span className="tnum">{s ? fmt(s.grossPremium) : "…"}</span>} sub={t("common.sar")} />
