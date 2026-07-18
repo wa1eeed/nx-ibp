@@ -428,6 +428,7 @@ model TenantConfig {
   emailTemplates  Json? // قوالب الإيميلات
   approvalChains  Json? // سلاسل الاعتماد
   securityPolicy  Json? // سياسة الأمان على مستوى الشركة (إلزام MFA…)
+  operationsPolicy Json? // §6.4 — سياسات التشغيل (مدّة حق العدول freeLookDays…)
   branding        Json? // الشعار والألوان
 }
 
@@ -845,6 +846,7 @@ model Policy {
   pendingApprovals      String[]      @default([])
   startDate             DateTime?
   endDate               DateTime?
+  freeLookUntil         DateTime? // §6.4 — نهاية مدّة حق العدول (Free-look): الإلغاء ضمنها استرداد كامل
   renewalRemindedAt     DateTime? // تذكير التجديد أُرسِل (idempotency للمجدول)
   createdAt             DateTime      @default(now())
   endorsements          Endorsement[]

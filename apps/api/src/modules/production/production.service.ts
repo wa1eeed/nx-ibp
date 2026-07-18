@@ -38,6 +38,7 @@ const POLICY_FIELDS = {
   pendingApprovals: true,
   startDate: true,
   endDate: true,
+  freeLookUntil: true, // §6.4 — نافذة حق العدول (لشارة الواجهة)
   createdAt: true,
 } as const;
 

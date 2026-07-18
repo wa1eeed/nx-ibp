@@ -464,10 +464,12 @@ export class FinanceService {
     if (policy.status !== "ISSUED") throw new ConflictException("لا يُلغى إلا وثيقة مُصدَرة");
     if (!policy.startDate || !policy.endDate) throw new ConflictException("الوثيقة تفتقر لتواريخ التغطية لحساب المُرتجَع");
     const DAY = 86_400_000;
-    const eff = dto.effectiveDate ? new Date(dto.effectiveDate) : new Date();
+    // §6.4 — الإلغاء ضمن مدّة حق العدول (Free-look) ⇒ **استرداد كامل** (تُلغى الوثيقة كأن لم تكن)؛ وإلا نسبةً وتناسبًا
+    const withinFreeLook = policy.freeLookUntil != null && Date.now() <= +policy.freeLookUntil;
+    const eff = withinFreeLook ? new Date(policy.startDate) : (dto.effectiveDate ? new Date(dto.effectiveDate) : new Date());
     const totalDays = Math.max(1, Math.round((+policy.endDate - +policy.startDate) / DAY));
-    const unexpired = Math.max(0, Math.min(totalDays, Math.round((+policy.endDate - +eff) / DAY)));
-    const frac = unexpired / totalDays;
+    const unexpired = withinFreeLook ? totalDays : Math.max(0, Math.min(totalDays, Math.round((+policy.endDate - +eff) / DAY)));
+    const frac = withinFreeLook ? 1 : unexpired / totalDays;
     const returnNet = r2(num(policy.premium) * frac);
     const returnVat = r2(num(policy.vat) * frac);
     const returnTotal = r2(returnNet + returnVat);
@@ -482,12 +484,12 @@ export class FinanceService {
     const endoCount = await this.prisma.endorsement.count({ where: { policyId } });
 
     const result = await this.prisma.$transaction(async (tx) => {
-      const endo = await tx.endorsement.create({ data: { tenantId, policyId, sequenceNo: `${policy.sequenceNo ?? policyId}/E${endoCount + 1}`, type: "cancellation", effectiveDate: eff, premiumDelta: r2(-returnNet), details: asJson({ reason: dto.reason ?? null, returnPremium: returnNet, unexpiredDays: unexpired, totalDays }), status: "ISSUED" } });
+      const endo = await tx.endorsement.create({ data: { tenantId, policyId, sequenceNo: `${policy.sequenceNo ?? policyId}/E${endoCount + 1}`, type: "cancellation", effectiveDate: eff, premiumDelta: r2(-returnNet), details: asJson({ reason: dto.reason ?? null, returnPremium: returnNet, unexpiredDays: unexpired, totalDays, freeLook: withinFreeLook }), status: "ISSUED" } });
       const creditNote = await tx.creditNote.create({ data: { tenantId, sequenceNo: creditSeq, kind: "CNP", clientId: policy.clientId, policyId, netAmount: returnNet, vatAmount: returnVat } });
       // إشعار دائن للمؤمِّن يعكس العمولة (وضريبتها) المستردّة نسبةً وتناسبًا — مقابل الفاتورة الضريبية الأصلية
       const creditInsurer = creditInsurerSeq ? await tx.creditNote.create({ data: { tenantId, sequenceNo: creditInsurerSeq, kind: "CNC", insurerName: policy.insurerName, policyId, netAmount: returnCommission, vatAmount: returnCommVat } }) : null;
       const voucher = await tx.voucher.create({ data: { tenantId, type: "JRV", sequenceNo: voucherSeq, amount: returnTotal, status: "posted", isAuto: true, reference: policyId, lines: asJson({
-        description: `إلغاء الوثيقة ${policy.sequenceNo} — قسط مُرتجَع (${unexpired}/${totalDays} يوم)`,
+        description: `إلغاء الوثيقة ${policy.sequenceNo} — ${withinFreeLook ? "ضمن حق العدول: استرداد كامل" : `قسط مُرتجَع (${unexpired}/${totalDays} يوم)`}`,
         entries: [
           { account: "01030000000000000", name: "ذمم العملاء المدينة", debit: 0, credit: returnTotal },
           { account: "02020000000000000", name: "أمانات أقساط العملاء (Off-Balance)", debit: returnTrust, credit: 0 },
@@ -499,7 +501,7 @@ export class FinanceService {
       return { endo, creditNote, creditInsurer, voucher, policy: updated };
     });
     await this.audit.log({ tenantId, userId, action: "update", entity: "policy_cancellation", entityId: policyId, meta: { creditNote: creditSeq, creditInsurer: result.creditInsurer?.sequenceNo ?? null, returnPremium: returnNet, returnCommission, unexpiredDays: unexpired, totalDays } });
-    return { status: "CANCELLED", creditNote: result.creditNote.sequenceNo, creditNoteInsurer: result.creditInsurer?.sequenceNo ?? null, endorsement: result.endo.sequenceNo, returnNet, returnVat, returnTotal, returnCommission, returnCommVat, unexpiredDays: unexpired, totalDays };
+    return { status: "CANCELLED", freeLook: withinFreeLook, creditNote: result.creditNote.sequenceNo, creditNoteInsurer: result.creditInsurer?.sequenceNo ?? null, endorsement: result.endo.sequenceNo, returnNet, returnVat, returnTotal, returnCommission, returnCommVat, unexpiredDays: unexpired, totalDays };
   }
 
   /**
@@ -1046,6 +1048,12 @@ export class FinanceService {
       }
     }
 
+    // §6.4 — حق العدول (Free-look): نافذة إلغاء باسترداد كامل من تاريخ الإصدار (0 = مُعطَّل)
+    const opsCfg = await this.config.getOperationsConfig(tenantId);
+    const freeLookUntil = opsCfg.freeLookDays > 0
+      ? new Date(+(policy.issueDate ?? new Date()) + opsCfg.freeLookDays * 86_400_000)
+      : null;
+
     // E1 — الضريبة حسب فرع التأمين: قسط تأمين الحياة معفى (فئة "E"، 0%)؛ البقية قياسية 15% (فئة "S")
     const line = policy.productLineCode
       ? await this.prisma.productLine.findFirst({ where: { code: policy.productLineCode }, include: { class: true } })
@@ -1158,7 +1166,9 @@ export class FinanceService {
       if (policy.clientId) {
         const existing = await tx.chartOfAccount.findFirst({ where: { clientId: policy.clientId } });
         if (!existing) {
-          const parentId = `coa-${tenantId}-01030000000000000`;
+          // يُلتمس الأب بالكود (لا بمعرّف مُركَّب) — يعمل للبذرة والتسجيل الذاتي معًا
+          const parent = await tx.chartOfAccount.findFirst({ where: { code: "01030000000000000" }, select: { id: true } });
+          const parentId = parent?.id ?? null;
           const count = await tx.chartOfAccount.count({ where: { level: 3, parentId } });
           const code = "0103" + String(1001 + count).padStart(13, "0"); // 17 رقماً تحت 0103
           await tx.chartOfAccount.create({
@@ -1205,8 +1215,8 @@ export class FinanceService {
         billing.push(inv.id);
       }
 
-      // 6) تحديث الحالات + بصمة آلية التحصيل على الوثيقة (مصدر الحقيقة) ⇒ ISSUED
-      await tx.policy.update({ where: { id: policyId }, data: { status: "ISSUED", collectionModel: model } });
+      // 6) تحديث الحالات + بصمة آلية التحصيل على الوثيقة (مصدر الحقيقة) ⇒ ISSUED + نافذة حق العدول (§6.4)
+      await tx.policy.update({ where: { id: policyId }, data: { status: "ISSUED", collectionModel: model, freeLookUntil } });
       if (policy.requestId) await tx.policyRequest.update({ where: { id: policy.requestId }, data: { status: "ISSUED" } });
 
       return { voucher: voucher.sequenceNo, debitNote: debitNote?.sequenceNo ?? null, invoice: invoice.sequenceNo, feesInvoice: feesInvoice?.sequenceNo ?? null, billing, model };

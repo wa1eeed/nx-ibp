@@ -19,6 +19,7 @@ interface Policy {
   commissionAmount: string | null;
   productLineCode: string | null;
   pendingApprovals?: string[];
+  freeLookUntil?: string | null;
 }
 
 const STATUS_TONE: Record<string, BadgeTone> = {
@@ -145,7 +146,14 @@ export default function PoliciesPage() {
                     <td className="px-5 py-3 text-[13px] text-ink">{p.insurerName ?? "—"}</td>
                     <td className="px-5 py-3 text-[12.5px] tnum">{fmt(p.totalPremium)}</td>
                     <td className="px-5 py-3 text-[12.5px] text-muted tnum">{fmt(p.commissionAmount)}</td>
-                    <td className="px-5 py-3"><Badge tone={STATUS_TONE[p.status] ?? "neutral"}>{p.status}</Badge></td>
+                    <td className="px-5 py-3">
+                      <div className="flex items-center gap-1.5">
+                        <Badge tone={STATUS_TONE[p.status] ?? "neutral"}>{p.status}</Badge>
+                        {p.freeLookUntil && new Date(p.freeLookUntil).getTime() > Date.now()
+                          ? <span className="whitespace-nowrap rounded-full bg-info/10 px-2 py-0.5 text-[10.5px] font-medium text-info" title={new Date(p.freeLookUntil).toLocaleDateString()}>{t("policies.freeLook")}</span>
+                          : null}
+                      </div>
+                    </td>
                     <td className="px-5 py-3 text-end">
                       <div className="inline-flex items-center gap-2">
                         {p.status === "TECHNICAL_REVIEW" ? (

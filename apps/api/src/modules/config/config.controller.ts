@@ -9,6 +9,11 @@ class SetSecurityDto {
   @IsBoolean() mfaRequired!: boolean;
 }
 
+/** §6.4 — سياسات التشغيل: مدّة حق العدول (0–90 يومًا؛ 0 = مُعطَّل). */
+class SetOperationsDto {
+  @IsInt() @Min(0) @Max(90) freeLookDays!: number;
+}
+
 class SetRetentionDto {
   @IsInt() @Min(1) @Max(30) retentionYears!: number;
 }
@@ -57,6 +62,19 @@ export class ConfigController {
   @Put("approval-chain")
   set(@CurrentUser("tenantId") tenantId: string, @CurrentUser("userId") userId: string, @Body() dto: SetApprovalChainDto) {
     return this.config.setPolicyApprovalConfig(tenantId, userId, { technicalGate: dto.technicalGate, segregationOfDuties: dto.segregationOfDuties, technicalSegregation: dto.technicalSegregation, steps: dto.steps as ApprovalStep[] });
+  }
+
+  // §6.4 — سياسات التشغيل (مدّة حق العدول)
+  @Authorize({ module: "settings", action: "read" })
+  @Get("operations")
+  getOperations(@CurrentUser("tenantId") tenantId: string) {
+    return this.config.getOperationsConfig(tenantId);
+  }
+
+  @Authorize({ module: "settings", action: "update" })
+  @Put("operations")
+  setOperations(@CurrentUser("tenantId") tenantId: string, @CurrentUser("userId") userId: string, @Body() dto: SetOperationsDto) {
+    return this.config.setOperationsConfig(tenantId, userId, { freeLookDays: dto.freeLookDays });
   }
 
   // ——— سياسة الأمان (إلزام المصادقة الثنائية للموظفين) ———

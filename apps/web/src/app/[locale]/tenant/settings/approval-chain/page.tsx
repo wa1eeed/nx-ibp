@@ -16,6 +16,7 @@ export default function ApprovalChainPage() {
   const [technicalGate, setTechnicalGate] = useState(true);
   const [segregation, setSegregation] = useState(true);
   const [technicalSeg, setTechnicalSeg] = useState(false); // §9.2 — اختياري (افتراضي مُعطَّل)
+  const [freeLookDays, setFreeLookDays] = useState(0); // §6.4 — حق العدول (0 = مُعطَّل)
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
 
@@ -26,6 +27,8 @@ export default function ApprovalChainPage() {
       setTechnicalGate(r.technicalGate !== false);
       setSegregation(r.segregationOfDuties !== false);
       setTechnicalSeg(r.technicalSegregation === true);
+      const op = await api<{ freeLookDays: number }>("/config/operations");
+      setFreeLookDays(op.freeLookDays);
     } catch { setError(t("error")); }
   }, [t]);
   useEffect(() => { void load(); }, [load]);
@@ -39,6 +42,7 @@ export default function ApprovalChainPage() {
     try {
       const payload = steps.map((s) => ({ key: s.key, name: s.name.trim() || t("namePlaceholder"), module: s.module, action: s.action }));
       await api("/config/approval-chain", { method: "PUT", body: JSON.stringify({ steps: payload, technicalGate, segregationOfDuties: segregation, technicalSegregation: technicalSeg }) });
+      await api("/config/operations", { method: "PUT", body: JSON.stringify({ freeLookDays: Math.max(0, Math.min(90, Math.floor(freeLookDays) || 0)) }) });
       setSaved(true);
       await load();
     } catch (e) { setError((e as Error).message || t("error")); }
@@ -92,6 +96,23 @@ export default function ApprovalChainPage() {
         {toggleRow(t("segregation"), t("segregationHint"), segregation, () => { setSaved(false); setSegregation((v) => !v); }, t("complianceTag"))}
         <div className="my-2.5 border-t border-line" />
         {toggleRow(t("technicalSeg"), t("technicalSegHint"), technicalSeg, () => { setSaved(false); setTechnicalSeg((v) => !v); }, t("optionalTag"))}
+        <div className="my-2.5 border-t border-line" />
+        {/* §6.4 — مدّة حق العدول (Free-look) */}
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="text-[13px] font-semibold text-ink">{t("freeLook")}</span>
+              <span className="rounded-full bg-warning/10 px-2 py-0.5 text-[10.5px] font-medium text-warning">{t("complianceTag")}</span>
+            </div>
+            <p className="text-[11.5px] text-subtle">{t("freeLookHint")}</p>
+          </div>
+          <div className="flex shrink-0 items-center gap-1.5">
+            <input type="number" min={0} max={90} value={freeLookDays}
+              onChange={(e) => { setSaved(false); setFreeLookDays(Number(e.target.value)); }}
+              className="h-9 w-20 rounded-lg border border-line bg-card px-2 text-center text-[13px] text-ink focus:outline-none focus:ring-2 focus:ring-primary/30" />
+            <span className="text-[12px] text-subtle">{t("days")}</span>
+          </div>
+        </div>
       </div>
 
       {error ? <p className="rounded-lg bg-danger/10 px-3 py-2 text-[12.5px] font-medium text-danger">{error}</p> : null}

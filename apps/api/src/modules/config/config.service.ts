@@ -130,6 +130,26 @@ export class ConfigService {
     return (await this.getPolicyApprovalConfig(tenantId)).extraSteps;
   }
 
+  /** §6.4 — سياسات التشغيل: مدّة حق العدول (Free-look) بالأيام. **افتراضي 0 (مُعطَّل)** — يضبطه المستأجر
+   *  حسب توجيه هيئة التأمين لمنتجاته (المدّة تختلف بالفرع/المنتج)؛ عند التفعيل يُطبَّق الاسترداد الكامل. */
+  async getOperationsConfig(tenantId: string): Promise<{ freeLookDays: number }> {
+    const cfg = await this.prisma.tenantConfig.findFirst({ where: { tenantId }, select: { operationsPolicy: true } });
+    const op = (cfg?.operationsPolicy ?? {}) as { freeLookDays?: number };
+    const d = typeof op.freeLookDays === "number" && op.freeLookDays > 0 ? Math.floor(op.freeLookDays) : 0;
+    return { freeLookDays: Math.min(90, d) };
+  }
+
+  /** يحفظ سياسات التشغيل (مدّة حق العدول 0–90 يومًا). */
+  async setOperationsConfig(tenantId: string, userId: string, input: { freeLookDays: number }): Promise<{ ok: true; freeLookDays: number }> {
+    const freeLookDays = Math.min(90, Math.max(0, Math.floor(input.freeLookDays)));
+    const cfg = await this.prisma.tenantConfig.findFirst({ where: { tenantId }, select: { id: true, operationsPolicy: true } });
+    const merged = { ...((cfg?.operationsPolicy ?? {}) as Record<string, unknown>), freeLookDays };
+    if (cfg) await this.prisma.tenantConfig.update({ where: { tenantId }, data: { operationsPolicy: asJson(merged) } });
+    else await this.prisma.tenantConfig.create({ data: { tenantId, enabledProducts: [], operationsPolicy: asJson(merged) } });
+    await this.audit.log({ tenantId, userId, action: "update", entity: "operations_config", entityId: "policy", meta: { freeLookDays } });
+    return { ok: true, freeLookDays };
+  }
+
   /** يحفظ إعداد سلسلة اعتماد الوثيقة (البوّابة الفنية + الخطوات) بعد التحقّق. */
   async setPolicyApprovalConfig(tenantId: string, userId: string, input: { technicalGate?: boolean; segregationOfDuties?: boolean; technicalSegregation?: boolean; steps: ApprovalStep[] }): Promise<{ ok: true } & PolicyApprovalConfig> {
     const extraSteps = this.validate(input.steps);

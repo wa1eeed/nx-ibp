@@ -1995,6 +1995,9 @@
     "technicalSeg": "Segregation on the technical gate",
     "technicalSegHint": "The policy issuer cannot approve its own technical review or extra steps — enforces maker-checker across the whole pre-financial chain (optional)",
     "optionalTag": "Optional",
+    "freeLook": "Free-look period",
+    "freeLookHint": "Days during which the client may cancel the policy for a full refund (0 = disabled; set it per the Insurance Authority's guidance for your products)",
+    "days": "days",
     "actions": {
       "read": "View",
       "create": "Create",
@@ -2072,6 +2075,7 @@
   "policies": {
     "title": "Policies",
     "subtitle": "Issuance & approval cascade (technical → finance)",
+    "freeLook": "Free-look",
     "empty": "No policies yet — issue from an awarded request",
     "approveTechnical": "Technical approval",
     "approveFinance": "Finance approval",
