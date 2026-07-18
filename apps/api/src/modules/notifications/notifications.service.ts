@@ -5,7 +5,7 @@ import { RequestContextService } from "../../common/request-context/request-cont
 import { NOTIFICATION_TYPES, isNotificationKey, notificationDef } from "./notifications.constants";
 import { NOTIFICATION_GATEWAY, type NotificationGateway, type OutboundMessage } from "./notification.gateway";
 import { TenantEmailService } from "../email/tenant-email.service";
-import type { UpdateNotificationDto } from "./dto/notification.dto";
+import type { SetNotificationPreferenceDto, UpdateNotificationDto } from "./dto/notification.dto";
 
 interface EffectiveSetting {
   eventKey: string;
@@ -63,6 +63,40 @@ export class NotificationsService {
       else await this.prisma.notificationSetting.create({ data: { tenantId, eventKey, ...data } });
     });
     await this.audit.log({ tenantId: tenantId ?? "platform", userId: actorId, action: "update", entity: "notification_setting", entityId: eventKey, meta: { scope: tenantId ? "tenant" : "platform" } });
+    return { ok: true };
+  }
+
+  // ————————————————— §9.1 تفضيلات الإشعارات لكل دور —————————————————
+
+  /**
+   * مصفوفة **دور × نوع إشعار موظفين**: الأدوار، وأنواع إشعارات الموظفين، والمكتوم منها.
+   * الدلالة opt-out: غياب الصفّ = مُفعَّل؛ لذا نُعيد فقط أزواج (roleId, eventKey) **المكتومة**.
+   */
+  async preferences(tenantId: string) {
+    const roles = await this.ctx.run({}, async () =>
+      await this.prisma.role.findMany({ where: { tenantId }, orderBy: { name: "asc" }, select: { id: true, name: true, isPreset: true } }),
+    );
+    const types = NOTIFICATION_TYPES.filter((t) => t.audience === "staff").map((t) => ({ key: t.key, name: t.name, module: t.module }));
+    const muted = await this.ctx.run({}, async () =>
+      await this.prisma.notificationPreference.findMany({ where: { tenantId, enabled: false }, select: { roleId: true, eventKey: true } }),
+    );
+    return { roles, types, muted };
+  }
+
+  /** كتم/تفعيل نوع إشعار موظفين لدور (upsert على المفتاح الفريد roleId+eventKey). */
+  async setPreference(tenantId: string, actorId: string, dto: SetNotificationPreferenceDto) {
+    const def = notificationDef(dto.eventKey);
+    if (!def || def.audience !== "staff") throw new BadRequestException("نوع إشعار موظفين غير معروف");
+    const role = await this.ctx.run({}, async () =>
+      await this.prisma.role.findFirst({ where: { id: dto.roleId, tenantId }, select: { id: true } }),
+    );
+    if (!role) throw new BadRequestException("الدور غير موجود في هذا الحساب");
+    await this.ctx.run({}, async () => {
+      const existing = await this.prisma.notificationPreference.findFirst({ where: { roleId: dto.roleId, eventKey: dto.eventKey }, select: { id: true } });
+      if (existing) await this.prisma.notificationPreference.update({ where: { id: existing.id }, data: { enabled: dto.enabled, tenantId } });
+      else await this.prisma.notificationPreference.create({ data: { tenantId, roleId: dto.roleId, eventKey: dto.eventKey, enabled: dto.enabled } });
+    });
+    await this.audit.log({ tenantId, userId: actorId, action: "update", entity: "notification_preference", entityId: `${dto.roleId}:${dto.eventKey}`, meta: { enabled: dto.enabled } });
     return { ok: true };
   }
 
@@ -131,7 +165,7 @@ export class NotificationsService {
     if (!def || def.audience !== "staff") return { sent: 0 };
     const s = await this.resolve(tenantId, eventKey);
     if (!s || !s.channelEmail) return { sent: 0 }; // إشعارات الموظفين عبر البريد
-    const recipients = await this.staffRecipients(tenantId, def.module);
+    const recipients = await this.staffRecipients(tenantId, def.module, eventKey);
     if (!recipients.length) return { sent: 0 };
     const body = this.render(s.body, vars);
     const subject = s.subject ? this.render(s.subject, vars) : undefined;
@@ -184,22 +218,29 @@ export class NotificationsService {
   /**
    * مستقبِلو إشعار موظفين لوحدة معيّنة: كل مستخدم نشط له صلاحية الوصول لتلك الوحدة،
    * **بالإضافة إلى مالك الحساب** (أوّل مستخدم أُنشئ) دائمًا. مُزال التكرار بالمعرّف.
+   * **§9.1:** يُستبعَد كل مستخدم دورُه **كتم** هذا النوع (تفضيل opt-out لكل دور) — يشمل المالك.
    * يُنفَّذ داخل سياق فارغ ويفلتر بالمستأجر صراحةً (لا يعتمد على سياق الطلب).
    */
-  private async staffRecipients(tenantId: string, mod: string | null): Promise<{ userId: string; email: string }[]> {
+  private async staffRecipients(tenantId: string, mod: string | null, eventKey: string): Promise<{ userId: string; email: string }[]> {
     const users = await this.ctx.run({}, async () =>
       await this.prisma.user.findMany({
         where: { tenantId, status: "ACTIVE" },
         orderBy: { createdAt: "asc" },
-        select: { id: true, email: true, role: { select: { permissions: { where: { module: mod ?? "__none__", canAccess: true }, select: { id: true } } } } },
+        select: { id: true, email: true, roleId: true, role: { select: { permissions: { where: { module: mod ?? "__none__", canAccess: true }, select: { id: true } } } } },
       }),
     );
+    // الأدوار التي كتمت هذا النوع (تفضيل §9.1) — تُستبعَد من التوجيه
+    const mutes = await this.ctx.run({}, async () =>
+      await this.prisma.notificationPreference.findMany({ where: { tenantId, eventKey, enabled: false }, select: { roleId: true } }),
+    );
+    const mutedRoles = new Set(mutes.map((m) => m.roleId));
     // مالك الحساب (أوّل مستخدم) دائمًا + كل من له صلاحية الوصول للوحدة
     const chosen = users.filter((u, i) => i === 0 || (u.role?.permissions.length ?? 0) > 0);
     const seen = new Set<string>();
     const out: { userId: string; email: string }[] = [];
     for (const u of chosen) {
       if (!u.email || seen.has(u.id)) continue;
+      if (u.roleId && mutedRoles.has(u.roleId)) continue; // الدور كتم هذا النوع
       seen.add(u.id);
       out.push({ userId: u.id, email: u.email });
     }

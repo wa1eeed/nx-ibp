@@ -590,6 +590,7 @@ curl -X POST http://localhost:4000/staff \
 | الطريقة | المسار | الحماية | الوصف |
 |---|---|---|---|
 | GET/PUT | `/notifications` · `/notifications/:key` | settings | إعدادات الشركة (تفعيل/تعطيل القناة + تعديل النص) |
+| GET/PUT | `/notifications/preferences` | settings | **§9.1** مصفوفة توجيه إشعارات الموظفين حسب الدور — GET يُرجع `{roles, types, muted}`؛ PUT `{roleId, eventKey, enabled}` (نوع عميل/مجهول أو دور مجهول ⇒ 400) |
 | GET/PUT | `/platform/notifications` · `/platform/notifications/:key` | سوبر أدمن | الافتراضي المُورَّث |
 | GET | `/notifications/inbox` · `/notifications/inbox/unread-count` | مصادقة | مركز الإشعارات (جرس الموظف) |
 | POST | `/notifications/inbox/:id/read` · `/notifications/inbox/read-all` | مصادقة | تعليم كمقروء |

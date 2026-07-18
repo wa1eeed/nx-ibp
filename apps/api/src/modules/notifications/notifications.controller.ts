@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Param, Post, Put } from "@nestjs/common";
 import { NotificationsService } from "./notifications.service";
-import { UpdateNotificationDto } from "./dto/notification.dto";
+import { SetNotificationPreferenceDto, UpdateNotificationDto } from "./dto/notification.dto";
 import { Authorize } from "../rbac/authorize.decorator";
 import { CurrentUser } from "../auth/current-user.decorator";
 
@@ -14,6 +14,19 @@ export class NotificationsController {
   @Get()
   list(@CurrentUser("tenantId") tenantId: string) {
     return this.notifications.list(tenantId);
+  }
+
+  // ——— §9.1 مصفوفة توجيه إشعارات الموظفين حسب الدور (قبل ‎:key‎ لتفادي تصادم المسار) ———
+  @Authorize({ module: "settings", action: "read" })
+  @Get("preferences")
+  preferences(@CurrentUser("tenantId") tenantId: string) {
+    return this.notifications.preferences(tenantId);
+  }
+
+  @Authorize({ module: "settings", action: "update" })
+  @Put("preferences")
+  setPreference(@CurrentUser("tenantId") tenantId: string, @CurrentUser("userId") userId: string, @Body() dto: SetNotificationPreferenceDto) {
+    return this.notifications.setPreference(tenantId, userId, dto);
   }
 
   @Authorize({ module: "settings", action: "update" })

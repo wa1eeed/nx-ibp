@@ -95,6 +95,7 @@ model Tenant {
   departments          Department[]
   storage              TenantStorage?
   notificationSettings NotificationSetting[]
+  notificationPrefs    NotificationPreference[]
   notifications        Notification[]
   deals                Deal[]
   crmActivities        CrmActivity[]
@@ -357,7 +358,25 @@ model Role {
   permissions           Permission[]
   users                 User[]
   defaultForDepartments Department[]
+  notificationPrefs     NotificationPreference[]
 
+  @@index([tenantId])
+}
+
+/// تفضيل إشعارات لكل **دور × نوع إشعار موظفين** (§9.1) — طبقة فوق التوجيه بالصلاحيات.
+/// الدلالة **opt-out**: غياب الصفّ = مُفعَّل (يستقبل الدور هذا النوع)؛ صفّ enabled=false = الدور **كتم** النوع.
+/// يُطبَّق على إشعارات البثّ للوحدة (notifyStaff)؛ إشعارات الإسناد المباشر (notifyUser) تتجاوزه دائمًا.
+model NotificationPreference {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  roleId    String
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  eventKey  String // مفتاح نوع إشعار موظفين (staff_*)
+  enabled   Boolean  @default(true)
+  updatedAt DateTime @updatedAt
+
+  @@unique([roleId, eventKey])
   @@index([tenantId])
 }
 

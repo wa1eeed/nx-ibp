@@ -931,6 +931,7 @@ erDiagram
 ### الإشعارات
 - **`NotificationSetting`** — إعداد نوع إشعار بمستويين: `tenantId = NULL` ⇒ **افتراضي المنصة** (يديره سوبر أدمن المنصة، يرثه الجميع)؛ قيمة ⇒ **تخصيص شركة**. حقول: `eventKey` · `channelEmail`/`channelSms` · `subject`/`body`. (34 نوعًا (ثنائية اللغة) في `notifications.constants.ts`: 12 عميلًا + 21 موظفًا.)
 - **`Notification`** — إشعار داخل المنصة (in-app) لمستقبِل واحد: `userId` (موظف) أو `clientId` (عميل بوّابة) · `eventKey` · `audience` (client/staff) · `title`/`body` · `readAt` (NULL = غير مقروء). فهارس `[tenantId, userId, readAt]` و`[tenantId, clientId, readAt]`.
+- **`NotificationPreference`** (§9.1) — تفضيل توجيه لكل **دور × نوع إشعار موظفين**: `roleId` + `eventKey` + `enabled`. دلالة **opt-out** (غياب الصفّ = مُفعَّل؛ `enabled=false` = الدور كتم النوع). مفتاح فريد `[roleId, eventKey]`، حذف متتالٍ مع الدور. يُطبَّق في `notifyStaff` (يستبعد الأدوار المكتومة)؛ إشعارات الإسناد المباشر `notifyUser` تتجاوزه.
 
 ### CRM (إدارة العلاقات)
 - **`Deal`** — صفقة/فرصة في خطّ الأنابيب: `title` · `stage` (new/contacted/quoting/proposal/negotiation) · `status` (open/won/lost) · `value` · `clientId` · **`assigneeId`** (الموظف المُسنَد) · `createdById` · `requestId` (عند التحويل). فهارس `[tenantId, stage]` و`[tenantId, assigneeId]`.

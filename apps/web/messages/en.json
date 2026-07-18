@@ -1465,7 +1465,26 @@
     "audienceClientHint": "Sent to the company's clients via email/SMS",
     "audienceStaffHint": "Sent to relevant staff + the account owner (email)",
     "subtitleTenantAll": "Customize the texts and channels of all notifications (clients & staff)",
-    "emailOnly": "Email only"
+    "emailOnly": "Email only",
+    "roleMatrix": {
+      "title": "Staff notification routing by role",
+      "subtitle": "Choose which roles receive each staff notification type. Default: every role with the module's permission receives it.",
+      "hint": "✔ = receives. Unchecking mutes the type for that role (does not remove its permission). Direct-assignment notifications (task/deal assigned to you) always arrive.",
+      "typeCol": "Notification type",
+      "saved": "Saved",
+      "error": "Failed to save preference"
+    },
+    "mod": {
+      "production": "Production",
+      "finance": "Finance",
+      "claims": "Claims",
+      "renewals": "Renewals",
+      "compliance": "Compliance",
+      "settings": "Settings",
+      "sales": "Sales",
+      "service": "Customer Service",
+      "underwriting": "Underwriting"
+    }
   },
   "crm": {
     "title": "CRM",

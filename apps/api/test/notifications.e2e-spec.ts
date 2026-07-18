@@ -17,6 +17,25 @@ describe("نظام الإشعارات (e2e)", () => {
   const auth = (t: string) => ({ Authorization: `Bearer ${t}` });
   const owner = async () => (await request(srv()).post("/signup").send({ companyName: `إشعار ${uniq()}`, adminName: "مالك", adminEmail: `nt-${uniq()}@brk.sa`, password: "Owner1Pass" }).expect(201)).body.accessToken;
   const find = (list: { eventKey: string }[], k: string) => list.find((x) => x.eventKey === k) as any;
+  // فكّ ترميز JWT (بلا تحقّق) للحصول على roleId لمالك الحساب
+  const decode = (tok: string) => JSON.parse(Buffer.from(tok.split(".")[1], "base64").toString("utf8"));
+  const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+  // يضيف موظفًا بلا صلاحية «settings» (فلا يصير مستقبِلًا لإشعار إضافة مستخدم) — يُطلق staff_member_added
+  const addMember = (t: string, fullName: string) =>
+    request(srv()).post("/staff").set(auth(t)).send({
+      fullName, email: `m-${uniq()}@brk.sa`, password: "Member1Pass", roleName: `دور ${uniq()}`,
+      permissions: [{ module: "sales", canAccess: false, canCreate: false, canEdit: false, canDelete: false }],
+    });
+  // يستطلع صندوق الموظف حتى يتحقّق الشرط (لإشعارات fire-and-forget)
+  const waitInbox = async (t: string, pred: (ib: any[]) => boolean, tries = 25): Promise<any[]> => {
+    let ib: any[] = [];
+    for (let i = 0; i < tries; i++) {
+      ib = (await request(srv()).get("/notifications/inbox").set(auth(t))).body;
+      if (pred(ib)) return ib;
+      await sleep(100);
+    }
+    return ib;
+  };
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
@@ -72,4 +91,62 @@ describe("نظام الإشعارات (e2e)", () => {
   });
 
   it("بلا مصادقة ⇒ 401", () => request(srv()).get("/notifications").expect(401));
+
+  // ————————————————— §9.1 تفضيلات الإشعارات لكل دور —————————————————
+
+  it("§9.1: مصفوفة الأدوار × أنواع إشعارات الموظفين (لا مكتوم ابتداءً)", async () => {
+    const t = await owner();
+    const m = (await request(srv()).get("/notifications/preferences").set(auth(t)).expect(200)).body;
+    expect(m.roles.length).toBeGreaterThanOrEqual(6); // الأدوار المُهيّأة عند الإنشاء
+    expect(m.types.length).toBe(21); // أنواع إشعارات الموظفين فقط
+    expect(m.types.every((x: any) => x.key.startsWith("staff_"))).toBe(true);
+    expect(m.types.find((x: any) => x.key === "staff_claim_created").module).toBe("claims");
+    expect(m.muted).toEqual([]); // opt-out: لا صفوف مكتومة ابتداءً
+  });
+
+  it("§9.1: كتم نوع لدور ثم إعادة تفعيله", async () => {
+    const t = await owner();
+    const roleId = decode(t).roleId as string;
+    await request(srv()).put("/notifications/preferences").set(auth(t)).send({ roleId, eventKey: "staff_claim_created", enabled: false }).expect(200);
+    let m = (await request(srv()).get("/notifications/preferences").set(auth(t)).expect(200)).body;
+    expect(m.muted).toContainEqual({ roleId, eventKey: "staff_claim_created" });
+    // إعادة التفعيل تُزيله من المكتوم
+    await request(srv()).put("/notifications/preferences").set(auth(t)).send({ roleId, eventKey: "staff_claim_created", enabled: true }).expect(200);
+    m = (await request(srv()).get("/notifications/preferences").set(auth(t)).expect(200)).body;
+    expect(m.muted).not.toContainEqual({ roleId, eventKey: "staff_claim_created" });
+  });
+
+  it("§9.1: التوجيه يحترم الكتم — دور مكتوم لا يستلم، ودور غير مكتوم يستلم", async () => {
+    // شركة مكتومة: نكتم staff_member_added لدور المالك ولا نُلغي الكتم إطلاقًا (تفاديًا لسباق الإرسال اللامتزامن)
+    const tm = await owner();
+    const roleM = decode(tm).roleId as string;
+    await request(srv()).put("/notifications/preferences").set(auth(tm)).send({ roleId: roleM, eventKey: "staff_member_added", enabled: false }).expect(200);
+    await addMember(tm, `محجوب-${uniq()}`).expect(201);
+    // شركة مرجعية (بلا كتم) — أُضيفت بعد المكتومة، فوصولها يعني أن اللامتزامن للمكتومة أُتيح له وقت أطول
+    const tc = await owner();
+    await addMember(tc, `مسموح-${uniq()}`).expect(201);
+    const inboxC = await waitInbox(tc, (ib) => ib.some((n) => n.eventKey === "staff_member_added"));
+    expect(inboxC.some((n) => n.eventKey === "staff_member_added" && n.body.includes("مسموح"))).toBe(true); // غير المكتوم وصل
+    // بعد وصول المرجعية، صندوق المالك المكتوم لا يحوي النوع المكتوم إطلاقًا
+    const inboxM = (await request(srv()).get("/notifications/inbox").set(auth(tm))).body;
+    expect(inboxM.some((n: any) => n.eventKey === "staff_member_added")).toBe(false);
+  });
+
+  it("§9.1: نوع عميل أو نوع مجهول أو دور مجهول ⇒ 400", async () => {
+    const t = await owner();
+    const roleId = decode(t).roleId as string;
+    await request(srv()).put("/notifications/preferences").set(auth(t)).send({ roleId, eventKey: "welcome", enabled: false }).expect(400); // نوع عميل ليس موظفين
+    await request(srv()).put("/notifications/preferences").set(auth(t)).send({ roleId, eventKey: "nope", enabled: false }).expect(400); // نوع مجهول
+    await request(srv()).put("/notifications/preferences").set(auth(t)).send({ roleId: "role-does-not-exist", eventKey: "staff_claim_created", enabled: false }).expect(400); // دور مجهول
+  });
+
+  it("§9.1: عزل — كتم شركة لا يظهر في مصفوفة أخرى", async () => {
+    const a = await owner();
+    const roleA = decode(a).roleId as string;
+    await request(srv()).put("/notifications/preferences").set(auth(a)).send({ roleId: roleA, eventKey: "staff_renewal_due", enabled: false }).expect(200);
+    const b = await owner();
+    const mb = (await request(srv()).get("/notifications/preferences").set(auth(b)).expect(200)).body;
+    expect(mb.muted).toEqual([]); // لا تسرّب لأدوار/كتم شركة أخرى
+    expect(mb.roles.every((r: any) => r.id !== roleA)).toBe(true);
+  });
 });
