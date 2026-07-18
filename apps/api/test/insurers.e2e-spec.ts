@@ -71,4 +71,21 @@ describe("شركات التأمين (e2e)", () => {
     await request(srv()).get("/insurers").set(auth(staff)).expect(403);
     await request(srv()).post("/insurers").set(auth(staff)).send({ name: "x" }).expect(403);
   });
+
+  it("خيارات المؤمِّنين: النشطة فقط بنسبها + متاحة للاكتتاب (لا تتطلّب المالية) — لتعبئة العمولة تلقائيًا في التسعير", async () => {
+    const token = await newOwner();
+    await request(srv()).post("/insurers").set(auth(token)).send({ name: "التعاونية", commissionRate: 15 }).expect(201);
+    await request(srv()).post("/insurers").set(auth(token)).send({ name: "معطّلة", commissionRate: 9, status: "inactive" }).expect(201);
+
+    const opts = (await request(srv()).get("/insurers/options").set(auth(token)).expect(200)).body as Array<{ name: string; commissionRate: number | null }>;
+    expect(opts.find((o) => o.name === "التعاونية")?.commissionRate).toBe(15); // النسبة تتدفّق للتعبئة التلقائية
+    expect(opts.find((o) => o.name === "معطّلة")).toBeFalsy(); // النشطة فقط
+
+    // مكتتب (اكتتاب فقط، بلا مالية): يقرأ الخيارات لكن يُمنع من سجلّ المؤمِّنين الكامل
+    const email = `uw-${uniq()}@brk.sa`;
+    await request(srv()).post("/staff").set(auth(token)).send({ fullName: "مكتتب", email, password: "Under1Pass", roleName: `اكتتاب ${uniq()}`, permissions: [{ module: "underwriting", canAccess: true, canCreate: true, canEdit: false, canDelete: false }] }).expect(201);
+    const uw = (await request(srv()).post("/auth/login").send({ email, password: "Under1Pass" })).body.accessToken;
+    await request(srv()).get("/insurers/options").set(auth(uw)).expect(200);
+    await request(srv()).get("/insurers").set(auth(uw)).expect(403);
+  });
 });

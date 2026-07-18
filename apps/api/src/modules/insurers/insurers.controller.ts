@@ -33,6 +33,13 @@ export class InsurersController {
     return this.insurers.list(tenantId);
   }
 
+  // خيارات المؤمِّنين (اسم + نسبة العمولة) لنموذج التسعير — متاح للاكتتاب لتعبئة النسبة تلقائيًا
+  @Authorize({ module: "underwriting", action: "read", entitlement: "module.production" })
+  @Get("options")
+  options(@CurrentUser("tenantId") tenantId: string) {
+    return this.insurers.options(tenantId);
+  }
+
   @Authorize({ module: "finance", action: "create", entitlement: "module.finance" })
   @Post()
   create(@CurrentUser("tenantId") tenantId: string, @CurrentUser("userId") userId: string, @Body() dto: InsurerDto) {

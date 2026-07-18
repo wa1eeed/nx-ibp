@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { useParams } from "next/navigation";
 import { Plus, Award, Trophy, Info, Send, CheckCircle2, XCircle, Clock, FileSignature } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
@@ -211,8 +211,26 @@ function AddQuotation({ slipId, vatRate, onDone, onError }: { slipId: string; va
   const t = useTranslations();
   const [v, setV] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
-  const set = (k: string) => (e: { target: { value: string } }) => setV((p) => ({ ...p, [k]: e.target.value }));
+  // خيارات المؤمِّنين (اسم + نسبة العمولة) لتعبئة النسبة تلقائيًا من سجلّ الشركات
+  const [insurers, setInsurers] = useState<Array<{ id: string; name: string; nameEn: string | null; commissionRate: number | null }>>([]);
+  const [rateAuto, setRateAuto] = useState(false);
+  const appliedRef = useRef("");
+  useEffect(() => { void api<typeof insurers>("/insurers/options").then(setInsurers).catch(() => setInsurers([])); }, []);
+  // تعديل النسبة يدويًا يُلغي وسم «تلقائي»
+  const set = (k: string) => (e: { target: { value: string } }) => { if (k === "commissionRate") setRateAuto(false); setV((p) => ({ ...p, [k]: e.target.value })); };
   const numField = (k: string) => (v[k] === undefined || v[k] === "" ? undefined : Number(v[k]));
+
+  const norm = (s: string) => s.trim().toLowerCase();
+  const matchedInsurer = insurers.find((i) => norm(i.name) === norm(v.insurerName ?? "") || (i.nameEn ? norm(i.nameEn) === norm(v.insurerName ?? "") : false));
+  // عند اختيار/كتابة مؤمِّن مُسجّل: عبّئ نسبة العمولة من سجلّ الشركة (يبقى قابلًا للتعديل)
+  function onInsurerChange(e: { target: { value: string } }) {
+    const name = e.target.value;
+    const match = insurers.find((i) => norm(i.name) === norm(name) || (i.nameEn ? norm(i.nameEn) === norm(name) : false));
+    const apply = !!(match && match.commissionRate != null && appliedRef.current !== match.name);
+    if (apply && match) appliedRef.current = match.name;
+    setV((p) => ({ ...p, insurerName: name, ...(apply && match ? { commissionRate: String(match.commissionRate) } : {}) }));
+    if (apply) setRateAuto(true);
+  }
 
   // المشتقّات محسوبة حيًّا من المدخلات (لا زر احتساب ولا إدخال يدوي للضريبة):
   //  القسط الصافي (=مبلغ التأمين×النسبة أو المُدخَل مباشرةً) · الضريبة (نسبة الفرع: حياة 0% / غيره 15%)
@@ -285,12 +303,30 @@ function AddQuotation({ slipId, vatRate, onDone, onError }: { slipId: string; va
       <div className="mb-3 text-[14px] font-semibold text-ink">{t("underwriting.addQuotation")}</div>
       {/* المدخلات فقط — الوسيط يُدخل ما تُرسله شركة التأمين */}
       <div className="grid grid-cols-1 gap-x-3 gap-y-4 sm:grid-cols-4">
-        {F("insurerName", t("underwriting.insurer"), { type: "text", hint: t("underwriting.hint.insurer") })}
+        {/* اسم المؤمِّن — منتقٍ من سجلّ الشركات (يبقى الكتابة الحرّة ممكنة) */}
+        <label className="block">
+          <span className="mb-1 flex items-center gap-1 text-[12px] font-medium text-muted">
+            {t("underwriting.insurer")}
+            <span title={t("underwriting.hint.insurer")} className="inline-flex cursor-help text-subtle hover:text-primary" aria-label={t("underwriting.hint.insurer")}><Info size={12.5} /></span>
+          </span>
+          <input list="insurer-options" type="text" value={v.insurerName ?? ""} onChange={onInsurerChange} className="h-9 w-full rounded-lg border border-line bg-card px-3 text-[13px]" />
+          <datalist id="insurer-options">{insurers.map((i) => <option key={i.id} value={i.name} />)}</datalist>
+          <span className={`mt-1 block text-[10.5px] leading-tight ${matchedInsurer ? "text-success" : "text-subtle"}`}>{matchedInsurer ? `✓ ${t("underwriting.insurerRegistered")}` : t("underwriting.insurerPickHint")}</span>
+        </label>
         {F("sumInsured", t("underwriting.sumInsured"), { hint: t("underwriting.hint.sumInsured"), sub: t("underwriting.sub.sumInsured") })}
         {F("rate", t("underwriting.rate"), { hint: t("underwriting.hint.rate"), sub: t("underwriting.sub.rate") })}
         {F("premium", t("underwriting.premium"), { hint: t("underwriting.hint.premium"), sub: t("underwriting.sub.premium") })}
         {F("policyFees", t("underwriting.policyFees"), { hint: t("underwriting.hint.policyFees"), sub: t("underwriting.sub.policyFees") })}
-        {F("commissionRate", t("underwriting.commissionRate"), { hint: t("underwriting.hint.commissionRate"), sub: t("underwriting.sub.commissionRate") })}
+        {/* نسبة العمولة — تُعبَّأ تلقائيًا من سجلّ المؤمِّن، وتبقى قابلة للتعديل */}
+        <label className="block">
+          <span className="mb-1 flex items-center gap-1 text-[12px] font-medium text-muted">
+            {t("underwriting.commissionRate")}
+            <span title={t("underwriting.hint.commissionRate")} className="inline-flex cursor-help text-subtle hover:text-primary" aria-label={t("underwriting.hint.commissionRate")}><Info size={12.5} /></span>
+            {rateAuto ? <span className="ms-auto rounded-full bg-success-soft px-1.5 py-0.5 text-[9.5px] font-semibold text-success">{t("underwriting.rateFromRegistry")}</span> : null}
+          </span>
+          <input type="number" value={v.commissionRate ?? ""} onChange={set("commissionRate")} className="h-9 w-full rounded-lg border border-line bg-card px-3 text-[13px]" />
+          <span className="mt-1 block text-[10.5px] leading-tight text-subtle">{t("underwriting.sub.commissionRate")}</span>
+        </label>
         {F("deductible", t("underwriting.deductible"), { hint: t("underwriting.hint.deductible"), sub: t("underwriting.sub.deductible") })}
         {F("limit", t("underwriting.limit"), { hint: t("underwriting.hint.limit"), sub: t("underwriting.sub.limit") })}
       </div>

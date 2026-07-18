@@ -573,6 +573,26 @@ const INSURERS = [
  * خدمة، مطالبات، تحقّق KYC/PEP، مستندات، ملاحق، ومستخدمي بوّابة.
  */
 async function seedRichData(passwordHash: string) {
+  // ---- سجلّ شركات التأمين (المؤمِّنون) بنِسبهم — يظهر في صفحة المؤمِّنين، وتُعبَّأ نسبة العمولة منه تلقائيًا في التسعير ----
+  // الأسماء تطابق insurerName على الوثائق فتظهر إحصاءات الإنتاج، وتظهر في القائمة المنسدلة عند إضافة عرض.
+  const insurerDefs = [
+    { id: "ins-dt-tw", t: "demo-tenant", name: "التعاونية للتأمين", nameEn: "Tawuniya", commissionRate: 10, settlementDays: 60, licenseNo: "IA-INS-2019-001", vatNumber: "300000000000013", bankName: "الراجحي", iban: "SA0380000000608010101010" },
+    { id: "ins-dt-bupa", t: "demo-tenant", name: "بوبا العربية", nameEn: "Bupa Arabia", commissionRate: 12.5, settlementDays: 45, licenseNo: "IA-INS-2019-002", vatNumber: "300000000000023", bankName: "الأهلي", iban: "SA0380000000608010202020" },
+    { id: "ins-dt-malath", t: "demo-tenant", name: "ملاذ للتأمين", nameEn: "Malath", commissionRate: 12, settlementDays: 90, licenseNo: "IA-INS-2019-003" },
+    { id: "ins-dt-wiqaya", t: "demo-tenant", name: "وقاية للتأمين", nameEn: "Wiqaya", commissionRate: 15, settlementDays: 60, licenseNo: "IA-INS-2019-004" },
+    { id: "ins-dt-walaa", t: "demo-tenant", name: "الاتحاد للتأمين (ولاء)", nameEn: "Walaa", commissionRate: 13.5, settlementDays: 60, licenseNo: "IA-INS-2019-005" },
+    { id: "ins-dt2-salama", t: "demo-tenant-2", name: "سلامة للتأمين", nameEn: "Salama", commissionRate: 8, settlementDays: 45, licenseNo: "IA-INS-2019-006" },
+    { id: "ins-dt2-gig", t: "demo-tenant-2", name: "gig الخليج للتأمين", nameEn: "GIG Gulf", commissionRate: 11, settlementDays: 60, licenseNo: "IA-INS-2019-007" },
+  ];
+  for (const ins of insurerDefs) {
+    const { t, ...rest } = ins;
+    await prisma.insurer.upsert({
+      where: { id: ins.id },
+      update: { commissionRate: ins.commissionRate, settlementDays: ins.settlementDays, status: "active" },
+      create: { tenantId: t, status: "active", ...rest },
+    });
+  }
+
   // ---- عملاء إضافيون واقعيون ----
   const clients: Array<{ id: string; t: string; name: string; id2: string; type: "CORPORATE" | "INDIVIDUAL"; city: string; email: string; phone: string; compliance: "APPROVED" | "PENDING" | "REJECTED" }> = [
     { id: "cl-redsea", t: "demo-tenant", name: "شركة البحر الأحمر للتطوير", id2: "4030112233", type: "CORPORATE", city: "جدة", email: "info@redsea-dev.sa", phone: "0126540011", compliance: "APPROVED" },

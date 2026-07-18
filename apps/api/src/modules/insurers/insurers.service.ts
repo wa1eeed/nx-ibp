@@ -45,6 +45,16 @@ export class InsurersService {
     }));
   }
 
+  /** خيارات مبسّطة للمؤمِّنين النشطين (لنموذج التسعير) — اسم + نسبة العمولة المتّفق عليها لتعبئتها تلقائيًا. */
+  async options(tenantId: string) {
+    const rows = await this.prisma.insurer.findMany({
+      where: { tenantId, status: "active" },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true, nameEn: true, commissionRate: true },
+    });
+    return rows.map((r) => ({ id: r.id, name: r.name, nameEn: r.nameEn, commissionRate: r.commissionRate != null ? Number(r.commissionRate) : null }));
+  }
+
   async create(tenantId: string, userId: string, dto: InsurerInput) {
     const data = this.validate(dto);
     if (!data.name) throw new BadRequestException("اسم الشركة مطلوب");
