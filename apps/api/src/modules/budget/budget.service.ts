@@ -4,7 +4,7 @@ import { PrismaService } from "../../prisma/prisma.service";
 import { AuditService } from "../../common/audit/audit.service";
 import { BUDGET_PERIODS, type SetBudgetDto } from "./dto/budget.dto";
 
-const num = (d: Prisma.Decimal | number | null) => (d == null ? 0 : Number(d));
+const num = (d: Prisma.Decimal | number | null | undefined) => (d == null ? 0 : Number(d));
 const r2 = (n: number) => Math.round(n * 100) / 100;
 // حسابات ذات طبيعة دائنة (الفعلي = دائن − مدين)؛ الباقي مدينة الطبيعة (مدين − دائن)
 const CREDIT_NATURE = new Set(["revenue", "liability", "equity"]);

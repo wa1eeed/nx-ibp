@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from "@nestjs/common";
+import { Prisma } from "@ibp/db";
 import { PrismaService } from "../../prisma/prisma.service";
 import { RequestContextService } from "../../common/request-context/request-context.service";
 import { AuditService } from "../../common/audit/audit.service";
@@ -56,7 +57,7 @@ export class ReportSchedulesService {
     if (typeof dto.isActive === "boolean") data.isActive = dto.isActive;
     if (dto.frequency && dto.frequency !== existing.frequency) { data.frequency = dto.frequency; data.nextRunAt = this.advance(new Date(), dto.frequency); }
     await this.prisma.reportSchedule.update({ where: { id }, data });
-    await this.audit.log({ tenantId, userId, action: "update", entity: "report_schedule", entityId: id, meta: dto as Record<string, unknown> });
+    await this.audit.log({ tenantId, userId, action: "update", entity: "report_schedule", entityId: id, meta: dto as unknown as Prisma.InputJsonValue });
     return { ok: true };
   }
 
@@ -143,8 +144,7 @@ export class ReportSchedulesService {
     const body = [
       `ملخّص لوحة التحكّم — ${today}`,
       `• وثائق تقترب من الانتهاء (30 يومًا): ${k.expiring}`,
-      `• طلبات قيد المعالجة: ${k.pendingRequests}`,
-      `• وثائق بانتظار الاعتماد: ${k.pendingPolicies}`,
+      `• طلبات/وثائق قيد المعالجة: ${k.pending}`,
       `• تجديدات قادمة (60 يومًا): ${k.renewalsCount} بقيمة ${money(k.renewalsAmount)}`,
       `• عمولات مستحقّة (لم تُحصَّل): ${money(k.commissions)}`,
       ``,

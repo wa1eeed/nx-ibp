@@ -2,6 +2,12 @@
 
 كل التغييرات الملموسة في منصة IBP، منظّمة حسب المراحل. الصيغة مستلهمة من [Keep a Changelog](https://keepachangelog.com).
 
+## [إصلاح: فشل بناء الـAPI الإنتاجي (يمنع الديبلوي)] ✅
+`nest build` (بناء الإنتاج، `tsc` صارم) كان يفشل بـ**5 أخطاء نوعية** يفوّتها الـdev و«test:e2e» (ts-jest متساهل) — فشل الديبلوي على Staging عند خطوة `RUN pnpm --filter @ibp/api build` في Dockerfile:
+- **`budget/budget.service.ts`** — الدالّة `num()` لم تقبل `undefined`؛ وسّعنا النوع (`number | Decimal | null | undefined`) لأن قيد اليومية قد يخلو من `debit`/`credit`.
+- **`reports/report-schedules.service.ts`** — تدقيق meta التدقيق (`dto → Prisma.InputJsonValue`) + ملخّص لوحة التحكّم كان يشير إلى حقلين غير موجودين (`k.pendingRequests`/`k.pendingPolicies`)؛ الحقل الفعلي المُصدَّر `k.pending` (طلبات + وثائق مجمّعة).
+- **التحقّق:** `pnpm build` الكامل (db generate + كل الحزم + الويب + الـAPI) ⇒ **نجاح تامّ (exit 0)**. **درس عمليّاتي:** التحقّق قبل الديبلوي يجب أن يكون `pnpm build` الكامل، لا بناء الويب وحده — بناء الـAPI (`nest build`) يلتقط أخطاء يفوّتها كلاهما.
+
 ## [الأمن (Track G): رموز التحديث وتدوير الجلسة] ✅
 أوّل لبنات التحصين الأمني نحو الربط الحكومي ([docs/30](docs/30-security-and-compliance.md)) — كانت الجلسة رمز وصول فقط بلا تدوير:
 - **نموذج `RefreshToken`** يُخزَّن **مُجزَّأً (SHA-256)** لا خامًا (بلا `tenantId` — أصل مصادقة يُلتمس بالسرّ) + صلاحية 7 أيام + إبطال. migration `refresh_token`.
