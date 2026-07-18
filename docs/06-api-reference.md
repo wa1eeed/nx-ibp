@@ -610,7 +610,7 @@ curl -X POST http://localhost:4000/staff \
 | الطريقة | المسار | الحماية | الوصف |
 |---|---|---|---|
 | GET/PUT | `/config/company` | settings | **بيانات الشركة** (اسم عربي/إنجليزي · سجل تجاري · رقم موحّد 10 · ضريبي 15 · جوال) — أرقام مُتحقَّقة الطول ⇒ 400 |
-| GET/PUT | `/config/approval-chain` | settings | البوّابة الفنية + فصل المهام + الخطوات الإضافية |
+| GET/PUT | `/config/approval-chain` | settings | البوّابة الفنية + فصل المهام المالي (`segregationOfDuties`) + **فصل المهام الفني** (`technicalSegregation` §9.2، اختياري) + الخطوات الإضافية |
 | GET/PUT | `/config/security` | settings | سياسة الأمان — إلزام المصادقة الثنائية لكل الموظفين (`{ mfaRequired }`) |
 | GET/PUT | `/config/retention` | settings | مدّة الاحتفاظ بالبيانات (`{ retentionYears }`، 1–30، افتراضي 10 — PDPL/هيئة التأمين) |
 | GET/PUT | `/config/email` | settings | **بريد المستأجر (BYO Resend)**: `{ fromEmail, fromName, apiKey? }` — يُنشئ النطاق ويعيد DNS/الحالة. المفتاح masked لا خام |

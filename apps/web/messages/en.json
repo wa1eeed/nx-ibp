@@ -1934,6 +1934,9 @@
     "segregation": "Segregation of duties",
     "segregationHint": "The policy issuer cannot approve it financially — regulatory recommendation (Insurance Authority / NCA)",
     "complianceTag": "Regulatory",
+    "technicalSeg": "Segregation on the technical gate",
+    "technicalSegHint": "The policy issuer cannot approve its own technical review or extra steps — enforces maker-checker across the whole pre-financial chain (optional)",
+    "optionalTag": "Optional",
     "actions": {
       "read": "View",
       "create": "Create",

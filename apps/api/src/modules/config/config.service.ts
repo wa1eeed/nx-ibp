@@ -95,7 +95,8 @@ function normalizeBranding(raw: unknown): TenantBranding {
 /** إعداد سلسلة اعتماد الوثيقة: بوّابة الموافقة الفنية + فصل المهام + خطوات إضافية. */
 export interface PolicyApprovalConfig {
   technicalGate: boolean; // هل الموافقة الفنية مطلوبة؟ (افتراضي true)
-  segregationOfDuties: boolean; // فصل المهام: المعتمِد المالي ≠ المُصدِر (افتراضي true — توصية رقابية)
+  segregationOfDuties: boolean; // فصل المهام المالي: المعتمِد المالي ≠ المُصدِر (افتراضي true — توصية رقابية)
+  technicalSegregation: boolean; // §9.2 — فصل المهام على البوّابة الفنية/الخطوات: المعتمِد ≠ المُصدِر (افتراضي false — اختياري)
   extraSteps: ApprovalStep[];
 }
 
@@ -115,10 +116,11 @@ export class ConfigService {
   /** إعداد سلسلة اعتماد الوثيقة: بوّابة فنية (افتراضي مفعّلة) + خطوات إضافية. */
   async getPolicyApprovalConfig(tenantId: string): Promise<PolicyApprovalConfig> {
     const cfg = await this.prisma.tenantConfig.findFirst({ where: { tenantId }, select: { approvalChains: true } });
-    const policy = ((cfg?.approvalChains ?? {}) as { policy?: { technicalGate?: boolean; segregationOfDuties?: boolean; extraSteps?: ApprovalStep[] } }).policy ?? {};
+    const policy = ((cfg?.approvalChains ?? {}) as { policy?: { technicalGate?: boolean; segregationOfDuties?: boolean; technicalSegregation?: boolean; extraSteps?: ApprovalStep[] } }).policy ?? {};
     return {
       technicalGate: policy.technicalGate !== false, // افتراضيًا مفعّلة
       segregationOfDuties: policy.segregationOfDuties !== false, // افتراضيًا مفعّل
+      technicalSegregation: policy.technicalSegregation === true, // §9.2 — افتراضيًا مُعطَّل (اختياري)
       extraSteps: Array.isArray(policy.extraSteps) ? policy.extraSteps : [],
     };
   }
@@ -129,16 +131,17 @@ export class ConfigService {
   }
 
   /** يحفظ إعداد سلسلة اعتماد الوثيقة (البوّابة الفنية + الخطوات) بعد التحقّق. */
-  async setPolicyApprovalConfig(tenantId: string, userId: string, input: { technicalGate?: boolean; segregationOfDuties?: boolean; steps: ApprovalStep[] }): Promise<{ ok: true } & PolicyApprovalConfig> {
+  async setPolicyApprovalConfig(tenantId: string, userId: string, input: { technicalGate?: boolean; segregationOfDuties?: boolean; technicalSegregation?: boolean; steps: ApprovalStep[] }): Promise<{ ok: true } & PolicyApprovalConfig> {
     const extraSteps = this.validate(input.steps);
     const technicalGate = input.technicalGate !== false;
     const segregationOfDuties = input.segregationOfDuties !== false;
+    const technicalSegregation = input.technicalSegregation === true; // §9.2 — اختياري (افتراضي مُعطَّل)
     const cfg = await this.prisma.tenantConfig.findFirst({ where: { tenantId }, select: { id: true, approvalChains: true } });
-    const chains = { ...((cfg?.approvalChains ?? {}) as Record<string, unknown>), policy: { technicalGate, segregationOfDuties, extraSteps } };
+    const chains = { ...((cfg?.approvalChains ?? {}) as Record<string, unknown>), policy: { technicalGate, segregationOfDuties, technicalSegregation, extraSteps } };
     if (cfg) await this.prisma.tenantConfig.update({ where: { tenantId }, data: { approvalChains: asJson(chains) } });
     else await this.prisma.tenantConfig.create({ data: { tenantId, enabledProducts: [], approvalChains: asJson(chains) } });
-    await this.audit.log({ tenantId, userId, action: "update", entity: "approval_chain", entityId: "policy", meta: { technicalGate, segregationOfDuties, steps: extraSteps.length } });
-    return { ok: true, technicalGate, segregationOfDuties, extraSteps };
+    await this.audit.log({ tenantId, userId, action: "update", entity: "approval_chain", entityId: "policy", meta: { technicalGate, segregationOfDuties, technicalSegregation, steps: extraSteps.length } });
+    return { ok: true, technicalGate, segregationOfDuties, technicalSegregation, extraSteps };
   }
 
   // ————————————————— سياسة الأمان (إلزام MFA) —————————————————

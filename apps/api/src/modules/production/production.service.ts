@@ -257,6 +257,22 @@ export class ProductionService {
     return policy;
   }
 
+  /**
+   * §9.2 — حارس فصل المهام على **البوّابة الفنية وخطواتها الإضافية**: المعتمِد ≠ مُصدِر الوثيقة.
+   * مستقلّ عن فصل المهام المالي (`segregationOfDuties`، افتراضي مُفعَّل — بوّابة المال): هذا الحارس
+   * محكوم بعلَم **اختياري** `technicalSegregation` (افتراضي **مُعطَّل** — لا يفرض على الأعمال القائمة
+   * أن يكون المكتتب المُصدِر غير مُراجِعه الفنّي). عند تفعيله يُطبَّق مبدأ maker-checker على كامل
+   * سلسلة الاعتماد قبل المال. يُشتقّ المُصدِر من **سجل التدقيق الثابت** (`policy`/`create`).
+   */
+  private async assertApproverIsNotIssuer(tenantId: string, policyId: string, userId: string) {
+    const cfg = await this.config.getPolicyApprovalConfig(tenantId);
+    if (!cfg.technicalSegregation) return;
+    const issued = await this.prisma.auditLog.findFirst({ where: { entity: "policy", entityId: policyId, action: "create" }, orderBy: { createdAt: "asc" }, select: { userId: true } });
+    if (issued?.userId && issued.userId === userId) {
+      throw new ForbiddenException("فصل المهام (البوّابة الفنية): لا يجوز أن يعتمد مُصدِر الوثيقة نفسه فنيًّا (متطلّب رقابي)");
+    }
+  }
+
   /** الموافقة الفنية ⇒ تنتقل الوثيقة للاعتماد المالي. */
   async approveTechnical(tenantId: string, userId: string, policyId: string) {
     const policy = await this.prisma.policy.findFirst({ where: { id: policyId } });
@@ -264,6 +280,8 @@ export class ProductionService {
     if (policy.status !== "TECHNICAL_REVIEW") {
       throw new ConflictException("الوثيقة ليست بانتظار الموافقة الفنية");
     }
+    // §9.2 — فصل المهام: المعتمِد الفنّي ≠ مُصدِر الوثيقة
+    await this.assertApproverIsNotIssuer(tenantId, policyId, userId);
 
     // E2 — سلسلة الاعتماد: خطوات إضافية مُهيّأة (بين الفني والمالي) تُحجز الآن على الوثيقة
     const extraSteps = await this.config.getPolicyApprovalSteps(tenantId);
@@ -297,6 +315,8 @@ export class ProductionService {
 
     const allowed = await this.permissions.can(user.roleId, step.module, (step.action ?? "update") as RbacAction);
     if (!allowed) throw new ForbiddenException(`لا تملك صلاحية الموافقة على خطوة «${step.name}»`);
+    // §9.2 — فصل المهام: مُصدِر الوثيقة لا يوافق على خطواتها الإضافية أيضًا
+    await this.assertApproverIsNotIssuer(tenantId, policyId, user.userId);
 
     const remaining = policy.pendingApprovals.filter((k) => k !== stepKey);
     await this.prisma.policy.update({ where: { id: policyId }, data: { pendingApprovals: remaining } });

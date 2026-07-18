@@ -50,13 +50,13 @@ export class ConfigController {
   @Authorize({ module: "settings", action: "read" })
   @Get("approval-chain")
   get(@CurrentUser("tenantId") tenantId: string) {
-    return this.config.getPolicyApprovalConfig(tenantId).then((c) => ({ technicalGate: c.technicalGate, segregationOfDuties: c.segregationOfDuties, steps: c.extraSteps }));
+    return this.config.getPolicyApprovalConfig(tenantId).then((c) => ({ technicalGate: c.technicalGate, segregationOfDuties: c.segregationOfDuties, technicalSegregation: c.technicalSegregation, steps: c.extraSteps }));
   }
 
   @Authorize({ module: "settings", action: "update" })
   @Put("approval-chain")
   set(@CurrentUser("tenantId") tenantId: string, @CurrentUser("userId") userId: string, @Body() dto: SetApprovalChainDto) {
-    return this.config.setPolicyApprovalConfig(tenantId, userId, { technicalGate: dto.technicalGate, segregationOfDuties: dto.segregationOfDuties, steps: dto.steps as ApprovalStep[] });
+    return this.config.setPolicyApprovalConfig(tenantId, userId, { technicalGate: dto.technicalGate, segregationOfDuties: dto.segregationOfDuties, technicalSegregation: dto.technicalSegregation, steps: dto.steps as ApprovalStep[] });
   }
 
   // ——— سياسة الأمان (إلزام المصادقة الثنائية للموظفين) ———

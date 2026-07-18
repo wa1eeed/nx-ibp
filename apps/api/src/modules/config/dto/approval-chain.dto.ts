@@ -21,9 +21,13 @@ export class SetApprovalChainDto {
   @IsOptional() @IsBoolean()
   technicalGate?: boolean;
 
-  /** فصل المهام (المعتمِد المالي ≠ المُصدِر) — توصية رقابية، افتراضي مفعّل. */
+  /** فصل المهام المالي (المعتمِد المالي ≠ المُصدِر) — توصية رقابية، افتراضي مفعّل. */
   @IsOptional() @IsBoolean()
   segregationOfDuties?: boolean;
+
+  /** §9.2 — فصل المهام على البوّابة الفنية/الخطوات (المعتمِد ≠ المُصدِر) — اختياري، افتراضي مُعطَّل. */
+  @IsOptional() @IsBoolean()
+  technicalSegregation?: boolean;
 
   @IsArray()
   @ValidateNested({ each: true })

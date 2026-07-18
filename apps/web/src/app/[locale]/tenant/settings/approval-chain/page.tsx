@@ -15,15 +15,17 @@ export default function ApprovalChainPage() {
   const [steps, setSteps] = useState<Step[]>([]);
   const [technicalGate, setTechnicalGate] = useState(true);
   const [segregation, setSegregation] = useState(true);
+  const [technicalSeg, setTechnicalSeg] = useState(false); // §9.2 — اختياري (افتراضي مُعطَّل)
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
 
   const load = useCallback(async () => {
     try {
-      const r = await api<{ steps: Step[]; technicalGate?: boolean; segregationOfDuties?: boolean }>("/config/approval-chain");
+      const r = await api<{ steps: Step[]; technicalGate?: boolean; segregationOfDuties?: boolean; technicalSegregation?: boolean }>("/config/approval-chain");
       setSteps(r.steps.map((s) => ({ ...s, action: s.action ?? "update" })));
       setTechnicalGate(r.technicalGate !== false);
       setSegregation(r.segregationOfDuties !== false);
+      setTechnicalSeg(r.technicalSegregation === true);
     } catch { setError(t("error")); }
   }, [t]);
   useEffect(() => { void load(); }, [load]);
@@ -36,7 +38,7 @@ export default function ApprovalChainPage() {
     setError(""); setSaved(false);
     try {
       const payload = steps.map((s) => ({ key: s.key, name: s.name.trim() || t("namePlaceholder"), module: s.module, action: s.action }));
-      await api("/config/approval-chain", { method: "PUT", body: JSON.stringify({ steps: payload, technicalGate, segregationOfDuties: segregation }) });
+      await api("/config/approval-chain", { method: "PUT", body: JSON.stringify({ steps: payload, technicalGate, segregationOfDuties: segregation, technicalSegregation: technicalSeg }) });
       setSaved(true);
       await load();
     } catch (e) { setError((e as Error).message || t("error")); }
@@ -88,6 +90,8 @@ export default function ApprovalChainPage() {
         {toggleRow(t("technicalGate"), t("technicalGateHint"), technicalGate, () => { setSaved(false); setTechnicalGate((v) => !v); })}
         <div className="my-2.5 border-t border-line" />
         {toggleRow(t("segregation"), t("segregationHint"), segregation, () => { setSaved(false); setSegregation((v) => !v); }, t("complianceTag"))}
+        <div className="my-2.5 border-t border-line" />
+        {toggleRow(t("technicalSeg"), t("technicalSegHint"), technicalSeg, () => { setSaved(false); setTechnicalSeg((v) => !v); }, t("optionalTag"))}
       </div>
 
       {error ? <p className="rounded-lg bg-danger/10 px-3 py-2 text-[12.5px] font-medium text-danger">{error}</p> : null}
