@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { RefreshCw, CalendarClock, AlertTriangle, Clock3, Coins, Loader2, ArrowLeft } from "lucide-react";
+import { RefreshCw, CalendarClock, AlertTriangle, Clock3, Coins, Loader2, Check } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/routing";
 import { api, getToken, ApiError } from "@/lib/api";
@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/Badge";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { usePermissions } from "@/hooks/usePermissions";
 
-interface Due { id: string; sequenceNo: string | null; insurerName: string | null; endDate: string | null; totalPremium: string | null; commissionAmount: string | null; clientName: string | null; productLineCode: string | null }
+interface Due { id: string; sequenceNo: string | null; insurerName: string | null; endDate: string | null; totalPremium: string | null; commissionAmount: string | null; clientName: string | null; productLineCode: string | null; renewalRequestId: string | null }
 
 const WINDOWS = [30, 60, 90] as const;
 const daysLeft = (end: string | null) => (end == null ? null : Math.ceil((new Date(end).getTime() - Date.now()) / 86400000));
@@ -27,8 +27,18 @@ export default function RenewalsPage() {
   const [error, setError] = useState("");
   const [done, setDone] = useState("");
   const [busy, setBusy] = useState("");
+  const [initiated, setInitiated] = useState<Record<string, string>>({}); // policyId ⇒ معرّف طلب التجديد المُنشأ
 
-  const load = useCallback(async (d: number) => setRows(await api<Due[]>(`/renewals?days=${d}`)), []);
+  const load = useCallback(async (d: number) => {
+    const data = await api<Due[]>(`/renewals?days=${d}`);
+    setRows(data);
+    // بذر حالة «طلب تجديد قائم» من الخادم: تُظهر «عرض طلب التجديد» مباشرةً للوثائق التي لها طلب تجديد فعلًا
+    setInitiated((p) => {
+      const next = { ...p };
+      for (const r of data) if (r.renewalRequestId) next[r.id] = r.renewalRequestId;
+      return next;
+    });
+  }, []);
   useEffect(() => {
     if (!getToken()) { router.replace("/login"); return; }
     void load(days).catch(() => undefined);
@@ -40,10 +50,11 @@ export default function RenewalsPage() {
     setError(""); setDone(""); setBusy(policyId);
     try {
       const req = await api<{ id: string; sequenceNo: string }>(`/renewals/${policyId}/initiate`, { method: "POST" });
+      // تغذية راجعة فورية في مكانها: الزرّ يتحوّل إلى «عرض طلب التجديد» (لا يبقى كما هو)
+      setInitiated((p) => ({ ...p, [policyId]: req.id }));
       setDone(t("initiated", { seq: req.sequenceNo }));
-      // ينتقل مباشرةً لطلب التأمين (التجديد) المُنشأ ليكمل دورة RFQ — تجربة واضحة بدل بقاء الزر كما هو
-      router.push(`/tenant/requests/${req.id}`);
-    } catch (e) { setError(e instanceof ApiError ? e.message : "خطأ"); setBusy(""); }
+    } catch (e) { setError(e instanceof ApiError ? e.message : "خطأ"); }
+    finally { setBusy(""); }
   }
 
   const expired = rows.filter((r) => (daysLeft(r.endDate) ?? 0) < 0);
@@ -110,11 +121,17 @@ export default function RenewalsPage() {
                   <td className="px-4 py-3 text-[12.5px] text-muted tnum">{r.endDate ? r.endDate.slice(0, 10) : "—"}</td>
                   <td className="px-4 py-3">{urgency(daysLeft(r.endDate))}</td>
                   <td className="px-4 py-3 text-end">
-                    {canRenew ? (
+                    {!canRenew ? (
+                      <span className="text-[11.5px] text-subtle">—</span>
+                    ) : initiated[r.id] ? (
+                      <Link href={`/tenant/requests/${initiated[r.id]}`} className="inline-flex items-center gap-1.5 rounded-lg bg-success/10 px-2.5 py-1.5 text-[12px] font-semibold text-success hover:bg-success/20">
+                        <Check size={13} /> {t("viewRequest")}
+                      </Link>
+                    ) : (
                       <button onClick={() => initiate(r.id)} disabled={!!busy} className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-card px-2.5 py-1.5 text-[12px] font-medium text-primary hover:bg-surface-2 disabled:opacity-60">
                         {busy === r.id ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />} {busy === r.id ? t("initiating") : t("initiate")}
                       </button>
-                    ) : <span className="text-[11.5px] text-subtle">—</span>}
+                    )}
                   </td>
                 </tr>
               ))}

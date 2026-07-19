@@ -41,7 +41,7 @@ export class StaffService {
   async detail(id: string) {
     const user = await this.prisma.user.findFirst({
       where: { id },
-      select: { id: true, fullName: true, email: true, status: true, mfaEnabled: true, createdAt: true, allowedProductLines: true, commissionRate: true, role: { select: { name: true, isPreset: true } }, department: { select: { name: true } } },
+      select: { id: true, fullName: true, email: true, status: true, mfaEnabled: true, createdAt: true, allowedProductLines: true, commissionRate: true, role: { select: { id: true, name: true, isPreset: true, permissions: { select: { module: true, canAccess: true, canCreate: true, canEdit: true, canDelete: true, canRevert: true } } } }, department: { select: { name: true } } },
     });
     if (!user) throw new NotFoundException("المستخدم غير موجود");
     const [activity, totalActions, policiesCreated, approvals, deals, tasks, issuedAudit] = await Promise.all([

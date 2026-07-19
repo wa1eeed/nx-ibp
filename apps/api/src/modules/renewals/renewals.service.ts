@@ -35,7 +35,16 @@ export class RenewalsService {
     const clientIds = [...new Set(rows.map((r) => r.clientId).filter(Boolean) as string[])];
     const clients = clientIds.length ? await this.prisma.client.findMany({ where: { id: { in: clientIds } }, select: { id: true, name: true } }) : [];
     const nameOf = new Map(clients.map((c) => [c.id, c.name]));
-    return rows.map((r) => ({ ...r, clientName: r.clientId ? nameOf.get(r.clientId) ?? null : null }));
+    // طلبات التجديد القائمة (غير المرفوضة) لهذه الوثائق — حتى يعرض الزرّ «عرض طلب التجديد» مباشرةً بدل «بدء التجديد»
+    const policyIds = rows.map((r) => r.id);
+    const openRenewals = policyIds.length
+      ? await this.prisma.policyRequest.findMany({
+          where: { renewedFromPolicyId: { in: policyIds }, status: { not: "REJECTED" } },
+          select: { id: true, renewedFromPolicyId: true },
+        })
+      : [];
+    const renewalOf = new Map(openRenewals.map((rq) => [rq.renewedFromPolicyId as string, rq.id]));
+    return rows.map((r) => ({ ...r, clientName: r.clientId ? nameOf.get(r.clientId) ?? null : null, renewalRequestId: renewalOf.get(r.id) ?? null }));
   }
 
   /**

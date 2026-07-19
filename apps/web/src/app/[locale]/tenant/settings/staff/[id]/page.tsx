@@ -2,15 +2,16 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { ArrowRight, Activity, FileCheck2, CheckCircle2, Clock, ShieldCheck, ShieldOff } from "lucide-react";
+import { ArrowRight, Activity, FileCheck2, CheckCircle2, Clock, ShieldCheck, ShieldOff, KeyRound, Check, Minus, Pencil } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { RBAC_MODULES, type RbacModule } from "@ibp/shared";
 import { Link } from "@/i18n/routing";
 import { api, getToken } from "@/lib/api";
 import { Badge } from "@/components/ui/Badge";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 
 interface Detail {
-  user: { id: string; fullName: string; email: string; status: string; mfaEnabled: boolean; createdAt: string; allowedProductLines: string[]; commissionRate: number | null; role: { name: string } | null; department: { name: string } | null };
+  user: { id: string; fullName: string; email: string; status: string; mfaEnabled: boolean; createdAt: string; allowedProductLines: string[]; commissionRate: number | null; role: { id: string; name: string; isPreset: boolean; permissions: Array<{ module: string; canAccess: boolean; canCreate: boolean; canEdit: boolean; canDelete: boolean; canRevert: boolean }> } | null; department: { name: string } | null };
   activity: Array<{ action: string; entity: string; entityId: string | null; meta: unknown; createdAt: string }>;
   stats: { totalActions: number; policiesCreated: number; approvals: number };
   policies: Array<{ id: string; sequenceNo: string | null; insurerName: string | null; totalPremium: string | null; status: string; endDate: string | null }>;
@@ -22,7 +23,14 @@ const STAGE_TONE: Record<string, "info" | "warning" | "neutral" | "success"> = {
 const STAGES = ["new", "contacted", "quoting", "proposal", "negotiation"];
 const PRIOS = ["low", "normal", "high"];
 const ENTITIES = ["client", "policy", "request", "claim", "service_request", "deal"];
-const TABS = ["policies", "deals", "tasks", "activity"] as const;
+const TABS = ["permissions", "policies", "deals", "tasks", "activity"] as const;
+const PERM_COLS: Array<{ key: "canAccess" | "canCreate" | "canEdit" | "canDelete" | "canRevert"; labelKey: string }> = [
+  { key: "canAccess", labelKey: "staff.colAccess" },
+  { key: "canCreate", labelKey: "staff.colCreate" },
+  { key: "canEdit", labelKey: "staff.colEdit" },
+  { key: "canDelete", labelKey: "staff.colDelete" },
+  { key: "canRevert", labelKey: "roles.colRevert" },
+];
 const dt = (s: string) => new Date(s).toLocaleString("en-GB", { dateStyle: "short", timeStyle: "short" });
 const d2 = (s: string | null) => (s ? new Date(s).toLocaleDateString("en-GB") : "—");
 const fmt = (n: string | null) => (n == null ? "—" : Number(n).toLocaleString("en-US"));
@@ -30,11 +38,12 @@ const ACTION_AR: Record<string, string> = { create: "إنشاء", update: "تح�
 
 export default function StaffDetailPage() {
   const t = useTranslations("staffDetail");
+  const tg = useTranslations();
   const params = useParams();
   const confirm = useConfirm();
   const id = String(params.id);
   const [d, setD] = useState<Detail | null>(null);
-  const [tab, setTab] = useState<(typeof TABS)[number]>("policies");
+  const [tab, setTab] = useState<(typeof TABS)[number]>("permissions");
 
   const load = useCallback(async () => {
     try { setD(await api<Detail>(`/staff/${id}`)); } catch { /* تجاهل */ }
@@ -109,6 +118,43 @@ export default function StaffDetailPage() {
       </div>
 
       <div>
+        {tab === "permissions" ? (
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-line bg-card p-3.5 shadow-card">
+              <div className="flex items-center gap-2 text-[13px]">
+                <KeyRound size={16} className="text-primary" />
+                <span className="font-semibold text-ink">{t("roleLabel")}: {d.user.role?.name ?? "—"}</span>
+                {d.user.role ? (d.user.role.isPreset ? <Badge tone="info">{tg("roles.preset")}</Badge> : <Badge tone="neutral">{tg("roles.custom")}</Badge>) : null}
+              </div>
+              {d.user.role ? <Link href="/tenant/settings/roles" className="inline-flex items-center gap-1.5 rounded-lg bg-primary-strong px-3 py-1.5 text-[12px] font-semibold text-primary-fg hover:bg-primary"><Pencil size={13} /> {t("editRolePerms")}</Link> : null}
+            </div>
+            <p className="text-[11.5px] leading-relaxed text-subtle">{t("permsNote")}</p>
+            <div className="overflow-x-auto rounded-card border border-line bg-card shadow-card">
+              <table className="w-full text-[12.5px]">
+                <thead><tr className="border-b border-line bg-surface-2 text-subtle">
+                  <th className="px-3 py-2 text-start font-semibold">{t("moduleCol")}</th>
+                  {PERM_COLS.map((c) => <th key={c.key} className="px-2 py-2 text-center font-semibold">{tg(c.labelKey)}</th>)}
+                </tr></thead>
+                <tbody className="divide-y divide-line">
+                  {RBAC_MODULES.map((m: RbacModule) => {
+                    const p = d.user.role?.permissions?.find((x) => x.module === m);
+                    return (
+                      <tr key={m} className={`hover:bg-surface-2/40 ${p?.canAccess ? "" : "opacity-45"}`}>
+                        <td className="px-3 py-1.5 font-medium text-ink">{tg(`modules.${m}`)}</td>
+                        {PERM_COLS.map((c) => (
+                          <td key={c.key} className="px-2 py-1.5 text-center">
+                            {p?.[c.key] ? <Check size={15} className="mx-auto text-success" /> : <Minus size={14} className="mx-auto text-subtle/40" />}
+                          </td>
+                        ))}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : null}
+
         {tab === "policies" ? (d.policies.length ? (
           <div className="overflow-hidden rounded-card border border-line bg-card"><table className="w-full"><thead><tr className="border-b border-line text-[11px] uppercase text-subtle"><th className="px-3 py-2 text-start font-semibold">{t("statusCol")}</th><th className="px-3 py-2 text-start font-semibold">{t("insurer")}</th><th className="px-3 py-2 text-start font-semibold">{t("premium")}</th><th className="px-3 py-2 text-start font-semibold">#</th></tr></thead><tbody>
             {d.policies.map((p) => <tr key={p.id} className="border-b border-line last:border-0 hover:bg-surface-2/60"><td className="px-3 py-2.5"><Badge tone={p.status === "ISSUED" ? "success" : "warning"}>{p.status}</Badge></td><td className="px-3 py-2.5 text-[12.5px] text-ink">{p.insurerName ?? "—"}</td><td className="px-3 py-2.5 text-[12.5px] tnum">{fmt(p.totalPremium)}</td><td className="px-3 py-2.5 text-[12px]"><Link href={`/tenant/policies/${p.id}`} className="inline-flex items-center gap-1 font-semibold text-primary hover:underline">{p.sequenceNo ?? "—"} <ArrowRight size={12} className="rtl:rotate-180" /></Link></td></tr>)}
