@@ -5,6 +5,9 @@ import { AuditService } from "../../common/audit/audit.service";
 import { NotificationsService } from "../notifications/notifications.service";
 import type { AuthUser } from "../auth/current-user.decorator";
 import type { CreateStaffDto } from "./dto/create-staff.dto";
+import { RBAC_MODULES } from "../rbac/rbac.constants";
+
+interface PermRow { module: string; canAccess: boolean; canCreate: boolean; canEdit: boolean; canDelete: boolean; canRevert?: boolean }
 
 /**
  * إدارة موظفي المستأجر. كل العمليات معزولة تلقائياً بالمستأجر (Prisma middleware).
@@ -177,6 +180,105 @@ export class StaffService {
     await this.prisma.user.update({ where: { id }, data: { allowedProductLines: clean } });
     await this.audit.log({ tenantId: admin.tenantId, userId: admin.userId, action: "update", entity: "user_product_scope", entityId: id, meta: { target: target.email, lines: clean } });
     return { ok: true, allowedProductLines: clean };
+  }
+
+  // ————————————————————————— إدارة الأدوار (محرّر RBAC) —————————————————————————
+
+  /** كل الأدوار (المُعدّة + المخصّصة) مع مصفوفة الصلاحيات وعدد المستخدمين — لشاشة إدارة الصلاحيات. */
+  async listRoles() {
+    const roles = await this.prisma.role.findMany({
+      orderBy: [{ isPreset: "desc" }, { name: "asc" }],
+      select: {
+        id: true, name: true, isPreset: true,
+        permissions: { select: { module: true, canAccess: true, canCreate: true, canEdit: true, canDelete: true, canRevert: true } },
+        _count: { select: { users: true, defaultForDepartments: true } },
+      },
+    });
+    return roles.map((r) => ({ id: r.id, name: r.name, isPreset: r.isPreset, permissions: r.permissions, userCount: r._count.users, deptDefaultCount: r._count.defaultForDepartments }));
+  }
+
+  /** يضمن صفًّا لكل موديول معروف (يتجاهل المجهول) — يمنع صلاحيات على موديولز غير معرّفة. */
+  private sanitizePerms(perms: PermRow[]): Array<{ module: string; canAccess: boolean; canCreate: boolean; canEdit: boolean; canDelete: boolean; canRevert: boolean }> {
+    const byModule = new Map(perms.map((p) => [p.module, p]));
+    return (RBAC_MODULES as readonly string[]).map((m) => {
+      const p = byModule.get(m);
+      return { module: m, canAccess: !!p?.canAccess, canCreate: !!p?.canCreate, canEdit: !!p?.canEdit, canDelete: !!p?.canDelete, canRevert: !!p?.canRevert };
+    });
+  }
+
+  /** إنشاء دور مخصّص (غير مُعدّ مسبقًا) من مصفوفة الصلاحيات. */
+  async createRole(admin: AuthUser, name: string, perms: PermRow[]) {
+    const nm = name.trim();
+    const dup = await this.prisma.role.findFirst({ where: { name: nm }, select: { id: true } });
+    if (dup) throw new ConflictException("اسم الدور مستخدم مسبقاً");
+    const role = await this.prisma.role.create({
+      data: { tenantId: admin.tenantId, name: nm, isPreset: false, permissions: { create: this.sanitizePerms(perms) } },
+      select: { id: true, name: true, isPreset: true },
+    });
+    await this.audit.log({ tenantId: admin.tenantId, userId: admin.userId, action: "create", entity: "role", entityId: role.id, meta: { name: nm } });
+    return role;
+  }
+
+  /** تعديل دور: الاسم و/أو مصفوفة الصلاحيات — مع منع القفل الذاتي عن إدارة الإعدادات. */
+  async updateRole(admin: AuthUser, id: string, data: { name?: string; permissions?: PermRow[] }) {
+    const role = await this.prisma.role.findFirst({ where: { id }, select: { id: true, name: true } });
+    if (!role) throw new NotFoundException("الدور غير موجود");
+    // حاجز القفل الذاتي: لا يُزيل الأدمن صلاحية إدارة الإعدادات عن دوره هو (وإلا فقد الوصول للإدارة)
+    if (data.permissions && id === admin.roleId) {
+      const s = data.permissions.find((p) => p.module === "settings");
+      if (!s?.canAccess || !s?.canEdit) throw new BadRequestException("لا يمكنك إزالة صلاحية إدارة الإعدادات عن دورك الحالي");
+    }
+    await this.prisma.$transaction(async (tx) => {
+      if (data.name && data.name.trim() !== role.name) {
+        const nm = data.name.trim();
+        const dup = await tx.role.findFirst({ where: { name: nm, id: { not: id } }, select: { id: true } });
+        if (dup) throw new ConflictException("اسم الدور مستخدم مسبقاً");
+        await tx.role.update({ where: { id }, data: { name: nm } });
+      }
+      if (data.permissions) {
+        for (const r of this.sanitizePerms(data.permissions)) {
+          await tx.permission.upsert({
+            where: { roleId_module: { roleId: id, module: r.module } },
+            update: { canAccess: r.canAccess, canCreate: r.canCreate, canEdit: r.canEdit, canDelete: r.canDelete, canRevert: r.canRevert },
+            create: { roleId: id, ...r },
+          });
+        }
+      }
+    });
+    await this.audit.log({ tenantId: admin.tenantId, userId: admin.userId, action: "update", entity: "role", entityId: id, meta: { name: data.name ?? role.name } });
+    return { ok: true };
+  }
+
+  /** حذف دور مخصّص غير مُستخدَم (يُمنع حذف المُعدّ مسبقًا أو المُسند لمستخدمين/أقسام). */
+  async deleteRole(admin: AuthUser, id: string) {
+    const role = await this.prisma.role.findFirst({ where: { id }, select: { id: true, name: true, isPreset: true, _count: { select: { users: true, defaultForDepartments: true } } } });
+    if (!role) throw new NotFoundException("الدور غير موجود");
+    if (role.isPreset) throw new ConflictException("لا يمكن حذف دور مُعدّ مسبقًا");
+    if (role._count.users > 0) throw new ConflictException("الدور مُسند لمستخدمين — أعد إسنادهم أولاً");
+    if (role._count.defaultForDepartments > 0) throw new ConflictException("الدور افتراضي لقسم — غيّره أولاً");
+    await this.prisma.$transaction(async (tx) => {
+      await tx.permission.deleteMany({ where: { roleId: id } });
+      await tx.role.delete({ where: { id } });
+    });
+    await this.audit.log({ tenantId: admin.tenantId, userId: admin.userId, action: "delete", entity: "role", entityId: id, meta: { name: role.name } });
+    return { ok: true };
+  }
+
+  /** إسناد دور لمستخدم — مع منع الأدمن من إسناد دور بلا إدارة إعدادات لنفسه. */
+  async assignRole(admin: AuthUser, userId: string, roleId: string) {
+    const [user, role] = await Promise.all([
+      this.prisma.user.findFirst({ where: { id: userId }, select: { id: true, email: true } }),
+      this.prisma.role.findFirst({ where: { id: roleId }, select: { id: true, name: true, permissions: { where: { module: "settings" }, select: { canAccess: true, canEdit: true } } } }),
+    ]);
+    if (!user) throw new NotFoundException("المستخدم غير موجود");
+    if (!role) throw new NotFoundException("الدور غير موجود");
+    if (userId === admin.userId) {
+      const s = role.permissions[0];
+      if (!s?.canAccess || !s?.canEdit) throw new BadRequestException("لا يمكنك إسناد دور لنفسك بلا صلاحية إدارة الإعدادات");
+    }
+    await this.prisma.user.update({ where: { id: userId }, data: { roleId } });
+    await this.audit.log({ tenantId: admin.tenantId, userId: admin.userId, action: "update", entity: "user_role", entityId: userId, meta: { target: user.email, role: role.name } });
+    return { ok: true, roleId };
   }
 
   /** ضبط نسبة عمولة/حافز الموظف (% من عمولة الوساطة) — null = بلا عمولة. */

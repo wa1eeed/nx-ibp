@@ -29,6 +29,7 @@ export type ModuleKey =
   | "settings.company"
   | "settings.branding"
   | "settings.staff"
+  | "settings.roles"
   | "settings.integrations"
   | "settings.email"
   | "settings.payment"
@@ -130,6 +131,7 @@ export const TENANT_NAV: NavGroup[] = [
       { key: "settings.company", href: "/tenant/settings/company", icon: "Building2" },
       { key: "settings.org", href: "/tenant/settings/org", icon: "Network" },
       { key: "settings.staff", href: "/tenant/settings/staff", icon: "UserCog" },
+      { key: "settings.roles", href: "/tenant/settings/roles", icon: "KeyRound" },
       { key: "settings.branding", href: "/tenant/settings/branding", icon: "Palette" },
       // التكاملات والبريد والأمان
       { key: "settings.integrations", href: "/tenant/settings/integrations", icon: "Plug" },

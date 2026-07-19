@@ -2,6 +2,7 @@ import { Body, Controller, Get, HttpCode, Param, Post } from "@nestjs/common";
 import { IsArray, IsNumber, IsOptional, IsString } from "class-validator";
 import { StaffService } from "./staff.service";
 import { CreateStaffDto } from "./dto/create-staff.dto";
+import { AssignRoleDto } from "./dto/role.dto";
 import { Authorize } from "../rbac/authorize.decorator";
 import { CurrentUser, type AuthUser } from "../auth/current-user.decorator";
 
@@ -74,5 +75,13 @@ export class StaffController {
   @Post(":id/commission-rate")
   setCommissionRate(@CurrentUser() user: AuthUser, @Param("id") id: string, @Body() dto: CommissionRateDto) {
     return this.staff.setCommissionRate(user, id, dto.rate ?? null);
+  }
+
+  // إسناد دور موجود لمستخدم (تغيير دوره) — من محرّر RBAC
+  @Authorize({ module: "settings", action: "update" })
+  @HttpCode(200)
+  @Post(":id/role")
+  assignRole(@CurrentUser() user: AuthUser, @Param("id") id: string, @Body() dto: AssignRoleDto) {
+    return this.staff.assignRole(user, id, dto.roleId);
   }
 }

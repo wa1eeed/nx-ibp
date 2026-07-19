@@ -11,8 +11,9 @@ import { Badge } from "@/components/ui/Badge";
 
 interface PermRow { canAccess: boolean; canCreate: boolean; canEdit: boolean; canDelete: boolean }
 type Matrix = Record<string, PermRow>;
-interface StaffRow { id: string; fullName: string; email: string; status: string; role?: { name: string } | null }
+interface StaffRow { id: string; fullName: string; email: string; status: string; role?: { id: string; name: string } | null }
 interface RoleTemplate { id: string; name: string; permissions: Array<{ module: string } & PermRow> }
+interface RoleLite { id: string; name: string }
 
 const EMPTY: PermRow = { canAccess: false, canCreate: false, canEdit: false, canDelete: false };
 const emptyMatrix = (): Matrix => Object.fromEntries(RBAC_MODULES.map((m) => [m, { ...EMPTY }]));
@@ -30,6 +31,7 @@ export default function StaffPage() {
 
   const [staff, setStaff] = useState<StaffRow[]>([]);
   const [roles, setRoles] = useState<RoleTemplate[]>([]);
+  const [allRoles, setAllRoles] = useState<RoleLite[]>([]);
   const [seats, setSeats] = useState<{ used: number; limit: number | null; planName: string | null } | null>(null);
   const [forbidden, setForbidden] = useState(false);
   const [showForm, setShowForm] = useState(false);
@@ -45,13 +47,15 @@ export default function StaffPage() {
 
   const load = useCallback(async () => {
     try {
-      const [s, r, seatInfo] = await Promise.all([
+      const [s, r, ar, seatInfo] = await Promise.all([
         api<StaffRow[]>("/staff"),
         api<RoleTemplate[]>("/staff/roles"),
+        api<RoleLite[]>("/roles").catch(() => []),
         api<{ used: number; limit: number | null; planName: string | null }>("/staff/seats").catch(() => null),
       ]);
       setStaff(s);
       setRoles(r);
+      setAllRoles(ar);
       setSeats(seatInfo);
       setForbidden(false);
     } catch (e) {
@@ -105,6 +109,15 @@ export default function StaffPage() {
       setError(err instanceof ApiError ? err.message : "خطأ");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function assignRole(userId: string, roleId: string) {
+    try {
+      await api(`/staff/${userId}/role`, { method: "POST", body: JSON.stringify({ roleId }) });
+      await load();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "خطأ");
     }
   }
 
@@ -244,7 +257,18 @@ export default function StaffPage() {
               <tr key={u.id} className="hover:bg-surface-2/60">
                 <td className="px-5 py-3 text-[13.5px] font-medium"><Link href={`/tenant/settings/staff/${u.id}`} className="text-ink hover:text-primary hover:underline">{u.fullName}</Link></td>
                 <td className="px-5 py-3 text-[12.5px] text-muted">{u.email}</td>
-                <td className="px-5 py-3 text-[13px] text-muted">{u.role?.name ?? "—"}</td>
+                <td className="px-5 py-3 text-[13px] text-muted">
+                  {allRoles.length ? (
+                    <select
+                      value={u.role?.id ?? ""}
+                      onChange={(e) => assignRole(u.id, e.target.value)}
+                      className="h-8 max-w-[180px] rounded-lg border border-line bg-card px-2 text-[12.5px] text-ink focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    >
+                      {!u.role ? <option value="" disabled>—</option> : null}
+                      {allRoles.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+                    </select>
+                  ) : (u.role?.name ?? "—")}
+                </td>
                 <td className="px-5 py-3">
                   <Badge tone={u.status === "ACTIVE" ? "success" : "neutral"}>{u.status}</Badge>
                 </td>
