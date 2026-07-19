@@ -77,12 +77,12 @@ async isFeatureEnabled(tenantId: string, featureKey: string): Promise<boolean> {
 نموذج بيانات الاشتراك (`Subscription`, `Plan`, `Entitlement`, `Addon`, الوضع `EntitlementMode`) في [03-data-model.md](./03-data-model.md).
 
 ### 2ب. هيكلة الباقات (وفق هيئة التأمين) + المقارنة الديناميكية
-**المبدأ:** الباقة **الأساسية تضمّ كل جوهر التشغيل والامتثال** الذي تتطلّبه هيئة التأمين (لا تُحجب الأساسيات)؛ التمايز على المميزات المتقدمة والحصص.
+**المبدأ:** الباقة **الأساسية تضمّ دورة تشغيل الوساطة كاملة** (عملاء→مبيعات→اكتتاب→إنتاج→تجديدات→خدمة→**مطالبات**→مالية أساسية→تقارير+تحقّق+التزام/تدقيق) الذي تتطلّبه هيئة التأمين (لا تُحجب الأساسيات)؛ والتمايز على **المالية المتقدّمة (ZATCA)** ومميزات النموّ والحوكمة. **المطالبات موديول أساسي** (لا يُحجب عن الأساسية).
 
 | الفئة | الأساسية | الاحترافية | المؤسسات |
 |---|---|---|---|
-| **تشغيل + امتثال** (عملاء · اكتتاب · إصدار · تجديدات · خدمة · **مطالبات** · مالية · **التزام/تدقيق** · تقارير تنظيمية · **`feature.verification` KYC/KYB** · **`feature.zatca`** · **`feature.auditImmutable`**) | ✓ | ✓ | ✓ |
-| **النموّ** (`feature.crm` · `feature.producers` · `feature.formTemplates` · `feature.analytics` · `feature.approvalChains` · `feature.org` · `feature.mfaEnforce`) | — | ✓ | ✓ |
+| **تشغيل + امتثال** (عملاء · اكتتاب · إصدار · تجديدات · خدمة · **مطالبات** · مالية أساسية · **التزام/تدقيق** · تقارير · **`feature.verification` KYC/KYB** · **`feature.auditImmutable`**) | ✓ | ✓ | ✓ |
+| **النموّ + المالية المتقدّمة** (**`feature.zatca`** الفوترة الإلكترونية · `feature.crm` · `feature.producers` · `feature.formTemplates` · `feature.analytics` · `feature.approvalChains` · `feature.org` · `feature.mfaEnforce`) | — | ✓ | ✓ |
 | **الحوكمة** (`module.hr` · `feature.dlp` · `feature.api` · `feature.whiteLabel` · `feature.prioritySupport`) | — | — | ✓ |
 | **الحدود** (مستخدمون · تخزين) | **بلا سقف مستخدمين** (تسعير لكل مستخدم) · 1GB | بلا سقف · 10GB | بلا سقف · 100GB |
 
@@ -270,6 +270,20 @@ flowchart LR
   SVC --> USER[User مربوط بالدور]
   SVC --> AUDIT[(auditLog)]
 ```
+
+### 7ب. محرّر RBAC — إدارة الأدوار المستقلّة (`/tenant/settings/roles`)
+
+بعد التزويد، يدير الأدمن **الأدوار مستقلًّا** عن إنشاء الموظفين عبر وحدة تحكّم [`roles.controller.ts`](../apps/api/src/modules/staff/roles.controller.ts) (محصورة بموديول `settings`) ودوالّ في [`staff.service.ts`](../apps/api/src/modules/staff/staff.service.ts):
+
+| المسار | الفعل | الوظيفة |
+|---|---|---|
+| `GET /roles` | `settings:read` | كل الأدوار (مُعدّة + مخصّصة) بمصفوفتها + `userCount`/`deptDefaultCount` |
+| `POST /roles` | `settings:create` | إنشاء دور مخصّص (`isPreset=false`) من المصفوفة (5 أعمدة: A/C/E/D/**R**) |
+| `PUT /roles/:id` | `settings:update` | تعديل الاسم و/أو المصفوفة (**upsert** لكل موديول عبر مفتاح `roleId+module` الفريد) |
+| `DELETE /roles/:id` | `settings:delete` | حذف دور مخصّص **غير مُستخدَم** |
+| `POST /staff/:id/role` | `settings:update` | إسناد دور موجود لمستخدم |
+
+**حواجز السلامة:** حذف دور **مُعدّ مسبقًا** ⇒ 409 · دور **مُسنَد** لمستخدم أو افتراضي لقسم ⇒ 409 · **منع القفل الذاتي** (لا يُزيل الأدمن صلاحية `settings` عن دوره هو أو يُسند لنفسه دورًا بلا إعدادات ⇒ 400) · اسم مكرّر ⇒ 409 · الموديولز المجهولة تُتجاهَل (`sanitizePerms` يضمن صفًّا لكل موديول من `RBAC_MODULES` فقط). كل عملية تُسجَّل في `auditLog` (`entity: role`/`user_role`). الواجهة: صفحة **«الأدوار والصلاحيات»** بقائمة أدوار (شارة مُعدّ/مخصّص + عدد المستخدمين) ومحرّر مصفوفة، وإسناد الدور من قائمة الموظفين.
 
 ---
 
