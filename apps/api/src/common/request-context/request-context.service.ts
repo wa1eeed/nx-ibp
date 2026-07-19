@@ -10,6 +10,7 @@ export interface RequestStore {
   scope?: string; // "platform" | "client" | undefined (موظف مستأجر)
   ip?: string; // عنوان IP للطلب (للتدقيق)
   userAgent?: string; // بصمة الجهاز/المتصفح (للتدقيق)
+  sessionId?: string; // معرّف الجلسة/التوكن (sid) — لربط عمليات الجلسة في التدقيق
 }
 
 /**
@@ -43,5 +44,13 @@ export class RequestContextService {
 
   get userAgent(): string | undefined {
     return this.als.getStore()?.userAgent;
+  }
+
+  get roleId(): string | null | undefined {
+    return this.als.getStore()?.roleId;
+  }
+
+  get sessionId(): string | undefined {
+    return this.als.getStore()?.sessionId;
   }
 }

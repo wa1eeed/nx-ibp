@@ -90,7 +90,7 @@ export class StaffService {
     if (existing) throw new ConflictException("البريد مستخدم مسبقاً في هذا المستأجر");
 
     // نموذج التسعير **لكل مستخدم** بلا سقف من الباقة: تُضاف المستخدمون بحرّية، ويتزامن العدّاد للفوترة (§مزامنة أدناه).
-    const passwordHash = await bcrypt.hash(dto.password, 10);
+    const passwordHash = await bcrypt.hash(dto.password, 12);
 
     const user = await this.prisma.$transaction(async (tx) => {
       const role = await tx.role.create({

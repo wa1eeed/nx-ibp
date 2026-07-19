@@ -10,6 +10,9 @@ export interface AuditParams {
   /** يُمرَّر صراحةً عند غياب سياق المستأجر (مثل تسجيل الدخول). */
   tenantId?: string;
   userId?: string | null;
+  /** لقطتا الحالة قبل/بعد التغيير (للعمليات ذات الحالة — تدقيق كامل). */
+  oldValues?: Prisma.InputJsonValue;
+  newValues?: Prisma.InputJsonValue;
   meta?: Prisma.InputJsonValue;
 }
 
@@ -34,11 +37,15 @@ export class AuditService {
         data: {
           tenantId,
           userId: p.userId ?? this.ctx.userId ?? null,
+          role: this.ctx.roleId ?? null, // هوية الفاعل الكاملة (الدور وقت العملية)
+          sessionId: this.ctx.sessionId ?? null, // ربط عمليات الجلسة الواحدة
           action: p.action,
           entity: p.entity,
           entityId: p.entityId ?? null,
           ipAddress: this.ctx.ip ?? null, // مَن/من أي جهاز (مطلب NCA ECC)
           userAgent: this.ctx.userAgent ?? null,
+          ...(p.oldValues !== undefined ? { oldValues: p.oldValues } : {}),
+          ...(p.newValues !== undefined ? { newValues: p.newValues } : {}),
           ...(p.meta !== undefined ? { meta: p.meta } : {}),
         },
       });

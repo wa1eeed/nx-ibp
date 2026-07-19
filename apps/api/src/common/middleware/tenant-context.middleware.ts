@@ -13,6 +13,7 @@ interface JwtPayload {
   email: string;
   scope?: string; // "platform" للسوبر أدمن · "client" لبوّابة العميل
   clientId?: string; // نطاق بوّابة العميل
+  sid?: string; // معرّف الجلسة/التوكن (للتدقيق)
 }
 
 /**
@@ -56,6 +57,7 @@ export class TenantContextMiddleware implements NestMiddleware {
         store.email = payload.email;
         store.clientId = payload.clientId;
         store.scope = payload.scope;
+        store.sessionId = payload.sid;
       } catch {
         // توكن غير صالح — نتركه فارغاً
       }

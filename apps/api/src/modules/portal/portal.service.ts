@@ -9,6 +9,7 @@ import { SequenceService } from "../../common/sequence/sequence.service";
 import { RateLimitService } from "../../common/security/rate-limit.service";
 import { NotificationsService } from "../notifications/notifications.service";
 import { CoverNotesService } from "../cover-notes/cover-notes.service";
+import { CryptoVaultService } from "../../common/crypto/crypto-vault.service";
 import type { SubmitClaimDto, SubmitServiceDto } from "./dto/portal.dto";
 
 const asJson = (v: unknown) => v as Prisma.InputJsonValue;
@@ -43,6 +44,7 @@ export class PortalService {
     private readonly rateLimit: RateLimitService,
     private readonly notifications: NotificationsService,
     private readonly coverNotes: CoverNotesService,
+    private readonly crypto: CryptoVaultService,
   ) {}
 
   /** مذكرات التغطية المؤقتة للعميل (§4.2). */
@@ -155,7 +157,7 @@ export class PortalService {
     const payload = await this.verifyInvite(token);
     const user = await this.prisma.clientUser.findFirst({ where: { id: payload.sub }, include: { client: { select: { id: true, name: true, code: true } } } });
     if (!user) throw new UnauthorizedException("دعوة غير صالحة");
-    const passwordHash = await bcrypt.hash(password, 10);
+    const passwordHash = await bcrypt.hash(password, 12);
     await this.prisma.clientUser.update({ where: { id: user.id }, data: { passwordHash } });
     await this.audit.log({ tenantId: user.tenantId, userId: user.id, action: "update", entity: "client_user", entityId: user.id, meta: { activated: true } });
     const accessToken = await this.jwt.signAsync({ sub: user.id, scope: "client", tenantId: user.tenantId, clientId: user.clientId, email: user.email });
@@ -168,6 +170,7 @@ export class PortalService {
       select: { id: true, code: true, name: true, type: true, crNumber: true, nationalId: true, vatNumber: true, email: true, phone: true, landline: true, contactName: true, city: true, nationalAddress: true, complianceStatus: true },
     });
     if (!client) throw new NotFoundException("العميل غير موجود");
+    if (client.phone) client.phone = this.crypto.tryDecrypt(client.phone); // فكّ الجوال المشفّر at-rest (بيانات العميل الخاصّة)
     return client;
   }
 
@@ -182,7 +185,7 @@ export class PortalService {
       where: { id: clientId },
       data: {
         contactName: dto.contactName ?? undefined,
-        phone: dto.phone ?? undefined,
+        phone: dto.phone ? this.crypto.encrypt(dto.phone) : undefined, // PII — مشفّر at-rest
         landline: dto.landline ?? undefined,
         email: dto.email ?? undefined,
       },

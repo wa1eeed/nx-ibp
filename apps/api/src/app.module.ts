@@ -57,6 +57,7 @@ import { LeaveModule } from "./modules/leave/leave.module";
 import { TargetsModule } from "./modules/targets/targets.module";
 import { AuditViewModule } from "./modules/audit/audit.module";
 import { InsurersModule } from "./modules/insurers/insurers.module";
+import { WebhooksModule } from "./modules/webhooks/webhooks.module";
 
 /**
  * الوحدة الجذرية. معماري وحدات — module لكل مجال (GUIDELINES.md §5).
@@ -119,6 +120,7 @@ import { InsurersModule } from "./modules/insurers/insurers.module";
     TargetsModule,
     AuditViewModule,
     InsurersModule,
+    WebhooksModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottleGuard }, // تحديد المعدّل أولًا (يحمي المسارات العامة أيضًا)

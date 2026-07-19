@@ -56,11 +56,12 @@ export class ClientsService {
   ) {}
 
   /**
-   * يفكّ تشفير حقول PII المشفّرة at-rest (الآيبان) قبل الإخفاء بالـDLP.
+   * يفكّ تشفير حقول PII المشفّرة at-rest (الآيبان + الجوال) قبل الإخفاء بالـDLP.
    * `tryDecrypt` يتسامح مع القيم القديمة غير المشفّرة (البذرة/ما قبل التفعيل).
    */
-  private decryptPii<T extends { iban?: string | null } | null>(c: T): T {
+  private decryptPii<T extends { iban?: string | null; phone?: string | null } | null>(c: T): T {
     if (c && c.iban) c.iban = this.crypto.tryDecrypt(c.iban);
+    if (c && c.phone) c.phone = this.crypto.tryDecrypt(c.phone);
     return c;
   }
 
@@ -80,7 +81,7 @@ export class ClientsService {
       select: { id: true, code: true, type: true, name: true, crNumber: true, nationalId: true, phone: true, city: true, complianceStatus: true, erasedAt: true, tenantId: true },
     });
     const canView = await this.canViewSensitive(user);
-    return rows.map((c) => maskClientSensitive(c, canView));
+    return rows.map((c) => maskClientSensitive(this.decryptPii(c), canView));
   }
 
   async getOne(id: string, user: AuthUser) {
@@ -159,7 +160,7 @@ export class ClientsService {
           crNumber: dto.crNumber ?? null,
           nationalId: dto.nationalId ?? null,
           email: dto.email ?? null,
-          phone: dto.phone ?? null,
+          phone: dto.phone ? this.crypto.encrypt(dto.phone) : null, // PII — مشفّر at-rest
           landline: dto.landline ?? null,
           contactName: dto.contactName ?? null,
           city: dto.city ?? null,
@@ -199,7 +200,13 @@ export class ClientsService {
       data: { complianceStatus: decision, complianceNote: note ?? null },
       select: { id: true, name: true, complianceStatus: true, complianceNote: true, tenantId: true },
     });
-    await this.audit.log({ tenantId, userId, action: "approve", entity: "client", entityId: id, meta: { decision, note: note ?? null } });
+    // تدقيق كامل بلقطتَي الحالة قبل/بعد (Database Compliance: old_values/new_values)
+    await this.audit.log({
+      tenantId, userId, action: "approve", entity: "client", entityId: id,
+      oldValues: { complianceStatus: exists.complianceStatus, complianceNote: exists.complianceNote },
+      newValues: { complianceStatus: decision, complianceNote: note ?? null },
+      meta: { decision },
+    });
     return updated;
   }
 

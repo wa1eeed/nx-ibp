@@ -73,9 +73,9 @@ export class AuthService {
     };
   }
 
-  /** يوقّع رمز الوصول (access JWT) من بيانات المستخدم. */
+  /** يوقّع رمز الوصول (access JWT) من بيانات المستخدم — مع معرّف جلسة (sid) للتدقيق. */
   private signAccess(user: { id: string; tenantId: string; roleId: string | null; email: string }) {
-    return this.jwt.signAsync({ sub: user.id, tenantId: user.tenantId, roleId: user.roleId ?? null, email: user.email });
+    return this.jwt.signAsync({ sub: user.id, tenantId: user.tenantId, roleId: user.roleId ?? null, email: user.email, sid: randomBytes(12).toString("hex") });
   }
 
   /** يُصدر رمز تحديث خامًا (يُعاد للعميل مرّة واحدة) ويُخزّن **جزيئته** فقط. */

@@ -1620,13 +1620,17 @@ model AuditLog {
   tenantId  String
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
   userId    String?
+  role      String? // دور المنفِّذ (roleId) وقت العملية — هوية الفاعل الكاملة
+  sessionId String? // معرّف الجلسة/التوكن (sid) لربط عمليات الجلسة الواحدة
   action    String // login | create | update | delete | file_url | verify | approve
   entity    String
   entityId  String?
   ipAddress String? // عنوان IP للطلب (يراعي X-Forwarded-For خلف العاكس)
-  userAgent String? // بصمة الجهاز/المتصفح
+  userAgent String? // بصمة الجهاز/المتصفح (device fingerprint على مستوى الخادم)
+  oldValues Json? // لقطة الحالة قبل التغيير (للعمليات ذات الحالة)
+  newValues Json? // لقطة الحالة بعد التغيير
   meta      Json?
-  createdAt DateTime @default(now())
+  createdAt DateTime @default(now()) // زمن UTC يولّده الخادم/القاعدة (لا العميل)
 
   @@index([tenantId])
   @@index([createdAt])

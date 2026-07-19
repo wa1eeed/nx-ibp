@@ -147,7 +147,7 @@ export class SignupService {
       throw new ConflictException("البريد مستخدم مسبقاً");
     }
 
-    const passwordHash = await bcrypt.hash(dto.password, 10);
+    const passwordHash = await bcrypt.hash(dto.password, 12);
 
     // التزويد كامل بلا سياق مستأجر (سياق فارغ) ⇒ guard العزل يُتخطّى ونمرّر tenantId صراحةً.
     const result = await this.ctx.run({}, () => this.provision(dto, email, plan, passwordHash));
