@@ -98,8 +98,11 @@ describe("التسجيل الذاتي (e2e)", () => {
     expect(typeof premium.pricePerUserYearly).toBe("number");
     expect(typeof premium.trialDays).toBe("number");
     expect(premium.savingsPct).toBeGreaterThan(0); // السنوي أوفر من الشهري×12
-    expect(premium.seatLimit).toBeGreaterThan(0);
+    expect(premium.seatLimit).toBeNull(); // بلا سقف مقاعد — التسعير لكل مستخدم فعلي
   });
+
+  it("باقة المؤسسات لا تُتاح بالتسجيل الذاتي (بيع استشاري) ⇒ 422", () =>
+    request(srv()).post("/signup").send(payload({ planCode: "enterprise", seatCount: 50 })).expect(422));
 
   it("تسجيل مع بيانات onboarding صحيحة (رقم موحّد/ضريبي/جوال + عدد مستخدمين + سنوي) ⇒ 201", async () => {
     const res = await request(srv()).post("/signup").send(payload({

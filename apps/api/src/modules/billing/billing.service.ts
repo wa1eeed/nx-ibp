@@ -144,4 +144,62 @@ export class BillingService {
     }
     return { status: tenant?.status, trialEndsAt, subscription: sub };
   }
+
+  /**
+   * لقطة المقاعد والاحتساب التناسبي (نموذج «ادفع مقابل المستخدمين الفعليين»).
+   * تُقارن المستخدمين النشطين بالمقاعد المغطّاة بآخر فاتورة مدفوعة، وتحسب:
+   * - `addUnit`: تكلفة إضافة مستخدم واحد للمدّة المتبقّية من الدورة (احتساب تناسبي).
+   * - `pending`: فرق تناسبي مستحقّ (charge) أو دائن (credit) عند تغيّر عدد المستخدمين وسط الدورة.
+   * نقل الرخصة (استبدال مغادر بموظف جديد) لا يغيّر العدد ⇒ بلا رسوم؛ والإلغاء (تعطيل بلا بديل) يخفّض التجديد القادم.
+   */
+  async seats(tenantId: string) {
+    const DAY = 24 * 60 * 60 * 1000;
+    const round2 = (n: number) => Math.round(n * 100) / 100;
+    const now = new Date();
+
+    const sub = await this.prisma.subscription.findFirst({
+      where: { tenantId },
+      select: { cycle: true, seatsUsed: true, startedAt: true, renewsAt: true, plan: { select: { code: true, name: true, priceMonthly: true, priceYearly: true } } },
+    });
+    const tenant = await this.prisma.tenant.findFirst({ where: { id: tenantId }, select: { status: true } });
+    const activeUsers = await this.prisma.user.count({ where: { tenantId, status: "ACTIVE" } });
+
+    if (!sub || !sub.plan) {
+      return { activeUsers, paidSeats: activeUsers, delta: 0, cycle: "MONTHLY", perUser: 0, periodCost: 0, currency: this.currency, daysRemaining: 0, totalDays: 0, addUnit: 0, pendingAmount: 0, pendingKind: "none", planName: null, isTrial: true };
+    }
+
+    const cycle = sub.cycle;
+    const perUser = Number(cycle === "YEARLY" ? sub.plan.priceYearly : sub.plan.priceMonthly);
+    const periodCost = round2(perUser * Math.max(1, activeUsers)); // تكلفة الدورة القادمة بعدد المستخدمين الحالي
+
+    // خطّ الأساس = المقاعد المغطّاة بآخر فاتورة مدفوعة سارية؛ وإلا (تجربة/بلا دفع) = النشطون الآن (لا تناسب)
+    const lastPaid = await this.prisma.subscriptionInvoice.findFirst({
+      where: { tenantId, status: "PAID" },
+      orderBy: { paidAt: "desc" },
+      select: { amount: true, cycle: true, planCode: true, periodStart: true, periodEnd: true },
+    });
+    let paidSeats = activeUsers;
+    let periodStart = sub.startedAt;
+    let periodEnd = sub.renewsAt;
+    const isTrial = tenant?.status === "TRIAL" || !lastPaid;
+
+    if (lastPaid?.periodEnd && lastPaid.periodEnd > now && lastPaid.periodStart) {
+      const paidPlan = await this.prisma.plan.findUnique({ where: { code: lastPaid.planCode }, select: { priceMonthly: true, priceYearly: true } });
+      const paidPerUser = Number(lastPaid.cycle === "YEARLY" ? paidPlan?.priceYearly : paidPlan?.priceMonthly) || perUser;
+      paidSeats = paidPerUser > 0 ? Math.max(1, Math.round(Number(lastPaid.amount) / paidPerUser)) : activeUsers;
+      periodStart = lastPaid.periodStart;
+      periodEnd = lastPaid.periodEnd;
+    }
+
+    const totalDays = periodStart && periodEnd ? Math.max(1, Math.round((periodEnd.getTime() - periodStart.getTime()) / DAY)) : 30;
+    const daysRemaining = periodEnd ? Math.max(0, Math.round((periodEnd.getTime() - now.getTime()) / DAY)) : 0;
+    const dailyPerUser = perUser / totalDays;
+
+    const delta = activeUsers - paidSeats; // موجب: مستخدمون مضافون وسط الدورة · سالب: مُلغَون
+    const addUnit = round2(dailyPerUser * daysRemaining); // تكلفة مستخدم إضافي واحد للمدّة المتبقّية
+    const pendingAmount = isTrial ? 0 : round2(Math.abs(delta) * dailyPerUser * daysRemaining);
+    const pendingKind: "charge" | "credit" | "none" = isTrial || delta === 0 ? "none" : delta > 0 ? "charge" : "credit";
+
+    return { activeUsers, paidSeats, delta, cycle, perUser, periodCost, currency: this.currency, periodEnd, daysRemaining, totalDays, addUnit, pendingAmount, pendingKind, planName: sub.plan.name, isTrial };
+  }
 }

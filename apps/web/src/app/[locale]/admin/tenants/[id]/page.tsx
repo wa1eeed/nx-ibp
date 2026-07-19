@@ -67,7 +67,7 @@ export default function TenantDetailPage({ params }: { params: { id: string } })
               <h3 className="mb-3 text-[13px] font-bold text-ink">{t("admin.tenantDetail.subscription")}</h3>
               <div className="grid grid-cols-2 gap-3">
                 <Cell label={t("admin.tenantDetail.plan")} value={d.subscription?.plan.name ?? "—"} />
-                <Cell label={t("admin.tenantDetail.seats")} value={d.subscription ? `${d.subscription.seatsUsed}/${d.subscription.plan.seatLimit}` : "—"} />
+                <Cell label={t("admin.tenantDetail.seats")} value={d.subscription ? `${d.subscription.seatsUsed}` : "—"} />
                 <Cell label={t("admin.tenantDetail.renews")} value={date(d.subscription?.renewsAt ?? null)} />
               </div>
               <div className="mt-4 grid grid-cols-4 gap-2 border-t border-line pt-3 text-center">

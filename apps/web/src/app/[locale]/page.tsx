@@ -128,10 +128,19 @@ export default function LandingPage() {
       </section>
 
       <footer className="border-t border-line">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-5 py-6 text-[12.5px] text-subtle sm:flex-row">
-          <span>© 2026 {t("brand.name")} — {t("landing.footer.rights")}</span>
-          <span className="font-medium text-muted">{t("landing.footer.byNx")}</span>
-          <span>{t("landing.footer.madeIn")}</span>
+        <div className="mx-auto max-w-6xl px-5 py-6">
+          <nav className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[12.5px] font-medium text-muted">
+            <Link href="/legal/terms" className="hover:text-ink">{t("landing.footer.terms")}</Link>
+            <Link href="/legal/privacy" className="hover:text-ink">{t("landing.footer.privacy")}</Link>
+            <Link href="/legal/dpa" className="hover:text-ink">{t("landing.footer.dpa")}</Link>
+            <Link href="/legal/sla" className="hover:text-ink">{t("landing.footer.sla")}</Link>
+            <Link href="/ownership" className="hover:text-ink">{t("ownership.nav")}</Link>
+          </nav>
+          <div className="mt-4 flex flex-col items-center justify-between gap-3 border-t border-line pt-4 text-[12.5px] text-subtle sm:flex-row">
+            <span>© 2026 {t("brand.name")} — {t("landing.footer.rights")}</span>
+            <span className="font-medium text-muted">{t("landing.footer.byNx")}</span>
+            <span>{t("landing.footer.madeIn")}</span>
+          </div>
         </div>
       </footer>
     </div>

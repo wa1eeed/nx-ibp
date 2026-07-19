@@ -229,7 +229,7 @@ model Plan {
   id               String         @id @default(cuid())
   code             String         @unique // basic | premium | enterprise
   name             String
-  seatLimit        Int // الحد الأقصى للمستخدمين (المقاعد)
+  seatLimit        Int? // (مُلغى) الحد الأقصى للمستخدمين — null = بلا حدّ (التسعير لكل مستخدم)
   priceMonthly     Decimal        @db.Decimal(12, 2) // السعر لكل مستخدم/شهر
   priceYearly      Decimal        @db.Decimal(12, 2) // السعر لكل مستخدم/سنة
   trialDays        Int            @default(0) // مدة التجربة المجانية (0 = بلا تجربة)

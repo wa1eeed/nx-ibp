@@ -67,7 +67,7 @@ export default function AdminTenantsPage() {
                   {r.owner ? <span dir="ltr" className="block">{r.owner.email}</span> : "—"}
                 </td>
                 <td className="px-5 py-3 text-[13px] text-muted">{r.subscription?.plan.name ?? "—"}</td>
-                <td className="px-5 py-3 text-[12.5px] tnum">{r.subscription ? `${r.subscription.seatsUsed}/${r.subscription.plan.seatLimit}` : "—"}</td>
+                <td className="px-5 py-3 text-[12.5px] tnum">{r.subscription ? r.subscription.seatsUsed : "—"}</td>
                 <td className="px-5 py-3 text-[12px] text-subtle tnum">{r._count.clients} {t("admin.tenants.clients")} · {r._count.policies} {t("admin.tenants.policies")}</td>
                 <td className="px-5 py-3 text-[12px] text-muted">{t(`admin.billingModel.${r.billingModel}`)}</td>
                 <td className="px-5 py-3"><Badge tone={TONE[r.status] ?? "neutral"}>{r.status}</Badge></td>

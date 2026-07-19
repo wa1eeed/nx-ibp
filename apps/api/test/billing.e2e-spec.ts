@@ -37,7 +37,7 @@ describe("فوترة الاشتراكات (e2e)", () => {
     const co = await request(srv()).post("/billing/checkout").set(auth(t)).send({ planCode: "premium", cycle: "YEARLY" }).expect(201);
     expect(co.body.status).toBe("PENDING");
     expect(co.body.redirectUrl).toBeTruthy();
-    expect(co.body.amount).toBe(1490); // premium السنوي لكل مستخدم (1490) × مقعد واحد
+    expect(co.body.amount).toBe(3490); // premium السنوي لكل مستخدم (3490) × مقعد واحد
     const sub = await request(srv()).get("/billing/subscription").set(auth(t)).expect(200);
     expect(sub.body.status).toBe("TRIAL");
   });
@@ -83,5 +83,25 @@ describe("فوترة الاشتراكات (e2e)", () => {
   it("باقة مجهولة ⇒ 422", async () => {
     const t = await newOwner();
     await request(srv()).post("/billing/checkout").set(auth(t)).send({ planCode: "nope" }).expect(422);
+  });
+
+  it("GET /billing/seats ⇒ لقطة المقاعد (دفع لكل مستخدم) — تجربة بلا فرق تناسبي", async () => {
+    const t = await newOwner();
+    const s = (await request(srv()).get("/billing/seats").set(auth(t)).expect(200)).body as { activeUsers: number; perUser: number; periodCost: number; pendingKind: string; isTrial: boolean; addUnit: number };
+    expect(s.activeUsers).toBeGreaterThanOrEqual(1); // المالك على الأقل
+    expect(s.isTrial).toBe(true); // مستأجر جديد بلا فاتورة مدفوعة
+    expect(s.pendingKind).toBe("none"); // لا احتساب تناسبي أثناء التجربة
+    expect(typeof s.perUser).toBe("number");
+    expect(s.periodCost).toBe(Math.round(s.perUser * s.activeUsers * 100) / 100);
+  });
+
+  it("بعد الدفع: /billing/seats يعكس الاشتراك المفعّل بلا فرق تناسبي (العدد = المدفوع)", async () => {
+    const t = await newOwner();
+    const co = await request(srv()).post("/billing/checkout").set(auth(t)).send({ planCode: "premium" }).expect(201);
+    await request(srv()).post(`/billing/${co.body.invoiceId}/confirm`).set(auth(t)).expect(201);
+    const s = (await request(srv()).get("/billing/seats").set(auth(t)).expect(200)).body as { paidSeats: number; activeUsers: number; delta: number; pendingKind: string; isTrial: boolean };
+    expect(s.isTrial).toBe(false);
+    expect(s.delta).toBe(0); // العدد الفعلي = المقاعد المغطّاة بالفاتورة
+    expect(s.pendingKind).toBe("none");
   });
 });

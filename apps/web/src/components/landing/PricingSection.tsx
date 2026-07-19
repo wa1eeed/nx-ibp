@@ -63,7 +63,9 @@ export function PricingSection() {
           </div>
 
           <div className="mt-8 grid grid-cols-1 gap-5 lg:grid-cols-3">
-            {plans.map((p) => {
+            {plans.length === 0
+              ? [0, 1, 2].map((i) => <div key={`sk-${i}`} className="h-80 animate-pulse rounded-card border border-line bg-surface-2/40" />)
+              : plans.map((p) => {
               const highlight = p.code === HIGHLIGHT;
               const price = yearly ? p.pricePerUserYearly : p.pricePerUserMonthly;
               const per = yearly ? t("landing.pricing.perUserYear") : t("landing.pricing.perUserMonth");
@@ -77,9 +79,8 @@ export function PricingSection() {
                     <span className="text-[32px] font-bold tracking-tight text-ink tnum">{fmt(price)}</span>
                     <span className="mb-1.5 text-[12px] text-subtle">{t("common.sar")} {per}</span>
                   </div>
-                  {/* توفير السنوي + التجربة المجانية */}
+                  {/* التجربة المجانية (المؤسسات بلا تجربة ذاتية ⇒ تواصل مع المبيعات) */}
                   <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                    {yearly && p.savingsPct > 0 ? <span className="rounded-full bg-success-soft px-2 py-0.5 text-[11px] font-semibold text-success">{t("landing.pricing.save", { pct: p.savingsPct })}</span> : null}
                     {p.trialDays > 0 ? <span className="inline-flex items-center gap-1 rounded-full bg-primary-soft px-2 py-0.5 text-[11px] font-semibold text-primary-strong"><Sparkles size={11} /> {t("landing.pricing.trial", { days: p.trialDays })}</span> : null}
                   </div>
                   <p className="mt-2 text-[11.5px] text-subtle">{t("landing.pricing.anyUsers")}</p>

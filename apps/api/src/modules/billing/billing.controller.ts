@@ -47,4 +47,11 @@ export class BillingController {
   subscription(@CurrentUser("tenantId") tenantId: string) {
     return this.billing.subscription(tenantId);
   }
+
+  /** لقطة المقاعد والاحتساب التناسبي (نموذج الدفع لكل مستخدم فعلي). */
+  @Authorize({ module: "settings", action: "read" })
+  @Get("seats")
+  seats(@CurrentUser("tenantId") tenantId: string) {
+    return this.billing.seats(tenantId);
+  }
 }

@@ -13,6 +13,7 @@ interface PublicPlan {
 }
 
 const onlyDigits = (s: string, max: number) => s.replace(/\D/g, "").slice(0, max);
+const CONTACT_PLANS = new Set(["enterprise"]); // باقات المؤسسات: تواصل مبيعات فقط — لا تسجيل ذاتي
 
 function SignupWizard() {
   const t = useTranslations("signup");
@@ -22,7 +23,8 @@ function SignupWizard() {
 
   const [step, setStep] = useState(1);
   const [plans, setPlans] = useState<PublicPlan[]>([]);
-  const [planCode, setPlanCode] = useState(params.get("plan") ?? "premium");
+  const initialPlan = params.get("plan") ?? "premium";
+  const [planCode, setPlanCode] = useState(CONTACT_PLANS.has(initialPlan) ? "premium" : initialPlan); // المؤسسات ⇒ تحوّل للاحترافية (التسجيل الذاتي لغير المؤسسات)
   const [yearly, setYearly] = useState(params.get("cycle") === "yearly");
   const [seatCount, setSeatCount] = useState(1);
 
@@ -31,8 +33,9 @@ function SignupWizard() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => { void api<PublicPlan[]>("/signup/plans").then((p) => { setPlans(p); if (!p.some((x) => x.code === planCode) && p[0]) setPlanCode(p[0].code); }).catch(() => undefined); }, [planCode]);
+  useEffect(() => { void api<PublicPlan[]>("/signup/plans").then((p) => { const sel = p.filter((x) => !CONTACT_PLANS.has(x.code)); setPlans(p); if (!sel.some((x) => x.code === planCode) && sel[0]) setPlanCode(sel[0].code); }).catch(() => undefined); }, [planCode]);
 
+  const selectablePlans = useMemo(() => plans.filter((p) => !CONTACT_PLANS.has(p.code)), [plans]);
   const plan = useMemo(() => plans.find((p) => p.code === planCode) ?? null, [plans, planCode]);
   const perUser = plan ? (yearly ? plan.pricePerUserYearly : plan.pricePerUserMonthly) : 0;
   const total = perUser * Math.max(1, seatCount);
@@ -118,7 +121,7 @@ function SignupWizard() {
                 </div>
               </div>
               <div className="grid grid-cols-3 gap-2">
-                {plans.map((p) => {
+                {selectablePlans.map((p) => {
                   const pu = yearly ? p.pricePerUserYearly : p.pricePerUserMonthly;
                   return (
                     <button key={p.code} onClick={() => setPlanCode(p.code)} className={`rounded-lg border p-2.5 text-start transition-colors ${planCode === p.code ? "border-primary ring-1 ring-primary/30 bg-primary/5" : "border-line hover:bg-surface-2"}`}>

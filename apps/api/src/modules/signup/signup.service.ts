@@ -20,6 +20,7 @@ const DEFAULT_DEPARTMENTS: Array<{ name: string; role: string }> = [
 
 const DEFAULT_PLAN = "basic";
 const TRIAL_DAYS = 14;
+const CONTACT_SALES_PLANS = new Set(["enterprise"]); // باقات المؤسسات: بيع استشاري (Lead) — لا تسجيل ذاتي
 
 /**
  * قالب شجرة الحسابات القياسي (يطابق seedFinanceFoundation) — كود 17 رقماً من
@@ -96,8 +97,7 @@ export class SignupService {
       const ent = new Map(p.entitlements.map((e) => [e.featureKey, e]));
       const cells: Record<string, string | number> = {};
       for (const cat of categories) for (const key of cat.features) {
-        if (key === "seats") cells[key] = p.seatLimit;
-        else if (key === "trialDays") cells[key] = p.trialDays;
+        if (key === "trialDays") cells[key] = p.trialDays;
         else if (key === "sla") cells[key] = p.slaResponseHours ?? 0;
         else if (key === "storage.quotaMb") cells[key] = Math.round((Number(ent.get(key)?.numericValue ?? 0) / 1024) * 10) / 10; // GB
         else if (key === "upload.maxFileMb") cells[key] = Number(ent.get(key)?.numericValue ?? 0);
@@ -135,6 +135,10 @@ export class SignupService {
       await this.rateLimit.recordFailure("signup", email);
       throw new UnprocessableEntityException("باقة غير معروفة");
     }
+    // باقات المؤسسات لا تُتاح بالتسجيل الذاتي — تُوجَّه لفريق المبيعات
+    if (CONTACT_SALES_PLANS.has(plan.code)) {
+      throw new UnprocessableEntityException("باقة المؤسسات عبر فريق المبيعات — تواصل معنا");
+    }
 
     // البريد فريد عالميًا (تسجيل الدخول يبحث بالبريد عبر كل المستأجرين)
     const existing = await this.prisma.user.findFirst({ where: { email }, select: { id: true } });
@@ -161,7 +165,7 @@ export class SignupService {
   }
 
   /** ينشئ المستأجر وكل سقالته ذرّياً (transaction). يفترض غياب سياق المستأجر. */
-  private async provision(dto: SignupDto, email: string, plan: { id: string; seatLimit: number; trialDays: number }, passwordHash: string) {
+  private async provision(dto: SignupDto, email: string, plan: { id: string; trialDays: number }, passwordHash: string) {
     const productLines = await this.prisma.productLine.findMany({ select: { code: true } });
     const enabledProducts = productLines.map((l) => l.code);
     const seats = Math.max(1, dto.seatCount ?? 1); // عدد المستخدمين (تسعير لكل مستخدم، بلا سقف من الباقة)

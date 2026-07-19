@@ -52,26 +52,25 @@ describe("ZATCA Fatoora المرحلة 2 (e2e)", () => {
   });
   afterAll(async () => { await app?.close(); });
 
-  it("تهيئة المستأجر موجودة ومعزولة (كلٌّ يرى رقمه الضريبي فقط)", async () => {
+  it("بوّابة الباقة: ZATCA للاحترافية فأعلى (الخليج 200)، والأساسية (الأمان) بلا وصول ⇒ 403", async () => {
     const a = await request(srv).get("/zatca/config").set(auth(gm)).expect(200);
-    const b = await request(srv).get("/zatca/config").set(auth(omar)).expect(200);
     expect(a.body.vatNumber).toMatch(/^3\d{13}3$/);
-    expect(b.body.vatNumber).toMatch(/^3\d{13}3$/);
-    expect(a.body.vatNumber).not.toBe(b.body.vatNumber); // عزل
+    // ZATCA (فوترة إلكترونية) = مالية متقدّمة ⇒ خارج الباقة الأساسية
+    await request(srv).get("/zatca/config").set(auth(omar)).expect(403);
   });
 
   it("تحقّق البنية: رقم ضريبي خاطئ ⇒ 422", () =>
     request(srv).put("/zatca/config").set(auth(gm)).send({ vatNumber: "12345", businessNameAr: "x" }).expect(422));
 
-  it("خطّ التهيئة الكامل (CSR ⇒ OTP ⇒ Compliance ⇒ ACTIVE)", async () => {
-    const csr = await request(srv).post("/zatca/onboard/generate-csr").set(auth(omar)).expect(200);
+  it("خطّ التهيئة الكامل على باقة تشمل ZATCA (CSR ⇒ OTP ⇒ Compliance ⇒ ACTIVE)", async () => {
+    const csr = await request(srv).post("/zatca/onboard/generate-csr").set(auth(gm)).expect(200);
     expect(csr.body.onboardingStatus).toBe("CSR_GENERATED");
     expect(csr.body.csrPem).toContain("BEGIN CERTIFICATE REQUEST");
-    await request(srv).post("/zatca/onboard/exchange-otp").set(auth(omar)).send({ otp: "123456" }).expect(200);
-    const comp = await request(srv).post("/zatca/onboard/run-compliance").set(auth(omar)).expect(200);
+    await request(srv).post("/zatca/onboard/exchange-otp").set(auth(gm)).send({ otp: "123456" }).expect(200);
+    const comp = await request(srv).post("/zatca/onboard/run-compliance").set(auth(gm)).expect(200);
     expect(comp.body.onboardingStatus).toBe("COMPLIANCE_PASSED");
     expect(comp.body.results.length).toBe(3); // فاتورة + إشعار دائن + إشعار مدين
-    const fin = await request(srv).post("/zatca/onboard/finalize").set(auth(omar)).expect(200);
+    const fin = await request(srv).post("/zatca/onboard/finalize").set(auth(gm)).expect(200);
     expect(fin.body.onboardingStatus).toBe("ACTIVE");
   });
 
@@ -116,10 +115,9 @@ describe("ZATCA Fatoora المرحلة 2 (e2e)", () => {
     expect(b2c?.zatcaStatus).toBe("REPORTED");
   });
 
-  it("عزل سلسلة التجزئة: المستأجر الثاني لا يرى مستندات الأول", async () => {
-    const gmList = (await request(srv).get("/zatca/billing-documents").set(auth(gm))).body as Array<{ uuid: string }>;
-    const omarList = (await request(srv).get("/zatca/billing-documents").set(auth(omar))).body as Array<{ uuid: string }>;
-    const gmUuids = new Set(gmList.map((d) => d.uuid));
-    expect(omarList.every((d) => !gmUuids.has(d.uuid))).toBe(true);
+  it("بوّابة الباقة + عزل: الأساسية (الأمان) بلا وصول لمستندات ZATCA ⇒ 403", async () => {
+    const gmList = (await request(srv).get("/zatca/billing-documents").set(auth(gm)).expect(200)).body as Array<{ uuid: string }>;
+    expect(gmList.length).toBeGreaterThanOrEqual(1); // الخليج (الاحترافية) يرى مستنداته فقط
+    await request(srv).get("/zatca/billing-documents").set(auth(omar)).expect(403); // الأساسية خارج ZATCA
   });
 });

@@ -30,7 +30,7 @@ describe("التسعير لكل مستخدم (e2e)", () => {
   });
 
   afterAll(async () => {
-    await request(srv()).put("/platform/plans/basic").set(auth(admin)).send({ priceMonthly: 79, priceYearly: 790, trialDays: 14 }); // استعادة الافتراضي
+    await request(srv()).put("/platform/plans/basic").set(auth(admin)).send({ priceMonthly: 230, priceYearly: 2300, trialDays: 14 }); // استعادة الافتراضي (تسعير لكل مستخدم)
     await app?.close();
   });
 
@@ -44,7 +44,7 @@ describe("التسعير لكل مستخدم (e2e)", () => {
     expect(basic.pricePerUserMonthly).toBe(88);
     expect(basic.trialDays).toBe(21);
     expect(basic.savingsPct).toBe(Math.round((1 - 880 / 12 / 88) * 100)); // ≈17%
-    await request(srv()).put("/platform/plans/basic").set(auth(admin)).send({ priceMonthly: 79, priceYearly: 790, trialDays: 14 }).expect(200);
+    await request(srv()).put("/platform/plans/basic").set(auth(admin)).send({ priceMonthly: 230, priceYearly: 2300, trialDays: 14 }).expect(200);
   });
 
   it("المقاعد بلا سقف من الباقة: /staff/seats يعيد limit=null (تسعير لكل مستخدم)", async () => {

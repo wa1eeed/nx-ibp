@@ -32,7 +32,8 @@ const F = (key: string, mode: EntMode, extra: { numericValue?: number; unitFee?:
 const PLAN_FEATURES: Record<string, Array<{ key: string; mode: EntMode; numericValue?: number; unitFee?: number }>> = {
   basic: [
     F("upload.maxFileMb", "QUOTA", { numericValue: 10 }), F("storage.quotaMb", "QUOTA", { numericValue: 1024 }), // 1GB
-    F("feature.verification", "INCLUDED"), F("feature.zatca", "INCLUDED"), F("feature.auditImmutable", "INCLUDED"), // إلزامي هيئة التأمين
+    F("feature.verification", "INCLUDED"), F("feature.auditImmutable", "INCLUDED"), // إلزامي هيئة التأمين
+    F("feature.zatca", "DISABLED"), // ZATCA فوترة إلكترونية = مالية متقدّمة ⇒ الاحترافية فأعلى
     F("feature.crm", "DISABLED"), F("feature.producers", "DISABLED"), F("feature.formTemplates", "DISABLED"),
     F("feature.analytics", "DISABLED"), F("feature.approvalChains", "DISABLED"), F("feature.org", "DISABLED"), F("feature.mfaEnforce", "DISABLED"),
     F("feature.dlp", "DISABLED"), F("feature.api", "DISABLED"), F("feature.whiteLabel", "DISABLED"), F("feature.prioritySupport", "DISABLED"),
@@ -125,11 +126,12 @@ const TENANTS: TenantDef[] = [
 ];
 
 async function seedPlans() {
-  // التسعير لكل مستخدم (per-user)؛ السنوي = 10× الشهري (شهران مجانًا ≈ توفير 17%). trialDays قابل للضبط من السوبر أدمن.
+  // التسعير **لكل مستخدم** بلا حدّ مقاعد (seatLimit=null). التجربة المجانية عبر trialDays فقط.
+  // المؤسسات: بلا تجربة ذاتية (0) — «تواصل مع المبيعات» (429ر/مستخدم سعر استرشادي).
   const plans: Array<Prisma.PlanCreateInput> = [
-    { code: "basic", name: "الأساسية", seatLimit: 5, priceMonthly: 79, priceYearly: 790, trialDays: 14, slaResponseHours: 24 },
-    { code: "premium", name: "الاحترافية", seatLimit: 25, priceMonthly: 149, priceYearly: 1490, trialDays: 14, slaResponseHours: 4 },
-    { code: "enterprise", name: "المؤسسات", seatLimit: 100, priceMonthly: 249, priceYearly: 2490, trialDays: 30, slaResponseHours: 2 },
+    { code: "basic", name: "الأساسية", seatLimit: null, priceMonthly: 230, priceYearly: 2300, trialDays: 14, slaResponseHours: 24 },
+    { code: "premium", name: "الاحترافية", seatLimit: null, priceMonthly: 349, priceYearly: 3490, trialDays: 14, slaResponseHours: 4 },
+    { code: "enterprise", name: "المؤسسات", seatLimit: null, priceMonthly: 429, priceYearly: 4290, trialDays: 0, slaResponseHours: 2 },
   ];
 
   for (const p of plans) {

@@ -136,7 +136,7 @@ erDiagram
 | `id` | String (cuid) | المفتاح |
 | `code` | String **@unique** | `basic` \| `premium` \| `enterprise` |
 | `name` | String | الاسم المعروض |
-| `seatLimit` | Int | الحد الأقصى للمقاعد |
+| `seatLimit` | Int? | **nullable = بلا سقف** (التسعير لكل مستخدم فعلي؛ أُزيل السقف من كل الطبقات) |
 | `priceMonthly` / `priceYearly` | Decimal(12,2) | السعر لكل مستخدم |
 | `trialDays` | Int | مدة التجربة المجانية (0 = بلا) |
 | `slaResponseHours` | Int? | **زمن استجابة الدعم المتعهَّد به** (ساعات؛ 24=يوم عمل) — P1-A، قابل للضبط من السوبر أدمن ويظهر في المقارنة |
