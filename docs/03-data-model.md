@@ -675,7 +675,7 @@ erDiagram
 | `name` | String | الاسم |
 | `type` | String? | `INDIVIDUAL` \| `COMPANY` |
 | `licenseNo` | String? | رقم ترخيص هيئة التأمين (وسيط فرعي مرخّص) |
-| `crNumber` / `nationalId` / `email` / `phone` / `iban` | String? | التعريف/التواصل/التسوية |
+| `crNumber` / `nationalId` / `email` / `phone` / `iban` | String? | التعريف/التواصل/التسوية — **`iban` مشفّر at-rest** (AES-256-GCM)؛ الهوية/السجل تُخفى بالـDLP (بحث/تفرّد يتطلّبان بقاءها) |
 | `commissionRate` | Decimal(6,3)? | نسبة عمولة الوسيط الفرعي من عمولة الوسيط (%) |
 | `status` | String? | `active` \| `suspended` |
 | `createdAt` | DateTime | |

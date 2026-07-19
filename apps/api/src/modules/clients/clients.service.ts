@@ -5,6 +5,7 @@ import { SequenceService } from "../../common/sequence/sequence.service";
 import { AuditService } from "../../common/audit/audit.service";
 import { PermissionService } from "../rbac/permission.service";
 import { maskClientSensitive } from "../../common/security/dlp";
+import { CryptoVaultService } from "../../common/crypto/crypto-vault.service";
 import type { AuthUser } from "../auth/current-user.decorator";
 import type { CreateClientDto } from "./dto/create-client.dto";
 
@@ -51,7 +52,17 @@ export class ClientsService {
     private readonly seq: SequenceService,
     private readonly audit: AuditService,
     private readonly permissions: PermissionService,
+    private readonly crypto: CryptoVaultService,
   ) {}
+
+  /**
+   * يفكّ تشفير حقول PII المشفّرة at-rest (الآيبان) قبل الإخفاء بالـDLP.
+   * `tryDecrypt` يتسامح مع القيم القديمة غير المشفّرة (البذرة/ما قبل التفعيل).
+   */
+  private decryptPii<T extends { iban?: string | null } | null>(c: T): T {
+    if (c && c.iban) c.iban = this.crypto.tryDecrypt(c.iban);
+    return c;
+  }
 
   /** هل يرى المستخدم البيانات الحسّاسة كاملةً؟ (الالتزام أو المالية فقط — أقلّ امتياز). */
   private async canViewSensitive(user: AuthUser): Promise<boolean> {
@@ -75,14 +86,14 @@ export class ClientsService {
   async getOne(id: string, user: AuthUser) {
     const client = await this.prisma.client.findUnique({ where: { id }, select: CLIENT_FIELDS });
     if (!client) return null;
-    return maskClientSensitive(client, await this.canViewSensitive(user));
+    return maskClientSensitive(this.decryptPii(client), await this.canViewSensitive(user));
   }
 
   /** نظرة 360° مجمّعة للعميل — كل ما يخصّه (معزول بالمستأجر تلقائيًا). */
   async overview(id: string, user: AuthUser) {
     const raw = await this.prisma.client.findUnique({ where: { id }, select: CLIENT_FIELDS });
     if (!raw) throw new NotFoundException("العميل غير موجود");
-    const client = maskClientSensitive(raw, await this.canViewSensitive(user));
+    const client = maskClientSensitive(this.decryptPii(raw), await this.canViewSensitive(user));
     const [policies, claims, requests, verifications, debitNotes, activities, installmentsRaw] = await Promise.all([
       this.prisma.policy.findMany({ where: { clientId: id }, orderBy: { createdAt: "desc" }, select: { id: true, sequenceNo: true, productLineCode: true, insurerName: true, premium: true, totalPremium: true, status: true, startDate: true, endDate: true, createdAt: true } }),
       this.prisma.claim.findMany({ where: { clientId: id }, orderBy: { createdAt: "desc" }, select: { id: true, sequenceNo: true, insurerName: true, claimedAmount: true, settledAmount: true, status: true, incidentDate: true, createdAt: true } }),
@@ -159,7 +170,7 @@ export class ClientsService {
           source: dto.source ?? null,
           producerName: dto.producerName ?? null,
           businessActivity: dto.businessActivity ?? null,
-          iban: dto.iban ?? null,
+          iban: dto.iban ? this.crypto.encrypt(dto.iban) : null, // PII مالي — مشفّر at-rest (AES-256-GCM)
           collectionModel: dto.collectionModel ?? undefined, // الافتراضي «collect_full» من المخطّط
           accountManagerId: dto.accountManagerId ?? null,
           contacts: dto.contacts ? (dto.contacts as unknown as Prisma.InputJsonValue) : undefined,
@@ -169,7 +180,7 @@ export class ClientsService {
         select: CLIENT_FIELDS,
       });
       await this.audit.log({ tenantId, userId, action: "create", entity: "client", entityId: client.id, meta: { code } });
-      return client;
+      return this.decryptPii(client); // يُعيد الآيبان مفكوكًا للمُنشئ (المخزَّن مشفّر)
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
         throw new ConflictException("عميل بنفس السجل التجاري أو الهوية أو الكود موجود مسبقاً");

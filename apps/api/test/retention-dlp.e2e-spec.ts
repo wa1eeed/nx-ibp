@@ -9,6 +9,8 @@ import { Test } from "@nestjs/testing";
 import { INestApplication, ValidationPipe } from "@nestjs/common";
 import request from "supertest";
 import { AppModule } from "../src/app.module";
+import { PrismaService } from "../src/prisma/prisma.service";
+import { CryptoVaultService } from "../src/common/crypto/crypto-vault.service";
 
 describe("الاحتفاظ/الإتلاف + DLP (e2e)", () => {
   let app: INestApplication;
@@ -57,6 +59,17 @@ describe("الاحتفاظ/الإتلاف + DLP (e2e)", () => {
     const full = (await request(srv()).get(`/clients/${clientId}`).set(auth(viewerTok)).expect(200)).body;
     expect(full.nationalId).toBe(nid);
     expect(full.iban).toBe(iban);
+  });
+
+  it("تشفير at-rest: الآيبان مخزَّن مشفّرًا (AES-256-GCM) لا نصًّا صريحًا، وقابلًا للفكّ", async () => {
+    // قراءة القيمة الخام من القاعدة مباشرةً (SQL خام يتجاوز الإخفاء والوسيط)
+    const prisma = app.get(PrismaService);
+    const rows = await prisma.$queryRawUnsafe<Array<{ iban: string | null }>>(`SELECT iban FROM "Client" WHERE id = $1`, clientId);
+    const stored = rows[0]?.iban ?? "";
+    expect(stored).not.toBe(iban); // ليست القيمة الصريحة
+    expect(stored.length).toBeGreaterThan(iban.length); // ciphertext (iv+tag+ct، base64) أطول
+    // قابلة للفكّ عبر الخزنة ⇒ تطابق الأصل (سلامة + سرّية)
+    expect(app.get(CryptoVaultService).decrypt(stored)).toBe(iban);
   });
 
   it("PDPL: المحو يُخفي كل PII ويُبقي الهيكل + يُسجَّل، ولا يتكرّر (409)", async () => {

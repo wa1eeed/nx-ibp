@@ -40,6 +40,20 @@ export class CryptoVaultService {
     return Buffer.concat([decipher.update(ct), decipher.final()]).toString("utf8");
   }
 
+  /**
+   * يفكّ التشفير إن كانت القيمة مشفّرة، وإلا يُعيدها كما هي — **تسامح مع القيم القديمة
+   * غير المشفّرة** (بيانات ما قبل تفعيل التشفير/البذرة). تحقّق مصادقة GCM يمنع فكّ
+   * نصّ عادي بالخطأ (يفشل ⇒ يُعاد كما هو). آمن للحقول التي تنتقل تدريجيًا للتشفير.
+   */
+  tryDecrypt(payload?: string | null): string | null {
+    if (!payload) return payload ?? null;
+    try {
+      return this.decrypt(payload);
+    } catch {
+      return payload; // قيمة غير مشفّرة (legacy) — تُعاد بلا تغيير
+    }
+  }
+
   /** قناع للعرض الآمن (لا يكشف القيمة) — لإظهار وجود اعتماد دون إفشائه. */
   mask(payload?: string | null): string | null {
     return payload ? `••••••••${payload.slice(-4)}` : null;
