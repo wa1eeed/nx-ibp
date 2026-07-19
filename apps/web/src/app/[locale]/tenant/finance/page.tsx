@@ -9,6 +9,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { StatCard } from "@/components/ui/StatCard";
 import { Badge } from "@/components/ui/Badge";
 import { usePaged, Pagination } from "@/components/ui/Pagination";
+import { usePermissions } from "@/hooks/usePermissions";
 
 type FinanceTab = "overview" | "journal" | "commissions" | "receivables" | "coa" | "invoices" | "payables" | "trial" | "balance" | "cashflow" | "vat";
 
@@ -49,6 +50,8 @@ interface CashFlow { from: string | null; to: string | null; opening: number; op
 
 export default function FinancePage() {
   const t = useTranslations();
+  const { can } = usePermissions();
+  const canWrite = can("finance", "edit"); // صلاحية تنفيذ العمليات المالية (قبض/تسوية/تقسيط/قيود) — القراءة لا تكفي
   const [s, setS] = useState<Summary | null>(null);
   const [ov, setOv] = useState<Overview | null>(null);
   const [coa, setCoa] = useState<Coa[]>([]);
@@ -258,17 +261,17 @@ export default function FinancePage() {
 
       {/* القيود اليدوية والمصروفات */}
       {tab === "journal" ? (
-        <JournalTab accounts={postAccts} vouchers={journal} onPosted={() => { setDone(t("finance.journal.posted")); load(); }} />
+        <JournalTab accounts={postAccts} vouchers={journal} canWrite={canWrite} onPosted={() => { setDone(t("finance.journal.posted")); load(); }} />
       ) : null}
 
       {/* العمولات: موظفون + وسطاء فرعيون */}
       {tab === "commissions" ? (
-        <CommissionsTab emp={empComm} producers={producers} onSettle={(kind, id, name, outstanding) => { setDone(""); setSettleComm({ kind, id, name, outstanding }); }} />
+        <CommissionsTab emp={empComm} producers={producers} canWrite={canWrite} onSettle={(kind, id, name, outstanding) => { setDone(""); setSettleComm({ kind, id, name, outstanding }); }} />
       ) : null}
 
       {/* الذمم المدينة وخطط التقسيط */}
       {tab === "receivables" ? (
-        <ReceivablesTab data={recv} onPlan={(n) => { setDone(""); setPlanFor(n); }} />
+        <ReceivablesTab data={recv} canWrite={canWrite} onPlan={(n) => { setDone(""); setPlanFor(n); }} />
       ) : null}
       {planFor ? <InstallmentPlanModal note={planFor} onClose={() => setPlanFor(null)} onDone={() => { setPlanFor(null); setDone(t("finance.installments.created")); load(); }} /> : null}
 
@@ -390,7 +393,7 @@ export default function FinancePage() {
                   <td className="px-5 py-3 text-end text-[13px] text-ink tnum">{fmt(r.payable)}</td>
                   <td className="px-5 py-3 text-end text-[13px] text-success tnum">{r.settled ? fmt(r.settled) : "—"}</td>
                   <td className={`px-5 py-3 text-end text-[13px] tnum ${r.outstanding > 0 ? "font-medium text-warning" : "text-subtle"}`}>{fmt(r.outstanding)}</td>
-                  <td className="px-5 py-3 text-end">{r.outstanding > 0 ? <button onClick={() => { setDone(""); setSettle(r); }} className="inline-flex items-center gap-1 rounded-lg border border-line px-2.5 py-1.5 text-[12px] font-medium text-muted hover:bg-surface-2"><Banknote size={13} /> {t("finance.settle")}</button> : null}</td>
+                  <td className="px-5 py-3 text-end">{canWrite && r.outstanding > 0 ? <button onClick={() => { setDone(""); setSettle(r); }} className="inline-flex items-center gap-1 rounded-lg border border-line px-2.5 py-1.5 text-[12px] font-medium text-muted hover:bg-surface-2"><Banknote size={13} /> {t("finance.settle")}</button> : null}</td>
                 </tr>
               ))}
             </tbody>
@@ -457,7 +460,7 @@ export default function FinancePage() {
 }
 
 /** تبويب العمولات: دفتر عمولات الموظفين (استحقاق عند التحصيل) + الوسطاء الفرعيين، مع صرف. */
-function CommissionsTab({ emp, producers, onSettle }: { emp: EmpComm | null; producers: Producers | null; onSettle: (kind: "employee" | "producer", id: string, name: string, outstanding: number) => void }) {
+function CommissionsTab({ emp, producers, canWrite, onSettle }: { emp: EmpComm | null; producers: Producers | null; canWrite: boolean; onSettle: (kind: "employee" | "producer", id: string, name: string, outstanding: number) => void }) {
   const t = useTranslations();
   const m = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   return (
@@ -489,7 +492,7 @@ function CommissionsTab({ emp, producers, onSettle }: { emp: EmpComm | null; pro
                   <td className="px-4 py-3 text-end text-[12.5px] font-medium text-ink tnum" title={t("finance.commissions.eligibleHint")}>{m(r.eligible)}</td>
                   <td className="px-4 py-3 text-end text-[12.5px] text-success tnum">{r.paid ? m(r.paid) : "—"}</td>
                   <td className={`px-4 py-3 text-end text-[12.5px] tnum ${r.outstanding > 0 ? "font-semibold text-warning" : "text-subtle"}`}>{m(r.outstanding)}</td>
-                  <td className="px-4 py-3 text-end">{r.outstanding > 0 ? <button onClick={() => onSettle("employee", r.userId, r.name, r.outstanding)} className="inline-flex items-center gap-1 rounded-lg border border-line px-2.5 py-1.5 text-[12px] font-medium text-muted hover:bg-surface-2"><Banknote size={13} /> {t("finance.commissions.settle")}</button> : null}</td>
+                  <td className="px-4 py-3 text-end">{canWrite && r.outstanding > 0 ? <button onClick={() => onSettle("employee", r.userId, r.name, r.outstanding)} className="inline-flex items-center gap-1 rounded-lg border border-line px-2.5 py-1.5 text-[12px] font-medium text-muted hover:bg-surface-2"><Banknote size={13} /> {t("finance.commissions.settle")}</button> : null}</td>
                 </tr>
               ))}
               {emp && emp.rows.length === 0 ? <tr><td colSpan={7} className="px-5 py-8 text-center text-[12.5px] text-subtle">{t("finance.commissions.emptyEmp")}</td></tr> : null}
@@ -522,7 +525,7 @@ function CommissionsTab({ emp, producers, onSettle }: { emp: EmpComm | null; pro
                   <td className="px-4 py-3 text-end text-[12.5px] font-medium text-ink tnum">{m(r.commissionOwed)}</td>
                   <td className="px-4 py-3 text-end text-[12.5px] text-success tnum">{r.paid ? m(r.paid) : "—"}</td>
                   <td className={`px-4 py-3 text-end text-[12.5px] tnum ${r.outstanding > 0 ? "font-semibold text-warning" : "text-subtle"}`}>{m(r.outstanding)}</td>
-                  <td className="px-4 py-3 text-end">{r.outstanding > 0 ? <button onClick={() => onSettle("producer", r.id, r.name, r.outstanding)} className="inline-flex items-center gap-1 rounded-lg border border-line px-2.5 py-1.5 text-[12px] font-medium text-muted hover:bg-surface-2"><Banknote size={13} /> {t("finance.commissions.settle")}</button> : null}</td>
+                  <td className="px-4 py-3 text-end">{canWrite && r.outstanding > 0 ? <button onClick={() => onSettle("producer", r.id, r.name, r.outstanding)} className="inline-flex items-center gap-1 rounded-lg border border-line px-2.5 py-1.5 text-[12px] font-medium text-muted hover:bg-surface-2"><Banknote size={13} /> {t("finance.commissions.settle")}</button> : null}</td>
                 </tr>
               ))}
               {producers && producers.rows.length === 0 ? <tr><td colSpan={5} className="px-5 py-8 text-center text-[12.5px] text-subtle">{t("finance.commissions.emptyProd")}</td></tr> : null}
@@ -555,7 +558,7 @@ function trackTone(status: string): string {
 }
 
 /** الذمم المدينة (إشعارات مدينة) + إدارة خطط التقسيط لكل إشعار. */
-function ReceivablesTab({ data, onPlan }: { data: Receivables | null; onPlan: (n: RecvNote) => void }) {
+function ReceivablesTab({ data, canWrite, onPlan }: { data: Receivables | null; canWrite: boolean; onPlan: (n: RecvNote) => void }) {
   const t = useTranslations();
   const m = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -682,16 +685,16 @@ function ReceivablesTab({ data, onPlan }: { data: Receivables | null; onPlan: (n
                   <td className="px-4 py-3 text-center"><span className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-medium ${instTone(n.status)}`}>{t(`finance.receivablesTab.st.${n.status}`)}</span></td>
                   <td className="px-4 py-3 text-end">
                     <div className="flex items-center justify-end gap-1.5">
-                      {n.outstanding > 0 && !n.hasPlan ? <button onClick={() => onPlan(n)} className="inline-flex items-center gap-1 rounded-lg border border-line px-2.5 py-1.5 text-[12px] font-medium text-muted hover:bg-surface-2"><Coins size={13} /> {t("finance.installments.plan")}</button> : null}
+                      {canWrite && n.outstanding > 0 && !n.hasPlan ? <button onClick={() => onPlan(n)} className="inline-flex items-center gap-1 rounded-lg border border-line px-2.5 py-1.5 text-[12px] font-medium text-muted hover:bg-surface-2"><Coins size={13} /> {t("finance.installments.plan")}</button> : null}
                       {n.hasPlan ? <button onClick={() => toggle(n.id)} className="inline-flex items-center gap-1 rounded-lg border border-line px-2.5 py-1.5 text-[12px] font-medium text-muted hover:bg-surface-2">{expanded === n.id ? t("finance.installments.hide") : t("finance.installments.schedule")}</button> : null}
-                      {n.hasPlan ? <button onClick={() => onPlan(n)} className="inline-flex items-center gap-1 rounded-lg border border-line px-2.5 py-1.5 text-[12px] font-medium text-muted hover:bg-surface-2"><Pencil size={13} /> {t("finance.installments.edit")}</button> : null}
+                      {canWrite && n.hasPlan ? <button onClick={() => onPlan(n)} className="inline-flex items-center gap-1 rounded-lg border border-line px-2.5 py-1.5 text-[12px] font-medium text-muted hover:bg-surface-2"><Pencil size={13} /> {t("finance.installments.edit")}</button> : null}
                     </div>
                   </td>
                 </tr>
                 {expanded === n.id ? (
                   <tr className="bg-surface-2/40"><td colSpan={8} className="px-5 py-3">
                     {busy === n.id && !sched[n.id] ? <p className="py-3 text-center text-[12px] text-subtle">…</p> : (sched[n.id]?.length ?? 0) === 0 ? (
-                      <p className="py-3 text-center text-[12px] text-subtle">{t("finance.installments.none")}{n.outstanding > 0 ? <> — <button onClick={() => onPlan(n)} className="font-semibold text-primary hover:underline">{t("finance.installments.createNow")}</button></> : null}</p>
+                      <p className="py-3 text-center text-[12px] text-subtle">{t("finance.installments.none")}{canWrite && n.outstanding > 0 ? <> — <button onClick={() => onPlan(n)} className="font-semibold text-primary hover:underline">{t("finance.installments.createNow")}</button></> : null}</p>
                     ) : (
                       <div className="overflow-hidden rounded-lg border border-line bg-card">
                         <table className="w-full">
@@ -728,16 +731,17 @@ function ReceivablesTab({ data, onPlan }: { data: Receivables | null; onPlan: (n
       <p className="border-t border-line px-5 py-2 text-[10.5px] leading-relaxed text-subtle">{t("finance.installments.note")}</p>
     </section>
 
-    <RefundsSection />
+    <RefundsSection canWrite={canWrite} />
     </div>
   );
 }
 
+interface CreditNote { id: string; sequenceNo: string | null; clientName: string | null; total: number; refundedAt: string | null; refundVoucherId: string | null; createdAt: string }
+
 /** المرتجعات: الإشعارات الدائنة على العملاء (CNP) — صرف المرتجع فعليًا + طباعة سند الصرف (§1.7). */
-function RefundsSection() {
+function RefundsSection({ canWrite }: { canWrite: boolean }) {
   const t = useTranslations("finance.refunds");
   const m = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  interface CreditNote { id: string; sequenceNo: string | null; clientName: string | null; total: number; refundedAt: string | null; refundVoucherId: string | null; createdAt: string }
   const [rows, setRows] = useState<CreditNote[]>([]);
   const [busy, setBusy] = useState("");
   const load = useCallback(() => { void api<CreditNote[]>("/finance/credit-notes").then(setRows).catch(() => setRows([])); }, []);
@@ -770,9 +774,9 @@ function RefundsSection() {
                 <td className="px-4 py-3 text-end">
                   {r.refundedAt && r.refundVoucherId ? (
                     <Link href={`/tenant/documents/voucher/${r.refundVoucherId}`} className="inline-flex items-center gap-1 text-[12px] font-medium text-primary hover:underline"><Printer size={12} /> {t("printVoucher")}</Link>
-                  ) : (
+                  ) : canWrite ? (
                     <button onClick={() => refund(r.id)} disabled={!!busy} className="h-8 rounded-lg bg-primary-strong px-3 text-[12px] font-semibold text-primary-fg hover:bg-primary disabled:opacity-60">{busy === r.id ? "…" : t("payRefund")}</button>
-                  )}
+                  ) : null}
                 </td>
               </tr>
             ))}
@@ -1152,7 +1156,7 @@ const CASH_CODE = "01010000000000000";
 const ACCT_GROUPS = ["asset", "liability", "equity", "revenue", "expense"] as const;
 
 /** القيود اليدوية والمصروفات: مُنشئ قيد متوازن (مدين=دائن) + قوالب سريعة + سجلّ القيود. */
-function JournalTab({ accounts, vouchers, onPosted }: { accounts: PostAccount[]; vouchers: JournalVoucher[]; onPosted: () => void }) {
+function JournalTab({ accounts, vouchers, canWrite, onPosted }: { accounts: PostAccount[]; vouchers: JournalVoucher[]; canWrite: boolean; onPosted: () => void }) {
   const t = useTranslations();
   const blank = (): JLine => ({ account: "", debit: "", credit: "" });
   const [desc, setDesc] = useState("");
@@ -1191,8 +1195,8 @@ function JournalTab({ accounts, vouchers, onPosted }: { accounts: PostAccount[];
 
   return (
     <div className="grid grid-cols-1 gap-5 lg:grid-cols-5">
-      {/* المُنشئ */}
-      <section className="overflow-hidden rounded-card border border-line bg-card shadow-card lg:col-span-3">
+      {/* المُنشئ — لأصحاب صلاحية تنفيذ المالية فقط */}
+      <section className={`overflow-hidden rounded-card border border-line bg-card shadow-card lg:col-span-3 ${canWrite ? "" : "hidden"}`}>
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-5 py-3.5">
           <div><h2 className="flex items-center gap-2 text-[15px] font-semibold text-ink"><BookText size={17} className="text-primary" /> {t("finance.journal.title")}</h2><p className="text-[12px] text-subtle">{t("finance.journal.sub")}</p></div>
           <div className="flex items-center gap-1.5">
@@ -1250,7 +1254,7 @@ function JournalTab({ accounts, vouchers, onPosted }: { accounts: PostAccount[];
       </section>
 
       {/* سجلّ القيود */}
-      <section className="overflow-hidden rounded-card border border-line bg-card shadow-card lg:col-span-2">
+      <section className={`overflow-hidden rounded-card border border-line bg-card shadow-card ${canWrite ? "lg:col-span-2" : "lg:col-span-5"}`}>
         <div className="border-b border-line px-5 py-3.5"><h2 className="text-[15px] font-semibold text-ink">{t("finance.journal.log")}</h2><p className="text-[12px] text-subtle">{t("finance.journal.logSub")}</p></div>
         {vouchers.length === 0 ? (
           <p className="px-5 py-10 text-center text-[12.5px] text-subtle">{t("finance.journal.empty")}</p>
