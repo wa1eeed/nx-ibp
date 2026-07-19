@@ -1154,8 +1154,8 @@ async function main() {
     });
   }
 
-  // خطة تقسيط توضيحية للديمو (إشعار مدين لعميل الفهد) — تُظهر أقساطًا مسدَّدة/جزئية/متأخّرة/قادمة (الديمو فقط)
-  if (!isTestDb) {
+  // خطة تقسيط توضيحية (إشعار مدين لعميل الفهد) — تُظهر أقساطًا مسدَّدة/جزئية/متأخّرة/قادمة (ديمو + اختبار البوّابة)
+  {
     const planNoteId = "dn-pol-fahd-mot"; // DN-2026-1002 (الفهد — المركبات)
     const pn = await prisma.debitNote.findUnique({ where: { id: planNoteId }, select: { id: true, tenantId: true, clientId: true, policyId: true, netAmount: true, vatAmount: true } });
     if (pn) {

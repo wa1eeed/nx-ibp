@@ -66,6 +66,33 @@ describe("بوّابة العميل (e2e)", () => {
     expect(res.body.outstanding).toBeGreaterThan(0);
   });
 
+  it("الأقساط: صفحة أقساط العميل (ملخّص + قائمة بمرجع الوثيقة + المدّة) + تفاصيل الوثيقة تحوي أقساطها + العزل", async () => {
+    const srv = app.getHttpServer();
+    // للفهد خطة تقسيط مزروعة (dn-pol-fahd-mot) — نقرأها بلا إنشاء (بلا كتابة على القاعدة المشتركة)
+    const body = (await request(srv).get("/portal/installments").set(auth(fahd)).expect(200)).body as { summary: { count: number; outstanding: number; nextDue: unknown }; installments: Array<{ status: string; days: number; debitNoteId: string; policyRef: string | null }>; paymentEnabled: boolean };
+    expect(body.summary.count).toBeGreaterThan(0);
+    expect(body.installments.length).toBe(body.summary.count);
+    expect(body.installments.every((i) => ["paid", "partial", "overdue", "due"].includes(i.status))).toBe(true);
+    expect(body.installments.every((i) => typeof i.days === "number")).toBe(true);
+    expect(typeof body.paymentEnabled).toBe("boolean");
+
+    // تفاصيل الوثيقة المرتبطة بالأقساط تحوي أقساطها + ملخّصها
+    const withPol = body.installments.find((i) => i.policyRef);
+    expect(withPol).toBeTruthy();
+    const policies = (await request(srv).get("/portal/policies").set(auth(fahd))).body as Array<{ id: string; sequenceNo: string | null }>;
+    const pol = policies.find((p) => p.sequenceNo === withPol!.policyRef);
+    expect(pol).toBeTruthy();
+    const det = (await request(srv).get(`/portal/policies/${pol!.id}`).set(auth(fahd)).expect(200)).body as { installments: Array<{ status: string }>; installmentSummary: { count: number; outstanding: number } };
+    expect(det.installments.length).toBeGreaterThan(0);
+    expect(det.installmentSummary.count).toBe(det.installments.length);
+    expect(det.installmentSummary.outstanding).toBeGreaterThanOrEqual(0);
+
+    // العزل: عميل آخر (النخبة) لا يرى أقساط الفهد
+    const other = (await request(srv).get("/portal/installments").set(auth(nukhba)).expect(200)).body as { installments: Array<{ debitNoteId: string }> };
+    const fahdNotes = new Set(body.installments.map((i) => i.debitNoteId));
+    expect(other.installments.every((i) => !fahdNotes.has(i.debitNoteId))).toBe(true);
+  });
+
   it("المستندات تشمل وثائق العميل ومطالباته (عبر رابط موقّت)", async () => {
     const res = await request(app.getHttpServer()).get("/portal/documents").set(auth(fahd)).expect(200);
     expect(res.body.length).toBeGreaterThanOrEqual(3); // جدول الطبي + شهادة المركبات + نموذج المطالبة + السجل
@@ -218,15 +245,18 @@ describe("بوّابة العميل (e2e)", () => {
 
   it("إشعار داخل المنصة للعميل: حدث من الوسيط يظهر في بوّابة العميل + عزل + تعليم مقروء", async () => {
     const srv = app.getHttpServer();
+    // إشعارات request_ack السابقة (قد تكون مقروءة من اختبارات أخرى على نفس القاعدة) — نستبعدها
+    const before = new Set(((await request(srv).get("/portal/notifications").set(auth(fahd))).body as Array<{ id: string; eventKey: string }>).filter((n) => n.eventKey === "request_ack").map((n) => n.id));
     // الوسيط (نفس المستأجر) ينشئ طلب خدمة للعميل cl-fahd ⇒ يُطلق request_ack (نسخة داخل المنصة للعميل)
     await request(srv).post("/service-requests").set(auth(employee)).send({ clientId: "cl-fahd", type: "inquiry", subject: "استفسار تجريبي" }).expect(201);
-    // العميل يرى الإشعار في بوّابته (fire-and-forget ⇒ استطلاع قصير)
+    // العميل يرى **الإشعار الجديد** في بوّابته (fire-and-forget ⇒ استطلاع قصير) — نطابق الجديد لا الأقدم
+    const isNew = (n: { id: string; eventKey: string }) => n.eventKey === "request_ack" && !before.has(n.id);
     let inbox: Array<{ id: string; eventKey: string; readAt: string | null }> = [];
-    for (let i = 0; i < 25 && !inbox.some((n) => n.eventKey === "request_ack"); i++) {
+    for (let i = 0; i < 25 && !inbox.some(isNew); i++) {
       inbox = (await request(srv).get("/portal/notifications").set(auth(fahd))).body;
-      if (!inbox.some((n) => n.eventKey === "request_ack")) await new Promise((r) => setTimeout(r, 50));
+      if (!inbox.some(isNew)) await new Promise((r) => setTimeout(r, 50));
     }
-    const notif = inbox.find((n) => n.eventKey === "request_ack");
+    const notif = inbox.find(isNew);
     expect(notif).toBeTruthy();
     expect(notif!.readAt).toBeNull();
     // عزل: عميل آخر (النخبة) لا يرى إشعار الفهد

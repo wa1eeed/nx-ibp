@@ -123,6 +123,11 @@ export class PortalController {
     return this.portal.statement(user.clientId!);
   }
 
+  @Get("installments")
+  installments(@CurrentUser() user: AuthUser) {
+    return this.portal.clientInstallments(user.clientId!);
+  }
+
   // ——— عروض التأمين المقدَّمة للعميل + قراره (§4.1) ———
   @Get("proposals")
   proposals(@CurrentUser() user: AuthUser) {

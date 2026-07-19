@@ -17,11 +17,14 @@ interface Policy {
 }
 interface Claim { id: string; sequenceNo: string | null; status: string; claimedAmount: string | null; incidentDate: string | null }
 interface Doc { id: string; fileName: string; docType: string | null; createdAt: string }
-interface Detail { policy: Policy; claims: Claim[]; documents: Doc[] }
+interface Inst { id: string; seq: number; dueDate: string; amount: number; settled: number; outstanding: number; status: string; days: number }
+interface InstSummary { count: number; paidCount: number; total: number; paid: number; outstanding: number; overdueCount: number; nextDue: Inst | null }
+interface Detail { policy: Policy; claims: Claim[]; documents: Doc[]; installments: Inst[]; installmentSummary: InstSummary; paymentEnabled: boolean }
 
 const RENEWAL_WINDOW_DAYS = 60; // التجديد يُفتح ضمن نافذة قبل الانتهاء (معيار الوساطة)
 const P_TONE: Record<string, BadgeTone> = { ISSUED: "success", TECHNICAL_REVIEW: "warning", FINANCE_REVIEW: "info", REJECTED: "danger", CANCELLED: "neutral" };
 const C_TONE: Record<string, BadgeTone> = { RECEIVED: "neutral", UNDER_REVIEW: "warning", SUBMITTED: "info", SETTLED: "success", CLOSED: "neutral", REJECTED: "danger" };
+const INST_TONE: Record<string, BadgeTone> = { paid: "success", partial: "info", overdue: "danger", due: "warning" };
 
 export default function PortalPolicyDetail() {
   const id = String(useParams().id);
@@ -107,6 +110,41 @@ export default function PortalPolicyDetail() {
               </dl>
             </div>
           </div>
+
+          {data.installments.length > 0 ? (
+            <>
+              <div className="mb-2 mt-6 flex flex-wrap items-center gap-2">
+                <CalendarClock size={16} className="text-primary" />
+                <h2 className="text-[14px] font-bold text-ink">{t("portal.policyDetail.installments")}</h2>
+                <span className="text-[11.5px] text-subtle">{t("portal.installments.paidCount", { n: data.installmentSummary.paidCount })} / {data.installmentSummary.count}</span>
+                {data.installmentSummary.outstanding > 0 ? <span className="ms-auto text-[12px] text-subtle">{t("portal.installments.remaining")}: <span className="font-bold text-warning tnum">{fmt(String(data.installmentSummary.outstanding))}</span> {t("common.sar")}</span> : null}
+              </div>
+              <div className="overflow-x-auto rounded-card border border-line bg-card shadow-card">
+                <table className="w-full min-w-[560px]">
+                  <thead><tr className="border-b border-line text-[11px] uppercase tracking-wide text-subtle">
+                    <th className="px-5 py-3 text-start font-semibold">{t("portal.installments.seqCol")}</th>
+                    <th className="px-4 py-3 text-start font-semibold">{t("portal.installments.due")}</th>
+                    <th className="px-4 py-3 text-start font-semibold">{t("portal.installments.period")}</th>
+                    <th className="px-4 py-3 text-end font-semibold">{t("portal.installments.amount")}</th>
+                    <th className="px-4 py-3 text-end font-semibold">{t("portal.installments.remaining")}</th>
+                    <th className="px-4 py-3 text-center font-semibold">{t("portal.installments.status")}</th>
+                  </tr></thead>
+                  <tbody className="divide-y divide-line">
+                    {data.installments.map((r) => (
+                      <tr key={r.id} className="hover:bg-surface-2/60">
+                        <td className="px-5 py-3 text-[12.5px] font-medium text-ink tnum">{r.seq}</td>
+                        <td className="px-4 py-3 text-[12px] text-muted tnum">{date(r.dueDate)}</td>
+                        <td className={`px-4 py-3 text-[12px] font-medium tnum ${r.status === "overdue" ? "text-danger" : r.status === "paid" ? "text-subtle" : "text-warning"}`}>{r.status === "paid" ? "—" : r.status === "overdue" ? t("portal.installments.lateBy", { n: r.days }) : t("portal.installments.dueIn", { n: r.days })}</td>
+                        <td className="px-4 py-3 text-end text-[12.5px] text-ink tnum">{fmt(String(r.amount))}</td>
+                        <td className={`px-4 py-3 text-end text-[12.5px] tnum ${r.outstanding > 0 ? "font-semibold text-warning" : "text-success"}`}>{fmt(String(r.outstanding))}</td>
+                        <td className="px-4 py-3 text-center"><Badge tone={INST_TONE[r.status] ?? "neutral"}>{t(`portal.installments.st.${r.status}`)}</Badge></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          ) : null}
 
           <h2 className="mb-2 mt-6 text-[14px] font-bold text-ink">{t("portal.policyDetail.claims")}</h2>
           <div className="overflow-x-auto rounded-card border border-line bg-card shadow-card">

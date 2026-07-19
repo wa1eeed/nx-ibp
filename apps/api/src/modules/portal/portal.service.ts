@@ -12,6 +12,20 @@ import { CoverNotesService } from "../cover-notes/cover-notes.service";
 import type { SubmitClaimDto, SubmitServiceDto } from "./dto/portal.dto";
 
 const asJson = (v: unknown) => v as Prisma.InputJsonValue;
+const r2 = (n: number) => Math.round(n * 100) / 100;
+
+/** يحوّل صفوف الأقساط لحالة (مسدَّد/جزئي/متأخّر/مستحقّ) + أيام المتبقّي — مشترك لعرض البوّابة. */
+function mapInstallments(rows: Array<{ id: string; seq: number; dueDate: Date; amount: unknown; settledAmount: unknown }>, now = Date.now()) {
+  return rows.map((r) => {
+    const amount = Number(r.amount);
+    const settled = Number(r.settledAmount);
+    const outstanding = r2(amount - settled);
+    const t = new Date(r.dueDate).getTime();
+    const status = outstanding <= 0.01 ? "paid" : settled > 0 ? "partial" : t < now ? "overdue" : "due";
+    const days = Math.max(0, Math.ceil(Math.abs(t - now) / 86_400_000));
+    return { id: r.id, seq: r.seq, dueDate: r.dueDate, amount: r2(amount), settled: r2(settled), outstanding, status, days };
+  });
+}
 
 /**
  * بوّابة العميل (المرحلة 8ب) — نطاق `client`.
@@ -195,11 +209,51 @@ export class PortalService {
       select: { id: true, sequenceNo: true, productLineCode: true, insurerName: true, insurerPolicyNo: true, status: true, premium: true, vat: true, totalPremium: true, sumInsured: true, startDate: true, endDate: true },
     });
     if (!policy) throw new NotFoundException("الوثيقة غير موجودة");
-    const [claims, documents] = await Promise.all([
+    const [claims, documents, instRows] = await Promise.all([
       this.prisma.claim.findMany({ where: { policyId: id, clientId }, orderBy: { createdAt: "desc" }, select: { id: true, sequenceNo: true, status: true, claimedAmount: true, incidentDate: true } }),
       this.prisma.document.findMany({ where: { entityId: id }, orderBy: { createdAt: "desc" }, select: { id: true, fileName: true, docType: true, createdAt: true } }),
+      this.prisma.installment.findMany({ where: { policyId: id, clientId }, orderBy: { seq: "asc" }, select: { id: true, seq: true, dueDate: true, amount: true, settledAmount: true } }),
     ]);
-    return { policy, claims, documents };
+    // أقساط هذه الوثيقة (إن وُجدت خطة) بحالتها + ملخّص مدفوع/مستحقّ/متأخّر
+    const installments = mapInstallments(instRows);
+    const installmentSummary = {
+      count: installments.length,
+      paidCount: installments.filter((i) => i.status === "paid").length,
+      total: r2(installments.reduce((s, i) => s + i.amount, 0)),
+      paid: r2(installments.reduce((s, i) => s + i.settled, 0)),
+      outstanding: r2(installments.reduce((s, i) => s + i.outstanding, 0)),
+      overdueCount: installments.filter((i) => i.status === "overdue").length,
+      nextDue: installments.find((i) => i.status !== "paid") ?? null,
+    };
+    const pay = await this.prisma.tenantPaymentSettings.findFirst({ select: { enabled: true } });
+    return { policy, claims, documents, installments, installmentSummary, paymentEnabled: pay?.enabled ?? false };
+  }
+
+  /** كل أقساط العميل عبر وثائقه — لصفحة «الأقساط» في البوّابة (ملخّص + قائمة بمرجع الوثيقة والحالة). */
+  async clientInstallments(clientId: string) {
+    const rows = await this.prisma.installment.findMany({ where: { clientId }, orderBy: { dueDate: "asc" }, select: { id: true, seq: true, dueDate: true, amount: true, settledAmount: true, policyId: true, debitNoteId: true } });
+    const mapped = mapInstallments(rows);
+    const policyIds = [...new Set(rows.map((r) => r.policyId).filter((x): x is string => !!x))];
+    const policies = policyIds.length ? await this.prisma.policy.findMany({ where: { id: { in: policyIds }, clientId }, select: { id: true, sequenceNo: true, insurerName: true, productLineCode: true } }) : [];
+    const polOf = new Map(policies.map((p) => [p.id, p]));
+    const installments = mapped.map((m, i) => {
+      const pol = rows[i].policyId ? polOf.get(rows[i].policyId as string) : undefined;
+      return { ...m, debitNoteId: rows[i].debitNoteId, policyRef: pol?.sequenceNo ?? null, insurerName: pol?.insurerName ?? null, productLineCode: pol?.productLineCode ?? null };
+    });
+    const overdue = mapped.filter((m) => m.status === "overdue");
+    const dueSoon = mapped.filter((m) => m.status === "due" || m.status === "partial");
+    const summary = {
+      count: mapped.length,
+      paidCount: mapped.filter((m) => m.status === "paid").length,
+      paidTotal: r2(mapped.reduce((s, m) => s + m.settled, 0)),
+      outstanding: r2(mapped.reduce((s, m) => s + m.outstanding, 0)),
+      overdueCount: overdue.length,
+      overdueAmount: r2(overdue.reduce((s, m) => s + m.outstanding, 0)),
+      dueSoonAmount: r2(dueSoon.reduce((s, m) => s + m.outstanding, 0)),
+      nextDue: mapped.find((m) => m.status !== "paid") ?? null,
+    };
+    const pay = await this.prisma.tenantPaymentSettings.findFirst({ select: { enabled: true } });
+    return { summary, installments, paymentEnabled: pay?.enabled ?? false };
   }
 
   /** يتحقّق أن الوثيقة تخصّ العميل (حماية قبل أي تقديم عليها). */

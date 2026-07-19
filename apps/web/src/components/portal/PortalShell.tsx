@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import { ShieldCheck, LayoutDashboard, FileCheck2, FileText, ClipboardList, Receipt, FolderOpen, UserCog, LogOut, FileSignature } from "lucide-react";
+import { ShieldCheck, LayoutDashboard, FileCheck2, FileText, ClipboardList, Receipt, FolderOpen, UserCog, LogOut, FileSignature, CalendarClock } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link, usePathname, useRouter } from "@/i18n/routing";
 import { getPortalToken, clearPortalToken, cpapi } from "@/lib/api";
@@ -16,6 +16,7 @@ const NAV = [
   { key: "proposals", href: "/portal/proposals", icon: FileSignature },
   { key: "claims", href: "/portal/claims", icon: ClipboardList },
   { key: "statement", href: "/portal/statement", icon: Receipt },
+  { key: "installments", href: "/portal/installments", icon: CalendarClock },
   { key: "documents", href: "/portal/documents", icon: FolderOpen },
   { key: "account", href: "/portal/account", icon: UserCog },
 ];
