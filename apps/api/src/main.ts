@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { NestFactory } from "@nestjs/core";
 import { ValidationPipe, Logger } from "@nestjs/common";
 import helmet from "helmet";
+import { json, urlencoded } from "express";
 import { AppModule } from "./app.module";
 
 /**
@@ -27,10 +28,25 @@ function loadRootEnv(): void {
 async function bootstrap() {
   loadRootEnv();
 
-  const app = await NestFactory.create(AppModule, { bufferLogs: false });
+  // نعطّل مُحلّل الجسم الافتراضي لنضبط حدوداً صريحة (منع هجمات الحمولة الكبيرة)
+  const app = await NestFactory.create(AppModule, { bufferLogs: false, bodyParser: false });
 
-  // أمان: ترويسات HTTP آمنة افتراضياً
-  app.use(helmet());
+  // حدّ حجم الجسم (لا رفع ملفات عبر الـ API — التخزين عبر روابط موقّتة مباشِرة للدلو)
+  const BODY_LIMIT = process.env.API_BODY_LIMIT ?? "2mb";
+  app.use(json({ limit: BODY_LIMIT }));
+  app.use(urlencoded({ extended: true, limit: BODY_LIMIT }));
+
+  // أمان: ترويسات HTTP آمنة + HSTS صريح (فرض HTTPS) + إخفاء بصمة الخادم
+  app.use(
+    helmet({
+      hsts: { maxAge: 63072000, includeSubDomains: true, preload: true },
+      referrerPolicy: { policy: "strict-origin-when-cross-origin" },
+    }),
+  );
+  // خلف وكيل عكسي (Coolify/موازِن) — يجعل req.ip عنوان العميل الحقيقي (لتحديد المعدّل الصحيح) + إخفاء البصمة
+  const expressApp = app.getHttpAdapter().getInstance();
+  expressApp.set("trust proxy", 1);
+  expressApp.disable("x-powered-by");
 
   // CORS من البيئة فقط (لا قيم صلبة)
   const origins = (process.env.CORS_ORIGINS ?? "http://localhost:3000")

@@ -19,8 +19,12 @@
 | الدفاع — الهوية والدخول (IAM) | JWT + حارس عالمي · RBAC + Entitlements مزدوج · bcrypt · أقل امتياز | ✅ |
 | الدفاع — حماية البيانات | تشفير at-rest (AES-256-GCM لاعتماد ZATCA) · TLS in-transit · لا أسرار في الكود (env) | ✅ جزئي |
 | الدفاع — عزل المستأجرين | عزل ثلاث طبقات (FK + سياق + Prisma middleware) — مُثبَت بالاختبار | ✅ |
-| الدفاع — تقوية الحدود | Helmet (رؤوس) · CORS مضبوط · ValidationPipe · حاويات non-root/readOnlyRootFS | ✅ |
+| الدفاع — تقوية الحدود | Helmet + **HSTS صريح** · CORS مضبوط · ValidationPipe (whitelist) · **حدّ حجم الجسم 2mb** (منع الحمولة الكبيرة) · **إخفاء البصمة** (x-powered-by) · `trust proxy` · حاويات non-root/readOnlyRootFS | ✅ |
+| الدفاع — تحديد المعدّل (Rate limiting) | **قفل القوّة الغاشمة لكل بوّابات الدخول** (Redis) + **تحديد معدّل عام لكل IP** (`ThrottleGuard`، Redis، fail-open، 600/دقيقة قابل للتهيئة، مُعطَّل في الاختبار) | ✅ |
+| الدفاع — ترويسات أمان الواجهة | **CSP** (`frame-ancestors 'none'` · `object-src 'none'` · `base-uri`/`form-action 'self'`) · **HSTS** · `X-Frame-Options: DENY` · `X-Content-Type-Options: nosniff` · `Referrer-Policy` · `Permissions-Policy` — على كل مسارات Next | ✅ |
 | الدفاع — التشفير | خوارزميات معيارية (AES-256-GCM · SHA-256 · bcrypt · ECDSA secp256k1) | ✅ |
+| الدفاع — إدارة الثغرات (SDLC) | **CI أمني** (`.github/workflows/security.yml`): SCA (pnpm audit + OSV) · SAST (Semgrep: owasp/ts/react/node) · **فحص أسرار** (gitleaks) — عند الدفع/الـPR وأسبوعيًا | ✅ |
+| الدفاع — الإفصاح المسؤول | `/.well-known/security.txt` (RFC 9116) | ✅ |
 | الدفاع — السجلّات | `auditLog` لكل عملية حسّاسة (تطبيقي) | ✅ جزئي |
 | الملفات | روابط موقّتة فقط · allowlist (SVG محظور) · عزل بالمسار + UUID | ✅ |
 | الصمود — التوفّر | k8s نسخ متعددة + HPA + فحوص صحّة | ✅ (بنية) |
@@ -36,7 +40,7 @@
 | **إدارة أسرار مركزية (Vault/KMS)** بدل env في الإنتاج | حماية البيانات | P1 |
 | **تشفير حقول PII** at-rest + **تصنيف البيانات** (DCC) | DCC | P1 |
 | **مراقبة/SIEM + تنبيهات + WAF** | الدفاع | P1 |
-| **إدارة الثغرات**: SCA/SAST/DAST في CI + ترقيع | الدفاع | P1 |
+| ~~**إدارة الثغرات**: SCA/SAST في CI~~ | الدفاع | ✅ منفّذ (`security.yml`: OSV/pnpm audit + Semgrep + gitleaks)؛ DAST لاحقًا |
 | **اختبار اختراق** مستقل دوري | الدفاع | P1 |
 | **نسخ احتياطي + خطة استمرارية/تعافٍ (DR)** + اختبارها | الصمود | P1 |
 | **خطة الاستجابة للحوادث** + الإبلاغ التنظيمي | الحوكمة/الصمود | P1 |
@@ -54,8 +58,8 @@
 1. **P0 — صلابة الدخول:** ✅ **مكتمل** — قفل الحساب ضد القوّة الغاشمة (Redis، 8 محاولات/15 دقيقة، تصفير عند النجاح، عبر `RateLimitService` على كل بوّابات الدخول الثلاث: موظف/منصّة/عميل) + **سياسة كلمات المرور** (8 أحرف، حرف كبير/صغير/رقم) + **MFA (TOTP) لسوبر أدمن المنصة** (setup/enable/فرض عند الدخول + `/admin/security`). متبقٍّ: توسعة MFA لموظفي الشركات. اختبارات `security.e2e` + `mfa.e2e`.
 2. **P1 — الجلسات والأسرار:** ✅ **refresh tokens + تدوير الجلسة** (`RefreshToken` مُجزَّأ + `/auth/refresh` بالتدوير + `/auth/logout` + تدوير آلي بالواجهة عند 401؛ `auth-refresh.e2e`). متبقٍّ: نقل الأسرار إلى KMS/Vault (بنية).
 3. **P1 — البيانات:** تصنيف + تشفير حقول PII + سياسة احتفاظ/حذف (PDPL).
-4. **P1 — الرصد:** سجلّات مركزية + تنبيهات + WAF + لوحة مراقبة.
-5. **P1 — SDLC آمن:** SCA/SAST/DAST في CI + إدارة ثغرات + ترقيع.
+4. **P1 — تقوية الحدود:** ✅ **منفّذ** — **تحديد معدّل عام لكل IP** (`ThrottleGuard`، Redis، fail-open) + **حدّ حجم الجسم** + **ترويسات أمان الواجهة** (CSP/HSTS/X-Frame/nosniff/Referrer/Permissions) + `security.txt`. متبقٍّ: WAF + SIEM/تنبيهات (بنية).
+5. **P1 — SDLC آمن:** ✅ **منفّذ (SCA/SAST/أسرار في CI)** — `security.yml` (OSV/pnpm audit + Semgrep + gitleaks) عند الدفع/الـPR وأسبوعيًا. متبقٍّ: DAST + ترقيع دوري موثّق.
 6. **P1 — الصمود:** نسخ احتياطي مؤتمت + اختبار DR + خطة استجابة حوادث + الإبلاغ.
 7. **حوكمة:** توثيق السياسات (مخاطر/تصنيف/توعية/أدوار) لاستيفاء ECC الإداري.
 8. **تدقيق اختراق** مستقل قبل الإنتاج.

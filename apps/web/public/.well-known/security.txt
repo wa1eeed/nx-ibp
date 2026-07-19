@@ -1,0 +1,7 @@
+# NX-IBP — سياسة الإفصاح المسؤول عن الثغرات (Responsible Disclosure, RFC 9116)
+# NX-IBP — Responsible vulnerability disclosure policy
+Contact: mailto:security@nx.sa
+Contact: https://ibp.nx.sa/ar
+Policy: https://ibp.nx.sa/legal/privacy
+Preferred-Languages: ar, en
+Expires: 2027-07-19T00:00:00.000Z

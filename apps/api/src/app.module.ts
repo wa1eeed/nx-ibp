@@ -16,6 +16,7 @@ import { RedisModule } from "./redis/redis.module";
 import { RbacModule } from "./modules/rbac/rbac.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { JwtAuthGuard } from "./modules/auth/jwt-auth.guard";
+import { ThrottleGuard } from "./common/security/throttle.guard";
 import { HealthModule } from "./modules/health/health.module";
 import { CatalogModule } from "./modules/catalog/catalog.module";
 import { ClientsModule } from "./modules/clients/clients.module";
@@ -120,6 +121,7 @@ import { InsurersModule } from "./modules/insurers/insurers.module";
     InsurersModule,
   ],
   providers: [
+    { provide: APP_GUARD, useClass: ThrottleGuard }, // تحديد المعدّل أولًا (يحمي المسارات العامة أيضًا)
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     TenantContextMiddleware,
   ],

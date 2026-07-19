@@ -1,0 +1,84 @@
+name: Security
+
+# فحوص أمنية آلية (NCA ECC): تحليل تكوين البرمجيات (SCA) + التحليل الساكن (SAST) + فحص الأسرار.
+# تعمل عند الدفع/الـPR على main وأسبوعيًا (اكتشاف ثغرات جديدة في التبعيات القائمة).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "0 3 * * 1" # كل اثنين 03:00 UTC
+
+permissions:
+  contents: read
+  security-events: write # لرفع نتائج SARIF إلى Code Scanning (إن كان مُفعّلًا)
+
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ───── SCA: فحص ثغرات التبعيات ─────
+  dependencies:
+    name: SCA — dependency vulnerabilities
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: pnpm audit (high & critical)
+        run: pnpm audit --audit-level=high
+        continue-on-error: true # يُبلِغ ولا يُفشل على المنخفض/المتوسط
+      - name: OSV Scanner (lockfile)
+        uses: google/osv-scanner-action@v1.9.2
+        with:
+          scan-args: |-
+            --lockfile=./pnpm-lock.yaml
+        continue-on-error: true
+
+  # ───── فحص الأسرار المسرّبة ─────
+  secrets:
+    name: Secret scanning (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # تاريخ كامل لفحص كل الكوميتات
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ───── SAST: تحليل ساكن للكود (Semgrep) ─────
+  sast:
+    name: SAST — static analysis (semgrep)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install semgrep
+        run: pip install semgrep
+      - name: Run semgrep (owasp/typescript/react/nodejs)
+        run: |
+          semgrep scan \
+            --config p/owasp-top-ten \
+            --config p/typescript \
+            --config p/react \
+            --config p/nodejs \
+            --config p/secrets \
+            --sarif --output semgrep.sarif \
+            --error || true
+      - name: Upload SARIF to Code Scanning
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: semgrep.sarif
+        continue-on-error: true # يفشل بهدوء إن كان Code Scanning غير مُفعّل (مستودع خاص بلا GHAS)

@@ -2,6 +2,15 @@
 
 كل التغييرات الملموسة في منصة IBP، منظّمة حسب المراحل. الصيغة مستلهمة من [Keep a Changelog](https://keepachangelog.com).
 
+## [تحصين أمني (NCA ECC): تحديد معدّل عام + ترويسات أمان + حدّ الحمولة + CI أمني + security.txt] ✅
+سدّ فجوات تقوية الحدود وإدارة الثغرات في خارطة الأمن ([30](./30-security-and-compliance.md)):
+- **تحديد معدّل عام لكل IP** (`ThrottleGuard`، مدعوم Redis، نافذة ثابتة INCR+EXPIRE، **fail-open** لا يُسقِط الـAPI عند خلل Redis، 600/دقيقة قابل للتهيئة عبر `THROTTLE_MAX`/`THROTTLE_WINDOW_SEC`، **مُعطَّل تلقائيًا في الاختبار**) — يعمل أولًا قبل المصادقة فيحمي المسارات العامة. طبقة فوق قفل القوّة الغاشمة للدخول القائم.
+- **ترويسات أمان الواجهة** (`next.config.mjs`): **CSP** (`frame-ancestors 'none'` · `object-src 'none'` · `base-uri`/`form-action 'self'` · سماح خطوط Google) · **HSTS** (سنتان + preload) · `X-Frame-Options: DENY` · `X-Content-Type-Options: nosniff` · `Referrer-Policy` · `Permissions-Policy` · إخفاء `X-Powered-By`.
+- **API:** حدّ حجم جسم الطلب **2mb** (`API_BODY_LIMIT`، الرفع الثنائي للمستندات مستثنى) + **HSTS صريح** في helmet + `trust proxy` (IP حقيقي للتحديد الصحيح خلف الوكيل) + إخفاء البصمة.
+- **CI أمني** (`.github/workflows/security.yml`): **SCA** (pnpm audit + OSV Scanner) · **SAST** (Semgrep: owasp-top-ten/typescript/react/nodejs) · **فحص أسرار** (gitleaks) — عند الدفع/الـPR وأسبوعيًا (cron)، مع رفع SARIF لـCode Scanning.
+- **`/.well-known/security.txt`** (RFC 9116) — سياسة الإفصاح المسؤول عن الثغرات.
+- e2e **383/383** (بلا تغيير — التحديد مُعطَّل في الاختبار) · بناءا الإنتاج (web+api) ✅ · تحقّق حيّ (الترويسات مُطبَّقة، اللاندنق يُصيَّر بلا مخالفات CSP، security.txt يُخدَم).
+
 ## [محرّر RBAC: إدارة الأدوار وتعديل مصفوفة الصلاحيات + إسناد الأدوار] ✅
 كان بالإمكان إنشاء دور مع كل موظف فقط، بلا إدارة مستقلّة للأدوار — الآن **محرّر صلاحيات كامل**:
 - **الخادم:** وحدة تحكّم `/roles` (محصورة بموديول `settings`): سرد كل الأدوار (مُعدّة + مخصّصة) بمصفوفتها وعدد مستخدميها (`GET`)، إنشاء دور مخصّص (`POST`)، تعديل الاسم/المصفوفة (`PUT`، upsert لكل موديول)، حذف دور مخصّص غير مُستخدَم (`DELETE`) + إسناد دور لمستخدم (`POST /staff/:id/role`). دوال في `staff.service`.
