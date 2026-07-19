@@ -96,7 +96,7 @@ export default function ServicePage() {
 
       {/* الفلاتر: الحالة + طلباتي */}
       <div className="mb-3 flex flex-wrap items-center gap-1.5">
-        <button onClick={() => setStatusFilter("")} className={["inline-flex h-8 items-center gap-1.5 rounded-lg border px-3 text-[12px] font-medium", statusFilter === "" ? "border-primary bg-primary/10 text-primary" : "border-line text-muted hover:bg-surface-2"].join(" ")}>{t("service.filterAll")}<span className="rounded-full bg-surface-2 px-1.5 text-[10px] tnum text-subtle">{allRows.length}</span></button>
+        <button onClick={() => { setStatusFilter(""); setMine(false); }} className={["inline-flex h-8 items-center gap-1.5 rounded-lg border px-3 text-[12px] font-medium", statusFilter === "" && !mine ? "border-primary bg-primary/10 text-primary" : "border-line text-muted hover:bg-surface-2"].join(" ")}>{t("service.filterAll")}<span className="rounded-full bg-surface-2 px-1.5 text-[10px] tnum text-subtle">{allRows.length}</span></button>
         {STATUSES.map((s) => (
           <button key={s} onClick={() => setStatusFilter(s)} className={["inline-flex h-8 items-center gap-1.5 rounded-lg border px-3 text-[12px] font-medium", statusFilter === s ? "border-primary bg-primary/10 text-primary" : "border-line text-muted hover:bg-surface-2"].join(" ")}>
             {t(`service.statuses.${s}`)}<span className="rounded-full bg-surface-2 px-1.5 text-[10px] tnum text-subtle">{counts[s] ?? 0}</span>
