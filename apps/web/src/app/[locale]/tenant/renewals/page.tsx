@@ -1,13 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { RefreshCw, CalendarClock, AlertTriangle, Clock3, Coins } from "lucide-react";
+import { RefreshCw, CalendarClock, AlertTriangle, Clock3, Coins, Loader2, ArrowLeft } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/routing";
 import { api, getToken, ApiError } from "@/lib/api";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Badge } from "@/components/ui/Badge";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
+import { usePermissions } from "@/hooks/usePermissions";
 
 interface Due { id: string; sequenceNo: string | null; insurerName: string | null; endDate: string | null; totalPremium: string | null; commissionAmount: string | null; clientName: string | null; productLineCode: string | null }
 
@@ -19,10 +20,13 @@ export default function RenewalsPage() {
   const t = useTranslations("renewals");
   const confirm = useConfirm();
   const router = useRouter();
+  const { can } = usePermissions();
+  const canRenew = can("renewals", "create");
   const [rows, setRows] = useState<Due[]>([]);
   const [days, setDays] = useState<(typeof WINDOWS)[number]>(60);
   const [error, setError] = useState("");
   const [done, setDone] = useState("");
+  const [busy, setBusy] = useState("");
 
   const load = useCallback(async (d: number) => setRows(await api<Due[]>(`/renewals?days=${d}`)), []);
   useEffect(() => {
@@ -33,12 +37,13 @@ export default function RenewalsPage() {
   async function initiate(policyId: string) {
     const ok = await confirm({ title: t("confirmTitle"), description: t("confirmDesc"), confirmLabel: t("initiate") });
     if (!ok) return;
-    setError(""); setDone("");
+    setError(""); setDone(""); setBusy(policyId);
     try {
-      const sr = await api<{ sequenceNo: string }>(`/renewals/${policyId}/initiate`, { method: "POST" });
-      setDone(t("initiated", { seq: sr.sequenceNo }));
-      await load(days);
-    } catch (e) { setError(e instanceof ApiError ? e.message : "خطأ"); }
+      const req = await api<{ id: string; sequenceNo: string }>(`/renewals/${policyId}/initiate`, { method: "POST" });
+      setDone(t("initiated", { seq: req.sequenceNo }));
+      // ينتقل مباشرةً لطلب التأمين (التجديد) المُنشأ ليكمل دورة RFQ — تجربة واضحة بدل بقاء الزر كما هو
+      router.push(`/tenant/requests/${req.id}`);
+    } catch (e) { setError(e instanceof ApiError ? e.message : "خطأ"); setBusy(""); }
   }
 
   const expired = rows.filter((r) => (daysLeft(r.endDate) ?? 0) < 0);
@@ -105,9 +110,11 @@ export default function RenewalsPage() {
                   <td className="px-4 py-3 text-[12.5px] text-muted tnum">{r.endDate ? r.endDate.slice(0, 10) : "—"}</td>
                   <td className="px-4 py-3">{urgency(daysLeft(r.endDate))}</td>
                   <td className="px-4 py-3 text-end">
-                    <button onClick={() => initiate(r.id)} className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-card px-2.5 py-1.5 text-[12px] font-medium text-primary hover:bg-surface-2">
-                      <RefreshCw size={13} /> {t("initiate")}
-                    </button>
+                    {canRenew ? (
+                      <button onClick={() => initiate(r.id)} disabled={!!busy} className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-card px-2.5 py-1.5 text-[12px] font-medium text-primary hover:bg-surface-2 disabled:opacity-60">
+                        {busy === r.id ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />} {busy === r.id ? t("initiating") : t("initiate")}
+                      </button>
+                    ) : <span className="text-[11.5px] text-subtle">—</span>}
                   </td>
                 </tr>
               ))}

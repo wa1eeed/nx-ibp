@@ -2343,6 +2343,7 @@
     "subtitle": "Renewals board — expired and upcoming policies, ranked by urgency",
     "empty": "No policies due for renewal in this window",
     "initiate": "Initiate renewal",
+    "initiating": "Creating…",
     "initiated": "Renewal request {seq} created — track it under “Requests”",
     "confirmTitle": "Initiate renewal",
     "confirmDesc": "A new insurance request will be created from this policy's data and enter the quoting/issuance cycle. No reminder is sent to the client automatically.",
