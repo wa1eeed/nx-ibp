@@ -37,12 +37,8 @@ jobs:
       - name: pnpm audit (high & critical)
         run: pnpm audit --audit-level=high
         continue-on-error: true # يُبلِغ ولا يُفشل على المنخفض/المتوسط
-      - name: OSV Scanner (lockfile)
-        uses: google/osv-scanner-action@v1.9.2
-        with:
-          scan-args: |-
-            --lockfile=./pnpm-lock.yaml
-        continue-on-error: true
+      # ملاحظة: فحص التبعيات المستمر (SCA) يتمّ أيضًا عبر GitHub Dependabot (.github/dependabot.yml)
+      # — أصدق وأنسب لمستودع GitHub من إجراء OSV خارجي (تحديثات آلية أسبوعية + تنبيهات أمنية).
 
   # ───── فحص الأسرار المسرّبة ─────
   secrets:

@@ -1,0 +1,22 @@
+# فحص التبعيات المستمر (SCA) عبر GitHub Dependabot — تنبيهات أمنية + تحديثات آلية أسبوعية.
+# يكمّل `pnpm audit` (في security.yml) بمراقبة مستمرة وفتح PRات للحزم المصابة.
+version: 2
+updates:
+  # حزم JavaScript/TypeScript (npm/pnpm) — جذر مساحة العمل (monorepo)
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    labels: ["dependencies", "security"]
+    groups:
+      # تجميع تحديثات الأمان الطفيفة/التصحيحية في PR واحد لتقليل الضجيج
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+
+  # تحديث إجراءات GitHub Actions نفسها (يعالج تقادم بيئة التشغيل مثل Node 20)
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels: ["ci", "security"]
