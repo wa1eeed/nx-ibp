@@ -1949,6 +1949,11 @@
       "partial": "جزئي",
       "paid": "مسدَّد"
     },
+    "installments": "الأقساط",
+    "instOverdue": "{n} متأخّر",
+    "seq": "القسط",
+    "due": "الاستحقاق",
+    "inst": { "paid": "مسدَّد", "partial": "جزئي", "overdue": "متأخّر", "due": "مستحقّ" },
     "empty": "لا نشاط بعد"
   },
   "staffDetail": {

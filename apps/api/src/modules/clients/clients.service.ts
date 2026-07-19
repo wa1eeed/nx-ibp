@@ -83,13 +83,14 @@ export class ClientsService {
     const raw = await this.prisma.client.findUnique({ where: { id }, select: CLIENT_FIELDS });
     if (!raw) throw new NotFoundException("العميل غير موجود");
     const client = maskClientSensitive(raw, await this.canViewSensitive(user));
-    const [policies, claims, requests, verifications, debitNotes, activities] = await Promise.all([
+    const [policies, claims, requests, verifications, debitNotes, activities, installmentsRaw] = await Promise.all([
       this.prisma.policy.findMany({ where: { clientId: id }, orderBy: { createdAt: "desc" }, select: { id: true, sequenceNo: true, productLineCode: true, insurerName: true, premium: true, totalPremium: true, status: true, startDate: true, endDate: true, createdAt: true } }),
       this.prisma.claim.findMany({ where: { clientId: id }, orderBy: { createdAt: "desc" }, select: { id: true, sequenceNo: true, insurerName: true, claimedAmount: true, settledAmount: true, status: true, incidentDate: true, createdAt: true } }),
       this.prisma.policyRequest.findMany({ where: { clientId: id }, orderBy: { createdAt: "desc" }, select: { id: true, sequenceNo: true, productLineCode: true, status: true, createdAt: true } }),
       this.prisma.verificationCheck.findMany({ where: { clientId: id }, orderBy: { createdAt: "desc" }, select: { id: true, checkType: true, status: true, riskLevel: true, createdAt: true } }),
       this.prisma.debitNote.findMany({ where: { clientId: id }, orderBy: { createdAt: "desc" }, select: { id: true, sequenceNo: true, netAmount: true, vatAmount: true, settledAmount: true, createdAt: true } }),
       this.prisma.crmActivity.findMany({ where: { entityType: "client", entityId: id }, orderBy: { createdAt: "desc" }, take: 50 }),
+      this.prisma.installment.findMany({ where: { clientId: id }, orderBy: { dueDate: "asc" }, select: { id: true, seq: true, dueDate: true, amount: true, settledAmount: true, policyId: true } }),
     ]);
     const creditNotes = await this.prisma.creditNote.findMany({ where: { clientId: id }, orderBy: { createdAt: "desc" }, select: { id: true, sequenceNo: true, netAmount: true, vatAmount: true, createdAt: true } });
     const policyIds = policies.map((p) => p.id);
@@ -110,11 +111,28 @@ export class ClientsService {
       const settled = r2(num(d.settledAmount));
       return { id: d.id, sequenceNo: d.sequenceNo, netAmount: d.netAmount, vatAmount: d.vatAmount, total: gross, settled, outstanding: r2(gross - settled), status: settled <= 0 ? "outstanding" : settled >= gross ? "paid" : "partial", createdAt: d.createdAt };
     });
+    // أقساط العميل عبر وثائقه — بحالة كل قسط (لعرضها في نظرة 360°)
+    const nowTs = Date.now();
+    const installments = installmentsRaw.map((r) => {
+      const amount = num(r.amount);
+      const settled = num(r.settledAmount);
+      const outstanding = r2(amount - settled);
+      const status = outstanding <= 0.01 ? "paid" : settled > 0 ? "partial" : new Date(r.dueDate).getTime() < nowTs ? "overdue" : "due";
+      return { id: r.id, seq: r.seq, dueDate: r.dueDate, amount: r2(amount), settled: r2(settled), outstanding, status, policyId: r.policyId };
+    });
+    const instOverdue = installments.filter((i) => i.status === "overdue");
+    const installmentSummary = {
+      count: installments.length,
+      outstanding: r2(installments.reduce((s, i) => s + i.outstanding, 0)),
+      overdueCount: instOverdue.length,
+      overdueAmount: r2(instOverdue.reduce((s, i) => s + i.outstanding, 0)),
+      nextDue: installments.find((i) => i.status !== "paid") ?? null,
+    };
     return {
       client, policies, claims, requests, verifications, debitNotes: debitNotesEnriched,
       creditNotes: creditNotes.map((c) => ({ ...c, total: r2(num(c.netAmount) + num(c.vatAmount)) })),
-      documents, activities,
-      summary: { policies: policies.length, claims: claims.length, requests: requests.length, documents: documents.length, totalDue: r2(totalDue), collected: r2(collected) },
+      documents, activities, installments, installmentSummary,
+      summary: { policies: policies.length, claims: claims.length, requests: requests.length, documents: documents.length, totalDue: r2(totalDue), collected: r2(collected), installmentsOverdue: instOverdue.length },
     };
   }
 

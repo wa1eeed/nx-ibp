@@ -19,10 +19,13 @@ interface Overview {
   creditNotes: Array<{ id: string; sequenceNo: string | null; total: number; createdAt: string }>;
   documents: Array<{ id: string; fileName: string; docType: string; createdAt: string }>;
   activities: Array<{ id: string; type: string; body: string; createdAt: string }>;
-  summary: { policies: number; claims: number; requests: number; documents: number; totalDue: number; collected: number };
+  installments: Array<{ id: string; seq: number; dueDate: string; amount: number; settled: number; outstanding: number; status: string; policyId: string | null }>;
+  installmentSummary: { count: number; outstanding: number; overdueCount: number; overdueAmount: number; nextDue: { dueDate: string; outstanding: number } | null };
+  summary: { policies: number; claims: number; requests: number; documents: number; totalDue: number; collected: number; installmentsOverdue: number };
 }
 
 const DN_TONE: Record<string, "warning" | "info" | "success"> = { outstanding: "warning", partial: "info", paid: "success" };
+const INST_TONE: Record<string, "success" | "info" | "danger" | "warning"> = { paid: "success", partial: "info", overdue: "danger", due: "warning" };
 
 const TABS = ["overview", "policies", "renewals", "claims", "requests", "documents", "statement", "portal", "timeline"] as const;
 const fmt = (n: string | null | number) => (n == null ? "—" : Number(n).toLocaleString("en-US"));
@@ -174,6 +177,19 @@ export default function ClientDetailPage() {
             {ov.creditNotes.length ? (
               <div><p className="mb-1.5 text-[12px] font-semibold text-danger">{t("creditNotes")}</p>
                 {table([t("date"), "#", t("amount")], ov.creditNotes.map((c2) => row([dt(c2.createdAt), c2.sequenceNo, <span key="a" className="text-danger">−{fmt(c2.total)}</span>])))}
+              </div>
+            ) : null}
+            {ov.installments.length ? (
+              <div>
+                <p className="mb-1.5 flex items-center gap-2 text-[12px] font-semibold text-subtle">
+                  {t("installments")}
+                  {ov.installmentSummary.overdueCount > 0 ? <span className="rounded-full bg-danger-soft px-1.5 py-0.5 text-[10px] font-bold text-danger">{t("instOverdue", { n: ov.installmentSummary.overdueCount })}</span> : null}
+                </p>
+                {table([t("seq"), t("due"), t("total"), t("settled"), t("outstanding"), t("status")], ov.installments.map((r) => row([
+                  r.seq, dt(r.dueDate), fmt(r.amount), <span key="s" className="text-success">{r.settled ? fmt(r.settled) : "—"}</span>,
+                  <span key="o" className={r.outstanding > 0 ? "font-medium text-warning" : "text-subtle"}>{fmt(r.outstanding)}</span>,
+                  <Badge key="b" tone={INST_TONE[r.status] ?? "neutral"}>{t(`inst.${r.status}`)}</Badge>,
+                ])))}
               </div>
             ) : null}
           </div>

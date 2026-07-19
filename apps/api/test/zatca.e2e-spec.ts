@@ -46,6 +46,9 @@ describe("ZATCA Fatoora المرحلة 2 (e2e)", () => {
     gm = (await request(srv).post("/auth/login").send({ email: "waleed@gulf-demo.sa", password: "Passw0rd!" })).body.accessToken;
     accountant = (await request(srv).post("/auth/login").send({ email: "laila@gulf-demo.sa", password: "Passw0rd!" })).body.accessToken;
     omar = (await request(srv).post("/auth/login").send({ email: "omar@aman-demo.sa", password: "Passw0rd!" })).body.accessToken;
+    // عزل: صفّر سلسلة اعتماد الخليج للافتراضي (قد تُبقيها اختبارات أخرى بخطوات/فصل فنّي على القاعدة المشتركة)
+    // حتى يعمل approveDeal (المُصدِر نفسه يعتمد فنيًا + محاسب يعتمد ماليًا ⇒ ISSUED).
+    await request(srv).put("/config/approval-chain").set(auth(gm)).send({ technicalGate: true, technicalSegregation: false, steps: [] });
   });
   afterAll(async () => { await app?.close(); });
 

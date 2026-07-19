@@ -1949,6 +1949,11 @@
       "partial": "Partial",
       "paid": "Paid"
     },
+    "installments": "Installments",
+    "instOverdue": "{n} overdue",
+    "seq": "No.",
+    "due": "Due date",
+    "inst": { "paid": "Paid", "partial": "Partial", "overdue": "Overdue", "due": "Due" },
     "empty": "No activity yet"
   },
   "staffDetail": {

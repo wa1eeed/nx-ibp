@@ -32,7 +32,17 @@ describe("صفحات 360° (e2e)", () => {
     expect(res.body.summary.policies).toBeGreaterThanOrEqual(1);
     expect(Array.isArray(res.body.policies)).toBe(true);
     expect(Array.isArray(res.body.activities)).toBe(true);
+    expect(Array.isArray(res.body.installments)).toBe(true);
+    expect(typeof res.body.installmentSummary.count).toBe("number");
     expect(typeof res.body.summary.totalDue).toBe("number");
+  });
+
+  it("نظرة 360°: الفهد تحوي أقساطه (خطة تقسيط مزروعة) + ملخّصها بالحالة", async () => {
+    const res = await request(app.getHttpServer()).get("/clients/cl-fahd/overview").set(auth(gm)).expect(200);
+    expect(res.body.installments.length).toBeGreaterThan(0);
+    expect(res.body.installmentSummary.count).toBe(res.body.installments.length);
+    expect(res.body.installments.every((i: { status: string }) => ["paid", "partial", "overdue", "due"].includes(i.status))).toBe(true);
+    expect(res.body.summary.installmentsOverdue).toBeGreaterThanOrEqual(0);
   });
 
   it("عزل: مستأجر آخر لا يقرأ نظرة عميل ليس له ⇒ 404", () =>
