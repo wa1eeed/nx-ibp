@@ -1111,8 +1111,8 @@
   "ownership": {
     "backHome": "Home",
     "nav": "Ownership",
-    "heroTitle": "Own your operating platform as a strategic asset",
-    "heroSub": "An enterprise alternative to subscription that turns operating expense into a digital asset your company owns — for brokerage groups and large entities.",
+    "heroTitle": "License your operating platform — an enterprise alternative",
+    "heroSub": "An enterprise alternative to recurring subscription — a perpetual license with source code and a dedicated environment, for brokerage groups and large entities (NX Solutions retains the intellectual property).",
     "consultative": "Consultative sale — contact us",
     "tier1Name": "Ownership license (Source-Available)",
     "tier1Tagline": "Perpetual use license with full source access.",
@@ -1120,12 +1120,12 @@
     "tier1P2": "Full access to source code",
     "tier1P3": "Freedom to deploy and modify internally",
     "tier1P4": "Single restriction: no resale or redistribution",
-    "tier2Name": "Full ownership (IP transfer)",
-    "tier2Tagline": "Full transfer of code ownership and commercial IP rights.",
-    "tier2P1": "Full transfer of code ownership and commercial IP rights",
-    "tier2P2": "Complete freedom with no restrictions",
-    "tier2P3": "Full handover and knowledge transfer to your team",
-    "tier2P4": "Total technical independence from the platform",
+    "tier2Name": "Enterprise ownership (extended perpetual license)",
+    "tier2Tagline": "Perpetual license with source code and a dedicated isolated environment — NX Solutions retains the intellectual property.",
+    "tier2P1": "Extended perpetual use license with no recurring fees",
+    "tier2P2": "Full source code + a dedicated isolated environment",
+    "tier2P3": "Full handover and knowledge transfer + deeper customization",
+    "tier2P4": "NX Solutions retains the IP (no resale or redistribution)",
     "cta": "Contact us",
     "deployTitle": "Flexible deployment",
     "deploySub": "On your own servers (on-premise) or an isolated private cloud — per your company policy and data sovereignty.",
@@ -1135,8 +1135,8 @@
     "supportP2": "New government connectors as they become available",
     "supportP3": "Priority support + fixes and enhancements",
     "pillarsTitle": "Why ownership?",
-    "pillar1Title": "A balance-sheet asset",
-    "pillar1Desc": "Turn operating expense into an owned digital asset on your books.",
+    "pillar1Title": "Potential capital value",
+    "pillar1Desc": "An enterprise alternative to recurring subscription — accounting treatment (capitalization/amortization) depends on the contract nature and your organization's policies.",
     "pillar2Title": "No monthly fees",
     "pillar2Desc": "No recurring subscriptions — one cost and perpetual ownership.",
     "pillar3Title": "Full control",
@@ -1167,7 +1167,7 @@
     "vat15": "VAT (15%)",
     "total": "Total due",
     "sar": "SAR",
-    "zatcaCompliant": "Compliant e-invoice",
+    "zatcaCompliant": "E-invoice per the Phase 2 spec",
     "footer": "Issued electronically via {brand} — no signature required.",
     "typeCode": "Invoice type",
     "qty": "Qty",
@@ -2885,15 +2885,15 @@
       "login": "Sign in"
     },
     "hero": {
-      "badge": "ZATCA Phase 2 (Fatoora) compliant",
+      "badge": "Prepared for ZATCA Phase 2 (Fatoora) integration",
       "title": "The Operating System for Insurance Brokerage",
       "titleEn": "InsurTech SaaS Platform for Insurance Brokers",
-      "subtitle": "A multi-tenant SaaS platform that automates the entire insurance-brokerage workflow — from client and underwriting to policy issuance, finance, claims and reporting — with granular permissions and full Saudi compliance.",
+      "subtitle": "A multi-tenant SaaS platform that automates the entire insurance-brokerage workflow — from client and underwriting to policy issuance, finance, claims and reporting — with granular permissions and designed to support Saudi compliance requirements.",
       "ctaPrimary": "Get started",
       "ctaSecondary": "View plans",
       "t1": "Fast setup, no infrastructure",
       "t2": "Isolated data per firm",
-      "t3": "Compliant e-invoicing"
+      "t3": "E-invoicing prepared for Phase 2"
     },
     "features": {
       "title": "Everything a brokerage needs, in one platform",
@@ -2908,7 +2908,7 @@
       },
       "finance": {
         "title": "Finance & e-invoicing",
-        "desc": "Balanced double-entry, 17-digit chart of accounts, and ZATCA Phase 2 invoices."
+        "desc": "Balanced double-entry, 17-digit chart of accounts, and invoices built to the ZATCA Phase 2 spec."
       },
       "claims": {
         "title": "Claims & client service",
@@ -2916,7 +2916,7 @@
       },
       "verification": {
         "title": "Government verification",
-        "desc": "Yaqeen, Wathiq, Nafath, National Address and PEP screening — smart-fill and compliance."
+        "desc": "Ready-to-activate connectors: Yaqeen · Wathiq · Nafath · National Address · PEP screening — smart-fill (activated with the provider contract)."
       },
       "multitenant": {
         "title": "Multi-tenant & analytics",
@@ -2929,7 +2929,7 @@
       "p1": "An independent portal per brokerage (tenant) with its own data, settings and plan.",
       "p2": "A client portal to track policies, claims, statements and documents.",
       "p3": "A super-admin console to manage plans, subscriptions and usage.",
-      "p4": "Ready government integrations (ZATCA · Nafath · Yaqeen · Wathiq · Insurance Authority)."
+      "p4": "Ready-to-activate government connectors (ZATCA · Nafath · Yaqeen · Wathiq) + reports designed for the insurance sector."
     },
     "pricing": {
       "title": "Plans that grow with your firm",
@@ -2976,20 +2976,21 @@
       }
     },
     "compliance": {
-      "title": "Saudi compliance from day one",
-      "zatca": "ZATCA — Phase 2 invoicing",
-      "pdpl": "Data protection (PDPL/NCA)",
-      "ia": "Insurance Authority reports",
-      "nafath": "Nafath · Yaqeen · Wathiq"
+      "title": "Designed to support Saudi compliance requirements",
+      "zatca": "ZATCA — prepared for Phase 2",
+      "pdpl": "Supports data-protection & cyber-security requirements",
+      "ia": "Reports designed for the insurance sector",
+      "nafath": "Connectors: Nafath · Yaqeen · Wathiq (ready to activate)"
     },
     "cta": {
       "title": "Ready to run your brokerage professionally?",
-      "subtitle": "Start today and move your operations onto one compliant operating system.",
+      "subtitle": "Start today and move your operations onto one operating system.",
       "button": "Get started"
     },
     "footer": {
       "rights": "All rights reserved",
-      "madeIn": "Hosted inside Saudi Arabia"
+      "madeIn": "Hosted inside Saudi Arabia",
+      "byNx": "A product of NX Solutions"
     }
   },
   "documentsCenter": {

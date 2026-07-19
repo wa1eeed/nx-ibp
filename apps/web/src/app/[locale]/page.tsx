@@ -130,6 +130,7 @@ export default function LandingPage() {
       <footer className="border-t border-line">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-5 py-6 text-[12.5px] text-subtle sm:flex-row">
           <span>© 2026 {t("brand.name")} — {t("landing.footer.rights")}</span>
+          <span className="font-medium text-muted">{t("landing.footer.byNx")}</span>
           <span>{t("landing.footer.madeIn")}</span>
         </div>
       </footer>
