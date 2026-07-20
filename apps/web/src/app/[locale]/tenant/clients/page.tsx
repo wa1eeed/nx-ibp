@@ -8,6 +8,7 @@ import { api, getToken, ApiError } from "@/lib/api";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Badge, type BadgeTone } from "@/components/ui/Badge";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
+import { usePermissions } from "@/hooks/usePermissions";
 
 interface ClientRow {
   id: string;
@@ -29,6 +30,10 @@ export default function ClientsPage() {
   const t = useTranslations();
   const confirm = useConfirm();
   const router = useRouter();
+  const { can } = usePermissions();
+  const canCreate = can("clients", "create");
+  const canVerify = can("clients", "edit"); // التحقّق من الهوية/السجل = تعديل بيانات العميل
+  const canDecide = can("compliance", "edit"); // اعتماد/رفض الالتزام = صلاحية قسم الالتزام
   const [rows, setRows] = useState<ClientRow[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState("");
@@ -174,13 +179,15 @@ export default function ClientsPage() {
         title={t("clients.title")}
         subtitle={t("clients.subtitle")}
         actions={
-          <button
-            onClick={() => setShowForm((v) => !v)}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-primary-strong px-3.5 py-2 text-[13px] font-semibold text-primary-fg shadow-sm transition-colors hover:bg-primary"
-          >
-            {showForm ? <X size={16} /> : <Plus size={16} />}
-            {showForm ? t("clients.cancel") : t("clients.newClient")}
-          </button>
+          canCreate ? (
+            <button
+              onClick={() => setShowForm((v) => !v)}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-primary-strong px-3.5 py-2 text-[13px] font-semibold text-primary-fg shadow-sm transition-colors hover:bg-primary"
+            >
+              {showForm ? <X size={16} /> : <Plus size={16} />}
+              {showForm ? t("clients.cancel") : t("clients.newClient")}
+            </button>
+          ) : null
         }
       />
 
@@ -319,17 +326,23 @@ export default function ClientsPage() {
                     <Badge tone={COMPLIANCE_TONE[c.complianceStatus]}>{t(`clients.complianceStatus.${c.complianceStatus}`)}</Badge>
                   </td>
                   <td className="px-5 py-3">
-                    {c.complianceStatus === "PENDING" ? (
+                    {c.complianceStatus === "PENDING" && (canVerify || canDecide) ? (
                       <div className="flex items-center gap-1.5">
-                        <button onClick={() => verify(c)} disabled={verifying === c.id} title={t("clients.verify.button")} className="inline-flex items-center gap-1 rounded-md border border-line bg-card px-2 py-1.5 text-[11.5px] font-medium text-primary hover:bg-surface-2 disabled:opacity-60">
-                          <BadgeCheck size={14} /> {verifying === c.id ? "…" : t("clients.verify.button")}
-                        </button>
-                        <button onClick={() => decide(c.id, "APPROVED")} title={t("clients.approve")} className="grid h-7 w-7 place-items-center rounded-md bg-success-soft text-success hover:opacity-80">
-                          <Check size={15} />
-                        </button>
-                        <button onClick={() => decide(c.id, "REJECTED")} title={t("clients.reject")} className="grid h-7 w-7 place-items-center rounded-md bg-danger-soft text-danger hover:opacity-80">
-                          <Ban size={15} />
-                        </button>
+                        {canVerify ? (
+                          <button onClick={() => verify(c)} disabled={verifying === c.id} title={t("clients.verify.button")} className="inline-flex items-center gap-1 rounded-md border border-line bg-card px-2 py-1.5 text-[11.5px] font-medium text-primary hover:bg-surface-2 disabled:opacity-60">
+                            <BadgeCheck size={14} /> {verifying === c.id ? "…" : t("clients.verify.button")}
+                          </button>
+                        ) : null}
+                        {canDecide ? (
+                          <>
+                            <button onClick={() => decide(c.id, "APPROVED")} title={t("clients.approve")} className="grid h-7 w-7 place-items-center rounded-md bg-success-soft text-success hover:opacity-80">
+                              <Check size={15} />
+                            </button>
+                            <button onClick={() => decide(c.id, "REJECTED")} title={t("clients.reject")} className="grid h-7 w-7 place-items-center rounded-md bg-danger-soft text-danger hover:opacity-80">
+                              <Ban size={15} />
+                            </button>
+                          </>
+                        ) : null}
                       </div>
                     ) : null}
                   </td>

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Wallet2, Clock, TrendingDown, Building2, Receipt, X, Check } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { api, ApiError } from "@/lib/api";
+import { usePermissions } from "@/hooks/usePermissions";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatCard } from "@/components/ui/StatCard";
 import { Badge, type BadgeTone } from "@/components/ui/Badge";
@@ -16,6 +17,8 @@ const STATUS_KEY: Record<string, string> = { received: "commissions.status.recei
 
 export default function CommissionsPage() {
   const t = useTranslations();
+  const { can } = usePermissions();
+  const canWrite = can("finance", "edit");
   const [d, setD] = useState<Data | null>(null);
   const [rcv, setRcv] = useState<Row | null>(null);
   const [done, setDone] = useState("");
@@ -127,7 +130,7 @@ export default function CommissionsPage() {
                   <td className={`px-5 py-3 text-[13px] tnum ${r.status === "variance" ? "font-medium text-danger" : "text-subtle"}`}>{variance(r)}</td>
                   <td className="px-5 py-3">{r.status ? <Badge tone={STATUS_TONE[r.status] ?? "neutral"}>{t(STATUS_KEY[r.status] ?? "commissions.status.accrued")}</Badge> : null}</td>
                   <td className="px-5 py-3 text-end">
-                    {r.status !== "received" ? <button onClick={() => { setDone(""); setRcv(r); }} className="inline-flex items-center gap-1 rounded-lg border border-line px-2.5 py-1.5 text-[12px] font-medium text-muted hover:bg-surface-2"><Receipt size={13} /> {t("commissions.recordReceipt")}</button> : null}
+                    {canWrite && r.status !== "received" ? <button onClick={() => { setDone(""); setRcv(r); }} className="inline-flex items-center gap-1 rounded-lg border border-line px-2.5 py-1.5 text-[12px] font-medium text-muted hover:bg-surface-2"><Receipt size={13} /> {t("commissions.recordReceipt")}</button> : null}
                   </td>
                 </tr>
               ))}

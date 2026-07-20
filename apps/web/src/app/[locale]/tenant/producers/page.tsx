@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Handshake, Users, Wallet2, Clock, UserPlus, X, Check, Banknote, ShieldCheck } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { api, ApiError } from "@/lib/api";
+import { usePermissions } from "@/hooks/usePermissions";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatCard } from "@/components/ui/StatCard";
 import { Badge } from "@/components/ui/Badge";
@@ -14,6 +15,8 @@ interface ListData { summary: { producers: number; active: number; commissionOwe
 export default function ProducersPage() {
   const t = useTranslations("producers");
   const tg = useTranslations();
+  const { can } = usePermissions();
+  const canCreate = can("finance", "create");
   const [d, setD] = useState<ListData | null>(null);
   const [openId, setOpenId] = useState("");
   const [creating, setCreating] = useState(false);
@@ -26,7 +29,7 @@ export default function ProducersPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title={t("title")} subtitle={t("subtitle")} actions={<button onClick={() => { setMsg(""); setCreating(true); }} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary-strong px-3.5 text-[12.5px] font-semibold text-primary-fg hover:bg-primary"><UserPlus size={15} /> {t("add")}</button>} />
+      <PageHeader title={t("title")} subtitle={t("subtitle")} actions={canCreate ? <button onClick={() => { setMsg(""); setCreating(true); }} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary-strong px-3.5 text-[12.5px] font-semibold text-primary-fg hover:bg-primary"><UserPlus size={15} /> {t("add")}</button> : null} />
       {msg ? <p className="rounded-lg bg-success-soft px-3 py-2 text-[12.5px] font-medium text-success">{msg}</p> : null}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -87,6 +90,7 @@ interface DetailData {
 
 function ProducerDetail({ id, onClose, onChanged }: { id: string; onClose: () => void; onChanged: () => void }) {
   const t = useTranslations("producers");
+  const canSettle = usePermissions().can("finance", "edit");
   const [d, setD] = useState<DetailData | null>(null);
   const [settling, setSettling] = useState(false);
   const load = useCallback(() => { void api<DetailData>(`/producers/${id}`).then(setD).catch(() => undefined); }, [id]);
@@ -123,7 +127,7 @@ function ProducerDetail({ id, onClose, onChanged }: { id: string; onClose: () =>
 
             <div className="mb-3 flex items-center justify-between">
               <h3 className="text-[13px] font-semibold text-ink">{t("theirPolicies")} <span className="text-subtle">({d.policies.length})</span></h3>
-              {d.ledger.outstanding > 0 ? <button onClick={() => setSettling(true)} className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-primary-strong px-3 text-[12px] font-semibold text-primary-fg hover:bg-primary"><Banknote size={14} /> {t("settle.action")}</button> : null}
+              {canSettle && d.ledger.outstanding > 0 ? <button onClick={() => setSettling(true)} className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-primary-strong px-3 text-[12px] font-semibold text-primary-fg hover:bg-primary"><Banknote size={14} /> {t("settle.action")}</button> : null}
             </div>
             <div className="overflow-x-auto rounded-lg border border-line">
               <table className="w-full min-w-[520px] text-[12.5px]">

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Plus, Check, Trophy, X, CalendarClock, RefreshCw, FileText, ClipboardList, Percent, AlarmClock, ArrowRightLeft, ExternalLink, Phone, Mail, Users, StickyNote, ArrowRight, Send } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { api, ApiError, getToken } from "@/lib/api";
+import { usePermissions } from "@/hooks/usePermissions";
 import { PageHeader } from "@/components/ui/PageHeader";
 
 interface Deal { id: string; title: string; stage: string; status: string; value: string | null; productLineCode: string | null; estimatedPremium: string | null; exclusivity: string | null; requestId: string | null; clientId: string | null; clientName: string | null; assigneeId: string | null; assigneeName: string | null }
@@ -28,6 +29,9 @@ const ACT_META: Record<string, { Icon: typeof Phone; tone: string }> = {
 
 export default function CrmPage() {
   const t = useTranslations("crm");
+  const { can } = usePermissions();
+  const canCreate = can("sales", "create");
+  const canUpdate = can("sales", "edit");
   const [deals, setDeals] = useState<Deal[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
@@ -117,9 +121,11 @@ export default function CrmPage() {
         <section className="min-w-0">
           <div className="mb-2.5 flex items-center justify-between">
             <h2 className="text-[13.5px] font-bold text-ink">{t("pipeline")}</h2>
-            <button onClick={() => setDealForm({ title: "", clientId: "", value: "", productLineCode: "", assigneeId: "" })} className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-ink px-3 text-[12px] font-semibold text-white hover:opacity-90">
-              <Plus size={14} /> {t("newDeal")}
-            </button>
+            {canCreate ? (
+              <button onClick={() => setDealForm({ title: "", clientId: "", value: "", productLineCode: "", assigneeId: "" })} className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-ink px-3 text-[12px] font-semibold text-white hover:opacity-90">
+                <Plus size={14} /> {t("newDeal")}
+              </button>
+            ) : null}
           </div>
 
           {dealForm ? (
@@ -194,7 +200,7 @@ export default function CrmPage() {
               {isManager ? (
                 <button onClick={() => setMineOnly((v) => !v)} className={["h-8 rounded-lg border px-2.5 text-[11.5px] font-medium", mineOnly ? "border-primary bg-primary/10 text-primary" : "border-line text-muted hover:bg-surface-2"].join(" ")}>{mineOnly ? t("myTasks") : t("allTasks")}</button>
               ) : null}
-              <button onClick={() => setTaskForm({ title: "", assigneeId: "", dueDate: "", priority: "normal" })} className="grid h-8 w-8 place-items-center rounded-lg bg-ink text-white hover:opacity-90"><Plus size={14} /></button>
+              {canCreate ? <button onClick={() => setTaskForm({ title: "", assigneeId: "", dueDate: "", priority: "normal" })} className="grid h-8 w-8 place-items-center rounded-lg bg-ink text-white hover:opacity-90"><Plus size={14} /></button> : null}
             </div>
           </div>
 
@@ -222,7 +228,7 @@ export default function CrmPage() {
             {tasks.length === 0 ? <p className="rounded-card border border-dashed border-line px-3 py-6 text-center text-[12px] text-subtle">{t("emptyTasks")}</p> : null}
             {tasks.map((tk) => (
               <div key={tk.id} className="flex items-start gap-2 rounded-card border border-line bg-card p-3">
-                <button onClick={() => void completeTask(tk.id)} title={t("complete")} className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full border border-line text-subtle hover:border-success hover:bg-success/10 hover:text-success"><Check size={12} /></button>
+                {canUpdate ? <button onClick={() => void completeTask(tk.id)} title={t("complete")} className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full border border-line text-subtle hover:border-success hover:bg-success/10 hover:text-success"><Check size={12} /></button> : <span className="mt-0.5 h-5 w-5 shrink-0" />}
                 <div className="min-w-0 flex-1">
                   <div className="text-[12.5px] font-medium text-ink">{tk.title}</div>
                   <div className="mt-1 flex items-center gap-2">

@@ -7,6 +7,7 @@ import { useRouter } from "@/i18n/routing";
 import { api, getToken, ApiError } from "@/lib/api";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Badge, type BadgeTone } from "@/components/ui/Badge";
+import { usePermissions } from "@/hooks/usePermissions";
 
 interface SR {
   id: string; sequenceNo: string | null; type: string; subject: string | null; status: string;
@@ -26,6 +27,8 @@ const daysSince = (d: string) => Math.floor((Date.now() - new Date(d).getTime())
 export default function ServicePage() {
   const t = useTranslations();
   const router = useRouter();
+  const { can } = usePermissions();
+  const canCreate = can("service", "create");
   const [allRows, setAllRows] = useState<SR[]>([]);
   const [staff, setStaff] = useState<Staff[]>([]);
   const [show, setShow] = useState(false);
@@ -69,7 +72,7 @@ export default function ServicePage() {
   return (
     <div>
       <PageHeader title={t("service.title")} subtitle={t("service.subtitle")}
-        actions={<button onClick={() => setShow((v) => !v)} className="inline-flex items-center gap-1.5 rounded-lg bg-primary-strong px-3.5 py-2 text-[13px] font-semibold text-primary-fg hover:bg-primary">{show ? <X size={16} /> : <Plus size={16} />}{show ? t("service.cancel") : t("service.new")}</button>} />
+        actions={canCreate ? <button onClick={() => setShow((v) => !v)} className="inline-flex items-center gap-1.5 rounded-lg bg-primary-strong px-3.5 py-2 text-[13px] font-semibold text-primary-fg hover:bg-primary">{show ? <X size={16} /> : <Plus size={16} />}{show ? t("service.cancel") : t("service.new")}</button> : null} />
 
       {error ? <p className="mb-3 rounded-lg bg-danger-soft px-3 py-2 text-[12.5px] font-medium text-danger">{error}</p> : null}
 

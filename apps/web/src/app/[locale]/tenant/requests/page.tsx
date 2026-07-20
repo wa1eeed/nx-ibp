@@ -8,6 +8,7 @@ import { api, getToken, ApiError } from "@/lib/api";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Badge, type BadgeTone } from "@/components/ui/Badge";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
+import { usePermissions } from "@/hooks/usePermissions";
 
 interface RequestRow {
   id: string;
@@ -31,6 +32,10 @@ export default function RequestsPage() {
   const t = useTranslations();
   const confirm = useConfirm();
   const router = useRouter();
+  const { can } = usePermissions();
+  const canCreate = can("sales", "create");
+  const canRfq = can("underwriting", "create"); // بدء RFQ = إنشاء كشف اكتتاب
+  const canIssue = can("production", "create"); // إصدار الوثيقة = صلاحية الإنتاج
   const [rows, setRows] = useState<RequestRow[]>([]);
 
   const [error, setError] = useState("");
@@ -81,13 +86,15 @@ export default function RequestsPage() {
         title={t("requests.title")}
         subtitle={t("requests.subtitle")}
         actions={
-          <Link
-            href="/tenant/requests/new"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-primary-strong px-3.5 py-2 text-[13px] font-semibold text-primary-fg shadow-sm transition-colors hover:bg-primary"
-          >
-            <Plus size={16} />
-            {t("requests.new")}
-          </Link>
+          canCreate ? (
+            <Link
+              href="/tenant/requests/new"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-primary-strong px-3.5 py-2 text-[13px] font-semibold text-primary-fg shadow-sm transition-colors hover:bg-primary"
+            >
+              <Plus size={16} />
+              {t("requests.new")}
+            </Link>
+          ) : null
         }
       />
 
@@ -123,14 +130,16 @@ export default function RequestsPage() {
                   </td>
                   <td className="px-5 py-3 text-end">
                     {r.status === "AWARDED" ? (
-                      <button onClick={() => issuePolicy(r.id)} className="inline-flex items-center gap-1.5 rounded-lg bg-primary-strong px-2.5 py-1.5 text-[12px] font-semibold text-primary-fg hover:bg-primary">
-                        <FileCheck2 size={13} /> {t("requests.issue")}
-                      </button>
-                    ) : (
+                      canIssue ? (
+                        <button onClick={() => issuePolicy(r.id)} className="inline-flex items-center gap-1.5 rounded-lg bg-primary-strong px-2.5 py-1.5 text-[12px] font-semibold text-primary-fg hover:bg-primary">
+                          <FileCheck2 size={13} /> {t("requests.issue")}
+                        </button>
+                      ) : null
+                    ) : canRfq ? (
                       <button onClick={() => startRfq(r.id)} className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-card px-2.5 py-1.5 text-[12px] font-medium text-primary hover:bg-surface-2">
                         <FileSpreadsheet size={13} /> {t("requests.rfq")}
                       </button>
-                    )}
+                    ) : null}
                   </td>
                 </tr>
               ))}

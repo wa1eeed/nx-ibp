@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Umbrella, Plus, Pencil, Trash2, Check, X, Building2, Landmark, Percent, CalendarClock, FileCheck2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { api, ApiError } from "@/lib/api";
+import { usePermissions } from "@/hooks/usePermissions";
 import { PageHeader } from "@/components/ui/PageHeader";
 
 interface Stats { count: number; grossPremium: number; commission: number }
@@ -19,6 +20,10 @@ const empty = { name: "", nameEn: "", code: "", licenseNo: "", vatNumber: "", na
 
 export default function InsurersPage() {
   const t = useTranslations("insurers");
+  const { can } = usePermissions();
+  const canCreate = can("finance", "create");
+  const canEdit = can("finance", "edit");
+  const canDelete = can("finance", "delete");
   const [list, setList] = useState<Insurer[]>([]);
   const [form, setForm] = useState<Record<string, string> | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
@@ -64,7 +69,7 @@ export default function InsurersPage() {
       {notice ? <p className="rounded-lg bg-success-soft px-3 py-2 text-[12.5px] font-medium text-success">{notice}</p> : null}
 
       {!form ? (
-        <button onClick={openNew} className="inline-flex h-10 items-center gap-2 rounded-lg bg-primary-strong px-4 text-[13px] font-semibold text-primary-fg hover:bg-primary"><Plus size={16} /> {t("add")}</button>
+        canCreate ? <button onClick={openNew} className="inline-flex h-10 items-center gap-2 rounded-lg bg-primary-strong px-4 text-[13px] font-semibold text-primary-fg hover:bg-primary"><Plus size={16} /> {t("add")}</button> : null
       ) : (
         <section className="rounded-card border border-line bg-card p-5 shadow-card">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -104,8 +109,8 @@ export default function InsurersPage() {
                   {i.nameEn ? <div className="text-[11.5px] text-subtle" dir="ltr">{i.nameEn}</div> : null}
                 </div>
                 <div className="flex items-center gap-1">
-                  <button onClick={() => openEdit(i)} className="rounded-md border border-line p-1.5 text-subtle hover:bg-surface-2 hover:text-ink"><Pencil size={13} /></button>
-                  <button onClick={() => remove(i.id)} className="rounded-md border border-line p-1.5 text-subtle hover:bg-danger-soft hover:text-danger"><Trash2 size={13} /></button>
+                  {canEdit ? <button onClick={() => openEdit(i)} className="rounded-md border border-line p-1.5 text-subtle hover:bg-surface-2 hover:text-ink"><Pencil size={13} /></button> : null}
+                  {canDelete ? <button onClick={() => remove(i.id)} className="rounded-md border border-line p-1.5 text-subtle hover:bg-danger-soft hover:text-danger"><Trash2 size={13} /></button> : null}
                 </div>
               </div>
 

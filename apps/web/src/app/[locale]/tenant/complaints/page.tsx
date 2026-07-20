@@ -5,6 +5,7 @@ import { MessageSquareWarning, Plus, X, AlertTriangle, ShieldAlert, CheckCircle2
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
 import { api, ApiError } from "@/lib/api";
+import { usePermissions } from "@/hooks/usePermissions";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatCard } from "@/components/ui/StatCard";
 import { Badge } from "@/components/ui/Badge";
@@ -21,6 +22,7 @@ const prTone: Record<string, "danger" | "warning" | "neutral"> = { urgent: "dang
 
 export default function ComplaintsPage() {
   const t = useTranslations("complaints");
+  const canCreate = usePermissions().can("compliance", "create");
   const [rows, setRows] = useState<Row[]>([]);
   const [rep, setRep] = useState<Report | null>(null);
   const [status, setStatus] = useState("");
@@ -43,7 +45,7 @@ export default function ComplaintsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title={t("title")} subtitle={t("subtitle")} actions={<button onClick={() => setShowNew(true)} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary-strong px-4 text-[13px] font-semibold text-primary-fg hover:bg-primary"><Plus size={16} /> {t("new")}</button>} />
+      <PageHeader title={t("title")} subtitle={t("subtitle")} actions={canCreate ? <button onClick={() => setShowNew(true)} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary-strong px-4 text-[13px] font-semibold text-primary-fg hover:bg-primary"><Plus size={16} /> {t("new")}</button> : null} />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
         <StatCard tone="primary" icon={<MessageSquareWarning size={18} />} title={t("kpi.total")} value={rep?.total ?? "…"} />

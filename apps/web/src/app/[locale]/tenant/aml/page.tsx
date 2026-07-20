@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ShieldAlert, ScanSearch, FileWarning, X, AlertTriangle, Gauge, UserCheck } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { api, ApiError } from "@/lib/api";
+import { usePermissions } from "@/hooks/usePermissions";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatCard } from "@/components/ui/StatCard";
 import { Badge, type BadgeTone } from "@/components/ui/Badge";
@@ -74,6 +75,7 @@ export default function AmlPage() {
 // ── سجلّ المخاطر ─────────────────────────────────────────────────────────────
 function ClientsTab({ onChanged }: { onChanged: () => void }) {
   const t = useTranslations("aml");
+  const canWrite = usePermissions().can("compliance", "edit");
   const [rows, setRows] = useState<AmlClient[]>([]);
   const [level, setLevel] = useState("");
   const [assess, setAssess] = useState<AmlClient | null>(null);
@@ -107,7 +109,7 @@ function ClientsTab({ onChanged }: { onChanged: () => void }) {
                   <td className="px-4 py-3 text-center">{c.amlRiskLevel ? <Badge tone={levelTone[c.amlRiskLevel] ?? "neutral"}>{t(`level.${c.amlRiskLevel}`)}</Badge> : <span className="text-[11.5px] text-subtle">{t("notAssessed")}</span>}</td>
                   <td className="px-4 py-3 text-center text-[12.5px] tnum text-muted">{c.amlRiskScore ?? "—"}</td>
                   <td className="px-4 py-3 text-center text-[12px] tnum">{c.reviewOverdue ? <span className="font-semibold text-danger">{dt(c.amlReviewDue)}</span> : <span className="text-subtle">{dt(c.amlReviewDue)}</span>}</td>
-                  <td className="px-4 py-3 text-end"><button onClick={() => setAssess(c)} className="h-8 rounded-lg border border-line px-3 text-[12px] font-medium text-primary hover:bg-surface-2">{t("assess")}</button></td>
+                  <td className="px-4 py-3 text-end">{canWrite ? <button onClick={() => setAssess(c)} className="h-8 rounded-lg border border-line px-3 text-[12px] font-medium text-primary hover:bg-surface-2">{t("assess")}</button> : null}</td>
                 </tr>
               ))}
               {rows.length === 0 ? <tr><td colSpan={5} className="px-5 py-10 text-center text-[13px] text-subtle">{t("emptyClients")}</td></tr> : null}
@@ -159,6 +161,7 @@ function AssessModal({ client, onClose, onDone }: { client: AmlClient; onClose: 
 // ── الفرز ────────────────────────────────────────────────────────────────────
 function ScreeningTab({ onChanged }: { onChanged: () => void }) {
   const t = useTranslations("aml");
+  const canWrite = usePermissions().can("compliance", "edit");
   const [rows, setRows] = useState<Screening[]>([]);
   const [name, setName] = useState("");
   const [running, setRunning] = useState(false);
@@ -178,7 +181,7 @@ function ScreeningTab({ onChanged }: { onChanged: () => void }) {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
         <input value={name} onChange={(e) => setName(e.target.value)} placeholder={t("screenPlaceholder")} className={`${field} w-64`} onKeyDown={(e) => e.key === "Enter" && run()} />
-        <button onClick={run} disabled={running || name.trim().length < 2} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary-strong px-4 text-[12.5px] font-semibold text-primary-fg hover:bg-primary disabled:opacity-60"><ScanSearch size={15} /> {running ? "…" : t("runScreen")}</button>
+        {canWrite ? <button onClick={run} disabled={running || name.trim().length < 2} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary-strong px-4 text-[12.5px] font-semibold text-primary-fg hover:bg-primary disabled:opacity-60"><ScanSearch size={15} /> {running ? "…" : t("runScreen")}</button> : null}
       </div>
       <section className="overflow-hidden rounded-card border border-line bg-card shadow-card">
         <div className="overflow-x-auto">
@@ -200,8 +203,10 @@ function ScreeningTab({ onChanged }: { onChanged: () => void }) {
                   <td className="px-4 py-3 text-end">
                     {s.disposition === "pending" ? (
                       <div className="flex justify-end gap-1.5">
-                        <button onClick={() => dispose(s.id, "cleared")} className="h-8 rounded-lg border border-line px-2.5 text-[11.5px] font-medium text-success hover:bg-surface-2">{t("clearFP")}</button>
-                        <button onClick={() => dispose(s.id, "escalated")} className="h-8 rounded-lg border border-line px-2.5 text-[11.5px] font-medium text-danger hover:bg-surface-2">{t("escalate")}</button>
+                        {canWrite ? <>
+                          <button onClick={() => dispose(s.id, "cleared")} className="h-8 rounded-lg border border-line px-2.5 text-[11.5px] font-medium text-success hover:bg-surface-2">{t("clearFP")}</button>
+                          <button onClick={() => dispose(s.id, "escalated")} className="h-8 rounded-lg border border-line px-2.5 text-[11.5px] font-medium text-danger hover:bg-surface-2">{t("escalate")}</button>
+                        </> : null}
                       </div>
                     ) : null}
                   </td>
@@ -219,6 +224,7 @@ function ScreeningTab({ onChanged }: { onChanged: () => void }) {
 // ── بلاغات الاشتباه (STR) ────────────────────────────────────────────────────
 function StrTab({ onChanged }: { onChanged: () => void }) {
   const t = useTranslations("aml");
+  const canWrite = usePermissions().can("compliance", "edit");
   const [rows, setRows] = useState<Str[]>([]);
   const [showNew, setShowNew] = useState(false);
   const load = useCallback(() => { void api<Str[]>("/aml/reports").then(setRows).catch(() => setRows([])); }, []);
@@ -228,7 +234,7 @@ function StrTab({ onChanged }: { onChanged: () => void }) {
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
-        <button onClick={() => setShowNew(true)} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary-strong px-4 text-[12.5px] font-semibold text-primary-fg hover:bg-primary"><FileWarning size={15} /> {t("newStr")}</button>
+        {canWrite ? <button onClick={() => setShowNew(true)} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary-strong px-4 text-[12.5px] font-semibold text-primary-fg hover:bg-primary"><FileWarning size={15} /> {t("newStr")}</button> : null}
       </div>
       <section className="overflow-hidden rounded-card border border-line bg-card shadow-card">
         <div className="overflow-x-auto">
@@ -249,7 +255,7 @@ function StrTab({ onChanged }: { onChanged: () => void }) {
                   <td className="px-4 py-3 text-center"><Badge tone={strTone[r.status] ?? "neutral"}>{t(`strStatus.${r.status}`)}</Badge></td>
                   <td className="px-4 py-3 text-end">
                     <div className="flex justify-end gap-1.5">
-                      {r.status === "draft" ? <button onClick={() => setStatus(r.id, "filed")} className="h-8 rounded-lg border border-line px-2.5 text-[11.5px] font-medium text-info hover:bg-surface-2">{t("file")}</button> : null}
+                      {canWrite && r.status === "draft" ? <button onClick={() => setStatus(r.id, "filed")} className="h-8 rounded-lg border border-line px-2.5 text-[11.5px] font-medium text-info hover:bg-surface-2">{t("file")}</button> : null}
                       {r.status === "filed" ? <button onClick={() => setStatus(r.id, "closed")} className="h-8 rounded-lg border border-line px-2.5 text-[11.5px] font-medium text-success hover:bg-surface-2">{t("close")}</button> : null}
                     </div>
                   </td>

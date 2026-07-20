@@ -8,6 +8,7 @@ import { api, getToken, ApiError } from "@/lib/api";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Badge, type BadgeTone } from "@/components/ui/Badge";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
+import { usePermissions } from "@/hooks/usePermissions";
 
 interface Policy {
   id: string;
@@ -37,7 +38,10 @@ export default function PoliciesPage() {
   const router = useRouter();
   const [rows, setRows] = useState<Policy[]>([]);
   const [stepNames, setStepNames] = useState<Record<string, string>>({});
-  const [canRevert, setCanRevert] = useState(false);
+  const { can } = usePermissions();
+  const canApproveTech = can("production", "edit"); // اعتماد فني
+  const canApproveFinance = can("finance", "edit"); // اعتماد مالي
+  const canRevert = can("production", "revert"); // تراجع خطوة (E4)
   const [error, setError] = useState("");
 
   const load = useCallback(async () => {
@@ -47,11 +51,6 @@ export default function PoliciesPage() {
     try {
       const c = await api<{ steps: { key: string; name: string }[] }>("/config/approval-chain");
       setStepNames(Object.fromEntries(c.steps.map((s) => [s.key, s.name])));
-    } catch { /* تجاهل */ }
-    // صلاحية التراجع (E4) على وحدة الإنتاج — لإظهار زر «تراجع خطوة»
-    try {
-      const me = await api<{ permissions?: Record<string, { revert?: boolean }> }>("/auth/me");
-      setCanRevert(me.permissions?.production?.revert === true);
     } catch { /* تجاهل */ }
   }, []);
 
@@ -158,17 +157,23 @@ export default function PoliciesPage() {
                     <td className="px-5 py-3 text-end">
                       <div className="inline-flex items-center gap-2">
                         {p.status === "TECHNICAL_REVIEW" ? (
-                          <button onClick={() => act(`/policies/${p.id}/approve-technical`, "approveTechnical")} className="inline-flex items-center gap-1 rounded-lg border border-line bg-card px-2.5 py-1.5 text-[12px] font-medium text-primary hover:bg-surface-2">
-                            <CheckCircle2 size={13} /> {t("policies.approveTechnical")}
-                          </button>
+                          canApproveTech ? (
+                            <button onClick={() => act(`/policies/${p.id}/approve-technical`, "approveTechnical")} className="inline-flex items-center gap-1 rounded-lg border border-line bg-card px-2.5 py-1.5 text-[12px] font-medium text-primary hover:bg-surface-2">
+                              <CheckCircle2 size={13} /> {t("policies.approveTechnical")}
+                            </button>
+                          ) : null
                         ) : p.status === "FINANCE_REVIEW" && (p.pendingApprovals?.length ?? 0) > 0 ? (
-                          <button onClick={() => approveStep(p.id, p.pendingApprovals![0])} className="inline-flex items-center gap-1 rounded-lg border border-warning/40 bg-warning/10 px-2.5 py-1.5 text-[12px] font-semibold text-warning hover:bg-warning/20">
-                            <CheckCircle2 size={13} /> {t("policies.approveStep")}: {stepNames[p.pendingApprovals![0]] ?? p.pendingApprovals![0]}
-                          </button>
+                          canApproveTech || canApproveFinance ? (
+                            <button onClick={() => approveStep(p.id, p.pendingApprovals![0])} className="inline-flex items-center gap-1 rounded-lg border border-warning/40 bg-warning/10 px-2.5 py-1.5 text-[12px] font-semibold text-warning hover:bg-warning/20">
+                              <CheckCircle2 size={13} /> {t("policies.approveStep")}: {stepNames[p.pendingApprovals![0]] ?? p.pendingApprovals![0]}
+                            </button>
+                          ) : null
                         ) : p.status === "FINANCE_REVIEW" ? (
-                          <button onClick={() => act(`/finance/policies/${p.id}/approve`, "approveFinance")} className="inline-flex items-center gap-1 rounded-lg bg-primary-strong px-2.5 py-1.5 text-[12px] font-semibold text-primary-fg hover:bg-primary">
-                            <Landmark size={13} /> {t("policies.approveFinance")}
-                          </button>
+                          canApproveFinance ? (
+                            <button onClick={() => act(`/finance/policies/${p.id}/approve`, "approveFinance")} className="inline-flex items-center gap-1 rounded-lg bg-primary-strong px-2.5 py-1.5 text-[12px] font-semibold text-primary-fg hover:bg-primary">
+                              <Landmark size={13} /> {t("policies.approveFinance")}
+                            </button>
+                          ) : null
                         ) : null}
                         {canRevert && (p.status === "TECHNICAL_REVIEW" || p.status === "FINANCE_REVIEW") ? (
                           <button onClick={() => revert(p.id)} title={t("policies.revert")} className="inline-flex items-center gap-1 rounded-lg border border-line px-2.5 py-1.5 text-[12px] font-medium text-muted transition-colors hover:bg-danger/10 hover:text-danger">

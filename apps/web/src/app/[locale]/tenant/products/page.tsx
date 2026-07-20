@@ -5,6 +5,7 @@ import { Boxes, FileCheck2, Plus, CheckCircle2, Circle } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/routing";
 import { api, getToken } from "@/lib/api";
+import { usePermissions } from "@/hooks/usePermissions";
 import { PageHeader } from "@/components/ui/PageHeader";
 
 interface Line { code: string; name: string; hasForm: boolean; count: number; premium: number }
@@ -13,6 +14,8 @@ interface Cls { code: string; name: string; vatRate: number; lines: Line[] }
 export default function ProductsPage() {
   const t = useTranslations("products");
   const router = useRouter();
+  const { can } = usePermissions();
+  const canCreateRequest = can("sales", "create");
   const [classes, setClasses] = useState<Cls[]>([]);
 
   const load = useCallback(async () => setClasses(await api<Cls[]>("/catalog/stats")), []);
@@ -66,7 +69,7 @@ export default function ProductsPage() {
                         </div>
                       ) : <div className="mt-1 text-[11px] text-subtle">{t("noProduction")}</div>}
                     </div>
-                    <Link href={`/tenant/requests/new?line=${l.code}`} title={t("newRequest")} className="grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-line text-primary hover:bg-primary/5"><Plus size={14} /></Link>
+                    {canCreateRequest ? <Link href={`/tenant/requests/new?line=${l.code}`} title={t("newRequest")} className="grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-line text-primary hover:bg-primary/5"><Plus size={14} /></Link> : null}
                   </div>
                 ))}
               </div>

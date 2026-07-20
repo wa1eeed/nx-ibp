@@ -8,6 +8,7 @@ import { api, getToken, ApiError } from "@/lib/api";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Badge, type BadgeTone } from "@/components/ui/Badge";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
+import { usePermissions } from "@/hooks/usePermissions";
 
 interface Claim { id: string; sequenceNo: string | null; status: string; insurerName: string | null; claimedAmount: string | null; settledAmount: string | null; tenantId: string }
 
@@ -18,6 +19,9 @@ export default function ClaimsPage() {
   const t = useTranslations();
   const confirm = useConfirm();
   const router = useRouter();
+  const { can } = usePermissions();
+  const canCreate = can("claims", "create");
+  const canUpdate = can("claims", "edit");
   const [rows, setRows] = useState<Claim[]>([]);
   const [locked, setLocked] = useState(false);
   const [show, setShow] = useState(false);
@@ -69,7 +73,7 @@ export default function ClaimsPage() {
   return (
     <div>
       <PageHeader title={t("claims.title")} subtitle={t("claims.subtitle")}
-        actions={<button onClick={() => setShow((x) => !x)} className="inline-flex items-center gap-1.5 rounded-lg bg-primary-strong px-3.5 py-2 text-[13px] font-semibold text-primary-fg hover:bg-primary">{show ? <X size={16} /> : <Plus size={16} />}{show ? t("claims.cancel") : t("claims.new")}</button>} />
+        actions={canCreate ? <button onClick={() => setShow((x) => !x)} className="inline-flex items-center gap-1.5 rounded-lg bg-primary-strong px-3.5 py-2 text-[13px] font-semibold text-primary-fg hover:bg-primary">{show ? <X size={16} /> : <Plus size={16} />}{show ? t("claims.cancel") : t("claims.new")}</button> : null} />
       {error ? <p className="mb-3 rounded-lg bg-danger-soft px-3 py-2 text-[12.5px] font-medium text-danger">{error}</p> : null}
       {show ? (
         <form onSubmit={create} className="mb-4 grid grid-cols-1 gap-3 rounded-card border border-line bg-card p-5 shadow-card sm:grid-cols-4">
@@ -101,9 +105,11 @@ export default function ClaimsPage() {
                   <td className="px-5 py-3 text-[12.5px] text-muted tnum">{fmt(r.settledAmount)}</td>
                   <td className="px-5 py-3"><Badge tone={TONE[r.status] ?? "neutral"}>{r.status}</Badge></td>
                   <td className="px-5 py-3 text-end" onClick={(e) => e.stopPropagation()}>
-                    <select value={r.status} onChange={(e) => setStatus(r.id, e.target.value)} className="h-8 rounded-lg border border-line bg-card px-2 text-[12px]">
-                      {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-                    </select>
+                    {canUpdate ? (
+                      <select value={r.status} onChange={(e) => setStatus(r.id, e.target.value)} className="h-8 rounded-lg border border-line bg-card px-2 text-[12px]">
+                        {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                    ) : null}
                   </td>
                 </tr>
               ))}
