@@ -11,7 +11,7 @@
 | المتطلّب | الحالة | الدليل |
 |---|---|---|
 | طبقات خدمة معزولة ومفكوكة (Clean/DDD) | ✅ | معمار NestJS معياري: **Controller → Service → Prisma** لكل وحدة (43 وحدة)؛ المنطق في الخدمات، لا في وحدات التحكّم أو القاعدة. `apps/api/src/modules/*` |
-| نقاط نهاية صريحة منظَّمة تطابق مخططات هيئة التأمين/نجم (placeholders) | ✅ | موصّلات التحقّق (`verification.gateway.ts`: يقين/واثق/نفاذ) + تقارير هيئة التأمين (`regulatory.service.ts`) بنمط بوّابة (Sandbox افتراضي · Live BYO) — جاهزة للربط بمخططات المزوّد. |
+| نقاط نهاية صريحة منظَّمة تطابق مخططات هيئة التأمين (placeholders) | ✅ | موصّلات التحقّق (`verification.gateway.ts`: يقين/واثق/نفاذ/العنوان الوطني) + تقارير هيئة التأمين (`regulatory.service.ts`) بنمط بوّابة (Sandbox افتراضي · Live BYO) — جاهزة للربط بمخططات المزوّد. |
 | منطق الأعمال (إصدار الوثيقة/جلب العروض/تحديث العملاء) عبر وحدات تحكّم متمايزة منفصلة عن القاعدة | ✅ | `production`/`policies` (إصدار) · `slips` (عروض RFQ) · `clients` (تحديث) — كلّها controllers مستقلّة ⇒ services ⇒ Prisma. لا وصول مباشر للقاعدة من الطبقة الشبكية. |
 | DTOs صارمة للطلب/الاستجابة بمخططات تحقّق (Zod/Joi/Pydantic equivalent) | ✅ | `class-validator` + `class-transformer` على كل DTO + **ValidationPipe عام** (`whitelist` + `forbidNonWhitelisted` + `transform`) في `main.ts` — يسهّل تخطيط حمولات المؤمِّنين الخارجية. |
 | **مستقبِل Webhook موحّد بمصادقة توقيع** لاستقبال تحديثات المؤمِّنين اللاتزامنية بأمان | ✅ | **وحدة جديدة** `modules/webhooks`: `POST /webhooks/carrier/:carrier` عام، مُصادَق بـ **HMAC-SHA256** (`x-carrier-signature`) بمقارنة **ثابتة الزمن** + fail-closed + سرّ من البيئة لكل مؤمِّن. DTO موحّد `CarrierEventDto`. e2e: `security-arch` (توقيع صحيح 200 · خاطئ/غائب 401). |

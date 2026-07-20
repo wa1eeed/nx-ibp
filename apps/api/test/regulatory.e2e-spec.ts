@@ -74,7 +74,7 @@ describe("التكاملات التنظيمية والمالية (e2e)", () => {
   it("حالة التكاملات التنظيمية (Sandbox)", async () => {
     const res = await request(app.getHttpServer()).get("/regulatory/status").set(auth(gm)).expect(200);
     expect(res.body.environment).toBe("sandbox");
-    expect(res.body.connectors.length).toBe(9);
+    expect(res.body.connectors.length).toBe(7);
     expect(res.body.connectors.some((c: { key: string }) => c.key === "zatca")).toBe(true);
   });
 

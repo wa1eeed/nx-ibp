@@ -18,6 +18,7 @@ import {
   Building2,
   Palette,
   UserCog,
+  UserCircle,
   KeyRound,
   Bell,
   Plug,
@@ -65,6 +66,7 @@ const ICONS: Record<string, LucideIcon> = {
   Building2,
   Palette,
   UserCog,
+  UserCircle,
   KeyRound,
   Bell,
   Plug,
@@ -90,7 +92,7 @@ function requiredModule(item: NavItem): string {
   if (item.entitlement) return item.entitlement.replace("module.", "");
   if (item.key === "dashboard") return "dashboard";
   if (item.key === "verification") return "clients";
-  if (item.key === "addons" || item.key.startsWith("settings")) return "settings";
+  if (item.key.startsWith("settings")) return "settings";
   return item.key;
 }
 

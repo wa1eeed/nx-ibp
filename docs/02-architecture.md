@@ -27,7 +27,7 @@ flowchart TB
   PG[(PostgreSQL<br/>قاعدة البيانات)]
   REDIS[(Redis<br/>كاش + طوابير)]
   S3[[تخزين S3-متوافق<br/>المستندات]]
-  GOV{{جهات حكومية<br/>نفاذ · يقين · واثق · ZATCA · نجم}}
+  GOV{{جهات حكومية<br/>نفاذ · يقين · واثق · العنوان الوطني · ZATCA}}
 
   User -->|HTTPS| WEB
   WEB -->|REST + JWT| API

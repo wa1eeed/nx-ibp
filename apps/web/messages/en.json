@@ -196,9 +196,10 @@
     "finance": "Finance",
     "addons": "Add-ons",
     "settings": {
+      "account": "My Account",
       "billing": "Subscription & Billing",
       "org": "Org structure",
-      "company": "Company",
+      "company": "Account info",
       "branding": "Branding",
       "staff": "Staff",
       "roles": "Roles & Permissions",

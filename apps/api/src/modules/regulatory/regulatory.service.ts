@@ -21,8 +21,6 @@ export class RegulatoryService {
       { key: "wathiq", name: "واثق (Wathiq)", category: "registry", environment: envOf("WATHIQ"), status: "active", configured: cfg("WATHIQ"), note: "السجل التجاري والمستفيد الحقيقي (UBO)" },
       { key: "spl", name: "العنوان الوطني (SPL)", category: "address", environment: envOf("SPL"), status: "active", configured: cfg("SPL"), note: "التحقّق من العنوان الوطني" },
       { key: "screening", name: "فحص PEP/العقوبات (Screening)", category: "compliance", environment: envOf("SCREENING"), status: "active", configured: cfg("SCREENING"), note: "تصنيف المخاطر" },
-      { key: "najm", name: "نجم (Najm)", category: "motor", environment: envOf("NAJM", "sandbox"), status: cfg("NAJM") ? "active" : "planned", configured: cfg("NAJM"), note: "تأمين المركبات — يُفعَّل بمفاتيح نجم" },
-      { key: "ncchi", name: "مجلس الضمان الصحي / نِفيس", category: "medical", environment: envOf("CCHI", "sandbox"), status: cfg("CCHI") ? "active" : "planned", configured: cfg("CCHI"), note: "التأمين الطبي — يُفعَّل بمفاتيح CCHI" },
       { key: "ia", name: "هيئة التأمين (Insurance Authority)", category: "regulator", environment: "sandbox", status: "planned", configured: false, note: "رفع التقارير التنظيمية" },
     ];
     const liveCount = connectors.filter((c) => c.environment === "live").length;

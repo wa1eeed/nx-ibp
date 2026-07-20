@@ -2,7 +2,7 @@ import { Logger } from "@nestjs/common";
 
 /**
  * بوّابة موفّري التحقّق الحكومي — **نقطة تبديل واحدة** بين Sandbox والموفّرين الفعليين
- * (نفاذ/يقين/واثق/العنوان الوطني/نجم/CCHI). تُختار من `VERIFY_GATEWAY`:
+ * (نفاذ/يقين/واثق/العنوان الوطني). تُختار من `VERIFY_GATEWAY`:
  *  - غير مضبوط/`sandbox` ⇒ بيانات تجريبية (تطوير/عرض).
  *  - `live` ⇒ نداءات HTTP فعلية لكل موفّر **حسب مفاتيحه في البيئة (BYO)**، مع **تراجُع آمن**
  *    إلى Sandbox عند غياب المفتاح أو فشل النداء — تمامًا كنمط البريد/الدفع في المنصّة.
@@ -105,7 +105,5 @@ export const VERIFICATION_PROVIDER_ENV: Record<string, string> = {
   yaqeen: "YAQEEN",
   wathiq: "WATHIQ",
   spl: "SPL",
-  najm: "NAJM",
-  cchi: "CCHI",
   screening: "SCREENING",
 };

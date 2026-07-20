@@ -23,11 +23,8 @@ export type ModuleKey =
   | "insurers"
   | "compliance"
   | "finance"
-  | "addons"
-  | "settings.billing"
+  | "settings.account"
   | "settings.org"
-  | "settings.company"
-  | "settings.branding"
   | "settings.staff"
   | "settings.roles"
   | "settings.integrations"
@@ -124,15 +121,12 @@ export const TENANT_NAV: NavGroup[] = [
   {
     key: "settings",
     items: [
-      // الاشتراك أولًا
-      { key: "settings.billing", href: "/tenant/settings/billing", icon: "CreditCard" },
-      { key: "addons", href: "/tenant/add-ons", icon: "Blocks" },
-      // الشركة والهيكل الإداري تحته
-      { key: "settings.company", href: "/tenant/settings/company", icon: "Building2" },
+      // «حسابي» يجمع: الاشتراك والفوترة + معلومات الحساب + الهوية البصرية (تبويبات)
+      { key: "settings.account", href: "/tenant/settings/account", icon: "UserCircle" },
+      // الهيكل الإداري والموظفون
       { key: "settings.org", href: "/tenant/settings/org", icon: "Network" },
       { key: "settings.staff", href: "/tenant/settings/staff", icon: "UserCog" },
       { key: "settings.roles", href: "/tenant/settings/roles", icon: "KeyRound" },
-      { key: "settings.branding", href: "/tenant/settings/branding", icon: "Palette" },
       // التكاملات والبريد والأمان
       { key: "settings.integrations", href: "/tenant/settings/integrations", icon: "Plug" },
       { key: "settings.email", href: "/tenant/settings/email", icon: "Mail" },

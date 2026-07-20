@@ -146,7 +146,7 @@ export default function StaffPage() {
               </span>
             ) : null}
             {seats && seats.available <= 0 ? (
-              <Link href="/tenant/settings/billing" className="inline-flex items-center gap-1.5 rounded-lg bg-primary-strong px-3.5 py-2 text-[13px] font-semibold text-primary-fg shadow-sm transition-colors hover:bg-primary">
+              <Link href="/tenant/settings/account?tab=billing" className="inline-flex items-center gap-1.5 rounded-lg bg-primary-strong px-3.5 py-2 text-[13px] font-semibold text-primary-fg shadow-sm transition-colors hover:bg-primary">
                 <CreditCard size={16} /> {t("staff.buySeats")}
               </Link>
             ) : (
@@ -164,7 +164,7 @@ export default function StaffPage() {
       {seats && seats.available <= 0 && !showForm ? (
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg bg-warning-soft px-3.5 py-2.5 text-[12.5px] font-medium text-warning">
           <span>{t("staff.seatFull", { limit: seats.limit })}</span>
-          <Link href="/tenant/settings/billing" className="inline-flex items-center gap-1.5 rounded-lg bg-primary-strong px-3 py-1.5 text-[12px] font-semibold text-primary-fg hover:bg-primary"><CreditCard size={13} /> {t("staff.buySeats")}</Link>
+          <Link href="/tenant/settings/account?tab=billing" className="inline-flex items-center gap-1.5 rounded-lg bg-primary-strong px-3 py-1.5 text-[12px] font-semibold text-primary-fg hover:bg-primary"><CreditCard size={13} /> {t("staff.buySeats")}</Link>
         </div>
       ) : null}
 

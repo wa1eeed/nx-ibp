@@ -35,7 +35,7 @@ export default function BillingReturnPage() {
         <p className="text-[14px] font-semibold text-ink">{t(state)}</p>
         {state !== "verifying" ? (
           <div className="mt-6 flex flex-col gap-2">
-            <Link href="/tenant/settings/billing" className="inline-flex h-10 items-center justify-center rounded-lg bg-primary-strong text-[13px] font-semibold text-primary-fg hover:bg-primary">{t("backToBilling")}</Link>
+            <Link href="/tenant/settings/account?tab=billing" className="inline-flex h-10 items-center justify-center rounded-lg bg-primary-strong text-[13px] font-semibold text-primary-fg hover:bg-primary">{t("backToBilling")}</Link>
             <Link href="/tenant/dashboard" className="inline-flex h-10 items-center justify-center rounded-lg border border-line bg-card text-[13px] font-semibold text-ink hover:bg-surface-2">{t("backToDashboard")}</Link>
           </div>
         ) : null}
