@@ -1,0 +1,104 @@
+name: CI
+
+# تكامل مستمر: فحص الأنواع + بناء الإنتاج (web+api) + اختبارات e2e الكاملة على قاعدة معزولة.
+# يعمل عند الدفع/الـPR على main — ليكون «فحصًا مطلوبًا» في حماية الفرع (بوّابة دمج ذات معنى).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    name: Build, typecheck & e2e
+    runs-on: ubuntu-latest
+
+    # خدمات القاعدة/الكاش للاختبارات (بيانات وهمية فقط — لا أسرار إنتاج).
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: ibp
+          POSTGRES_PASSWORD: ci_local_only
+          POSTGRES_DB: ibp_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ibp -d ibp_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # يُقرأ إصدار pnpm من packageManager في package.json (لا تحديد مزدوج).
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # قيم بيئة اختبار فقط (وهمية) — البوّابات كلها sandbox، التخزين محلي، لا أسرار حقيقية.
+      - name: Write CI env files
+        run: |
+          cat > .env <<'EOF'
+          NODE_ENV=test
+          DATABASE_URL=postgresql://ibp:ci_local_only@localhost:5432/ibp_test?schema=public
+          REDIS_URL=redis://localhost:6379
+          JWT_SECRET=ci_test_secret_not_for_production
+          JWT_EXPIRES_IN=8h
+          THROTTLE_MAX=0
+          ZATCA_ENC_KEY=MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
+          BILLING_GATEWAY=sandbox
+          NOTIFY_GATEWAY=sandbox
+          STORAGE_DRIVER=local
+          NEXT_PUBLIC_API_URL=http://localhost:4000
+          EOF
+          cat > .env.test <<'EOF'
+          DATABASE_URL=postgresql://ibp:ci_local_only@localhost:5432/ibp_test?schema=public
+          THROTTLE_MAX=0
+          EOF
+
+      - name: Generate Prisma client
+        run: pnpm --filter @ibp/db generate
+
+      # (حزمة @ibp/db تُتحقَّق فعليًا عبر migrate+seed في خطوة test:setup + e2e — أقوى من tsc على سكربت البذر.)
+      - name: Typecheck (shared · api)
+        run: |
+          pnpm --filter @ibp/shared typecheck
+          pnpm --filter @ibp/api typecheck
+
+      - name: Build web (production)
+        run: pnpm --filter @ibp/web build
+
+      - name: Build api (production)
+        run: pnpm --filter @ibp/api build
+
+      # تصفير + هجرة + بذر قاعدة الاختبار المعزولة (ibp_test) ثم تشغيل e2e تسلسليًا.
+      - name: Setup test database (reset + migrate + seed)
+        run: pnpm --filter @ibp/db test:setup
+
+      - name: Run e2e tests
+        run: pnpm --filter @ibp/api test:e2e
