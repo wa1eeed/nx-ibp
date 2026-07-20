@@ -27,7 +27,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       # لا نحدّد إصدار pnpm هنا — يُقرأ من `packageManager` في package.json (تحديد مزدوج ⇒ خطأ ERR_PNPM_BAD_PM_VERSION).
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v4
         with:
           node-version: 22 # LTS — Node 20 قيد الإيقاف على مشغّلات GitHub
