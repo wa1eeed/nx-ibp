@@ -126,7 +126,21 @@ export class AuthService {
     }
     const { role, ...rest } = user;
     const mfaEnrollmentRequired = !user.mfaEnabled && (await this.mfaRequiredFor(user.tenantId));
-    return { ...rest, roleName: role?.name ?? null, permissions, mfaEnrollmentRequired };
+    // مفاتيح المميزات/الموديولز المفعّلة في باقة المستأجر (+ الإضافات المشتراة) — لتُخفي الواجهة ما ليس ضمن الباقة.
+    const sub = await this.prisma.subscription.findFirst({
+      where: { tenantId: user.tenantId },
+      include: { plan: { select: { entitlements: { select: { featureKey: true, mode: true } } } }, addons: { select: { addonKey: true } } },
+    });
+    const purchased = new Set(sub?.addons.map((a) => a.addonKey) ?? []);
+    const features = [
+      ...new Set([
+        ...purchased,
+        ...(sub?.plan.entitlements ?? [])
+          .filter((e) => purchased.has(e.featureKey) || e.mode === "INCLUDED" || e.mode === "QUOTA" || e.mode === "METERED")
+          .map((e) => e.featureKey),
+      ]),
+    ];
+    return { ...rest, roleName: role?.name ?? null, permissions, features, mfaEnrollmentRequired };
   }
 
   // ————————————————— المصادقة الثنائية (TOTP) للموظف —————————————————

@@ -42,8 +42,10 @@ export interface NavItem {
   href: string;
   /** اسم أيقونة lucide-react. */
   icon: string;
-  /** مفتاح الـ entitlement المقابل (module.<x>) — تحقّق الباقة. */
+  /** مفتاح الـ entitlement المقابل (module.<x> أو feature.<x>) — تحقّق الباقة (يُخفى العنصر إن لم يكن مفعّلًا). */
   entitlement?: string;
+  /** وحدة الصلاحية (RBAC) إن اختلفت عن الوحدة المشتقّة من entitlement — مثل CRM: صلاحية sales لكن entitlement feature.crm. */
+  module?: string;
   /** قيد التطوير في النموذج الأولي الحالي. */
   comingSoon?: boolean;
 }
@@ -71,7 +73,7 @@ export const TENANT_NAV: NavGroup[] = [
   {
     key: "clients",
     items: [
-      { key: "crm", href: "/tenant/crm", icon: "KanbanSquare", entitlement: "module.sales" },
+      { key: "crm", href: "/tenant/crm", icon: "KanbanSquare", entitlement: "feature.crm", module: "sales" },
       { key: "clients", href: "/tenant/clients", icon: "Users", entitlement: "module.clients" },
       { key: "verification", href: "/tenant/verification", icon: "BadgeCheck" },
       { key: "compliance", href: "/tenant/compliance", icon: "ShieldCheck", entitlement: "module.compliance" },
@@ -105,7 +107,7 @@ export const TENANT_NAV: NavGroup[] = [
       { key: "finance", href: "/tenant/finance", icon: "Landmark", entitlement: "module.finance" },
       { key: "premiums", href: "/tenant/premiums", icon: "Coins", entitlement: "module.finance" },
       { key: "commissions", href: "/tenant/commissions", icon: "Percent", entitlement: "module.finance" },
-      { key: "producers", href: "/tenant/producers", icon: "Handshake", entitlement: "module.finance" },
+      { key: "producers", href: "/tenant/producers", icon: "Handshake", entitlement: "feature.producers", module: "finance" },
       { key: "insurers", href: "/tenant/insurers", icon: "Umbrella", entitlement: "module.finance" },
     ],
   },

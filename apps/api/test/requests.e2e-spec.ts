@@ -147,6 +147,28 @@ describe("النموذج الديناميكي والالتزام (e2e)", () => {
     expect(detail.body.blockRows[0].blockKey).toBe("members");
   });
 
+  it("تعديل طلب DRAFT (PATCH): يستبدل الحقول وصفوف الكتل ويُحفظ", async () => {
+    const created = await request(app.getHttpServer()).post("/requests").set(auth(gm)).send(medicalValid()).expect(201);
+    const rid = created.body.id;
+    await request(app.getHttpServer()).patch(`/requests/${rid}`).set(auth(gm)).send({
+      base: { insuredName: "الاسم المُعدَّل", network: "vip", annualLimit: 750000, ...PERIOD },
+      blocks: { members: [
+        { name: "سالم", nationalId: "1122334455", relation: "employee", dob: "1988-03-03", gender: "male", tier: "a" },
+        { name: "منى", nationalId: "1122334466", relation: "spouse", dob: "1990-06-06", gender: "female", tier: "a" },
+      ] },
+    }).expect(200);
+    const detail = await request(app.getHttpServer()).get(`/requests/${rid}`).set(auth(gm)).expect(200);
+    expect(detail.body.base.insuredName).toBe("الاسم المُعدَّل");
+    expect(detail.body.base.network).toBe("vip");
+    expect(detail.body.blockRows.length).toBe(2); // استُبدلت صفوف الكتلة (صفّ ⇒ صفّان)
+  });
+
+  it("تعديل طلب بحمولة غير صحيحة ⇒ 422", async () => {
+    const created = await request(app.getHttpServer()).post("/requests").set(auth(gm)).send(medicalValid()).expect(201);
+    await request(app.getHttpServer()).patch(`/requests/${created.body.id}`).set(auth(gm))
+      .send({ base: { insuredName: "بلا شبكة", annualLimit: 1000, ...PERIOD } }).expect(422); // network مطلوب
+  });
+
   // ----- نطاق المنتجات (H): صلاحية على مستوى فرع التأمين، متوافقة رجعيًا -----
   it("نطاق المنتجات: حصر موظف بفرع ⇒ تصفية القائمة + منع الإنشاء خارجه + تراجع يعيد الكل", async () => {
     const srv = app.getHttpServer();

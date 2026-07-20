@@ -89,9 +89,12 @@ type Perms = Record<string, { access?: boolean }>;
 
 /** الوحدة المطلوبة صلاحيتها لإظهار عنصر التنقّل. */
 function requiredModule(item: NavItem): string {
-  if (item.entitlement) return item.entitlement.replace("module.", "");
+  if (item.module) return item.module; // وحدة صلاحية صريحة (تختلف عن entitlement)
+  if (item.entitlement?.startsWith("module.")) return item.entitlement.replace("module.", "");
   if (item.key === "dashboard") return "dashboard";
   if (item.key === "verification") return "clients";
+  if (item.key === "crm") return "sales";
+  if (item.key === "producers" || item.key === "insurers") return "finance";
   if (item.key.startsWith("settings")) return "settings";
   return item.key;
 }
@@ -100,17 +103,21 @@ export function Sidebar() {
   const t = useTranslations();
   const pathname = usePathname();
   const [perms, setPerms] = useState<Perms | null>(null);
+  const [features, setFeatures] = useState<string[] | null>(null);
 
   useEffect(() => {
     if (!getToken()) return;
-    void api<{ permissions?: Perms }>("/auth/me")
-      .then((me) => setPerms(me.permissions ?? {}))
-      .catch(() => setPerms({}));
+    void api<{ permissions?: Perms; features?: string[] }>("/auth/me")
+      .then((me) => { setPerms(me.permissions ?? {}); setFeatures(me.features ?? []); })
+      .catch(() => { setPerms({}); setFeatures([]); });
   }, []);
 
-  // القائمة مُفلترة بصلاحيات المستخدم — لا يرى إلا الأقسام المخوّل عليها (الـbackend يفرضها أيضًا).
-  // قبل تحميل الصلاحيات لا نُظهر شيئًا (تفاديًا لوميض أقسام غير مخوّلة).
-  const canSee = (item: NavItem) => perms !== null && perms[requiredModule(item)]?.access === true;
+  // القائمة مُفلترة بـ(أ) صلاحية الدور و(ب) تفعيل الميزة في الباقة (entitlement) — لا يرى إلا ما هو مخوَّل ومشمول بباقته.
+  // قبل التحميل لا نُظهر شيئًا (تفاديًا للوميض). الـbackend يفرض الاثنين أيضًا.
+  const canSee = (item: NavItem) =>
+    perms !== null && features !== null &&
+    perms[requiredModule(item)]?.access === true &&
+    (!item.entitlement || features.includes(item.entitlement));
   const groups = TENANT_NAV.map((g) => ({ ...g, items: g.items.filter(canSee) })).filter((g) => g.items.length > 0);
   const { open, setOpen } = useMobileNav();
 

@@ -12,6 +12,7 @@ import { FormValidationService, type SectionDef, type BlockDef } from "./form-va
 import { NotificationsService } from "../notifications/notifications.service";
 import { ProductScopeService } from "../../common/scope/product-scope.service";
 import type { CreateRequestDto } from "./dto/create-request.dto";
+import type { UpdateRequestDto } from "./dto/update-request.dto";
 
 const asJson = (v: unknown) => v as Prisma.InputJsonValue;
 
@@ -68,6 +69,30 @@ export class RequestsService {
     });
     if (!req) throw new NotFoundException("الطلب غير موجود");
     return req;
+  }
+
+  /** تعديل طلب في حالة DRAFT فقط (قبل بدء دورة التسعير) — يُعيد التحقّق ويستبدل الحقول وصفوف الكتل ذرّياً. */
+  async update(tenantId: string, id: string, dto: UpdateRequestDto) {
+    const req = await this.prisma.policyRequest.findFirst({ where: { id }, select: { id: true, status: true, productLineCode: true } });
+    if (!req) throw new NotFoundException("الطلب غير موجود");
+    if (req.status !== "DRAFT") throw new ConflictException("لا يمكن تعديل الطلب بعد بدء دورة التسعير (مسودّة فقط)");
+
+    const line = await this.prisma.productLine.findFirst({ where: { code: req.productLineCode }, include: { formSchema: true } });
+    if (!line?.formSchema) throw new NotFoundException("مخطط الفرع غير موجود");
+    const sections = (line.formSchema.baseFields ?? []) as unknown as SectionDef[];
+    const blocks = (line.formSchema.blocks ?? []) as unknown as BlockDef[];
+    const errors = this.validator.validate(sections, blocks, { base: dto.base, blocks: dto.blocks });
+    if (errors.length) throw new UnprocessableEntityException({ message: "بيانات النموذج غير صحيحة", errors });
+
+    return this.prisma.$transaction(async (tx) => {
+      await tx.policyRequest.update({ where: { id }, data: { base: asJson(dto.base), details: dto.details ? asJson(dto.details) : undefined } });
+      await tx.requestBlockRow.deleteMany({ where: { requestId: id } });
+      const rows: Array<{ tenantId: string; requestId: string; blockKey: string; rowIndex: number; data: Prisma.InputJsonValue }> = [];
+      for (const b of blocks) (dto.blocks?.[b.key] ?? []).forEach((data, idx) => rows.push({ tenantId, requestId: id, blockKey: b.key, rowIndex: idx, data: asJson(data) }));
+      if (rows.length) await tx.requestBlockRow.createMany({ data: rows });
+      await this.audit.log({ tenantId, action: "update", entity: "request", entityId: id, meta: { status: "DRAFT" } });
+      return { id, status: "DRAFT" };
+    });
   }
 
   async create(tenantId: string, userId: string, dto: CreateRequestDto) {

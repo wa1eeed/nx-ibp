@@ -153,7 +153,9 @@ export default function BillingPage() {
           {/* شراء مقاعد (رفع الرخصة) — مسبق الدفع */}
           <div className="mt-4 rounded-xl border border-line p-3.5">
             <div className="mb-1.5 inline-flex items-center gap-1.5 text-[12px] font-semibold text-ink"><CreditCard size={13} className="text-primary" /> {t("buySeatsTitle")}</div>
-            <p className="mb-3 text-[12px] leading-relaxed text-muted">{t("buySeatsHint", { amount: fmt(String(seatInfo.addUnit > 0 ? seatInfo.addUnit : seatInfo.perUser)), currency: seatInfo.currency, days: seatInfo.daysRemaining })}</p>
+            <p className="mb-3 text-[12px] leading-relaxed text-muted">{seatInfo.daysRemaining > 0
+              ? t("buySeatsHint", { amount: fmt(String(seatInfo.addUnit)), currency: seatInfo.currency, days: seatInfo.daysRemaining, cycle: t(seatInfo.cycle === "YEARLY" ? "cycleYearly" : "cycleMonthly") })
+              : t("buySeatsHintFull", { amount: fmt(String(seatInfo.perUser)), currency: seatInfo.currency, cycle: t(seatInfo.cycle === "YEARLY" ? "cycleYearly" : "cycleMonthly") })}</p>
             <div className="flex flex-wrap items-end gap-3">
               <label className="text-[12px]">
                 <span className="mb-1 block text-subtle">{t("buySeatsQty")}</span>

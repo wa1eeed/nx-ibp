@@ -122,7 +122,7 @@ export default function RequestsPage() {
             <tbody className="divide-y divide-line">
               {rows.map((r) => (
                 <tr key={r.id} className="transition-colors hover:bg-surface-2/60">
-                  <td className="px-5 py-3 text-[12.5px] font-medium text-ink tnum">{r.sequenceNo ?? "—"}</td>
+                  <td className="px-5 py-3 text-[12.5px] font-medium tnum"><Link href={`/tenant/requests/${r.id}`} className="text-ink hover:text-primary hover:underline">{r.sequenceNo ?? "—"}</Link></td>
                   <td className="px-5 py-3 text-[13px] text-ink">{r.client?.name ?? "—"}</td>
                   <td className="px-5 py-3 text-[13px] text-muted">{r.productLineCode}</td>
                   <td className="px-5 py-3">

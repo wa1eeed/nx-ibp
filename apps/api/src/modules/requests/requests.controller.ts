@@ -1,6 +1,7 @@
-import { Body, Controller, Get, Param, Post } from "@nestjs/common";
+import { Body, Controller, Get, Param, Patch, Post } from "@nestjs/common";
 import { RequestsService } from "./requests.service";
 import { CreateRequestDto } from "./dto/create-request.dto";
+import { UpdateRequestDto } from "./dto/update-request.dto";
 import { Authorize } from "../rbac/authorize.decorator";
 import { CurrentUser } from "../auth/current-user.decorator";
 
@@ -28,5 +29,11 @@ export class RequestsController {
   @Get(":id")
   getOne(@Param("id") id: string) {
     return this.requests.getOne(id);
+  }
+
+  @Authorize({ module: "sales", action: "update", entitlement: "module.sales" })
+  @Patch(":id")
+  update(@CurrentUser("tenantId") tenantId: string, @Param("id") id: string, @Body() dto: UpdateRequestDto) {
+    return this.requests.update(tenantId, id, dto);
   }
 }
