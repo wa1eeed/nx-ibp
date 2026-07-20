@@ -25,7 +25,7 @@ jobs:
     name: SCA — dependency vulnerabilities
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # لا نحدّد إصدار pnpm هنا — يُقرأ من `packageManager` في package.json (تحديد مزدوج ⇒ خطأ ERR_PNPM_BAD_PM_VERSION).
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
@@ -44,7 +44,7 @@ jobs:
     name: Secret scanning (gitleaks)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0 # تاريخ كامل لفحص كل الكوميتات
       - uses: gitleaks/gitleaks-action@v2
@@ -56,7 +56,7 @@ jobs:
     name: SAST — static analysis (semgrep)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
