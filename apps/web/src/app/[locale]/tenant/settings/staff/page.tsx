@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { Plus, UserPlus, ShieldCheck, X, Users, CalendarDays } from "lucide-react";
+import { Plus, UserPlus, ShieldCheck, X, Users, CalendarDays, CreditCard } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { RBAC_MODULES, type RbacModule } from "@ibp/shared";
 import { Link, useRouter } from "@/i18n/routing";
@@ -32,7 +32,7 @@ export default function StaffPage() {
   const [staff, setStaff] = useState<StaffRow[]>([]);
   const [roles, setRoles] = useState<RoleTemplate[]>([]);
   const [allRoles, setAllRoles] = useState<RoleLite[]>([]);
-  const [seats, setSeats] = useState<{ used: number; limit: number | null; planName: string | null } | null>(null);
+  const [seats, setSeats] = useState<{ used: number; limit: number; available: number; planName: string | null } | null>(null);
   const [forbidden, setForbidden] = useState(false);
   const [showForm, setShowForm] = useState(false);
 
@@ -51,7 +51,7 @@ export default function StaffPage() {
         api<StaffRow[]>("/staff"),
         api<RoleTemplate[]>("/staff/roles"),
         api<RoleLite[]>("/roles").catch(() => []),
-        api<{ used: number; limit: number | null; planName: string | null }>("/staff/seats").catch(() => null),
+        api<{ used: number; limit: number; available: number; planName: string | null }>("/staff/seats").catch(() => null),
       ]);
       setStaff(s);
       setRoles(r);
@@ -140,23 +140,32 @@ export default function StaffPage() {
         actions={
           <div className="flex items-center gap-2.5">
             <Link href="/tenant/settings/leave" className="inline-flex items-center gap-1.5 rounded-lg border border-line px-3 py-2 text-[12.5px] font-medium text-primary hover:bg-surface-2"><CalendarDays size={14} /> {t("leave.nav")}</Link>
-            {seats && seats.limit != null ? (
-              <span className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] font-semibold ${seats.used >= seats.limit ? "bg-danger/10 text-danger" : "bg-surface-2 text-subtle"}`}>
+            {seats ? (
+              <span className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] font-semibold ${seats.available <= 0 ? "bg-danger/10 text-danger" : "bg-surface-2 text-subtle"}`}>
                 <Users size={14} /> {seats.used} / {seats.limit} {t("staff.seats")}{seats.planName ? ` · ${seats.planName}` : ""}
               </span>
             ) : null}
-            <button
-              onClick={() => setShowForm((v) => !v)}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-primary-strong px-3.5 py-2 text-[13px] font-semibold text-primary-fg shadow-sm transition-colors hover:bg-primary"
-            >
-              {showForm ? <X size={16} /> : <Plus size={16} />}
-              {showForm ? t("staff.cancel") : t("staff.new")}
-            </button>
+            {seats && seats.available <= 0 ? (
+              <Link href="/tenant/settings/billing" className="inline-flex items-center gap-1.5 rounded-lg bg-primary-strong px-3.5 py-2 text-[13px] font-semibold text-primary-fg shadow-sm transition-colors hover:bg-primary">
+                <CreditCard size={16} /> {t("staff.buySeats")}
+              </Link>
+            ) : (
+              <button
+                onClick={() => setShowForm((v) => !v)}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-primary-strong px-3.5 py-2 text-[13px] font-semibold text-primary-fg shadow-sm transition-colors hover:bg-primary"
+              >
+                {showForm ? <X size={16} /> : <Plus size={16} />}
+                {showForm ? t("staff.cancel") : t("staff.new")}
+              </button>
+            )}
           </div>
         }
       />
-      {seats && seats.limit != null && seats.used >= seats.limit && !showForm ? (
-        <p className="mb-4 rounded-lg bg-warning-soft px-3 py-2 text-[12.5px] font-medium text-warning">{t("staff.seatFull")}</p>
+      {seats && seats.available <= 0 && !showForm ? (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg bg-warning-soft px-3.5 py-2.5 text-[12.5px] font-medium text-warning">
+          <span>{t("staff.seatFull", { limit: seats.limit })}</span>
+          <Link href="/tenant/settings/billing" className="inline-flex items-center gap-1.5 rounded-lg bg-primary-strong px-3 py-1.5 text-[12px] font-semibold text-primary-fg hover:bg-primary"><CreditCard size={13} /> {t("staff.buySeats")}</Link>
+        </div>
       ) : null}
 
       {showForm ? (

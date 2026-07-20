@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CreditCard, CheckCircle2, Loader2, Clock, CalendarClock, Users, ArrowLeftRight, Info } from "lucide-react";
+import { CreditCard, CheckCircle2, Loader2, Clock, CalendarClock, Users, ArrowLeftRight } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
 import { api, ApiError } from "@/lib/api";
@@ -11,7 +11,7 @@ interface Plan { code: string; name: string; seatLimit: number; priceMonthly: st
 interface Invoice { id: string; planCode: string; cycle: Cycle; amount: string; currency: string; status: string; paidAt: string | null; createdAt: string }
 interface SubInfo { status?: string; trialEndsAt?: string | null; subscription?: { cycle: Cycle; seatsUsed: number; renewsAt: string | null; plan: { code: string; name: string; seatLimit: number } } | null }
 interface StorageUsage { usedBytes: number; quotaBytes: number; quotaMb: number; percentUsed: number }
-interface SeatInfo { activeUsers: number; perUser: number; periodCost: number; currency: string; cycle: Cycle; daysRemaining: number; addUnit: number; pendingAmount: number; pendingKind: "charge" | "credit" | "none"; isTrial: boolean }
+interface SeatInfo { activeUsers: number; licensedSeats: number; availableSeats: number; perUser: number; periodCost: number; currency: string; cycle: Cycle; daysRemaining: number; addUnit: number; pendingAmount: number; pendingKind: "charge" | "credit" | "none"; isTrial: boolean }
 
 const STATUS_TONE: Record<string, string> = {
   ACTIVE: "bg-success/10 text-success", PAID: "bg-success/10 text-success",
@@ -29,6 +29,7 @@ export default function BillingPage() {
   const [cycle, setCycle] = useState<Cycle>("MONTHLY");
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
+  const [addSeats, setAddSeats] = useState(1);
 
   async function load() {
     const [s, p, inv, st, seat] = await Promise.all([
@@ -46,6 +47,18 @@ export default function BillingPage() {
     setBusy(planCode); setError("");
     try {
       const res = await api<{ redirectUrl: string | null }>("/billing/checkout", { method: "POST", body: JSON.stringify({ planCode, cycle }) });
+      if (res.redirectUrl) window.location.href = res.redirectUrl;
+      else await load();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : t("error"));
+      setBusy("");
+    }
+  }
+
+  async function buySeats() {
+    setBusy("seats"); setError("");
+    try {
+      const res = await api<{ redirectUrl: string | null }>("/billing/seats/checkout", { method: "POST", body: JSON.stringify({ addSeats }) });
       if (res.redirectUrl) window.location.href = res.redirectUrl;
       else await load();
     } catch (err) {
@@ -93,7 +106,7 @@ export default function BillingPage() {
             </span>
           </div>
           <div><div className="text-[11.5px] text-subtle">{t("plan")}</div><div className="mt-1 font-semibold text-ink">{planName(sub?.subscription?.plan.code ?? "")}</div></div>
-          <div><div className="text-[11.5px] text-subtle">{t("seats")}</div><div className="mt-1 font-semibold text-ink">{sub?.subscription?.seatsUsed ?? 0} <span className="text-[11px] font-normal text-subtle">· {t("seatsUnlimited")}</span></div></div>
+          <div><div className="text-[11.5px] text-subtle">{t("seats")}</div><div className="mt-1 font-semibold text-ink tnum">{seatInfo?.activeUsers ?? sub?.subscription?.seatsUsed ?? 0} <span className="text-[11px] font-normal text-subtle">/ {seatInfo?.licensedSeats ?? "—"} {t("seatsLicensed")}</span></div></div>
           {isTrial && sub?.trialEndsAt ? (
             <div><div className="inline-flex items-center gap-1 text-[11.5px] text-subtle"><CalendarClock size={12} /> {t("trialEndsAt")}</div><div className="mt-1 font-semibold text-warning tnum">{date(sub.trialEndsAt)}</div></div>
           ) : (
@@ -128,24 +141,32 @@ export default function BillingPage() {
               <div className="mt-1 text-[22px] font-bold text-ink tnum">{seatInfo.activeUsers}</div>
             </div>
             <div className="rounded-xl border border-line bg-surface-2/40 p-3.5">
-              <div className="text-[11.5px] text-subtle">{t("perUserRate")}</div>
-              <div className="mt-1 text-[15px] font-bold text-ink tnum">{fmt(String(seatInfo.perUser))} <span className="text-[11px] font-normal text-subtle">{seatInfo.cycle === "YEARLY" ? t("perYear") : t("perMonth")}</span></div>
+              <div className="text-[11.5px] text-subtle">{t("licensedSeats")}</div>
+              <div className="mt-1 text-[22px] font-bold text-ink tnum">{seatInfo.licensedSeats}</div>
             </div>
-            <div className="rounded-xl border border-line bg-surface-2/40 p-3.5">
-              <div className="text-[11.5px] text-subtle">{t("periodCost")}</div>
-              <div className="mt-1 text-[15px] font-bold text-ink tnum">{fmt(String(seatInfo.periodCost))} <span className="text-[11px] font-normal text-subtle">{seatInfo.currency}</span></div>
+            <div className={`rounded-xl border p-3.5 ${seatInfo.availableSeats <= 0 ? "border-danger/30 bg-danger/5" : "border-line bg-surface-2/40"}`}>
+              <div className="text-[11.5px] text-subtle">{t("availableSeats")}</div>
+              <div className={`mt-1 text-[22px] font-bold tnum ${seatInfo.availableSeats <= 0 ? "text-danger" : "text-ink"}`}>{seatInfo.availableSeats}</div>
             </div>
           </div>
 
-          {/* الاحتساب التناسبي */}
+          {/* شراء مقاعد (رفع الرخصة) — مسبق الدفع */}
           <div className="mt-4 rounded-xl border border-line p-3.5">
-            <div className="mb-1.5 inline-flex items-center gap-1.5 text-[12px] font-semibold text-ink"><Info size={13} className="text-primary" /> {t("prorationTitle")}</div>
-            <p className="text-[12px] leading-relaxed text-muted">{t("addUnitHint", { amount: fmt(String(seatInfo.addUnit)), currency: seatInfo.currency, days: seatInfo.daysRemaining })}</p>
-            {seatInfo.pendingKind === "charge" ? (
-              <p className="mt-2 rounded-lg bg-warning-soft px-2.5 py-1.5 text-[12px] font-medium text-warning">{t("pendingCharge", { amount: fmt(String(seatInfo.pendingAmount)), currency: seatInfo.currency })}</p>
-            ) : seatInfo.pendingKind === "credit" ? (
-              <p className="mt-2 rounded-lg bg-success/10 px-2.5 py-1.5 text-[12px] font-medium text-success">{t("pendingCredit", { amount: fmt(String(seatInfo.pendingAmount)), currency: seatInfo.currency })}</p>
-            ) : null}
+            <div className="mb-1.5 inline-flex items-center gap-1.5 text-[12px] font-semibold text-ink"><CreditCard size={13} className="text-primary" /> {t("buySeatsTitle")}</div>
+            <p className="mb-3 text-[12px] leading-relaxed text-muted">{t("buySeatsHint", { amount: fmt(String(seatInfo.addUnit > 0 ? seatInfo.addUnit : seatInfo.perUser)), currency: seatInfo.currency, days: seatInfo.daysRemaining })}</p>
+            <div className="flex flex-wrap items-end gap-3">
+              <label className="text-[12px]">
+                <span className="mb-1 block text-subtle">{t("buySeatsQty")}</span>
+                <input type="number" min={1} max={1000} value={addSeats} onChange={(e) => setAddSeats(Math.max(1, Number(e.target.value) || 1))} className="h-9 w-24 rounded-lg border border-line bg-card px-3 text-[13px] tnum text-ink" />
+              </label>
+              <div className="text-[12px]">
+                <span className="mb-1 block text-subtle">{t("buySeatsCost")}</span>
+                <div className="flex h-9 items-center text-[15px] font-bold text-ink tnum">{fmt(String(Math.round((seatInfo.addUnit > 0 ? seatInfo.addUnit : seatInfo.perUser) * addSeats * 100) / 100))} <span className="ms-1 text-[11px] font-normal text-subtle">{seatInfo.currency}</span></div>
+              </div>
+              <button onClick={buySeats} disabled={busy === "seats"} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary-strong px-4 text-[12.5px] font-semibold text-primary-fg hover:bg-primary disabled:opacity-60">
+                {busy === "seats" ? <Loader2 size={14} className="animate-spin" /> : <CreditCard size={14} />} {t("buySeatsCta")}
+              </button>
+            </div>
           </div>
 
           {/* نقل/إلغاء الرخصة */}
@@ -181,7 +202,7 @@ export default function BillingPage() {
               <div key={p.code} className="flex flex-col rounded-xl border border-line p-4">
                 <div className="text-[13.5px] font-bold text-ink">{planName(p.code)}</div>
                 <div className="mt-2 text-[20px] font-bold text-ink">{fmt(price(p))} <span className="text-[11.5px] font-normal text-subtle">{cycle === "YEARLY" ? t("perYear") : t("perMonth")}</span></div>
-                <div className="mt-1 text-[11.5px] text-subtle">{t("seatsUnlimited")}</div>
+                <div className="mt-1 text-[11.5px] text-subtle">{t("pricePerUser")}</div>
                 <button
                   disabled={busy === p.code || current}
                   onClick={() => subscribe(p.code)}

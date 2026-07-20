@@ -95,10 +95,23 @@ export class BillingService {
     return { ok: true };
   }
 
-  /** يُعلّم الفاتورة مدفوعة ويفعّل الاشتراك (المدّة + الباقة + حالة المستأجر) ذرّياً. */
+  /** يُعلّم الفاتورة مدفوعة ويطبّق أثرها ذرّياً: اشتراك عادي (مدّة+باقة) أو **شراء مقاعد** (رفع الرخصة). */
   private async activate(invoiceId: string, tenantId: string, planCode: string, cycle: "MONTHLY" | "YEARLY") {
-    const plan = await this.prisma.plan.findUnique({ where: { code: planCode }, select: { id: true } });
+    const invoice = await this.prisma.subscriptionInvoice.findUnique({ where: { id: invoiceId }, select: { seatsDelta: true } });
     const now = new Date();
+
+    // فاتورة شراء مقاعد: تزيد الرخصة فقط (لا تغيّر الباقة/التجديد) — نموذج مسبق الدفع.
+    if (invoice?.seatsDelta && invoice.seatsDelta > 0) {
+      await this.prisma.$transaction(async (tx) => {
+        await tx.subscriptionInvoice.update({ where: { id: invoiceId }, data: { status: "PAID", paidAt: now } });
+        await tx.subscription.updateMany({ where: { tenantId }, data: { seatsLicensed: { increment: invoice.seatsDelta! } } });
+      });
+      this.logger.log(`رفع رخصة مقاعد المستأجر ${tenantId} (+${invoice.seatsDelta})`);
+      void this.notifications.notifyStaff(tenantId, "staff_subscription_status", { status: `رخصة المقاعد +${invoice.seatsDelta}` }).catch(() => undefined);
+      return;
+    }
+
+    const plan = await this.prisma.plan.findUnique({ where: { code: planCode }, select: { id: true } });
     const renewsAt = new Date(now);
     if (cycle === "YEARLY") renewsAt.setFullYear(renewsAt.getFullYear() + 1);
     else renewsAt.setMonth(renewsAt.getMonth() + 1);
@@ -159,34 +172,32 @@ export class BillingService {
 
     const sub = await this.prisma.subscription.findFirst({
       where: { tenantId },
-      select: { cycle: true, seatsUsed: true, startedAt: true, renewsAt: true, plan: { select: { code: true, name: true, priceMonthly: true, priceYearly: true } } },
+      select: { cycle: true, seatsUsed: true, seatsLicensed: true, startedAt: true, renewsAt: true, plan: { select: { code: true, name: true, priceMonthly: true, priceYearly: true } } },
     });
     const tenant = await this.prisma.tenant.findFirst({ where: { id: tenantId }, select: { status: true } });
     const activeUsers = await this.prisma.user.count({ where: { tenantId, status: "ACTIVE" } });
 
     if (!sub || !sub.plan) {
-      return { activeUsers, paidSeats: activeUsers, delta: 0, cycle: "MONTHLY", perUser: 0, periodCost: 0, currency: this.currency, daysRemaining: 0, totalDays: 0, addUnit: 0, pendingAmount: 0, pendingKind: "none", planName: null, isTrial: true };
+      return { activeUsers, paidSeats: activeUsers, licensedSeats: activeUsers, availableSeats: 0, delta: 0, cycle: "MONTHLY", perUser: 0, periodCost: 0, currency: this.currency, daysRemaining: 0, totalDays: 0, addUnit: 0, pendingAmount: 0, pendingKind: "none", planName: null, isTrial: true };
     }
 
     const cycle = sub.cycle;
     const perUser = Number(cycle === "YEARLY" ? sub.plan.priceYearly : sub.plan.priceMonthly);
-    const periodCost = round2(perUser * Math.max(1, activeUsers)); // تكلفة الدورة القادمة بعدد المستخدمين الحالي
+    // نموذج مسبق الدفع: خطّ الأساس هو **المقاعد المرخّصة** (المدفوعة/المخصّصة)، لا المشتقّة من الفاتورة.
+    const licensedSeats = sub.seatsLicensed;
+    const periodCost = round2(perUser * Math.max(1, licensedSeats)); // تكلفة تجديد الدورة القادمة بعدد المقاعد المرخّصة
 
-    // خطّ الأساس = المقاعد المغطّاة بآخر فاتورة مدفوعة سارية؛ وإلا (تجربة/بلا دفع) = النشطون الآن (لا تناسب)
+    // مدّة الدورة الحالية (التجربة أو الاشتراك المدفوع الساري) لاحتساب سعر شراء المقعد تناسبيًا.
     const lastPaid = await this.prisma.subscriptionInvoice.findFirst({
-      where: { tenantId, status: "PAID" },
+      where: { tenantId, status: "PAID", seatsDelta: null },
       orderBy: { paidAt: "desc" },
-      select: { amount: true, cycle: true, planCode: true, periodStart: true, periodEnd: true },
+      select: { periodStart: true, periodEnd: true },
     });
-    let paidSeats = activeUsers;
     let periodStart = sub.startedAt;
     let periodEnd = sub.renewsAt;
     const isTrial = tenant?.status === "TRIAL" || !lastPaid;
 
     if (lastPaid?.periodEnd && lastPaid.periodEnd > now && lastPaid.periodStart) {
-      const paidPlan = await this.prisma.plan.findUnique({ where: { code: lastPaid.planCode }, select: { priceMonthly: true, priceYearly: true } });
-      const paidPerUser = Number(lastPaid.cycle === "YEARLY" ? paidPlan?.priceYearly : paidPlan?.priceMonthly) || perUser;
-      paidSeats = paidPerUser > 0 ? Math.max(1, Math.round(Number(lastPaid.amount) / paidPerUser)) : activeUsers;
       periodStart = lastPaid.periodStart;
       periodEnd = lastPaid.periodEnd;
     }
@@ -195,11 +206,46 @@ export class BillingService {
     const daysRemaining = periodEnd ? Math.max(0, Math.round((periodEnd.getTime() - now.getTime()) / DAY)) : 0;
     const dailyPerUser = perUser / totalDays;
 
-    const delta = activeUsers - paidSeats; // موجب: مستخدمون مضافون وسط الدورة · سالب: مُلغَون
-    const addUnit = round2(dailyPerUser * daysRemaining); // تكلفة مستخدم إضافي واحد للمدّة المتبقّية
-    const pendingAmount = isTrial ? 0 : round2(Math.abs(delta) * dailyPerUser * daysRemaining);
-    const pendingKind: "charge" | "credit" | "none" = isTrial || delta === 0 ? "none" : delta > 0 ? "charge" : "credit";
+    const availableSeats = Math.max(0, licensedSeats - activeUsers); // مقاعد شاغرة مرخّصة (إضافة بلا دفع)
+    const delta = activeUsers - licensedSeats; // مع الحجب الصارم ≤ 0 (مقاعد مرخّصة غير مستخدَمة)
+    const addUnit = round2(dailyPerUser * daysRemaining); // تكلفة مقعد إضافي واحد للمدّة المتبقّية (شراء مقاعد)
+    const pendingAmount = 0; // لا رسوم لاحقة معلّقة في نموذج مسبق الدفع (الدفع يسبق الإضافة)
+    const pendingKind: "charge" | "credit" | "none" = "none";
 
-    return { activeUsers, paidSeats, delta, cycle, perUser, periodCost, currency: this.currency, periodEnd, daysRemaining, totalDays, addUnit, pendingAmount, pendingKind, planName: sub.plan.name, isTrial };
+    return { activeUsers, paidSeats: licensedSeats, licensedSeats, availableSeats, delta, cycle, perUser, periodCost, currency: this.currency, periodEnd, daysRemaining, totalDays, addUnit, pendingAmount, pendingKind, planName: sub.plan.name, isTrial };
+  }
+
+  /**
+   * شراء مقاعد إضافية (رفع الرخصة) — نموذج **مسبق الدفع**: ينشئ فاتورة تناسبية للمدّة المتبقّية من الدورة
+   * (`addUnit × addSeats`) ويُنشئ شحنة لدى البوّابة. عند الدفع (confirm/webhook) تُزاد `seatsLicensed`.
+   */
+  async checkoutSeats(tenantId: string, userId: string, addSeats: number, customer?: { name?: string; email?: string }) {
+    const seats = Math.max(1, Math.floor(addSeats || 0));
+    const snap = await this.seats(tenantId);
+    if (!snap.planName) throw new UnprocessableEntityException("لا يوجد اشتراك للمستأجر");
+    const unit = snap.addUnit > 0 ? snap.addUnit : snap.perUser; // احتياط: لو انتهت الدورة استخدم سعر المستخدم الكامل
+    const amount = Math.round(unit * seats * 100) / 100;
+
+    const invoice = await this.prisma.subscriptionInvoice.create({
+      data: { tenantId, planCode: `SEATS+${seats}`, cycle: snap.cycle, amount, currency: this.currency, status: "PENDING", gateway: this.gateway.name, seatsDelta: seats },
+      select: { id: true },
+    });
+
+    const charge = await this.gateway.createCharge({
+      amount,
+      currency: this.currency,
+      description: `شراء ${seats} مقعد إضافي (رفع رخصة المستخدمين)`,
+      customerName: customer?.name ?? "Tenant Admin",
+      customerEmail: customer?.email ?? "billing@tenant.local",
+      redirectUrl: `${this.webBase}/billing/return?invoice=${invoice.id}`,
+      webhookUrl: `${this.apiBase}/billing/webhook`,
+      reference: invoice.id,
+      metadata: { tenantId, seatsDelta: String(seats) },
+    });
+
+    await this.prisma.subscriptionInvoice.update({ where: { id: invoice.id }, data: { gatewayChargeId: charge.chargeId, redirectUrl: charge.redirectUrl } });
+    await this.audit.log({ tenantId, userId, action: "create", entity: "subscription_invoice", entityId: invoice.id, meta: { seatsDelta: seats, amount, kind: "seats" } });
+
+    return { invoiceId: invoice.id, redirectUrl: charge.redirectUrl, amount, currency: this.currency, addSeats: seats, status: "PENDING" };
   }
 }

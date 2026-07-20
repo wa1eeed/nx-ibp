@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Headers, Param, Post } from "@nestjs/common";
 import { BillingService } from "./billing.service";
 import { CheckoutDto } from "./dto/checkout.dto";
+import { CheckoutSeatsDto } from "./dto/checkout-seats.dto";
 import { Authorize } from "../rbac/authorize.decorator";
 import { Public } from "../auth/public.decorator";
 import { CurrentUser } from "../auth/current-user.decorator";
@@ -48,10 +49,17 @@ export class BillingController {
     return this.billing.subscription(tenantId);
   }
 
-  /** لقطة المقاعد والاحتساب التناسبي (نموذج الدفع لكل مستخدم فعلي). */
+  /** لقطة المقاعد المرخّصة والاحتساب التناسبي لشراء مقاعد (نموذج مسبق الدفع). */
   @Authorize({ module: "settings", action: "read" })
   @Get("seats")
   seats(@CurrentUser("tenantId") tenantId: string) {
     return this.billing.seats(tenantId);
+  }
+
+  /** شراء مقاعد إضافية (رفع الرخصة) — يعيد رابط صفحة الدفع؛ الرخصة تُزاد عند تأكيد الدفع. */
+  @Authorize({ module: "settings", action: "update" })
+  @Post("seats/checkout")
+  checkoutSeats(@CurrentUser("tenantId") tenantId: string, @CurrentUser("userId") userId: string, @Body() dto: CheckoutSeatsDto) {
+    return this.billing.checkoutSeats(tenantId, userId, dto.addSeats, { name: dto.customerName, email: dto.customerEmail });
   }
 }

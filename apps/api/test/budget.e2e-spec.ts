@@ -15,7 +15,7 @@ describe("§1.8 الموازنة التقديرية مقابل الفعلي (e2e
   const srv = () => app.getHttpServer();
   const uniq = () => `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
   const auth = (t: string) => ({ Authorization: `Bearer ${t}` });
-  const owner = async () => (await request(srv()).post("/signup").send({ companyName: `موازنة ${uniq()}`, adminName: "مالك", adminEmail: `bd-${uniq()}@brk.sa`, password: "Owner1Pass" }).expect(201)).body.accessToken;
+  const owner = async () => (await request(srv()).post("/signup").send({ companyName: `موازنة ${uniq()}`, adminName: "مالك", adminEmail: `bd-${uniq()}@brk.sa`, password: "Owner1Pass", seatCount: 25 }).expect(201)).body.accessToken;
   const SAL = "05030000000000000"; // الرواتب والأجور (مصروف)
   const RENT = "05040000000000000"; // الإيجارات (مصروف)
   const YR = 2099; // سنة مستقبلية ⇒ لا سندات ⇒ فعلي صفر (حتمي)

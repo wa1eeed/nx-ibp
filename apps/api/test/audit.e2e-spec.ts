@@ -15,7 +15,7 @@ describe("سجل التدقيق (e2e)", () => {
 
   async function newOwner(): Promise<{ token: string; fullName: string; tenantId: string }> {
     const name = `مالك ${uniq()}`;
-    const res = await request(srv()).post("/signup").send({ companyName: `تدقيق ${uniq()}`, adminName: name, adminEmail: `au-${uniq()}@brk.sa`, password: "Owner1Pass" }).expect(201);
+    const res = await request(srv()).post("/signup").send({ companyName: `تدقيق ${uniq()}`, adminName: name, adminEmail: `au-${uniq()}@brk.sa`, password: "Owner1Pass", seatCount: 25 }).expect(201);
     const me = await request(srv()).get("/auth/me").set(auth(res.body.accessToken)).expect(200);
     return { token: res.body.accessToken, fullName: me.body.fullName, tenantId: res.body.tenant.id };
   }

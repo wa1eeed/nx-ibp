@@ -180,7 +180,8 @@ export class SignupService {
       const tenantId = tenant.id;
       const renewsAt = new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000);
 
-      await tx.subscription.create({ data: { tenantId, planId: plan.id, cycle, seatsUsed: seats, renewsAt } });
+      // المقاعد المرخّصة = المقاعد المختارة عند التسجيل (رخصة التجربة). لإضافة أكثر لاحقًا يلزم شراء مقاعد (رفع الرخصة).
+      await tx.subscription.create({ data: { tenantId, planId: plan.id, cycle, seatsUsed: seats, seatsLicensed: seats, renewsAt } });
 
       await tx.tenantConfig.create({
         data: {

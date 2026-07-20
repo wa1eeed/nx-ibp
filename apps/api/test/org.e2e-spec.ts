@@ -17,7 +17,7 @@ describe("الهيكل الإداري (e2e)", () => {
 
   // مالك جديد (له صلاحية settings كاملة) + دوره الافتراضي (دور المالك)
   async function newOwner(): Promise<{ token: string; roleId: string }> {
-    const res = await request(srv()).post("/signup").send({ companyName: `هيكل ${uniq()}`, adminName: "مالك", adminEmail: `org-${uniq()}@brk.sa`, password: "Owner1Pass" }).expect(201);
+    const res = await request(srv()).post("/signup").send({ companyName: `هيكل ${uniq()}`, adminName: "مالك", adminEmail: `org-${uniq()}@brk.sa`, password: "Owner1Pass", seatCount: 25 }).expect(201);
     return { token: res.body.accessToken, roleId: res.body.user.roleId };
   }
 

@@ -14,7 +14,7 @@ describe("§8.2 طلبات الإجازات (e2e)", () => {
   const srv = () => app.getHttpServer();
   const uniq = () => `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
   const auth = (t: string) => ({ Authorization: `Bearer ${t}` });
-  const owner = async () => (await request(srv()).post("/signup").send({ companyName: `إجازات ${uniq()}`, adminName: "مالك", adminEmail: `lv-${uniq()}@brk.sa`, password: "Owner1Pass" }).expect(201)).body.accessToken;
+  const owner = async () => (await request(srv()).post("/signup").send({ companyName: `إجازات ${uniq()}`, adminName: "مالك", adminEmail: `lv-${uniq()}@brk.sa`, password: "Owner1Pass", seatCount: 25 }).expect(201)).body.accessToken;
   // موظف بصلاحية الإعدادات (لبتّ الطلبات) أو بلا صلاحيتها (لاختبار 403)
   const addStaff = async (t: string, withSettings: boolean) => {
     const email = `st-${uniq()}@brk.sa`;

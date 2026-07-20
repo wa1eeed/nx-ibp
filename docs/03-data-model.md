@@ -126,7 +126,7 @@ erDiagram
 | `@@unique([tenantId, counter])` | عدّاد تسلسلي معزول بالمستأجر |
 | `@@unique([tenantId, serialNumber])` | رقم تسلسلي فريد لكل مستأجر |
 
-> **الباقات — تسعير لكل مستخدم:** `Plan.priceMonthly/priceYearly` سعرٌ **لكل مستخدم**؛ الإجمالي = السعر × `Subscription.seatsUsed`. `Plan.trialDays` مدة التجربة المجانية (قابلة للضبط من السوبر أدمن). `Tenant.unifiedNumber` (الرقم الموحد، 10 أرقام) · `vatNumber` (15) · `phone` (05XXXXXXXX) تُجمع في معالج الـonboarding عند التسجيل.
+> **الباقات — تسعير لكل مستخدم برخصة مقاعد مسبقة الدفع:** `Plan.priceMonthly/priceYearly` سعرٌ **لكل مستخدم**؛ الإجمالي = السعر × `Subscription.seatsLicensed` (المقاعد المرخّصة). **نموذج مسبق الدفع:** عدد المستخدمين النشطين لا يتجاوز `seatsLicensed`؛ تُضبط الرخصة = المقاعد المختارة عند التسجيل، وتُرفَع لاحقًا بشراء مقاعد (`SubscriptionInvoice.seatsDelta`). `Subscription.seatsUsed` = مرآة النشطين الفعليين (للعرض). `Plan.trialDays` مدة التجربة المجانية (قابلة للضبط من السوبر أدمن). `Tenant.unifiedNumber` (الرقم الموحد، 10 أرقام) · `vatNumber` (15) · `phone` (05XXXXXXXX) تُجمع في معالج الـonboarding عند التسجيل.
 
 ### `Plan`
 **الغرض:** باقة اشتراك مرجعية على مستوى المنصة (يعرّفها السوبر أدمن).
@@ -136,7 +136,7 @@ erDiagram
 | `id` | String (cuid) | المفتاح |
 | `code` | String **@unique** | `basic` \| `premium` \| `enterprise` |
 | `name` | String | الاسم المعروض |
-| `seatLimit` | Int? | **nullable = بلا سقف** (التسعير لكل مستخدم فعلي؛ أُزيل السقف من كل الطبقات) |
+| `seatLimit` | Int? | **مُلغى** (`nullable`) — لا يُستخدَم للحدّ؛ الحدّ الفعّال هو `Subscription.seatsLicensed` لكل مستأجر (نموذج مسبق الدفع) |
 | `priceMonthly` / `priceYearly` | Decimal(12,2) | السعر لكل مستخدم |
 | `trialDays` | Int | مدة التجربة المجانية (0 = بلا) |
 | `slaResponseHours` | Int? | **زمن استجابة الدعم المتعهَّد به** (ساعات؛ 24=يوم عمل) — P1-A، قابل للضبط من السوبر أدمن ويظهر في المقارنة |
@@ -171,7 +171,8 @@ erDiagram
 | `tenantId` | String **@unique** (FK→Tenant) | اشتراك واحد لكل مستأجر (1:1) |
 | `planId` | String (FK→Plan) | الباقة |
 | `cycle` | `BillingCycle` | افتراضي `MONTHLY` |
-| `seatsUsed` | Int | المقاعد المستخدمة، افتراضي 0 |
+| `seatsUsed` | Int | مرآة عدد المستخدمين النشطين (للعرض)، افتراضي 0 |
+| `seatsLicensed` | Int | **المقاعد المرخّصة = الحدّ الأقصى للنشطين** (نموذج مسبق الدفع). افتراضي 1؛ يُضبط = المختار عند التسجيل، ويُرفَع بشراء مقاعد |
 | `startedAt` | DateTime | بداية الاشتراك |
 | `renewsAt` | DateTime? | تاريخ التجديد |
 

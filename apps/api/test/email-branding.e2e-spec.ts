@@ -18,7 +18,7 @@ describe("البريد + الهوية البصرية (e2e)", () => {
   const auth = (t: string) => ({ Authorization: `Bearer ${t}` });
 
   async function newOwner(): Promise<{ token: string; tenantId: string }> {
-    const res = await request(srv()).post("/signup").send({ companyName: `براند ${uniq()}`, adminName: "مالك", adminEmail: `br-${uniq()}@brk.sa`, password: "Owner1Pass" }).expect(201);
+    const res = await request(srv()).post("/signup").send({ companyName: `براند ${uniq()}`, adminName: "مالك", adminEmail: `br-${uniq()}@brk.sa`, password: "Owner1Pass", seatCount: 25 }).expect(201);
     return { token: res.body.accessToken, tenantId: res.body.tenant.id };
   }
 
@@ -143,7 +143,7 @@ describe("البريد + الهوية البصرية (e2e)", () => {
 
   it("بيانات الشركة: قراءة الاسم من التسجيل ثم حفظ حقول مُتحقَّقة", async () => {
     const email = `co-${uniq()}@brk.sa`;
-    const signup = await request(srv()).post("/signup").send({ companyName: "شركة الاسم الأصلي", adminName: "المالك", adminEmail: email, password: "Owner1Pass" }).expect(201);
+    const signup = await request(srv()).post("/signup").send({ companyName: "شركة الاسم الأصلي", adminName: "المالك", adminEmail: email, password: "Owner1Pass", seatCount: 25 }).expect(201);
     const token = signup.body.accessToken;
     const before = (await request(srv()).get("/config/company").set(auth(token)).expect(200)).body;
     expect(before.name).toBe("شركة الاسم الأصلي");

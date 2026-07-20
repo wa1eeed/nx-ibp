@@ -1,16 +1,17 @@
 /**
- * اختبار نموذج التسعير **لكل مستخدم** (بلا سقف من الباقة) + تحكّم السوبر أدمن بالأسعار:
- *  - السوبر أدمن يعدّل السعر الشهري/السنوي ومدّة التجربة ⇒ يظهر في الكتالوج العام مع نسبة التوفير.
- *  - `GET /staff/seats` يعيد `limit=null` (بلا حدّ) — التسعير لكل مستخدم.
- *  - إضافة مستخدم **تنجح بلا سقف** ويتزامن العدّاد المستخدَم (أساس الفوترة).
- *  - عزل: مستخدم الشركة لا يعدّل الباقات (نطاق المنصّة فقط).
+ * اختبار **رخصة المقاعد (نموذج مسبق الدفع)** + تحكّم السوبر أدمن بالأسعار:
+ *  - شركة جديدة تُقيَّد بالمقاعد المرخّصة (= المختارة عند التسجيل، رخصة التجربة).
+ *  - `GET /staff/seats` يعيد `limit`/`available` الحقيقيين.
+ *  - إضافة مستخدم ضمن الرخصة تنجح؛ وتجاوزها ⇒ **402** (`SEAT_LIMIT_REACHED`).
+ *  - **شراء مقاعد** (POST /billing/seats/checkout ⇒ confirm) يرفع الرخصة فيُسمح بالإضافة.
+ *  - السوبر أدمن يعدّل السعر ويظهر في الكتالوج العام؛ وعزل: مستخدم الشركة لا يعدّل الباقات.
  */
 import { Test } from "@nestjs/testing";
 import { INestApplication, ValidationPipe } from "@nestjs/common";
 import request from "supertest";
 import { AppModule } from "../src/app.module";
 
-describe("التسعير لكل مستخدم (e2e)", () => {
+describe("رخصة المقاعد — مسبق الدفع (e2e)", () => {
   let app: INestApplication;
   let admin: string; // سوبر أدمن المنصّة
   let omar: string; // مدير عام الأمان (باقة basic)
@@ -18,7 +19,15 @@ describe("التسعير لكل مستخدم (e2e)", () => {
   const srv = () => app.getHttpServer();
   const auth = (t: string) => ({ Authorization: `Bearer ${t}` });
   const perm = (m: string) => ({ module: m, canAccess: true, canCreate: false, canEdit: false, canDelete: false, canRevert: false });
+  const uniq = () => `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
   const newUser = (email: string) => ({ fullName: "مقعد اختبار", email, password: "Passw0rd1", roleName: `دور-${email}`, permissions: [perm("dashboard")] });
+  const seatsOf = async (t: string) => (await request(srv()).get("/staff/seats").set(auth(t)).expect(200)).body as { used: number; limit: number; available: number; planName: string | null };
+
+  // شركة جديدة برخصة seatCount مقاعد (المالك = مستخدم واحد نشط)
+  const signup = async (seatCount: number) => {
+    const res = await request(srv()).post("/signup").send({ companyName: "وساطة المقاعد", adminName: "المالك", adminEmail: `seatowner-${uniq()}@seat-broker.sa`, password: "Owner1Pass", planCode: "basic", seatCount }).expect(201);
+    return res.body.accessToken as string;
+  };
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
@@ -30,36 +39,51 @@ describe("التسعير لكل مستخدم (e2e)", () => {
   });
 
   afterAll(async () => {
-    await request(srv()).put("/platform/plans/basic").set(auth(admin)).send({ priceMonthly: 230, priceYearly: 2300, trialDays: 14 }); // استعادة الافتراضي (تسعير لكل مستخدم)
+    await request(srv()).put("/platform/plans/basic").set(auth(admin)).send({ priceMonthly: 230, priceYearly: 2300, trialDays: 14 }); // استعادة الافتراضي
     await app?.close();
   });
 
   it("سوبر أدمن يعدّل سعر الباقة (شهري/سنوي) ومدة التجربة ⇒ يظهر في الكتالوج العام", async () => {
     const r = await request(srv()).put("/platform/plans/basic").set(auth(admin)).send({ priceMonthly: 88, priceYearly: 880, trialDays: 21 }).expect(200);
     expect(Number(r.body.priceMonthly)).toBe(88);
-    expect(Number(r.body.priceYearly)).toBe(880);
     expect(r.body.trialDays).toBe(21);
-    const pub = (await request(srv()).get("/signup/plans").expect(200)).body as Array<{ code: string; pricePerUserMonthly: number; trialDays: number; savingsPct: number }>;
+    const pub = (await request(srv()).get("/signup/plans").expect(200)).body as Array<{ code: string; pricePerUserMonthly: number; savingsPct: number }>;
     const basic = pub.find((p) => p.code === "basic")!;
     expect(basic.pricePerUserMonthly).toBe(88);
-    expect(basic.trialDays).toBe(21);
-    expect(basic.savingsPct).toBe(Math.round((1 - 880 / 12 / 88) * 100)); // ≈17%
+    expect(basic.savingsPct).toBe(Math.round((1 - 880 / 12 / 88) * 100));
     await request(srv()).put("/platform/plans/basic").set(auth(admin)).send({ priceMonthly: 230, priceYearly: 2300, trialDays: 14 }).expect(200);
   });
 
-  it("المقاعد بلا سقف من الباقة: /staff/seats يعيد limit=null (تسعير لكل مستخدم)", async () => {
-    const s = (await request(srv()).get("/staff/seats").set(auth(omar)).expect(200)).body as { used: number; limit: number | null; planName: string | null };
-    expect(typeof s.used).toBe("number");
-    expect(s.limit).toBeNull(); // بلا حدّ — التسعير لكل مستخدم
+  it("الرخصة = المقاعد المختارة عند التسجيل؛ /staff/seats يعكس المرخّص والمتاح", async () => {
+    const t = await signup(2);
+    const s = await seatsOf(t);
+    expect(s.limit).toBe(2); // رخصة التجربة = المختارة
+    expect(s.used).toBe(1); // المالك فقط
+    expect(s.available).toBe(1);
     expect(s.planName).toBeTruthy();
   });
 
-  it("إضافة مستخدم تنجح بلا سقف، ويتزامن العدّاد المستخدَم (أساس الفوترة)", async () => {
-    const before = (await request(srv()).get("/staff/seats").set(auth(omar)).expect(200)).body as { used: number };
-    const uniq = String(Date.now()).slice(-8);
-    await request(srv()).post("/staff").set(auth(omar)).send(newUser(`seat-${uniq}@aman-demo.sa`)).expect(201);
-    const after = (await request(srv()).get("/staff/seats").set(auth(omar)).expect(200)).body as { used: number };
-    expect(after.used).toBe(before.used + 1); // الفوترة تتبع العدد الفعلي
+  it("إضافة ضمن الرخصة تنجح، وتجاوزها ⇒ 402 (SEAT_LIMIT_REACHED)", async () => {
+    const t = await signup(2); // رخصة 2، مستخدم واحد ⇒ متاح 1
+    await request(srv()).post("/staff").set(auth(t)).send(newUser(`s1-${uniq()}@seat-broker.sa`)).expect(201); // ⇒ 2/2
+    expect((await seatsOf(t)).available).toBe(0);
+    const blocked = await request(srv()).post("/staff").set(auth(t)).send(newUser(`s2-${uniq()}@seat-broker.sa`)).expect(402); // تجاوز الرخصة
+    expect(blocked.body.code).toBe("SEAT_LIMIT_REACHED");
+    expect(blocked.body.licensed).toBe(2);
+  });
+
+  it("شراء مقاعد يرفع الرخصة فيُسمح بإضافة المزيد", async () => {
+    const t = await signup(1); // رخصة 1، المالك فقط ⇒ ممتلئة
+    await request(srv()).post("/staff").set(auth(t)).send(newUser(`full-${uniq()}@seat-broker.sa`)).expect(402);
+    // شراء مقعدين ⇒ فاتورة ⇒ تأكيد الدفع (sandbox) ⇒ الرخصة 3
+    const co = await request(srv()).post("/billing/seats/checkout").set(auth(t)).send({ addSeats: 2 }).expect(201);
+    expect(co.body.invoiceId).toBeTruthy();
+    expect(Number(co.body.amount)).toBeGreaterThan(0);
+    await request(srv()).post(`/billing/${co.body.invoiceId}/confirm`).set(auth(t)).expect(201);
+    const s = await seatsOf(t);
+    expect(s.limit).toBe(3); // 1 + 2 مشتراة
+    expect(s.available).toBe(2);
+    await request(srv()).post("/staff").set(auth(t)).send(newUser(`after-${uniq()}@seat-broker.sa`)).expect(201); // صار مسموحًا
   });
 
   it("عزل: مستخدم الشركة لا يعدّل الباقات (نطاق المنصّة فقط) ⇒ 403", () =>

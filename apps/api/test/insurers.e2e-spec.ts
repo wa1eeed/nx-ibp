@@ -13,7 +13,7 @@ describe("شركات التأمين (e2e)", () => {
   const auth = (t: string) => ({ Authorization: `Bearer ${t}` });
 
   async function newOwner(): Promise<string> {
-    const res = await request(srv()).post("/signup").send({ companyName: `مؤمِّن ${uniq()}`, adminName: "مالك", adminEmail: `in-${uniq()}@brk.sa`, password: "Owner1Pass" }).expect(201);
+    const res = await request(srv()).post("/signup").send({ companyName: `مؤمِّن ${uniq()}`, adminName: "مالك", adminEmail: `in-${uniq()}@brk.sa`, password: "Owner1Pass", seatCount: 25 }).expect(201);
     return res.body.accessToken;
   }
 

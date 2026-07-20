@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ConflictException, HttpException, HttpStatus, Injectable, NotFoundException } from "@nestjs/common";
 import * as bcrypt from "bcryptjs";
 import { PrismaService } from "../../prisma/prisma.service";
 import { AuditService } from "../../common/audit/audit.service";
@@ -89,7 +89,17 @@ export class StaffService {
     const existing = await this.prisma.user.findFirst({ where: { email: dto.email } });
     if (existing) throw new ConflictException("البريد مستخدم مسبقاً في هذا المستأجر");
 
-    // نموذج التسعير **لكل مستخدم** بلا سقف من الباقة: تُضاف المستخدمون بحرّية، ويتزامن العدّاد للفوترة (§مزامنة أدناه).
+    // نموذج **مسبق الدفع**: لا يتجاوز عدد المستخدمين النشطين المقاعد المرخّصة. لإضافة أكثر ⇒ شراء مقاعد (رفع الرخصة).
+    const sub = await this.prisma.subscription.findFirst({ where: { tenantId }, select: { seatsLicensed: true } });
+    const licensed = sub?.seatsLicensed ?? 0;
+    const activeUsers = await this.prisma.user.count({ where: { tenantId, status: "ACTIVE" } });
+    if (activeUsers >= licensed) {
+      throw new HttpException(
+        { code: "SEAT_LIMIT_REACHED", licensed, activeUsers, message: `بلغت الحدّ الأقصى للمقاعد المرخّصة (${licensed}). اشترِ مقاعد إضافية من صفحة الفوترة لإضافة مستخدمين جدد.` },
+        HttpStatus.PAYMENT_REQUIRED,
+      );
+    }
+
     const passwordHash = await bcrypt.hash(dto.password, 12);
 
     const user = await this.prisma.$transaction(async (tx) => {
@@ -142,15 +152,16 @@ export class StaffService {
   }
 
   /**
-   * المستخدمون النشطون (أساس الفوترة **لكل مستخدم**). لا سقف من الباقة (`limit=null` دائمًا) —
-   * التسعير لكل مستخدم، فتُضاف المستخدمون بحرّية ويُفوتَر حسب عددهم الفعلي.
+   * المستخدمون النشطون مقابل **المقاعد المرخّصة** (نموذج مسبق الدفع). `limit` = الرخصة (حدّ أقصى)؛
+   * `available` = المقاعد الشاغرة المتاحة للإضافة بلا دفع. لإضافة أكثر من الرخصة ⇒ شراء مقاعد (billing).
    */
-  async seats(tenantId: string): Promise<{ used: number; limit: number | null; planName: string | null }> {
+  async seats(tenantId: string): Promise<{ used: number; limit: number; available: number; planName: string | null }> {
     const [used, sub] = await Promise.all([
       this.prisma.user.count({ where: { tenantId, status: "ACTIVE" } }),
-      this.prisma.subscription.findFirst({ where: { tenantId }, select: { plan: { select: { name: true } } } }),
+      this.prisma.subscription.findFirst({ where: { tenantId }, select: { seatsLicensed: true, plan: { select: { name: true } } } }),
     ]);
-    return { used, limit: null, planName: sub?.plan.name ?? null };
+    const limit = sub?.seatsLicensed ?? used;
+    return { used, limit, available: Math.max(0, limit - used), planName: sub?.plan.name ?? null };
   }
 
   /**

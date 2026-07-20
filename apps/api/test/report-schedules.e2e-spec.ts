@@ -16,7 +16,7 @@ describe("§7.3 التقارير المجدولة (e2e)", () => {
   const srv = () => app.getHttpServer();
   const uniq = () => `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
   const auth = (t: string) => ({ Authorization: `Bearer ${t}` });
-  const owner = async () => (await request(srv()).post("/signup").send({ companyName: `مجدول ${uniq()}`, adminName: "مالك", adminEmail: `rs-${uniq()}@brk.sa`, password: "Owner1Pass" }).expect(201)).body.accessToken;
+  const owner = async () => (await request(srv()).post("/signup").send({ companyName: `مجدول ${uniq()}`, adminName: "مالك", adminEmail: `rs-${uniq()}@brk.sa`, password: "Owner1Pass", seatCount: 25 }).expect(201)).body.accessToken;
   const mk = (t: string, body: object) => request(srv()).post("/reports/schedules").set(auth(t)).send(body);
 
   beforeAll(async () => {

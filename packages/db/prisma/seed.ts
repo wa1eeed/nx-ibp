@@ -62,6 +62,7 @@ interface TenantDef {
   plan: string;
   billing: "PASS_THROUGH" | "RESELLER";
   seatsUsed: number;
+  seatsLicensed: number; // المقاعد المرخّصة (حدّ أقصى) — يجب ألّا تقلّ عن عدد المستخدمين المزروعين
   branches: Array<{ code: string; name: string }>;
   users: Array<{ email: string; name: string; role: string }>;
   clients: Array<{ id: string; name: string; cr: string; compliance?: "APPROVED" | "PENDING" | "REJECTED" }>;
@@ -78,7 +79,8 @@ const TENANTS: TenantDef[] = [
     cr: "1010101010",
     plan: "enterprise", // باقة مؤسسات (100 مقعدًا) — سعة كافية لبيئة العرض/الاختبار
     billing: "RESELLER",
-    seatsUsed: 4,
+    seatsUsed: 7,
+    seatsLicensed: 200,
     branches: [
       { code: "RUH", name: "الرياض" },
       { code: "JED", name: "جدة" },
@@ -115,6 +117,7 @@ const TENANTS: TenantDef[] = [
     plan: "basic",
     billing: "PASS_THROUGH",
     seatsUsed: 1,
+    seatsLicensed: 50,
     branches: [{ code: "JED", name: "جدة" }],
     users: [{ email: "omar@aman-demo.sa", name: "عمر السالم", role: "general_manager" }],
     clients: [
@@ -201,8 +204,8 @@ async function seedTenant(def: TenantDef, passwordHash: string) {
   const plan = await prisma.plan.findUniqueOrThrow({ where: { code: def.plan } });
   const sub = await prisma.subscription.upsert({
     where: { tenantId: def.id },
-    update: { planId: plan.id, seatsUsed: def.seatsUsed },
-    create: { id: `sub-${def.id}`, tenantId: def.id, planId: plan.id, cycle: "YEARLY", seatsUsed: def.seatsUsed },
+    update: { planId: plan.id, seatsUsed: def.seatsUsed, seatsLicensed: def.seatsLicensed },
+    create: { id: `sub-${def.id}`, tenantId: def.id, planId: plan.id, cycle: "YEARLY", seatsUsed: def.seatsUsed, seatsLicensed: def.seatsLicensed },
   });
 
   for (const a of def.addons ?? []) {
@@ -393,6 +396,8 @@ async function seedFinanceFoundation(def: TenantDef) {
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
 const D = (s: string) => new Date(`${s}T00:00:00.000Z`);
+// تاريخ نسبيّ من اليوم (YYYY-MM-DD) — لإبقاء وثائق «المستحقّة للتجديد قريبًا» ضمن نافذة التجديد مهما تقدّم التاريخ (لا تنجرف للماضي).
+const dRel = (days: number) => new Date(Date.now() + days * 864e5).toISOString().slice(0, 10);
 // مبلغ التأمين (Sum Insured) تقديري من صافي القسط حسب فرع التأمين — القسط نسبة صغيرة من المبلغ المؤمَّن.
 const SI_FACTOR: Record<string, number> = {
   MTP: 22, MCI: 22, MOT: 22, // مركبات
@@ -414,7 +419,7 @@ async function seedOperations(passwordHash: string) {
     { id: "pol-fahd-mot", t: "demo-tenant", clientId: "cl-fahd", line: "MCI", insurer: "التعاونية للتأمين", net: 45000, comm: 10, start: "2026-02-01", end: "2027-01-31" },
     { id: "pol-fahd-pro", t: "demo-tenant", clientId: "cl-fahd", line: "PAR", insurer: "وقاية للتأمين", net: 90000, comm: 15, start: "2026-03-01", end: "2027-02-28" },
     { id: "pol-zahra-med", t: "demo-tenant", clientId: "cl-zahra", line: "GMI", insurer: "ملاذ للتأمين", net: 320000, comm: 12, start: "2026-01-15", end: "2027-01-14" },
-    { id: "pol-shorouq-mot", t: "demo-tenant", clientId: "cl-shorouq", line: "MCI", insurer: "التعاونية للتأمين", net: 60000, comm: 10, start: "2025-07-15", end: "2026-07-14" }, // مستحقّة للتجديد قريباً
+    { id: "pol-shorouq-mot", t: "demo-tenant", clientId: "cl-shorouq", line: "MCI", insurer: "التعاونية للتأمين", net: 60000, comm: 10, start: dRel(-325), end: dRel(40) }, // مستحقّة للتجديد قريباً (تاريخ نسبيّ — ضمن نافذة الـ60 يومًا دائمًا)
     { id: "pol-nukhba-mot", t: "demo-tenant-2", clientId: "cl2-nukhba", line: "MTP", insurer: "سلامة للتأمين", net: 28000, comm: 8, start: "2026-04-01", end: "2027-03-31" },
   ];
   let pi = 0;
@@ -428,7 +433,7 @@ async function seedOperations(passwordHash: string) {
     const feesVat = round2(fees * 0.15);
     await prisma.policy.upsert({
       where: { id: p.id },
-      update: { insurerName: p.insurer, premium: p.net, vat, totalPremium: total, sumInsured: siOf(p.line, p.net), status: "ISSUED", policyFees: fees },
+      update: { insurerName: p.insurer, premium: p.net, vat, totalPremium: total, sumInsured: siOf(p.line, p.net), status: "ISSUED", policyFees: fees, startDate: D(p.start), endDate: D(p.end) },
       create: {
         id: p.id, tenantId: p.t, clientId: p.clientId, productLineCode: p.line, insurerName: p.insurer,
         sequenceNo: `POL-RUH-${p.line}-2026-${1000 + pi}`, premium: p.net, vat, totalPremium: total, sumInsured: siOf(p.line, p.net), policyFees: fees,
@@ -788,6 +793,7 @@ const GIB_DEF: TenantDef = {
   plan: "enterprise",
   billing: "RESELLER",
   seatsUsed: 6,
+  seatsLicensed: 100,
   branches: [{ code: "RUH", name: "الرياض — المركز الرئيسي" }, { code: "JED", name: "جدة" }],
   users: [
     { email: "AAlanazi@gib-sa.com", name: "عبدالحميد العنزي", role: "general_manager" }, // مالك الحساب (أوّل مستخدم)

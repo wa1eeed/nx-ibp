@@ -15,7 +15,7 @@ describe("نظام الإشعارات (e2e)", () => {
   const srv = () => app.getHttpServer();
   const uniq = () => `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
   const auth = (t: string) => ({ Authorization: `Bearer ${t}` });
-  const owner = async () => (await request(srv()).post("/signup").send({ companyName: `إشعار ${uniq()}`, adminName: "مالك", adminEmail: `nt-${uniq()}@brk.sa`, password: "Owner1Pass" }).expect(201)).body.accessToken;
+  const owner = async () => (await request(srv()).post("/signup").send({ companyName: `إشعار ${uniq()}`, adminName: "مالك", adminEmail: `nt-${uniq()}@brk.sa`, password: "Owner1Pass", seatCount: 25 }).expect(201)).body.accessToken;
   const find = (list: { eventKey: string }[], k: string) => list.find((x) => x.eventKey === k) as any;
   // فكّ ترميز JWT (بلا تحقّق) للحصول على roleId لمالك الحساب
   const decode = (tok: string) => JSON.parse(Buffer.from(tok.split(".")[1], "base64").toString("utf8"));

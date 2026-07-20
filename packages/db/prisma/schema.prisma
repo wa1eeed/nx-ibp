@@ -268,6 +268,9 @@ model Subscription {
   plan      Plan            @relation(fields: [planId], references: [id])
   cycle     BillingCycle    @default(MONTHLY)
   seatsUsed Int             @default(0)
+  // المقاعد المرخّصة (المخصّصة عند التسجيل + المشتراة لاحقًا) = الحدّ الأقصى للمستخدمين النشطين.
+  // نموذج مسبق الدفع: لا يُضاف مستخدم يتجاوزها حتى تُرفَع الرخصة (شراء مقاعد). أثناء التجربة = المقاعد المختارة عند التسجيل.
+  seatsLicensed Int         @default(1)
   startedAt DateTime        @default(now())
   renewsAt  DateTime?
   addons    AddonPurchase[]
@@ -306,6 +309,7 @@ model SubscriptionInvoice {
   currency        String               @default("SAR")
   status          BillingInvoiceStatus @default(PENDING)
   gateway         String // sandbox | tap
+  seatsDelta      Int? // فاتورة شراء مقاعد: عدد المقاعد المضافة للرخصة عند الدفع (null = فاتورة اشتراك عادية)
   gatewayChargeId String? // معرّف الشحنة لدى البوّابة (chg_…)
   redirectUrl     String?              @db.Text // رابط صفحة الدفع المستضافة
   reference       String? // مرجعنا الداخلي المُمرَّر للبوّابة

@@ -781,7 +781,8 @@ curl -X POST http://localhost:4000/staff \
 | `POST` | `/platform/leads/:id/status` | PlatformGuard | تحديث حالة الطلب (`new`/`contacted`/`closed`) — حالة خاطئة ⇒ 400 |
 | `POST` | `/platform/plans/:code/entitlements` | PlatformGuard | 201 |
 | `PUT` | `/platform/plans/:code` | PlatformGuard | السعر لكل مستخدم/الاسم/التجربة/SLA (الحقل `seatLimit` صار nullable — بلا سقف) |
-| `GET` | `/staff/seats` | settings:read | مقاعد الشركة `{ used, limit:null, planName }` — **بلا سقف** (التسعير لكل مستخدم فعلي) |
+| `GET` | `/staff/seats` | settings:read | مقاعد الشركة `{ used, limit, available, planName }` — `limit` = المقاعد المرخّصة (حدّ أقصى، نموذج مسبق الدفع) |
+| `POST` | `/staff` | settings:create | إنشاء موظف — يردّ **402 (`SEAT_LIMIT_REACHED`)** إذا بلغ النشطون المقاعد المرخّصة (يلزم شراء مقاعد أولًا) |
 | `POST` | `/portal/login` | Public | 201 |
 | `GET` | `/portal/me` · `/policies` · `/requests` · `/claims` · `/statement` · `/documents` | PortalGuard (نطاق العميل) | 200 |
 | `GET` | `/portal/documents/:id/url` | PortalGuard | 200 |
@@ -853,7 +854,8 @@ curl -X POST http://localhost:4000/staff \
 | `POST /policies/:id/endorsements` (مُحسَّن) | `production:*` | ملحق باتجاه مالي + ضريبة بنسبة الفرع (يولّد إشعار مدين/دائن) |
 | `GET/POST /roles` · `PUT/DELETE /roles/:id` | `settings:read/create/update/delete` | **محرّر RBAC**: سرد كل الأدوار (مُعدّة+مخصّصة) بمصفوفتها وعدد مستخدميها · إنشاء دور مخصّص · تعديل الاسم/المصفوفة (upsert لكل موديول) · حذف دور مخصّص غير مُستخدَم. حواجز: مُعدّ مسبقًا/مُسنَد ⇒ 409 · **قفل ذاتي** عن الإعدادات ⇒ 400 · اسم مكرّر ⇒ 409 |
 | `POST /staff/:id/role` | `settings:update` | إسناد دور موجود لمستخدم (`{ roleId }`) — بمنع الأدمن من إسناد دور بلا إعدادات لنفسه |
-| `GET /billing/seats` | `settings:read` | لقطة المقاعد (نموذج الدفع لكل مستخدم فعلي): النشطون · المغطّى بالفاتورة · **فرق تناسبي** (charge/credit) · تكلفة إضافة مستخدم للمدّة المتبقّية |
+| `GET /billing/seats` | `settings:read` | لقطة المقاعد (نموذج مسبق الدفع): النشطون · **المرخّص** · **المتاح** · تكلفة المقعد الإضافي للمدّة المتبقّية (`addUnit`) |
+| `POST /billing/seats/checkout` | `settings:update` | **شراء مقاعد** (`{ addSeats }`): فاتورة تناسبية + رابط دفع؛ عند تأكيد الدفع تُزاد `seatsLicensed` تلقائيًا |
 | `GET /insurers/options` | `underwriting:read` | المؤمِّنون النشطون (`id`+`name`+`commissionRate`) لتعبئة نسبة العمولة في التسعير — متاح للاكتتاب بلا مالية |
 
 > **ملاحظة سلوكية:** `GET /requests` و`GET /policies` أصبحا **يُصفّيان حسب نطاق منتجات المستخدم** (فارغ = كل الفروع)؛ و`POST /finance/policies/:id/approve` صار **يتفرّع حسب آلية التحصيل** (تحصيل كامل/دفع مباشر) ويعيد `collectionModel`.

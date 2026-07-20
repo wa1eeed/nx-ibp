@@ -84,7 +84,7 @@ async isFeatureEnabled(tenantId: string, featureKey: string): Promise<boolean> {
 | **تشغيل + امتثال** (عملاء · اكتتاب · إصدار · تجديدات · خدمة · **مطالبات** · مالية أساسية · **التزام/تدقيق** · تقارير · **`feature.verification` KYC/KYB** · **`feature.auditImmutable`**) | ✓ | ✓ | ✓ |
 | **النموّ + المالية المتقدّمة** (**`feature.zatca`** الفوترة الإلكترونية · `feature.crm` · `feature.producers` · `feature.formTemplates` · `feature.analytics` · `feature.approvalChains` · `feature.org` · `feature.mfaEnforce`) | — | ✓ | ✓ |
 | **الحوكمة** (`module.hr` · `feature.dlp` · `feature.api` · `feature.whiteLabel` · `feature.prioritySupport`) | — | — | ✓ |
-| **الحدود** (مستخدمون · تخزين) | **بلا سقف مستخدمين** (تسعير لكل مستخدم) · 1GB | بلا سقف · 10GB | بلا سقف · 100GB |
+| **الحدود** (مستخدمون · تخزين) | **مقاعد مرخّصة مسبقة الدفع** (تسعير لكل مستخدم؛ الرخصة تُرفَع بالشراء) · 1GB | كما هي · 10GB | كما هي · 100GB |
 
 - **الإنفاذ الفعلي**: المميزات محكومة بمفاتيح `feature.*` عبر نفس الحارس المزدوج (CRM/الوسطاء الفرعيون/القوالب/التحليلات + **نماذج التحقق KYC/KYB `feature.verification`** + **الفوترة الإلكترونية `feature.zatca`** ⇒ مستأجر خارج باقته يُرفَض 403). `feature.verification` يحرس `/verification/*`؛ و`feature.zatca` يحرس تهيئة/تشغيل `/zatca/*`.
 - **المقارنة العامة**: `GET /signup/compare` يبني مصفوفة (فئات × باقات × خلايا) من entitlements كل باقة ⇒ صفحة `/compare` + رابط في اللاندينق.
