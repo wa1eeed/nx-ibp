@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Search, LogOut, ChevronDown, Menu } from "lucide-react";
+import { LogOut, ChevronDown, Menu } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { LocaleSwitcher } from "./LocaleSwitcher";
+import { GlobalSearch } from "./GlobalSearch";
 import { NotificationBell } from "./NotificationBell";
 import { useMobileNav } from "./MobileNavContext";
 import { api, clearToken, getToken } from "@/lib/api";
@@ -48,18 +49,8 @@ export function Topbar() {
         <Menu size={18} />
       </button>
 
-      {/* بحث */}
-      <div className="relative hidden max-w-xl flex-1 sm:block">
-        <Search
-          size={16}
-          className="pointer-events-none absolute inset-y-0 my-auto h-4 w-4 text-subtle ltr:left-3 rtl:right-3"
-        />
-        <input
-          type="text"
-          placeholder={t("topbar.searchPlaceholder")}
-          className="h-9 w-full rounded-full border border-line bg-card text-[13px] text-ink placeholder:text-subtle focus:outline-none focus:ring-2 focus:ring-primary/30 ltr:pl-9 ltr:pr-4 rtl:pr-9 rtl:pl-4"
-        />
-      </div>
+      {/* بحث عام (⌘K) */}
+      <GlobalSearch />
 
       <div className="flex flex-1 items-center justify-end gap-2 sm:flex-none">
         <LocaleSwitcher />

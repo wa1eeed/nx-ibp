@@ -224,6 +224,10 @@
     "userRole": "Tenant Admin",
     "logout": "Sign out"
   },
+  "gsearch": {
+    "empty": "No results for “{q}”",
+    "type": { "client": "Clients", "policy": "Policies", "request": "Requests", "claim": "Claims", "insurer": "Insurers" }
+  },
   "demo": {
     "title": "Demo Session",
     "subtitle": "Temporary preview mode"

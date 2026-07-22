@@ -224,6 +224,10 @@
     "userRole": "أدمن الشركة",
     "logout": "تسجيل الخروج"
   },
+  "gsearch": {
+    "empty": "لا نتائج لـ «{q}»",
+    "type": { "client": "العملاء", "policy": "الوثائق", "request": "الطلبات", "claim": "المطالبات", "insurer": "شركات التأمين" }
+  },
   "demo": {
     "title": "Demo Session",
     "subtitle": "نمط العرض المؤقت"

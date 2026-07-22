@@ -57,6 +57,7 @@ import { LeaveModule } from "./modules/leave/leave.module";
 import { TargetsModule } from "./modules/targets/targets.module";
 import { AuditViewModule } from "./modules/audit/audit.module";
 import { InsurersModule } from "./modules/insurers/insurers.module";
+import { SearchModule } from "./modules/search/search.module";
 import { WebhooksModule } from "./modules/webhooks/webhooks.module";
 
 /**
@@ -120,6 +121,7 @@ import { WebhooksModule } from "./modules/webhooks/webhooks.module";
     TargetsModule,
     AuditViewModule,
     InsurersModule,
+    SearchModule,
     WebhooksModule,
   ],
   providers: [
