@@ -165,7 +165,7 @@ export class SlipsService {
 
     const columns = [
       { key: "sumInsured", labelAr: "مبلغ التأمين", labelEn: "Sum insured" },
-      { key: "rate", labelAr: "النسبة", labelEn: "Rate" },
+      { key: "rate", labelAr: "معدّل القسط", labelEn: "Premium rate" },
       { key: "premium", labelAr: "القسط الصافي", labelEn: "Net premium" },
       { key: "policyFees", labelAr: "رسوم الوثيقة", labelEn: "Policy fees" },
       { key: "vat", labelAr: "الضريبة", labelEn: "VAT" },

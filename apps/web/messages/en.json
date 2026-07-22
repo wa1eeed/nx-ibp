@@ -2405,7 +2405,7 @@
     "comparison": "Quotation comparison sheet",
     "insurer": "Insurer",
     "sumInsured": "Sum insured",
-    "rate": "Rate %",
+    "rate": "Premium rate %",
     "premium": "Net premium",
     "policyFees": "Policy fees",
     "vat": "VAT",
@@ -2461,7 +2461,7 @@
     },
     "sub": {
       "sumInsured": "insured value",
-      "rate": "% of sum insured",
+      "rate": "% of sum insured ⇒ premium auto-computed",
       "premium": "before fees & VAT",
       "policyFees": "issuance fees",
       "vat": "15% of net",
