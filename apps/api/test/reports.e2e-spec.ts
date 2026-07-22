@@ -52,6 +52,8 @@ describe("التقارير والتحليلات (e2e)", () => {
     expect(res.body.summary.received).toBeGreaterThan(0);
     expect(res.body.summary.total).toBeGreaterThanOrEqual(res.body.summary.received);
     expect(res.body.rows.length).toBeGreaterThanOrEqual(4);
+    // كل عمولة تحمل policyId لربطها بوثيقتها المصدر (للانتقال من العمولة إلى الوثيقة)
+    expect(res.body.rows.some((r: { policyId: string | null }) => !!r.policyId)).toBe(true);
   });
 
   it("تحليلات الإنتاج: GWP، نسبة التحويل، حسب الفرع/الشركة", async () => {

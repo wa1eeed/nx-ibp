@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Handshake, Users, Wallet2, Clock, UserPlus, X, Check, Banknote, ShieldCheck } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { api, ApiError } from "@/lib/api";
+import { Link } from "@/i18n/routing";
 import { usePermissions } from "@/hooks/usePermissions";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatCard } from "@/components/ui/StatCard";
@@ -83,7 +84,7 @@ export default function ProducersPage() {
 
 interface DetailData {
   producer: { id: string; code: string | null; name: string; type: string | null; licenseNo: string | null; crNumber: string | null; nationalId: string | null; email: string | null; phone: string | null; iban: string | null; commissionRate: string | null; status: string | null; notes: string | null };
-  policies: Array<{ id: string; sequenceNo: string | null; clientName: string; insurerName: string | null; totalPremium: string | null; producerCommission: string | null; status: string; createdAt: string }>;
+  policies: Array<{ id: string; sequenceNo: string | null; clientId: string | null; clientName: string; insurerName: string | null; totalPremium: string | null; producerCommission: string | null; status: string; createdAt: string }>;
   settlements: Array<{ id: string; sequenceNo: string | null; amount: string; createdAt: string }>;
   ledger: { policies: number; grossPremium: number; commissionOwed: number; paid: number; outstanding: number };
 }
@@ -140,8 +141,8 @@ function ProducerDetail({ id, onClose, onChanged }: { id: string; onClose: () =>
                 <tbody className="divide-y divide-line">
                   {d.policies.map((pol) => (
                     <tr key={pol.id}>
-                      <td className="px-3 py-2 tnum text-ink">{pol.sequenceNo ?? "—"}</td>
-                      <td className="px-3 py-2 text-muted">{pol.clientName}</td>
+                      <td className="px-3 py-2 tnum"><Link href={`/tenant/policies/${pol.id}`} className="font-medium text-primary hover:underline">{pol.sequenceNo ?? "—"}</Link></td>
+                      <td className="px-3 py-2">{pol.clientId ? <Link href={`/tenant/clients/${pol.clientId}`} className="text-primary hover:underline">{pol.clientName}</Link> : <span className="text-muted">{pol.clientName}</span>}</td>
                       <td className="px-3 py-2 text-end tnum text-muted">{fmt(pol.totalPremium)}</td>
                       <td className="px-3 py-2 text-end tnum font-medium text-ink">{fmt(pol.producerCommission)}</td>
                     </tr>

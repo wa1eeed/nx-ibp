@@ -66,6 +66,9 @@ describe("CRM — E5 (e2e)", () => {
     const after = (await request(srv).get(`/crm/deals/${deal.id}`).set(auth(gm)).expect(200)).body;
     expect(after.status).toBe("won");
     expect(after.requestId).toBe(conv.request.id);
+    // الطلب المرتبط مُثرًى برقمه (لعرضه كرابط للانتقال إليه)
+    expect(after.request?.id).toBe(conv.request.id);
+    expect(after.request?.sequenceNo).toBe(conv.request.sequenceNo);
     // إعادة التحويل ⇒ 409
     await request(srv).post(`/crm/deals/${deal.id}/convert`).set(auth(gm)).expect(409);
   });

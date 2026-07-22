@@ -84,6 +84,8 @@ describe("سجلّ المنتِجين (e2e)", () => {
     expect(detail.ledger.outstanding).toBeCloseTo(1500, 2);
     expect(detail.policies.length).toBeGreaterThanOrEqual(1);
     expect(Number(detail.policies[0].producerCommission)).toBeCloseTo(1500, 2);
+    // كل وثيقة تحمل clientId (لربط اسم العميل بصفحته 360° في نافذة تفصيل المنتِج)
+    expect(detail.policies[0].clientId).toBeTruthy();
   });
 
   it("تسوية المنتِج (PYV) تُنقص المتبقّي · التجاوز 409 · المكتتب (لا finance) 403", async () => {

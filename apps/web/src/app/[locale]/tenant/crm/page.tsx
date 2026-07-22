@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Plus, Check, Trophy, X, CalendarClock, RefreshCw, FileText, ClipboardList, Percent, AlarmClock, ArrowRightLeft, ExternalLink, Phone, Mail, Users, StickyNote, ArrowRight, Send } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { api, ApiError, getToken } from "@/lib/api";
+import { Link } from "@/i18n/routing";
 import { usePermissions } from "@/hooks/usePermissions";
 import { PageHeader } from "@/components/ui/PageHeader";
 
@@ -247,7 +248,7 @@ export default function CrmPage() {
   );
 }
 
-interface DealDetailData { id: string; title: string; stage: string; status: string; value: string | null; productLineCode: string | null; estimatedPremium: string | null; exclusivity: string | null; source: string | null; producerName: string | null; currentInsurer: string | null; lossRatio: string | null; preferredInsurers: string[]; expectedCloseDate: string | null; notes: string | null; requestId: string | null; clientId: string | null; clientName: string | null; assigneeId: string | null; assigneeName: string | null; activities: Array<{ id: string; type: string; body: string; createdAt: string }> }
+interface DealDetailData { id: string; title: string; stage: string; status: string; value: string | null; productLineCode: string | null; estimatedPremium: string | null; exclusivity: string | null; source: string | null; producerName: string | null; currentInsurer: string | null; lossRatio: string | null; preferredInsurers: string[]; expectedCloseDate: string | null; notes: string | null; requestId: string | null; clientId: string | null; clientName: string | null; assigneeId: string | null; assigneeName: string | null; activities: Array<{ id: string; type: string; body: string; createdAt: string }>; request: { id: string; sequenceNo: string | null; status: string } | null }
 
 function DealDetail({ dealId, catalog, staff, onClose, onChanged }: { dealId: string; catalog: CatalogClass[]; staff: Staff[]; onClose: () => void; onChanged: () => void }) {
   const t = useTranslations("crm");
@@ -322,7 +323,7 @@ function DealDetail({ dealId, catalog, staff, onClose, onChanged }: { dealId: st
         {!d ? <p className="py-8 text-center text-subtle">…</p> : (
           <>
             <div className="mb-1 flex items-start justify-between gap-2">
-              <div><h2 className="text-[16px] font-bold text-ink">{d.title}</h2><p className="text-[12px] text-subtle">{d.clientName ?? "—"} · {t(`stages.${d.stage}`)}</p></div>
+              <div><h2 className="text-[16px] font-bold text-ink">{d.title}</h2><p className="text-[12px] text-subtle">{d.clientId ? <Link href={`/tenant/clients/${d.clientId}`} className="text-primary hover:underline">{d.clientName}</Link> : (d.clientName ?? "—")} · {t(`stages.${d.stage}`)}</p></div>
               <button onClick={onClose} className="text-subtle hover:text-ink"><X size={18} /></button>
             </div>
             {done ? <p className="mb-3 rounded-lg bg-success-soft px-3 py-2 text-[12px] font-medium text-success">{done}</p> : null}
@@ -330,7 +331,7 @@ function DealDetail({ dealId, catalog, staff, onClose, onChanged }: { dealId: st
 
             <div className="mb-4 flex flex-wrap gap-2">
               {d.requestId ? (
-                <span className="inline-flex items-center gap-1.5 rounded-lg bg-success-soft px-3 py-1.5 text-[12px] font-semibold text-success"><ArrowRightLeft size={14} /> {t("converted")}</span>
+                <Link href={`/tenant/requests/${d.requestId}`} className="inline-flex items-center gap-1.5 rounded-lg bg-success-soft px-3 py-1.5 text-[12px] font-semibold text-success hover:bg-success/20"><ArrowRightLeft size={14} /> {t("converted")}{d.request?.sequenceNo ? ` · ${d.request.sequenceNo}` : ""} <ExternalLink size={12} /></Link>
               ) : (
                 <button onClick={convert} disabled={busy || !d.clientId || !d.productLineCode} title={!d.clientId || !d.productLineCode ? t("convertHint") : ""} className="inline-flex items-center gap-1.5 rounded-lg bg-primary-strong px-3 py-1.5 text-[12px] font-semibold text-primary-fg hover:bg-primary disabled:opacity-50"><ArrowRightLeft size={14} /> {t("convert")}</button>
               )}

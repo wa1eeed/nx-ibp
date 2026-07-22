@@ -600,7 +600,7 @@ curl -X POST http://localhost:4000/staff \
 | الطريقة | المسار | الحماية | الوصف |
 |---|---|---|---|
 | GET | `/crm/follow-up` | sales:read | لوحة «يحتاج متابعة» (عابرة للوحدات، تحترم الصلاحيات) |
-| GET/POST | `/crm/deals` · GET `/crm/deals/:id` · PATCH `/crm/deals/:id` | sales | خطّ الأنابيب + تفاصيل الفرصة المُثراة (BOR/حصرية/القسط التقديري/نسبة الخسارة/المؤمِّنون المفضّلون). رؤية حسب الدور |
+| GET/POST | `/crm/deals` · GET `/crm/deals/:id` · PATCH `/crm/deals/:id` | sales | خطّ الأنابيب + تفاصيل الفرصة المُثراة (BOR/حصرية/القسط التقديري/نسبة الخسارة/المؤمِّنون المفضّلون) + **الطلب المرتبط `request: {id, sequenceNo}`** (بعد التحويل، للانتقال إليه) + خطّ زمني للنشاط. رؤية حسب الدور |
 | POST | `/crm/deals/:id/convert` | sales:update | **تحويل الفرصة إلى طلب تأمين** (Lead ⇒ Request) — طلب DRAFT مبني على الفرصة + الصفقة won ومربوطة (تكرار ⇒ 409) |
 | GET/POST | `/crm/tasks` (`?mine=1`) · POST `/crm/tasks/:id/complete` | sales | المهام/التذكيرات |
 | GET/POST | `/crm/activities/:entityType/:entityId` · `/crm/activities` | sales | النشاط/الملاحظات (الخط الزمني) |
@@ -790,7 +790,7 @@ curl -X POST http://localhost:4000/staff \
 | `GET` | `/portal/me` · `/policies` · `/requests` · `/claims` · `/statement` · `/documents` | PortalGuard (نطاق العميل) | 200 |
 | `GET` | `/portal/documents/:id/url` | PortalGuard | 200 |
 | `GET` | `/reports/dashboard` | `dashboard:read` | 200 |
-| `GET` | `/reports/commissions` | `finance:read` + `module.finance` | 200 |
+| `GET` | `/reports/commissions` | `finance:read` + `module.finance` | تحليل العمولات (متوقّع/مستلم/مستحقّ/فرق) — كل صف يحمل **`policyId`** لربطه بوثيقته المصدر |
 | `GET` | `/reports/production` · `/claims` · `/regulatory` · `/catalog` | `reports:read` + `module.reports` | 200 |
 | `GET` | `/reports/bordereau?insurer&from&to` | `reports:read` + `module.reports` | 200 — كشف المؤمِّن الدوري (صافي للمؤمِّن = إجمالي − عمولة) |
 | `GET` | `/reports/export/:key?insurer&from&to` | `reports:read` + `module.reports` | **تصدير CSV** (§7.1): `text/csv` + BOM (Excel عربي) + `Content-Disposition`. المفاتيح: `bordereau`/`commissions`؛ غيرها ⇒ 400 |

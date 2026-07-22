@@ -1,15 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Wallet2, Clock, TrendingDown, Building2, Receipt, X, Check } from "lucide-react";
+import { Wallet2, Clock, TrendingDown, Building2, Receipt, X, Check, FileCheck2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { api, ApiError } from "@/lib/api";
+import { Link } from "@/i18n/routing";
 import { usePermissions } from "@/hooks/usePermissions";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatCard } from "@/components/ui/StatCard";
 import { Badge, type BadgeTone } from "@/components/ui/Badge";
 
-interface Row { id: string; insurerName: string | null; clientName: string | null; productLine: string | null; rate: string | null; amount: string | null; receivedAmount: string | null; status: string | null }
+interface Row { id: string; policyId: string | null; insurerName: string | null; clientName: string | null; productLine: string | null; rate: string | null; amount: string | null; receivedAmount: string | null; status: string | null }
 interface Data { summary: { total: number; received: number; accrued: number; variance: number; receivedPct: number }; rows: Row[] }
 
 const STATUS_TONE: Record<string, BadgeTone> = { received: "success", variance: "danger", accrued: "warning" };
@@ -130,7 +131,10 @@ export default function CommissionsPage() {
                   <td className={`px-5 py-3 text-[13px] tnum ${r.status === "variance" ? "font-medium text-danger" : "text-subtle"}`}>{variance(r)}</td>
                   <td className="px-5 py-3">{r.status ? <Badge tone={STATUS_TONE[r.status] ?? "neutral"}>{t(STATUS_KEY[r.status] ?? "commissions.status.accrued")}</Badge> : null}</td>
                   <td className="px-5 py-3 text-end">
-                    {canWrite && r.status !== "received" ? <button onClick={() => { setDone(""); setRcv(r); }} className="inline-flex items-center gap-1 rounded-lg border border-line px-2.5 py-1.5 text-[12px] font-medium text-muted hover:bg-surface-2"><Receipt size={13} /> {t("commissions.recordReceipt")}</button> : null}
+                    <div className="inline-flex items-center gap-1.5">
+                      {r.policyId ? <Link href={`/tenant/policies/${r.policyId}`} title={t("commissions.sourcePolicy")} className="inline-flex items-center gap-1 rounded-lg border border-line px-2.5 py-1.5 text-[12px] font-medium text-primary hover:bg-surface-2"><FileCheck2 size={13} /> {t("commissions.sourcePolicy")}</Link> : null}
+                      {canWrite && r.status !== "received" ? <button onClick={() => { setDone(""); setRcv(r); }} className="inline-flex items-center gap-1 rounded-lg border border-line px-2.5 py-1.5 text-[12px] font-medium text-muted hover:bg-surface-2"><Receipt size={13} /> {t("commissions.recordReceipt")}</button> : null}
+                    </div>
                   </td>
                 </tr>
               ))}

@@ -978,6 +978,7 @@
     "collectionRate": "Collection rate",
     "empty": "No commissions recorded yet",
     "recordReceipt": "Record receipt",
+    "sourcePolicy": "Policy",
     "receipt": {
       "title": "Record commission receipt",
       "from": "From",

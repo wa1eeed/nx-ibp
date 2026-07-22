@@ -53,7 +53,7 @@ export class ReportsService {
   async commissions() {
     const rows = await this.prisma.commission.findMany({
       orderBy: { createdAt: "desc" },
-      select: { id: true, insurerName: true, clientName: true, productLine: true, rate: true, amount: true, receivedAmount: true, status: true, periodMonth: true },
+      select: { id: true, policyId: true, insurerName: true, clientName: true, productLine: true, rate: true, amount: true, receivedAmount: true, status: true, periodMonth: true },
     });
     const total = rows.reduce((s, r) => s + this.num(r.amount), 0);
     const received = rows.filter((r) => r.status === "received").reduce((s, r) => s + this.num(r.receivedAmount ?? r.amount), 0);

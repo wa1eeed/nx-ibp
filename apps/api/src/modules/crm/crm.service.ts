@@ -99,7 +99,9 @@ export class CrmService {
     }
     const [enriched] = await this.enrich([deal]);
     const activities = await this.prisma.crmActivity.findMany({ where: { entityType: "deal", entityId: id }, orderBy: { createdAt: "desc" }, take: 30, select: { id: true, type: true, body: true, createdAt: true } });
-    return { ...deal, ...enriched, activities };
+    // الطلب المرتبط (بعد التحويل) — لعرض رقمه كرابط للانتقال إليه
+    const request = deal.requestId ? await this.prisma.policyRequest.findFirst({ where: { id: deal.requestId }, select: { id: true, sequenceNo: true, status: true } }) : null;
+    return { ...deal, ...enriched, activities, request };
   }
 
   async createDeal(tenantId: string, userId: string, dto: CreateDealDto) {

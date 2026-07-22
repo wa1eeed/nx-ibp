@@ -364,7 +364,16 @@ CRM بلا تذكير آلي نصف حلّ: المهام تفوت والوثائ
 - **الواجهة** [`GlobalSearch`](../apps/web/src/components/layout/GlobalSearch.tsx) في [`Topbar`](../apps/web/src/components/layout/Topbar.tsx): إمهال 200ms، نتائج منسدلة مجمّعة بالنوع (أيقونة + عنوان + وصف + شارة حالة)، تنقّل بالكيبورد (↑/↓/Enter/Esc)، واختصار **⌘K/Ctrl+K**. كل نتيجة تنتقل لصفحة الكيان.
 - **الاختبار** [`search.e2e-spec.ts`](../apps/api/test/search.e2e-spec.ts) — **6**: الروابط الصحيحة (شركة⇒360°، عميل⇒360°، وثيقة) + استعلام قصير ⇒ فارغ + **تصفية RBAC** (موظف «العملاء» لا يجد شركات التأمين) + العزل. المجموع **415/415**.
 
-> **المتبقّي من النسيج الرابط**: (٣) تعميم الربط على بقية المراجع (صفقة CRM 360° · الوسيط الفرعي 360° · ربط العمولات/المطالبات بمصادرها).
+## 40. النسيج الرابط — تعميم ربط المراجع (صفقة · منتِج · عمولة)
+
+عند تنفيذ هذه الدفعة تبيّن أن تفاصيل **الصفقة (CRM)** و**الوسيط الفرعي (المنتِج)** موجودة أصلًا كنوافذ منبثقة غنيّة (لا صفحات) — لكن مراجعها الداخلية كانت **نصًّا ميّتًا**. أُكمِل الربط بلا إعادة بناء:
+
+- **نافذة الصفقة** ([crm/page.tsx](../apps/web/src/app/[locale]/tenant/crm/page.tsx) `DealDetail`): اسم العميل ⇒ رابط [`/tenant/clients/[id]`](../apps/web/src/app/[locale]/tenant/clients/[id]/page.tsx)؛ ووسم «حُوِّلت لطلب» صار **رابطًا للطلب المُنشأ برقمه**. الخلفية: `GET /crm/deals/:id` أُثري بـ`request: { id, sequenceNo, status }` ([`getDeal`](../apps/api/src/modules/crm/crm.service.ts)).
+- **نافذة المنتِج** ([producers/page.tsx](../apps/web/src/app/[locale]/tenant/producers/page.tsx) `ProducerDetail`): رقم كل وثيقة ⇒ رابط تفصيلها، واسم العميل ⇒ «العميل 360°» (البيانات كانت متاحة من `GET /producers/:id`؛ أُضيف `clientId` لواجهة الوثائق).
+- **صفحة العمولات** ([commissions/page.tsx](../apps/web/src/app/[locale]/tenant/commissions/page.tsx)): كل عمولة صار لها **رابط لوثيقتها المصدر** — `GET /reports/commissions` أُضيف `policyId` للصفوف. التنقّل: العمولة ⇒ الوثيقة ⇒ (منها) العميل والمؤمِّن — drill-through كامل.
+- **الاختبار**: أُثريت الحزم القائمة — `crm.e2e` (حقل `request` بعد التحويل) · `reports.e2e` (`policyId` في العمولات) · `producers.e2e` (`clientId` في الوثائق). المجموع **415/415**.
+
+> **«النسيج الرابط» اكتمل (٣/٣)**: شركة تأمين 360° ([§38](#38-النسيج-الرابط--شركة-التأمين-360)) · بحث عام ⌘K ([§39](#39-النسيج-الرابط--البحث-العام-k)) · تعميم ربط المراجع (§40).
 
 ## انظر أيضاً
 [00 — الحالة](./00-project-status.md) · [03 — البيانات](./03-data-model.md) · [06 — API](./06-api-reference.md) · [07 — الوحدات](./07-backend-modules.md) · [10 — الاكتتاب/العروض](./10-underwriting-rfq.md) · [17 — الامتثال](./17-compliance-and-regulatory.md) · [20 — الإصدار والمالية](./20-issuance-and-finance-core.md) · [25 — بوّابة العميل](./25-client-portal.md) · [30 — الأمن](./30-security-and-compliance.md) · [31 — كتالوج المزايا](./31-feature-catalog.md) · [35 — تدقيق النواقص](./35-gap-audit.md) · [CHANGELOG](../CHANGELOG.md)
