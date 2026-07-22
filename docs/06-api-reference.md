@@ -620,7 +620,7 @@ curl -X POST http://localhost:4000/staff \
 | GET/PUT | `/config/retention` | settings | مدّة الاحتفاظ بالبيانات (`{ retentionYears }`، 1–30، افتراضي 10 — PDPL/هيئة التأمين) |
 | GET/PUT | `/config/email` | settings | **بريد المستأجر (BYO Resend)**: `{ fromEmail, fromName, apiKey? }` — يُنشئ النطاق ويعيد DNS/الحالة. المفتاح masked لا خام |
 | POST | `/config/email/verify` | settings:update | «تحقّق الآن» — يستعلم حالة النطاق ويرقّي لوضع `tenant` عند التوثيق |
-| GET/PUT | `/config/payment` | settings | **بوّابة الدفع للمستأجر (BYO Tap/Moyasar)**: `{ provider, publicKey?, secretKey?, enabled?, currency? }` — المفتاح السرّي مشفّر at-rest، masked لا خام؛ الفارغ يُبقي القائم. لا تفعيل بلا بوّابة ومفتاح (400) |
+| GET/PUT | `/config/payment` | settings | **بوّابة الدفع للمستأجر (BYO Tap/Moyasar)**: `{ provider, publicKey?, secretKey?, enabled?, currency? }` — المفتاح السرّي مشفّر at-rest، masked لا خام؛ الفارغ يُبقي القائم. لا تفعيل بلا بوّابة ومفتاح (400). GET يُرجِع **`mode`** (`test`\|`live`\|`null`) المُشتقّ من بادئة المفتاح؛ ورفض **خلط الأوضاع** (عام اختبار + سرّي حيّ ⇒ 400) |
 | POST | `/portal/pay` | client (بوّابة) | **دفع إشعار مدين**: `{ debitNoteId, amount }` ⇒ شحنة عبر بوّابة المستأجر + رابط دفع. يتحقّق من الملكية والمتبقّي (تجاوز 400، إشعار غيره 404) |
 | POST | `/portal/pay/:id/confirm` | client (بوّابة) | تأكيد بعد العودة — يطابق الحالة، وعند النجاح **يُنشئ سند قبض تلقائيًا** (شلال الأقساط). idempotent |
 | POST | `/payments/webhook` | **عام** | إشعار البوّابة بالنتيجة — **يتحقّق من التوقيع** بمفتاح المستأجر ثم يُنشئ سند القبض (توقيع فاسد ⇒ 409). حتمي |
@@ -781,6 +781,7 @@ curl -X POST http://localhost:4000/staff \
 | `POST` | `/platform/leads/:id/status` | PlatformGuard | تحديث حالة الطلب (`new`/`contacted`/`closed`) — حالة خاطئة ⇒ 400 |
 | `POST` | `/platform/plans/:code/entitlements` | PlatformGuard | 201 |
 | `PUT` | `/platform/plans/:code` | PlatformGuard | السعر لكل مستخدم/الاسم/التجربة/SLA (الحقل `seatLimit` صار nullable — بلا سقف) |
+| `GET/PUT` | `/platform/payment` | PlatformGuard | **بوّابة دفع المنصّة (Tap) لاشتراكات الوسطاء**: مفاتيح الاختبار والحيّ معًا (السرّي مشفّر at-rest، لا يُعاد خامًا) + `mode` (test\|live) للتبديل + `merchantId` + `enabled`. تحقّق البادئات؛ لا تفعيل بلا مفتاحَي الوضع الفعّال (400) |
 | `GET` | `/staff/seats` | settings:read | مقاعد الشركة `{ used, limit, available, planName }` — `limit` = المقاعد المرخّصة (حدّ أقصى، نموذج مسبق الدفع) |
 | `POST` | `/staff` | settings:create | إنشاء موظف — يردّ **402 (`SEAT_LIMIT_REACHED`)** إذا بلغ النشطون المقاعد المرخّصة (يلزم شراء مقاعد أولًا) |
 | `POST` | `/portal/login` | Public | 201 |
