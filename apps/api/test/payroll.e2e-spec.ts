@@ -74,10 +74,10 @@ describe("§8.1 الرواتب (e2e)", () => {
     expect((await request(srv()).get("/payroll").set(auth(b)).expect(200)).body.length).toBe(0);
   });
 
-  it("صلاحية: مستخدم بلا صلاحية المالية ⇒ 403", async () => {
+  it("صلاحية: مستخدم بلا صلاحية الموارد البشرية ⇒ 403", async () => {
     const t = await owner();
     const email = `nf-${uniq()}@brk.sa`;
-    await request(srv()).post("/staff").set(auth(t)).send({ fullName: "بلا مالية", email, password: "Passw0rd1", roleName: `دور-${uniq()}`, permissions: [{ module: "sales", canAccess: true, canCreate: false, canEdit: false, canDelete: false }] }).expect(201);
+    await request(srv()).post("/staff").set(auth(t)).send({ fullName: "بلا موارد بشرية", email, password: "Passw0rd1", roleName: `دور-${uniq()}`, permissions: [{ module: "sales", canAccess: true, canCreate: false, canEdit: false, canDelete: false }] }).expect(201);
     const nf = (await request(srv()).post("/auth/login").send({ email, password: "Passw0rd1" })).body.accessToken;
     await request(srv()).get("/payroll").set(auth(nf)).expect(403);
   });

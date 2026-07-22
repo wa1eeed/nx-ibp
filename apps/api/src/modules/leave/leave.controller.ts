@@ -4,7 +4,7 @@ import { CreateLeaveDto, DecideLeaveDto } from "./dto/leave.dto";
 import { Authorize } from "../rbac/authorize.decorator";
 import { CurrentUser } from "../auth/current-user.decorator";
 
-/** §8.2 — طلبات إجازات الموظفين. التقديم/العرض الذاتي لأي موظف؛ العرض الكامل والبتّ للإدارة (`settings`). */
+/** §8.2 — طلبات إجازات الموظفين. التقديم/العرض الذاتي لأي موظف؛ العرض الكامل والبتّ لإدارة الموارد البشرية (`hr`). */
 @Controller("leave")
 export class LeaveController {
   constructor(private readonly leave: LeaveService) {}
@@ -21,13 +21,13 @@ export class LeaveController {
   }
 
   // ——— الإدارة: عرض الكل + البتّ ———
-  @Authorize({ module: "settings", action: "read" })
+  @Authorize({ module: "hr", action: "read" })
   @Get()
   list(@Query("status") status?: string) {
     return this.leave.list(status);
   }
 
-  @Authorize({ module: "settings", action: "update" })
+  @Authorize({ module: "hr", action: "update" })
   @Post(":id/decide")
   decide(@CurrentUser("tenantId") tenantId: string, @CurrentUser("userId") userId: string, @Param("id") id: string, @Body() dto: DecideLeaveDto) {
     return this.leave.decide(tenantId, userId, id, dto);

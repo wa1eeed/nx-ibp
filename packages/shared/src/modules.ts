@@ -23,6 +23,8 @@ export type ModuleKey =
   | "insurers"
   | "compliance"
   | "finance"
+  | "payroll"
+  | "leave"
   | "settings.account"
   | "settings.org"
   | "settings.staff"
@@ -117,6 +119,14 @@ export const TENANT_NAV: NavGroup[] = [
     items: [
       { key: "reports", href: "/tenant/reports", icon: "BarChart3", entitlement: "module.reports" },
       { key: "targets", href: "/tenant/targets", icon: "Target", entitlement: "module.reports" },
+    ],
+  },
+  // الموارد البشرية (الرواتب + الإجازات) — محكومة بصلاحية hr؛ متاحة لكل الباقات
+  {
+    key: "hr",
+    items: [
+      { key: "payroll", href: "/tenant/finance/payroll", icon: "Wallet", module: "hr" },
+      { key: "leave", href: "/tenant/settings/leave", icon: "CalendarDays", module: "hr" },
     ],
   },
   // الإعدادات والاشتراك

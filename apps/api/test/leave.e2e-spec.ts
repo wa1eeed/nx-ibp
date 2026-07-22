@@ -1,8 +1,8 @@
 /**
  * §8.2 — طلبات إجازات الموظفين:
- *  - الموظف يقدّم طلبًا (أيام تشمل الطرفين) ويرى طلباته؛ الإدارة (settings) ترى الكل وتبتّ.
+ *  - الموظف يقدّم طلبًا (أيام تشمل الطرفين) ويرى طلباته؛ إدارة الموارد البشرية (hr) ترى الكل وتبتّ.
  *  - **لا يبتّ الموظف طلبه** (فصل مهام 403)؛ البتّ يحوّل الحالة (معلّق ⇒ موافَق/مرفوض)؛ إعادة البتّ 409.
- *  - تحقّق (نوع/تواريخ) + صلاحية العرض الكامل (settings) + عزل.
+ *  - تحقّق (نوع/تواريخ) + صلاحية العرض الكامل (hr) + عزل.
  */
 import { Test } from "@nestjs/testing";
 import { INestApplication, ValidationPipe } from "@nestjs/common";
@@ -15,10 +15,10 @@ describe("§8.2 طلبات الإجازات (e2e)", () => {
   const uniq = () => `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
   const auth = (t: string) => ({ Authorization: `Bearer ${t}` });
   const owner = async () => (await request(srv()).post("/signup").send({ companyName: `إجازات ${uniq()}`, adminName: "مالك", adminEmail: `lv-${uniq()}@brk.sa`, password: "Owner1Pass", seatCount: 25 }).expect(201)).body.accessToken;
-  // موظف بصلاحية الإعدادات (لبتّ الطلبات) أو بلا صلاحيتها (لاختبار 403)
-  const addStaff = async (t: string, withSettings: boolean) => {
+  // موظف بصلاحية الموارد البشرية (لبتّ الطلبات) أو بلا صلاحيتها (لاختبار 403)
+  const addStaff = async (t: string, withHr: boolean) => {
     const email = `st-${uniq()}@brk.sa`;
-    const perms = withSettings ? [{ module: "settings", canAccess: true, canCreate: false, canEdit: true, canDelete: false }] : [{ module: "sales", canAccess: true, canCreate: false, canEdit: false, canDelete: false }];
+    const perms = withHr ? [{ module: "hr", canAccess: true, canCreate: false, canEdit: true, canDelete: false }] : [{ module: "sales", canAccess: true, canCreate: false, canEdit: false, canDelete: false }];
     await request(srv()).post("/staff").set(auth(t)).send({ fullName: "موظف", email, password: "Passw0rd1", roleName: `دور-${uniq()}`, permissions: perms }).expect(201);
     return (await request(srv()).post("/auth/login").send({ email, password: "Passw0rd1" })).body.accessToken as string;
   };
@@ -42,12 +42,12 @@ describe("§8.2 طلبات الإجازات (e2e)", () => {
 
   it("فصل المهام: الموظف لا يبتّ طلبه (403)؛ ومديرٌ آخر يوافق", async () => {
     const t = await owner();
-    const emp = await addStaff(t, false); // موظف بلا صلاحية إعدادات
+    const emp = await addStaff(t, false); // موظف بلا صلاحية الموارد البشرية
     const r = (await request(srv()).post("/leave").set(auth(emp)).send({ type: "sick", startDate: "2026-09-10", endDate: "2026-09-11" }).expect(201)).body;
-    // الموظف لا يرى القائمة الكاملة ولا يبتّ (بلا settings)
+    // الموظف لا يرى القائمة الكاملة ولا يبتّ (بلا hr)
     await request(srv()).get("/leave").set(auth(emp)).expect(403);
     await request(srv()).post(`/leave/${r.id}/decide`).set(auth(emp)).send({ status: "approved" }).expect(403);
-    // المالك (settings) يوافق ⇒ ثم إعادة البتّ 409
+    // المالك (المدير العام، يملك hr) يوافق ⇒ ثم إعادة البتّ 409
     const d = (await request(srv()).post(`/leave/${r.id}/decide`).set(auth(t)).send({ status: "approved", note: "مقبول" }).expect(201)).body;
     expect(d.status).toBe("approved");
     await request(srv()).post(`/leave/${r.id}/decide`).set(auth(t)).send({ status: "rejected" }).expect(409);

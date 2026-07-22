@@ -22,8 +22,8 @@ type EntMode = "INCLUDED" | "QUOTA" | "METERED" | "ADDON" | "DISABLED";
 // المبدأ: الأساسية تضمّ **كل موديولات التشغيل والامتثال** التي تتطلّبها هيئة التأمين (لا تُحجب الأساسيات)؛
 // التمايز على المميزات المتقدمة (النموّ/الحوكمة) والحصص، لا على الجوهر التشغيلي.
 const PLAN_MODULES: Record<string, Record<string, EntMode>> = {
-  basic: { clients: "INCLUDED", sales: "INCLUDED", underwriting: "INCLUDED", production: "INCLUDED", renewals: "INCLUDED", service: "INCLUDED", claims: "INCLUDED", finance: "INCLUDED", compliance: "INCLUDED", reports: "INCLUDED", hr: "DISABLED" },
-  premium: { clients: "INCLUDED", sales: "INCLUDED", underwriting: "INCLUDED", production: "INCLUDED", renewals: "INCLUDED", service: "INCLUDED", claims: "INCLUDED", finance: "INCLUDED", compliance: "INCLUDED", reports: "INCLUDED", hr: "DISABLED" },
+  basic: { clients: "INCLUDED", sales: "INCLUDED", underwriting: "INCLUDED", production: "INCLUDED", renewals: "INCLUDED", service: "INCLUDED", claims: "INCLUDED", finance: "INCLUDED", compliance: "INCLUDED", reports: "INCLUDED", hr: "INCLUDED" },
+  premium: { clients: "INCLUDED", sales: "INCLUDED", underwriting: "INCLUDED", production: "INCLUDED", renewals: "INCLUDED", service: "INCLUDED", claims: "INCLUDED", finance: "INCLUDED", compliance: "INCLUDED", reports: "INCLUDED", hr: "INCLUDED" },
   enterprise: { clients: "INCLUDED", sales: "INCLUDED", underwriting: "INCLUDED", production: "INCLUDED", renewals: "INCLUDED", service: "INCLUDED", claims: "INCLUDED", finance: "INCLUDED", compliance: "INCLUDED", reports: "INCLUDED", hr: "INCLUDED" },
 };
 
