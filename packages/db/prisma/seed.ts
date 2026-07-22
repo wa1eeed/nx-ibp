@@ -37,6 +37,7 @@ const PLAN_FEATURES: Record<string, Array<{ key: string; mode: EntMode; numericV
     F("feature.crm", "DISABLED"), F("feature.producers", "DISABLED"), F("feature.formTemplates", "DISABLED"),
     F("feature.analytics", "DISABLED"), F("feature.approvalChains", "DISABLED"), F("feature.org", "DISABLED"), F("feature.mfaEnforce", "DISABLED"),
     F("feature.dlp", "DISABLED"), F("feature.api", "DISABLED"), F("feature.whiteLabel", "DISABLED"), F("feature.prioritySupport", "DISABLED"),
+    F("feature.carrierIntegration", "ADDON"), // ربط مباشر مع شركة التأمين — يُفعَّل برسوم إعداد لمرّة واحدة
   ],
   premium: [
     F("upload.maxFileMb", "QUOTA", { numericValue: 25 }), F("storage.quotaMb", "QUOTA", { numericValue: 10240 }), // 10GB
@@ -44,6 +45,7 @@ const PLAN_FEATURES: Record<string, Array<{ key: string; mode: EntMode; numericV
     F("feature.crm", "INCLUDED"), F("feature.producers", "INCLUDED"), F("feature.formTemplates", "INCLUDED"),
     F("feature.analytics", "INCLUDED"), F("feature.approvalChains", "INCLUDED"), F("feature.org", "INCLUDED"), F("feature.mfaEnforce", "INCLUDED"),
     F("feature.dlp", "ADDON"), F("feature.api", "METERED", { unitFee: 0.02 }), F("feature.whiteLabel", "DISABLED"), F("feature.prioritySupport", "DISABLED"),
+    F("feature.carrierIntegration", "ADDON"), // ربط مباشر مع شركة التأمين — يُفعَّل برسوم إعداد لمرّة واحدة
   ],
   enterprise: [
     F("upload.maxFileMb", "QUOTA", { numericValue: 100 }), F("storage.quotaMb", "QUOTA", { numericValue: 102400 }), // 100GB
@@ -51,6 +53,7 @@ const PLAN_FEATURES: Record<string, Array<{ key: string; mode: EntMode; numericV
     F("feature.crm", "INCLUDED"), F("feature.producers", "INCLUDED"), F("feature.formTemplates", "INCLUDED"),
     F("feature.analytics", "INCLUDED"), F("feature.approvalChains", "INCLUDED"), F("feature.org", "INCLUDED"), F("feature.mfaEnforce", "INCLUDED"),
     F("feature.dlp", "INCLUDED"), F("feature.api", "INCLUDED"), F("feature.whiteLabel", "INCLUDED"), F("feature.prioritySupport", "INCLUDED"),
+    F("feature.carrierIntegration", "ADDON"), // ربط مباشر مع شركة التأمين — يُفعَّل برسوم إعداد لمرّة واحدة
   ],
 };
 

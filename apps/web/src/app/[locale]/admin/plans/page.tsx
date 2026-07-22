@@ -20,7 +20,7 @@ const STORAGE_KEY = "storage.quotaMb";
 const TOGGLE_FEATURES: Array<{ key: string; group: "module" | "feature" }> = [
   ...["clients", "sales", "underwriting", "production", "renewals", "service", "claims", "finance", "compliance", "reports", "hr"].map((m) => ({ key: `module.${m}`, group: "module" as const })),
   // الجوهر التنظيمي (نماذج التحقق KYC/KYB · الفوترة الإلكترونية ZATCA · السجل الثابت) — قابلة للضبط كبقية الميزات
-  ...["verification", "zatca", "auditImmutable", "crm", "producers", "formTemplates", "analytics", "approvalChains", "org", "mfaEnforce", "dlp", "api", "whiteLabel", "prioritySupport"].map((f) => ({ key: `feature.${f}`, group: "feature" as const })),
+  ...["verification", "zatca", "auditImmutable", "crm", "producers", "formTemplates", "analytics", "approvalChains", "org", "mfaEnforce", "dlp", "api", "whiteLabel", "prioritySupport", "carrierIntegration"].map((f) => ({ key: `feature.${f}`, group: "feature" as const })),
 ];
 // دورة أوضاع الميزة (يدوّرها السوبر أدمن بالنقر): مشمول ⇒ إضافة ⇒ حسب الاستخدام ⇒ معطّل.
 const MODE_CYCLE = ["INCLUDED", "ADDON", "METERED", "DISABLED"];

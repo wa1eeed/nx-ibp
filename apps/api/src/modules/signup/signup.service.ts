@@ -86,7 +86,7 @@ export class SignupService {
     const categories: Array<{ category: string; features: string[] }> = [
       { category: "core", features: ["module.clients", "module.sales", "module.underwriting", "module.production", "module.renewals", "module.service", "module.claims", "module.finance", "module.hr", "feature.verification", "feature.zatca", "module.compliance", "feature.auditImmutable", "module.reports"] },
       { category: "growth", features: ["feature.crm", "feature.producers", "feature.formTemplates", "feature.analytics", "feature.approvalChains", "feature.org", "feature.mfaEnforce"] },
-      { category: "enterprise", features: ["feature.dlp", "feature.api", "feature.whiteLabel", "feature.prioritySupport"] },
+      { category: "enterprise", features: ["feature.carrierIntegration", "feature.dlp", "feature.api", "feature.whiteLabel", "feature.prioritySupport"] },
       { category: "limits", features: ["storage.quotaMb", "upload.maxFileMb", "trialDays", "sla"] },
     ];
     const plans = await this.prisma.plan.findMany({
