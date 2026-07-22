@@ -2215,11 +2215,37 @@
     "rfq": "Get quotes",
     "issue": "Issue",
     "empty": "No requests yet — start a new request",
+    "noMatch": "No requests match the current filters",
+    "ageDays": "{n}d",
+    "stage": {
+      "all": "All",
+      "draft": "Draft",
+      "quoting": "Quoting",
+      "awarded": "Ready to issue",
+      "issued": "Issued",
+      "rejected": "Rejected"
+    },
+    "status": {
+      "draft": "Draft",
+      "quoting": "Quoting",
+      "under_review": "Under review",
+      "finance_review": "Finance review",
+      "approved": "Approved",
+      "awarded": "Awarded",
+      "issued": "Issued",
+      "rejected": "Rejected"
+    },
+    "filters": {
+      "search": "Search by request # or client…",
+      "allProducts": "All lines",
+      "count": "{n} requests"
+    },
     "col": {
       "seq": "Request #",
       "client": "Client",
       "product": "Product",
-      "status": "Status"
+      "status": "Status",
+      "age": "Age"
     }
   },
   "policies": {

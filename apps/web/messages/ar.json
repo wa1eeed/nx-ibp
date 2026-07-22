@@ -2215,11 +2215,37 @@
     "rfq": "إعداد عروض",
     "issue": "إصدار",
     "empty": "لا توجد طلبات بعد — ابدأ بطلب جديد",
+    "noMatch": "لا طلبات مطابقة للفلاتر الحالية",
+    "ageDays": "{n} يوم",
+    "stage": {
+      "all": "الكل",
+      "draft": "مسودّة",
+      "quoting": "قيد التسعير",
+      "awarded": "جاهز للإصدار",
+      "issued": "مُصدَرة",
+      "rejected": "مرفوض"
+    },
+    "status": {
+      "draft": "مسودّة",
+      "quoting": "قيد التسعير",
+      "under_review": "قيد المراجعة",
+      "finance_review": "مراجعة مالية",
+      "approved": "معتمد",
+      "awarded": "تم الإسناد",
+      "issued": "مُصدَرة",
+      "rejected": "مرفوض"
+    },
+    "filters": {
+      "search": "بحث برقم الطلب أو العميل…",
+      "allProducts": "كل الفروع",
+      "count": "{n} طلب"
+    },
     "col": {
       "seq": "رقم الطلب",
       "client": "العميل",
       "product": "المنتج",
-      "status": "الحالة"
+      "status": "الحالة",
+      "age": "العمر"
     }
   },
   "policies": {
