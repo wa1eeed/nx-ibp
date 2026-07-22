@@ -6,14 +6,11 @@ import { useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/routing";
 import { api, ApiError, setToken, setRefreshToken } from "@/lib/api";
 
-// تعبئة مسبقة لبيانات الدخول التجريبية في التطوير المحلي فقط — فارغة في الإنتاج/staging.
-const DEV_PREFILL = process.env.NODE_ENV !== "production";
-
 export default function LoginPage() {
   const t = useTranslations();
   const router = useRouter();
-  const [email, setEmail] = useState(DEV_PREFILL ? "waleed@gulf-demo.sa" : "");
-  const [password, setPassword] = useState(DEV_PREFILL ? "Passw0rd!" : "");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [mfaStep, setMfaStep] = useState(false);
   const [mfaCode, setMfaCode] = useState("");
   const [error, setError] = useState("");
@@ -106,7 +103,6 @@ export default function LoginPage() {
             {mfaStep ? <KeyRound size={16} /> : <LogIn size={16} />}
             {loading ? "…" : mfaStep ? t("login.mfaSubmit") : t("login.submit")}
           </button>
-          {DEV_PREFILL ? <p className="text-center text-[11px] text-subtle">{t("login.demoHint")}</p> : null}
           <p className="text-center text-[12px] text-subtle">
             {t("login.noAccount")} <Link href="/signup" className="font-semibold text-primary hover:underline">{t("login.signupLink")}</Link>
           </p>

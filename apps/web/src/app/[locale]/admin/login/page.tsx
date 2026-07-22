@@ -7,13 +7,12 @@ import { useRouter } from "@/i18n/routing";
 import { api, setPlatformToken, ApiError } from "@/lib/api";
 
 // تعبئة تجريبية في التطوير المحلي فقط — فارغة في الإنتاج/staging.
-const DEV_PREFILL = process.env.NODE_ENV !== "production";
 
 export default function AdminLoginPage() {
   const t = useTranslations();
   const router = useRouter();
-  const [email, setEmail] = useState(DEV_PREFILL ? "admin@ibp-platform.sa" : "");
-  const [password, setPassword] = useState(DEV_PREFILL ? "Passw0rd!" : "");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [mfaCode, setMfaCode] = useState("");
   const [mfaRequired, setMfaRequired] = useState(false);
   const [error, setError] = useState("");
