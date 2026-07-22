@@ -55,7 +55,9 @@ export default function InsurersPage() {
   }
   async function remove(id: string) {
     if (!confirm(t("confirmDelete"))) return;
-    try { await api(`/insurers/${id}`, { method: "DELETE" }); await load(); } catch { setError(t("error")); }
+    setError("");
+    try { await api(`/insurers/${id}`, { method: "DELETE" }); await load(); }
+    catch (e) { setError(e instanceof ApiError ? e.message : t("error")); } // يُظهر رسالة «عطّلها بدل الحذف» عند 409
   }
 
   const fmt = (n: number) => n.toLocaleString("en-US");

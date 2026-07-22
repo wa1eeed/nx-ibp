@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { Prisma } from "@ibp/db";
 import { PrismaService } from "../../prisma/prisma.service";
 import { AuditService } from "../../common/audit/audit.service";
@@ -73,9 +73,19 @@ export class InsurersService {
   }
 
   async remove(tenantId: string, userId: string, id: string) {
-    const r = await this.prisma.insurer.deleteMany({ where: { id, tenantId } });
-    if (r.count === 0) throw new NotFoundException("شركة التأمين غير موجودة");
-    await this.audit.log({ tenantId, userId, action: "delete", entity: "insurer", entityId: id });
+    const insurer = await this.prisma.insurer.findFirst({ where: { id, tenantId }, select: { name: true } });
+    if (!insurer) throw new NotFoundException("شركة التأمين غير موجودة");
+    // حماية سلامة البيانات: الوثائق/المطالبات تحمل اسم الشركة نصًّا؛ حذف السجلّ يقطع ربط
+    // العمولة/التسوية/البنك والإحصاء. إن وُجد أي ارتباط ⇒ امنع الحذف ووجّه للتعطيل (status=inactive).
+    const [policies, claims] = await Promise.all([
+      this.prisma.policy.count({ where: { tenantId, insurerName: insurer.name } }),
+      this.prisma.claim.count({ where: { tenantId, insurerName: insurer.name } }),
+    ]);
+    if (policies > 0 || claims > 0) {
+      throw new ConflictException(`لا يمكن حذف «${insurer.name}» لارتباطها بسجلّات (${policies} وثيقة، ${claims} مطالبة). عطّلها بدل الحذف — التعطيل يُخفيها من الاختيار ويحفظ الربط والإحصاء.`);
+    }
+    await this.prisma.insurer.delete({ where: { id } });
+    await this.audit.log({ tenantId, userId, action: "delete", entity: "insurer", entityId: id, meta: { name: insurer.name } });
     return { ok: true };
   }
 

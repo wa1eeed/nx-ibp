@@ -54,6 +54,17 @@ describe("شركات التأمين (e2e)", () => {
     expect(list.some((r) => r.id === c.body.id)).toBe(false);
   });
 
+  it("حماية سلامة البيانات: حذف شركة لها وثائق صادرة ⇒ 409 (تعطيل بدل حذف)؛ وشركة بلا ارتباط ⇒ 200", async () => {
+    const gulf = (await request(srv()).post("/auth/login").send({ email: "waleed@gulf-demo.sa", password: "Passw0rd!" })).body.accessToken;
+    const list = (await request(srv()).get("/insurers").set(auth(gulf)).expect(200)).body as Array<{ id: string; name: string; stats: { count: number } }>;
+    const withPolicies = list.find((r) => r.stats.count > 0)!; // مثل «التعاونية» — لها وثائق مزروعة
+    expect(withPolicies).toBeTruthy();
+    await request(srv()).delete(`/insurers/${withPolicies.id}`).set(auth(gulf)).expect(409); // محميّة
+    // شركة جديدة بلا وثائق ⇒ الحذف مسموح
+    const fresh = (await request(srv()).post("/insurers").set(auth(gulf)).send({ name: `مؤقّتة ${uniq()}` }).expect(201)).body;
+    await request(srv()).delete(`/insurers/${fresh.id}`).set(auth(gulf)).expect(200);
+  });
+
   it("عزل: مستأجر لا يرى مؤمِّني غيره", async () => {
     const a = await newOwner();
     const c = await request(srv()).post("/insurers").set(auth(a)).send({ name: `سرّي ${uniq()}` }).expect(201);
