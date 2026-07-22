@@ -117,7 +117,7 @@ export default function SlipWorkbenchPage() {
 
       {slip ? (
         <div className="mb-3 flex items-center gap-2 text-[12.5px] text-muted">
-          <Badge tone={STATUS_TONE[slip.status] ?? "neutral"}>{slip.status}</Badge>
+          <Badge tone={STATUS_TONE[slip.status] ?? "neutral"}>{t(`underwriting.status.${slip.status.toLowerCase()}`)}</Badge>
           {slip.insurers.length ? <span>{t("underwriting.sentTo")}: {slip.insurers.join("، ")}</span> : null}
         </div>
       ) : null}

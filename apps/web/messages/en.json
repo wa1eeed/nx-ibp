@@ -2422,6 +2422,13 @@
     "firmOrder": "Firm order",
     "selected": "Selected",
     "sentTo": "Sent to",
+    "status": {
+      "draft": "Draft",
+      "sent": "Awaiting quotes",
+      "quoted": "Quotes received",
+      "selected": "Placed",
+      "closed": "Closed"
+    },
     "present": {
       "action": "Present to client",
       "again": "Re-present to client",
