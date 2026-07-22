@@ -1,6 +1,7 @@
 "use client";
 
 import { ShieldCheck, ArrowLeft, Users, FileText, Landmark, ClipboardList, BadgeCheck, BarChart3, Check, Building2, Headset, QrCode } from "lucide-react";
+import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
 import { LocaleSwitcher } from "@/components/layout/LocaleSwitcher";
@@ -18,6 +19,7 @@ const FEATURES = [
 
 export default function LandingPage() {
   const t = useTranslations();
+  const [pricingMode, setPricingMode] = useState<"subscription" | "ownership">("subscription"); // إخفاء جدول المقارنة في وضع التملّك
 
   return (
     <div className="min-h-screen bg-bg text-ink">
@@ -94,14 +96,16 @@ export default function LandingPage() {
       </section>
 
       {/* الباقات — ديناميكية من الخادم (سعر لكل مستخدم + شهري/سنوي + توفير + تجربة) */}
-      <PricingSection />
+      <PricingSection onModeChange={setPricingMode} />
 
-      {/* مقارنة الباقات — كامل المميزات في الصفحة نفسها (كمرجع التصميم) */}
-      <section id="compare-table" className="mx-auto max-w-6xl px-5 pb-14">
-        <h2 className="mb-2 text-center text-[22px] font-bold tracking-tight text-ink">{t("compare.heading")}</h2>
-        <p className="mx-auto mb-7 max-w-xl text-center text-[13.5px] text-muted">{t("compare.sub")}</p>
-        <PlanComparisonTable />
-      </section>
+      {/* مقارنة الباقات — تخصّ باقات الاشتراك؛ تُخفى في وضع «التملّك» (المؤسسات) */}
+      {pricingMode === "subscription" ? (
+        <section id="compare-table" className="mx-auto max-w-6xl px-5 pb-14">
+          <h2 className="mb-2 text-center text-[22px] font-bold tracking-tight text-ink">{t("compare.heading")}</h2>
+          <p className="mx-auto mb-7 max-w-xl text-center text-[13.5px] text-muted">{t("compare.sub")}</p>
+          <PlanComparisonTable />
+        </section>
+      ) : null}
 
       {/* الامتثال */}
       <section className="border-t border-line bg-card/50">

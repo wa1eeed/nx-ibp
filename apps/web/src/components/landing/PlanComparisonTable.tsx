@@ -69,8 +69,8 @@ export function PlanComparisonTable() {
                 {d.plans.map((p) => {
                   const hot = p.code === HIGHLIGHT;
                   return (
-                    <th key={p.code} className={`relative border-b px-3 pb-4 pt-6 text-center align-bottom ${hot ? "border-primary/40 bg-gradient-to-b from-primary/10 to-primary/[0.03]" : "border-line"}`}>
-                      {hot ? <div className="absolute inset-x-2 top-0 mx-auto w-fit -translate-y-1/2 rounded-full bg-primary-strong px-2.5 py-0.5 text-[9.5px] font-bold text-primary-fg shadow"><Sparkles size={9} className="me-0.5 inline" />{t("landing.pricing.popular")}</div> : null}
+                    <th key={p.code} className={`relative border-b px-3 pb-4 pt-8 text-center align-bottom ${hot ? "border-primary/40 bg-gradient-to-b from-primary/10 to-primary/[0.03]" : "border-line"}`}>
+                      {hot ? <div className="absolute inset-x-2 top-1.5 mx-auto w-fit rounded-full bg-primary-strong px-2.5 py-0.5 text-[9.5px] font-bold text-primary-fg shadow"><Sparkles size={9} className="me-0.5 inline" />{t("landing.pricing.popular")}</div> : null}
                       <div className={`text-[15px] font-extrabold ${hot ? "text-primary-strong" : "text-ink"}`}>{t(`landing.pricing.${p.code}.name`)}</div>
                       <div className="mt-2 flex items-end justify-center gap-1">
                         <span className="text-[26px] font-extrabold leading-none text-ink tnum">{fmt(yearly ? p.pricePerUserYearly : p.pricePerUserMonthly)}</span>

@@ -1607,6 +1607,7 @@
     "audienceClientHint": "Sent to the company's clients via email/SMS",
     "audienceStaffHint": "Sent to relevant staff + the account owner (email)",
     "subtitleTenantAll": "Customize the texts and channels of all notifications (clients & staff)",
+    "inAppNote": "In-app notifications (the bell) are always on for every event and cannot be turned off. The options below enable/disable email and SMS per event.",
     "emailOnly": "Email only",
     "roleMatrix": {
       "title": "Staff notification routing by role",
@@ -2701,7 +2702,9 @@
         "DISABLED": "·"
       },
       "features": "Modules & features",
-      "toggleHint": "click to toggle"
+      "toggleHint": "click to toggle",
+      "legend": "Modes legend",
+      "legendHint": "click any feature to cycle through these four"
     }
   },
   "portal": {

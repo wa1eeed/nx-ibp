@@ -95,6 +95,18 @@ export default function AdminPlansPage() {
   return (
     <AdminShell>
       <PageHeader title={t("admin.plans.title")} subtitle={t("admin.plans.subtitle")} />
+
+      {/* دليل ألوان أوضاع الميزة — كي يعرف السوبر أدمن معناها دون الرجوع لصفحة المقارنة */}
+      <div className="mb-4 flex flex-wrap items-center gap-2 rounded-lg border border-line bg-surface-2/40 px-3 py-2 text-[11.5px]">
+        <span className="font-semibold text-subtle">{t("admin.plans.legend")}:</span>
+        {MODE_CYCLE.map((m) => (
+          <span key={m} className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-medium ${MODE_STYLE[m]}`}>
+            {m === "INCLUDED" ? <Check size={11} /> : <span className="text-[9px] font-bold">{t(`admin.plans.modeShort.${m}`)}</span>} {t(`admin.plans.mode.${m}`)}
+          </span>
+        ))}
+        <span className="text-subtle">— {t("admin.plans.legendHint")}</span>
+      </div>
+
       {error ? <p className="mb-3 rounded-lg bg-danger-soft px-3 py-2 text-[12.5px] font-medium text-danger">{error}</p> : null}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         {plans.map((p) => {

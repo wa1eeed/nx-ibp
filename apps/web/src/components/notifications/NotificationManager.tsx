@@ -101,6 +101,8 @@ export function NotificationManager({
         <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary"><Bell size={20} /></div>
         <div><h1 className="text-lg font-bold text-ink">{t("title")}</h1><p className="text-[12.5px] text-subtle">{subtitle}</p></div>
       </header>
+      {/* داخل المنصّة إجباري دائمًا؛ الخيارات هنا للبريد/الرسائل فقط */}
+      <p className="rounded-lg bg-success-soft/60 px-3 py-2 text-[11.5px] text-success"><Bell size={12} className="me-1 inline" />{t("inAppNote")}</p>
       {error ? <p className="rounded-lg bg-danger/10 px-3 py-2 text-[12.5px] font-medium text-danger">{error}</p> : null}
 
       {group("audienceClient", "audienceClientHint", clientRows)}

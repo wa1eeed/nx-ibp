@@ -16,10 +16,11 @@ const HIGHLIGHT = "premium";
 const CONTACT_PLANS = new Set(["enterprise"]); // الباقات الكبيرة: تواصل مبيعات بدل التسجيل الذاتي
 
 /** قسم الباقات في اللاندينق — تبويب علوي (اشتراك شهري/خيار التملّك) فوق الباقات، مع تبديل شهري/سنوي والتسعير لكل مستخدم. */
-export function PricingSection() {
+export function PricingSection({ onModeChange }: { onModeChange?: (m: "subscription" | "ownership") => void } = {}) {
   const t = useTranslations();
   const [plans, setPlans] = useState<PublicPlan[]>([]);
-  const [mode, setMode] = useState<"subscription" | "ownership">("subscription");
+  const [mode, setModeState] = useState<"subscription" | "ownership">("subscription");
+  const setMode = (m: "subscription" | "ownership") => { setModeState(m); onModeChange?.(m); }; // يُبلّغ الأب لإخفاء جدول المقارنة في وضع التملّك
   const [yearly, setYearly] = useState(false);
   const [contact, setContact] = useState<{ open: boolean; plan?: string }>({ open: false });
 
