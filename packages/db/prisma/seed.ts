@@ -14,6 +14,53 @@ const asJson = (v: unknown) => v as unknown as Prisma.InputJsonValue;
 
 const prisma = new PrismaClient();
 
+/**
+ * تعبئة سجلّ رحلة (AuditLog) واقعي للوثائق المزروعة — فالبيانات المزروعة تُدرَج مباشرةً بلا تدقيق،
+ * فيبدو خطّها الزمني فارغًا. نولّد أحداثًا مؤرّخة بمنفِّذين حقيقيين عبر كامل المسار
+ * (طلب ⇐ تسعير ⇐ عروض ⇐ إسناد ⇐ إصدار ⇐ اعتمادات ⇐ ملاحق ⇐ مطالبات). للديمو فقط (لا قاعدة الاختبار).
+ * حتمي/idempotent: يُحذف ما وُسِم بـ`seedJourney` قبل إعادة الإدراج.
+ */
+async function backfillJourneys() {
+  await prisma.auditLog.deleteMany({ where: { entity: { in: ["policy_request", "slip", "slip_rfq_sent", "quotation", "firm_order", "policy", "policy_technical", "policy_finance", "endorsement", "claim"] }, meta: { path: ["seedJourney"], equals: true } } });
+  const policies = await prisma.policy.findMany({ select: { id: true, tenantId: true, requestId: true, startDate: true, createdAt: true } });
+  const usersBy = new Map<string, string[]>();
+  const rows: Prisma.AuditLogCreateManyInput[] = [];
+  const mark = asJson({ seedJourney: true });
+  for (const p of policies) {
+    if (!usersBy.has(p.tenantId)) {
+      const us = await prisma.user.findMany({ where: { tenantId: p.tenantId, status: "ACTIVE" }, select: { id: true }, take: 6 });
+      usersBy.set(p.tenantId, us.map((u) => u.id));
+    }
+    const uids = usersBy.get(p.tenantId)!;
+    if (!uids.length) continue;
+    const actor = (i: number) => uids[i % uids.length];
+    const base = p.startDate ?? p.createdAt ?? new Date();
+    const at = (daysBefore: number, min = 0) => { const d = new Date(base); d.setDate(d.getDate() - daysBefore); d.setHours(9, min, 0, 0); return d; };
+    const push = (userId: string, action: string, entity: string, entityId: string, when: Date) => rows.push({ tenantId: p.tenantId, userId, action, entity, entityId, createdAt: when, meta: mark });
+
+    const endos = await prisma.endorsement.findMany({ where: { policyId: p.id }, select: { id: true } });
+    const claims = await prisma.claim.findMany({ where: { policyId: p.id }, select: { id: true } });
+
+    // طور الطلب/التسعير يظهر فقط إن كانت الوثيقة ناتجة عن طلب مرتبط
+    if (p.requestId) {
+      const slips = await prisma.slip.findMany({ where: { requestId: p.requestId }, select: { id: true } });
+      const slipIds = slips.map((s) => s.id);
+      const quotes = slipIds.length ? await prisma.quotation.findMany({ where: { slipId: { in: slipIds } }, select: { id: true } }) : [];
+      push(actor(1), "create", "policy_request", p.requestId, at(20));
+      slips.forEach((s, i) => { push(actor(2), "create", "slip", s.id, at(18, i)); push(actor(2), "update", "slip_rfq_sent", s.id, at(17, i)); });
+      quotes.forEach((q, i) => push(actor(2), "create", "quotation", q.id, at(15, i)));
+      if (slipIds[0]) push(actor(2), "update", "firm_order", slipIds[0], at(12));
+    }
+    push(actor(2), "create", "policy", p.id, at(10));
+    push(actor(2), "approve", "policy_technical", p.id, at(9));
+    push(actor(3), "approve", "policy_finance", p.id, at(8));
+    endos.forEach((e, i) => push(actor(2), "create", "endorsement", e.id, at(Math.max(1, 5 - i))));
+    claims.forEach((c, i) => push(actor(3), "create", "claim", c.id, at(Math.max(1, 3 - i))));
+  }
+  if (rows.length) await prisma.auditLog.createMany({ data: rows });
+  return rows.length;
+}
+
 const DEV_PASSWORD = "Passw0rd!";
 
 type EntMode = "INCLUDED" | "QUOTA" | "METERED" | "ADDON" | "DISABLED";
@@ -1283,6 +1330,9 @@ async function main() {
     if (gibCfg) await prisma.tenantConfig.update({ where: { tenantId: GIB_DEF.id }, data: { branding: gibBranding as Prisma.InputJsonValue } });
     else await prisma.tenantConfig.create({ data: { tenantId: GIB_DEF.id, enabledProducts: [], branding: gibBranding as Prisma.InputJsonValue } });
   }
+
+  // سجلّ رحلة واقعي للوثائق المزروعة — للديمو فقط (لا قاعدة الاختبار، كي لا تتأثّر عدّادات e2e)
+  if (!isTestDb) { const j = await backfillJourneys(); console.log(`   🧭 سجلّ الرحلة: ${j} حدثًا مؤرّخًا عبر مسار الوثائق`); }
 
   const [nc, np, ncl] = await Promise.all([prisma.client.count(), prisma.policy.count(), prisma.claim.count()]);
   console.log(`✅ تمّ الزرع: ${TENANTS.length} مستأجر + سوبر أدمن + بيانات شبه واقعية واسعة. كلمة مرور التطوير: ${DEV_PASSWORD}`);

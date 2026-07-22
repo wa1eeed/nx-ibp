@@ -2,11 +2,12 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { ArrowRight, FileCheck2, Coins, ClipboardList, FilePlus2, FolderOpen, Clock, Plus, X, Check, Ban, Info, Minus } from "lucide-react";
+import { ArrowRight, FileCheck2, Coins, ClipboardList, FilePlus2, FolderOpen, Plus, X, Check, Ban, Info, Minus } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
 import { api, ApiError, getToken } from "@/lib/api";
 import { Badge, type BadgeTone } from "@/components/ui/Badge";
+import { LifecycleTimeline } from "@/components/LifecycleTimeline";
 
 const ENDO_TYPES = ["addition", "deletion", "amendment", "cancellation"] as const;
 
@@ -33,7 +34,6 @@ const TABS = ["financial", "endorsements", "claims", "invoices", "documents", "t
 const STATUS_TONE: Record<string, BadgeTone> = { ISSUED: "success", TECHNICAL_REVIEW: "warning", FINANCE_REVIEW: "info", REJECTED: "danger", CANCELLED: "neutral" };
 const fmt = (n: string | number | null) => (n == null ? "—" : Number(n).toLocaleString("en-US"));
 const dt = (s: string | null) => (s ? new Date(s).toLocaleDateString("en-GB") : "—");
-const ACTION_AR: Record<string, string> = { create: "إنشاء", update: "تحديث", approve: "اعتماد", issue: "إصدار", revert: "تراجع" };
 
 export default function PolicyDetailPage() {
   const t = useTranslations("policy360");
@@ -158,16 +158,7 @@ export default function PolicyDetailPage() {
 
         {tab === "documents" ? (ov.documents.length ? table([t("col.file"), t("col.docType"), t("col.date")], ov.documents.map((d) => row([<span key="f" className="inline-flex items-center gap-1.5"><FolderOpen size={13} className="text-subtle" /> {d.fileName}</span>, d.docType, dt(d.createdAt)]))) : empty) : null}
 
-        {tab === "timeline" ? (ov.activity.length ? (
-          <ol className="space-y-2.5">
-            {ov.activity.map((a, i) => (
-              <li key={i} className="flex items-start gap-2.5 rounded-card border border-line bg-card px-3 py-2.5">
-                <Clock size={14} className="mt-0.5 shrink-0 text-subtle" />
-                <div><div className="text-[12.5px] font-medium text-ink">{ACTION_AR[a.action] ?? a.action}</div><div className="text-[11px] text-subtle">{new Date(a.createdAt).toLocaleString("en-GB")}</div></div>
-              </li>
-            ))}
-          </ol>
-        ) : empty) : null}
+        {tab === "timeline" ? <LifecycleTimeline path={`/policies/${id}/timeline`} /> : null}
       </div>
 
       {endoOpen ? <AddEndorsement policyId={id} vatRate={ov?.vatRate ?? 15} onClose={() => setEndoOpen(false)} onDone={(seq) => { setEndoOpen(false); setEndoDone(t("endo.done", { seq })); void load(); }} /> : null}

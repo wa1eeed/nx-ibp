@@ -228,6 +228,10 @@
     "empty": "No results for “{q}”",
     "type": { "client": "Clients", "policy": "Policies", "request": "Requests", "claim": "Claims", "insurer": "Insurers" }
   },
+  "timeline": {
+    "empty": "No history yet",
+    "phase": { "crm": "CRM", "request": "Request", "underwriting": "Underwriting", "issuance": "Issuance", "finance": "Finance", "service": "Service", "other": "Other" }
+  },
   "demo": {
     "title": "Demo Session",
     "subtitle": "Temporary preview mode"
@@ -2270,6 +2274,7 @@
   },
   "requests": {
     "title": "Requests",
+    "timelineTitle": "Request journey log",
     "subtitle": "Insurance requests (RFQ) for clients",
     "new": "New request",
     "detail": {

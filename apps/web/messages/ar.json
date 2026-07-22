@@ -228,6 +228,10 @@
     "empty": "لا نتائج لـ «{q}»",
     "type": { "client": "العملاء", "policy": "الوثائق", "request": "الطلبات", "claim": "المطالبات", "insurer": "شركات التأمين" }
   },
+  "timeline": {
+    "empty": "لا سجلّ بعد",
+    "phase": { "crm": "علاقات", "request": "طلب", "underwriting": "اكتتاب", "issuance": "إصدار", "finance": "مالية", "service": "خدمة", "other": "أخرى" }
+  },
   "demo": {
     "title": "Demo Session",
     "subtitle": "نمط العرض المؤقت"
@@ -2270,6 +2274,7 @@
   },
   "requests": {
     "title": "الطلبات",
+    "timelineTitle": "سجلّ رحلة الطلب",
     "subtitle": "طلبات التأمين (RFQ) للعملاء",
     "new": "طلب جديد",
     "detail": {

@@ -58,6 +58,7 @@ import { TargetsModule } from "./modules/targets/targets.module";
 import { AuditViewModule } from "./modules/audit/audit.module";
 import { InsurersModule } from "./modules/insurers/insurers.module";
 import { SearchModule } from "./modules/search/search.module";
+import { LifecycleModule } from "./modules/lifecycle/lifecycle.module";
 import { WebhooksModule } from "./modules/webhooks/webhooks.module";
 
 /**
@@ -122,6 +123,7 @@ import { WebhooksModule } from "./modules/webhooks/webhooks.module";
     AuditViewModule,
     InsurersModule,
     SearchModule,
+    LifecycleModule,
     WebhooksModule,
   ],
   providers: [

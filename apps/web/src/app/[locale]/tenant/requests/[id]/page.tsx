@@ -12,6 +12,7 @@ import { Badge, type BadgeTone } from "@/components/ui/Badge";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { usePermissions } from "@/hooks/usePermissions";
 import { DynamicForm, type FormPayload } from "@/components/forms/DynamicForm";
+import { LifecycleTimeline } from "@/components/LifecycleTimeline";
 
 interface ReqDetail {
   id: string; sequenceNo: string | null; productLineCode: string; status: string; createdAt: string;
@@ -176,6 +177,12 @@ export default function RequestDetailPage() {
       ) : (
         <div className="rounded-card border border-dashed border-line bg-card p-8 text-center text-[13px] text-muted shadow-card"><FileText size={26} className="mx-auto mb-2 text-subtle" /> {req.productLineCode}</div>
       )}
+
+      {/* سجلّ رحلة الطلب: من فرصة CRM (إن وُجدت) حتى وضعه الراهن — بالوقت والمنفِّذ */}
+      <section className="rounded-card border border-line bg-card p-4 shadow-card">
+        <h2 className="mb-3 text-[13px] font-bold text-ink">{t("timelineTitle")}</h2>
+        <LifecycleTimeline path={`/requests/${id}/timeline`} />
+      </section>
     </div>
   );
 }

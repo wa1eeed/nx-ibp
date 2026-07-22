@@ -705,6 +705,7 @@ curl -X POST http://localhost:4000/staff \
 | الطريقة | المسار | الحماية | الوصف |
 |---|---|---|---|
 | GET | `/policies/:id/overview` | production:read | نظرة الوثيقة 360° المجمّعة (العميل + الملحقات + المطالبات + إشعارات المدين + الفواتير + المستندات + النشاط + ملخّص مالي) |
+| GET | `/policies/:id/timeline` · `/requests/:id/timeline` | production:read · sales:read | **سجلّ رحلة الكيان**: مسار كامل عبر الأطوار (crm⇒request⇒underwriting⇒issuance⇒finance/service) من `AuditLog`+`CrmActivity`، كل حدث `{ at, actor, phase, label }`. عزل ⇒ 404 |
 | POST | `/policies/:id/endorsements` | production:create | إضافة ملحق على وثيقة مُصدَرة (نوع/تاريخ سريان/فرق قسط/سبب) ⇒ `POL-…/E{n}`. وثيقة غير مُصدَرة ⇒ 409، وثيقة الغير ⇒ 404 |
 | POST | `/slips/:id/quotations` | production:create | يقبل الآن حقول مالية موسّعة: `sumInsured`/`policyFees`/`commissionRate`/`commissionAmount`/**`commissionVat`** — **ضريبة القسط** (15% قياسي؛ الحياة معفاة) و**ضريبة عمولة الوساطة** (15% دائمًا، ضريبة مخرجات الوسيط) تُحتسبان تلقائيًّا. انظر [10 — الاكتتاب](./10-underwriting-rfq.md) |
 

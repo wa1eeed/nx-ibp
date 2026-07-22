@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Param, Patch, Post } from "@nestjs/common";
 import { RequestsService } from "./requests.service";
+import { LifecycleService } from "../lifecycle/lifecycle.service";
 import { CreateRequestDto } from "./dto/create-request.dto";
 import { UpdateRequestDto } from "./dto/update-request.dto";
 import { Authorize } from "../rbac/authorize.decorator";
@@ -7,7 +8,10 @@ import { CurrentUser } from "../auth/current-user.decorator";
 
 @Controller("requests")
 export class RequestsController {
-  constructor(private readonly requests: RequestsService) {}
+  constructor(
+    private readonly requests: RequestsService,
+    private readonly lifecycle: LifecycleService,
+  ) {}
 
   @Authorize({ module: "sales", action: "read", entitlement: "module.sales" })
   @Get()
@@ -23,6 +27,13 @@ export class RequestsController {
     @Body() dto: CreateRequestDto,
   ) {
     return this.requests.create(tenantId, userId, dto);
+  }
+
+  // سجلّ رحلة الطلب: فرصة CRM ⇐ الطلب ⇐ التسعير/العروض ⇐ (الإصدار إن تمّ) — بالوقت والمنفِّذ
+  @Authorize({ module: "sales", action: "read", entitlement: "module.sales" })
+  @Get(":id/timeline")
+  timeline(@Param("id") id: string) {
+    return this.lifecycle.forRequest(id);
   }
 
   @Authorize({ module: "sales", action: "read", entitlement: "module.sales" })

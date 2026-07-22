@@ -174,6 +174,8 @@ export class CrmService {
       return req;
     });
     await this.audit.log({ tenantId: user.tenantId, userId: user.userId, action: "update", entity: "deal_convert", entityId: id, meta: { requestId: request.id, sequenceNo } });
+    // نسجّل ميلاد الطلب على الطلب نفسه (كمسار الإنشاء المباشر) — ليظهر في سجلّ رحلة الطلب
+    await this.audit.log({ tenantId: user.tenantId, userId: user.userId, action: "create", entity: "policy_request", entityId: request.id, meta: { sequenceNo, fromDeal: id } });
     await this.logActivity(user.tenantId, user.userId, "deal", id, "note", `حُوِّلت إلى طلب تأمين ${sequenceNo}`);
     return { request, dealId: id };
   }

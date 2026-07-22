@@ -1,5 +1,6 @@
 import { Body, Controller, Get, HttpCode, Param, Post } from "@nestjs/common";
 import { ProductionService } from "./production.service";
+import { LifecycleService } from "../lifecycle/lifecycle.service";
 import { IssuePolicyDto } from "./dto/issue-policy.dto";
 import { ApproveStepDto } from "./dto/approve-step.dto";
 import { CreateEndorsementDto } from "./dto/create-endorsement.dto";
@@ -8,7 +9,10 @@ import { CurrentUser, type AuthUser } from "../auth/current-user.decorator";
 
 @Controller("policies")
 export class ProductionController {
-  constructor(private readonly production: ProductionService) {}
+  constructor(
+    private readonly production: ProductionService,
+    private readonly lifecycle: LifecycleService,
+  ) {}
 
   @Authorize({ module: "production", action: "read", entitlement: "module.production" })
   @Get()
@@ -65,6 +69,13 @@ export class ProductionController {
   @Get(":id/overview")
   overview(@Param("id") id: string) {
     return this.production.overview(id);
+  }
+
+  // سجلّ رحلة الوثيقة الكامل: فرصة CRM ⇐ طلب ⇐ تسعير/عروض ⇐ إصدار ⇐ مالية (بالوقت والمنفِّذ)
+  @Authorize({ module: "production", action: "read", entitlement: "module.production" })
+  @Get(":id/timeline")
+  timeline(@Param("id") id: string) {
+    return this.lifecycle.forPolicy(id);
   }
 
   @Authorize({ module: "production", action: "read", entitlement: "module.production" })
