@@ -140,10 +140,12 @@ export function Sidebar() {
 
       <nav className="flex-1 overflow-y-auto px-3 pb-4">
         {groups.map((group) => (
-          <div key={group.key} className="mt-4 first:mt-2">
+          <div key={group.key} className="mt-5 first:mt-2">
             {group.hideLabel ? null : (
-              <div className="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-subtle">
-                {t(`navGroup.${group.key}`)}
+              // عنوان الموديول متبوعًا بخطّ فاصل يمتدّ لآخر السطر — يميّز الرأس عن صفحاته (راحة للعين)
+              <div className="mb-2 flex items-center gap-2 px-3">
+                <span className="shrink-0 text-[10.5px] font-bold uppercase tracking-wider text-subtle">{t(`navGroup.${group.key}`)}</span>
+                <span className="h-px flex-1 bg-line" />
               </div>
             )}
             <ul className="space-y-0.5">
