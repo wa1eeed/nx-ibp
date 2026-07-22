@@ -181,6 +181,7 @@
     "clients": "Clients",
     "verification": "Verification",
     "requests": "Requests",
+    "underwriting": "Underwriting",
     "policies": "Policies",
     "producers": "Sub-brokers",
     "service": "Service",
@@ -2247,6 +2248,16 @@
       "product": "Product",
       "status": "Status",
       "age": "Age"
+    }
+  },
+  "underwritingQueue": {
+    "title": "Underwriting",
+    "subtitle": "Quotation (RFQ) queue — all slips in underwriting and their quote tracking",
+    "empty": "No slips yet — start from Requests via the “Prepare quotes” button",
+    "col": {
+      "rfq": "RFQ #",
+      "quotes": "Quotes",
+      "decision": "Client decision"
     }
   },
   "policies": {

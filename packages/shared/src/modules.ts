@@ -7,6 +7,7 @@ export type ModuleKey =
   | "clients"
   | "verification"
   | "requests"
+  | "underwriting"
   | "policies"
   | "producers"
   | "products"
@@ -87,6 +88,7 @@ export const TENANT_NAV: NavGroup[] = [
     items: [
       { key: "products", href: "/tenant/products", icon: "Boxes", entitlement: "module.sales" },
       { key: "requests", href: "/tenant/requests", icon: "FileText", entitlement: "module.sales" },
+      { key: "underwriting", href: "/tenant/underwriting", icon: "FileSpreadsheet", entitlement: "module.production", module: "underwriting" },
       { key: "policies", href: "/tenant/policies", icon: "FileCheck2", entitlement: "module.production" },
       { key: "renewals", href: "/tenant/renewals", icon: "RefreshCw", entitlement: "module.production" },
     ],

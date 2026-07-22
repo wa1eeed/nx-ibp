@@ -35,6 +35,8 @@ export class SlipsService {
         status: true,
         tenantId: true,
         createdAt: true,
+        presentedAt: true,
+        clientDecision: true,
         request: { select: { id: true, productLineCode: true, client: { select: { id: true, name: true } } } },
         _count: { select: { quotations: true } },
       },

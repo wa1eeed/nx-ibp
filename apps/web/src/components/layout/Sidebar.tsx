@@ -37,6 +37,7 @@ import {
   ShieldAlert,
   Wallet,
   CalendarDays,
+  FileSpreadsheet,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -87,6 +88,7 @@ const ICONS: Record<string, LucideIcon> = {
   ShieldAlert,
   Wallet,
   CalendarDays,
+  FileSpreadsheet,
 };
 
 type Perms = Record<string, { access?: boolean }>;
