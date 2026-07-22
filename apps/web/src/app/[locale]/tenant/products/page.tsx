@@ -1,14 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Boxes, FileCheck2, Plus, CheckCircle2, Circle } from "lucide-react";
+import { Boxes, FileCheck2, Plus, CheckCircle2, Circle, Users } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/routing";
 import { api, getToken } from "@/lib/api";
 import { usePermissions } from "@/hooks/usePermissions";
 import { PageHeader } from "@/components/ui/PageHeader";
 
-interface Line { code: string; name: string; hasForm: boolean; count: number; premium: number }
+interface Line { code: string; name: string; hasForm: boolean; count: number; premium: number; commission: number; clients: number; claims: number }
 interface Cls { code: string; name: string; vatRate: number; lines: Line[] }
 
 export default function ProductsPage() {
@@ -25,20 +25,28 @@ export default function ProductsPage() {
   }, [load, router]);
 
   const fmt = (n: number) => n.toLocaleString("en-US");
+  const fmtK = (n: number) => (n >= 1000 ? `${fmt(Math.round(n / 100) / 10)}${t("thousand")}` : fmt(Math.round(n))); // مختصر للبطاقات الضيّقة
   const totalLines = classes.reduce((s, c) => s + c.lines.length, 0);
   const totalPremium = classes.reduce((s, c) => s + c.lines.reduce((a, l) => a + l.premium, 0), 0);
-  const activeLines = classes.reduce((s, c) => s + c.lines.filter((l) => l.count > 0).length, 0);
+  const totalPolicies = classes.reduce((s, c) => s + c.lines.reduce((a, l) => a + l.count, 0), 0);
+  const totalCommission = classes.reduce((s, c) => s + c.lines.reduce((a, l) => a + l.commission, 0), 0);
+  const totalClaims = classes.reduce((s, c) => s + c.lines.reduce((a, l) => a + l.claims, 0), 0);
+  const lossRatio = totalPremium > 0 ? Math.round((totalClaims / totalPremium) * 100) : 0;
+  // لون نسبة الخسارة: ممتاز <60% · مقبول <100% · خطر ≥100%
+  const lossTone = (r: number) => (r >= 100 ? "text-danger" : r >= 60 ? "text-warning" : "text-success");
 
   return (
     <div>
       <PageHeader title={t("title")} subtitle={t("subtitle")} />
 
-      {/* ملخّص */}
-      <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <div className="rounded-card border border-line bg-card p-3.5 shadow-card"><div className="mb-1 text-[11px] font-medium text-subtle">{t("classes")}</div><div className="tnum text-[19px] font-bold text-ink">{classes.length}</div></div>
+      {/* ملخّص المحفظة */}
+      <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <div className="rounded-card border border-line bg-card p-3.5 shadow-card"><div className="mb-1 text-[11px] font-medium text-subtle">{t("lines")}</div><div className="tnum text-[19px] font-bold text-ink">{totalLines}</div></div>
-        <div className="rounded-card border border-line bg-card p-3.5 shadow-card"><div className="mb-1 text-[11px] font-medium text-subtle">{t("activeLines")}</div><div className="tnum text-[19px] font-bold text-ink">{activeLines}</div></div>
+        <div className="rounded-card border border-line bg-card p-3.5 shadow-card"><div className="mb-1 text-[11px] font-medium text-subtle">{t("totalPolicies")}</div><div className="tnum text-[19px] font-bold text-ink">{fmt(totalPolicies)}</div></div>
         <div className="rounded-card border border-line bg-card p-3.5 shadow-card"><div className="mb-1 text-[11px] font-medium text-subtle">{t("totalPremium")}</div><div className="tnum text-[17px] font-bold text-ink">{fmt(totalPremium)} <span className="text-[10px] font-normal text-subtle">{t("sar")}</span></div></div>
+        <div className="rounded-card border border-line bg-card p-3.5 shadow-card"><div className="mb-1 text-[11px] font-medium text-subtle">{t("commission")}</div><div className="tnum text-[17px] font-bold text-success">{fmt(totalCommission)} <span className="text-[10px] font-normal text-subtle">{t("sar")}</span></div></div>
+        <div className="rounded-card border border-line bg-card p-3.5 shadow-card"><div className="mb-1 text-[11px] font-medium text-subtle">{t("claims")}</div><div className="tnum text-[17px] font-bold text-ink">{fmt(totalClaims)} <span className="text-[10px] font-normal text-subtle">{t("sar")}</span></div></div>
+        <div className="rounded-card border border-line bg-card p-3.5 shadow-card"><div className="mb-1 text-[11px] font-medium text-subtle">{t("lossRatio")}</div><div className={`tnum text-[19px] font-bold ${lossTone(lossRatio)}`}>{lossRatio}<span className="text-[11px] font-normal">%</span></div></div>
       </div>
 
       {classes.length === 0 ? (
@@ -63,9 +71,13 @@ export default function ProductsPage() {
                         {l.hasForm ? <span className="inline-flex items-center gap-0.5 text-success"><CheckCircle2 size={11} /> {t("formReady")}</span> : <span className="inline-flex items-center gap-0.5"><Circle size={11} /> {t("noForm")}</span>}
                       </div>
                       {l.count > 0 ? (
-                        <div className="mt-1 flex items-center gap-2 text-[11.5px]">
-                          <span className="inline-flex items-center gap-1 text-muted"><FileCheck2 size={11} className="text-primary" /> {l.count} {t("policies")}</span>
-                          <span className="tnum font-medium text-ink">{fmt(l.premium)} {t("sar")}</span>
+                        <div className="mt-1.5 grid grid-cols-2 gap-x-3 gap-y-1 text-[11px]">
+                          <span className="inline-flex items-center gap-1 text-muted"><FileCheck2 size={11} className="text-primary" /> <span className="tnum font-medium text-ink">{l.count}</span> {t("policies")}</span>
+                          <span className="text-muted">{t("gwpShort")} <span className="tnum font-medium text-ink">{fmt(l.premium)}</span></span>
+                          <span className="text-muted">{t("commission")} <span className="tnum font-medium text-success">{fmt(l.commission)}</span></span>
+                          <span className="inline-flex items-center gap-1 text-muted"><Users size={11} className="text-subtle" /> <span className="tnum font-medium text-ink">{l.clients}</span> {t("clientsShort")}</span>
+                          {l.premium > 0 ? <span className="text-muted">{t("lossRatio")} <span className={`tnum font-semibold ${lossTone(Math.round((l.claims / l.premium) * 100))}`}>{Math.round((l.claims / l.premium) * 100)}%</span></span> : null}
+                          <span className="text-muted">{t("avgPremium")} <span className="tnum font-medium text-ink">{fmtK(l.premium / l.count)}</span></span>
                         </div>
                       ) : <div className="mt-1 text-[11px] text-subtle">{t("noProduction")}</div>}
                     </div>

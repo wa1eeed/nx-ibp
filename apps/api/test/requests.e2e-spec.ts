@@ -53,6 +53,15 @@ describe("النموذج الديناميكي والالتزام (e2e)", () => {
     expect(res.body.formSchema.blocks.map((b: { key: string }) => b.key)).toContain("members");
   });
 
+  it("إحصاءات المنتجات المُثراة (محفظة): فرع منتِج يحمل العمولة والعملاء والمطالبات", async () => {
+    const res = (await request(app.getHttpServer()).get("/catalog/stats").set(auth(gm)).expect(200)).body as Array<{ lines: Array<{ count: number; premium: number; commission: number; clients: number; claims: number }> }>;
+    const producing = res.flatMap((c) => c.lines).find((l) => l.count > 0)!;
+    expect(producing).toBeTruthy();
+    expect(typeof producing.commission).toBe("number");
+    expect(producing.clients).toBeGreaterThanOrEqual(1); // وثيقة ⇒ عميل واحد على الأقل
+    expect(typeof producing.claims).toBe("number");
+  });
+
   // ----- بوّابة الالتزام -----
   let clientId: string;
   it("إنشاء عميل جديد يبدأ بحالة التزام PENDING", async () => {
