@@ -95,16 +95,20 @@ describe("الاكتتاب الفني وعروض الأسعار (e2e)", () => {
     expect(withEmail.contactEmail).toBeTruthy();
     expect(noEmail.contactEmail).toBeFalsy();
 
-    const res = (await request(srv).post(`/slips/${slip.id}/send-rfq`).set(auth(underwriter)).send({ insurerIds: [withEmail.id, noEmail.id] }).expect(200)).body;
+    const res = (await request(srv).post(`/slips/${slip.id}/send-rfq`).set(auth(underwriter)).send({ recipients: [{ insurerId: withEmail.id }, { insurerId: noEmail.id }] }).expect(200)).body;
     expect(res.sent.map((s: { name: string }) => s.name)).toEqual(["التعاونية للتأمين"]);
-    expect(res.skipped.map((s: { name: string }) => s.name)).toEqual(["وقاية للتأمين"]);
+    expect(res.skipped.map((s: { name: string }) => s.name)).toEqual(["وقاية للتأمين"]); // بلا بريد ولا override
+
+    // بريد فوري (override) للشركة بلا بريد مسجّل ⇒ تُرسَل
+    const res2 = (await request(srv).post(`/slips/${slip.id}/send-rfq`).set(auth(underwriter)).send({ recipients: [{ insurerId: noEmail.id, email: "uw@wiqaya.example" }] }).expect(200)).body;
+    expect(res2.sent.map((s: { name: string }) => s.name)).toEqual(["وقاية للتأمين"]);
 
     // تُسجَّل الشركة المُرسَل إليها على الـslip («أُرسل إلى»)
     const after = (await request(srv).get(`/slips/${slip.id}`).set(auth(underwriter)).expect(200)).body;
     expect(after.insurers).toContain("التعاونية للتأمين");
 
     // قائمة فارغة ⇒ 400
-    await request(srv).post(`/slips/${slip.id}/send-rfq`).set(auth(underwriter)).send({ insurerIds: [] }).expect(400);
+    await request(srv).post(`/slips/${slip.id}/send-rfq`).set(auth(underwriter)).send({ recipients: [] }).expect(400);
   });
 
   it("جدول المقارنة الآلي + أمر الإسناد ⇒ الطلب AWARDED", async () => {

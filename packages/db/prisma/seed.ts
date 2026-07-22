@@ -1268,13 +1268,13 @@ async function main() {
 
     // شركات التأمين (المؤمِّنون) لحساب GIB — أسماؤها تطابق insurerName على وثائقه فتظهر إحصاءات الإنتاج
     const demoInsurers = [
-      { id: "ins-gib-1", name: "شركة التعاونية للتأمين", nameEn: "Tawuniya", licenseNo: "IA-INS-001", vatNumber: "300000000000013", nationalAddress: "طريق الملك فهد، العليا، الرياض 12211", commissionRate: 15, settlementDays: 60, bankName: "الراجحي", iban: "SA0380000000608010111111", contactName: "قسم الوسطاء", contactPhone: "0112180000" },
-      { id: "ins-gib-2", name: "بوبا العربية للتأمين", nameEn: "Bupa Arabia", licenseNo: "IA-INS-002", vatNumber: "300000000000023", nationalAddress: "طريق الأمير سلطان، الروضة، جدة 23434", commissionRate: 12.5, settlementDays: 45, bankName: "الأهلي", iban: "SA0380000000608010222222", contactName: "علاقات الوسطاء", contactPhone: "0126982222" },
-      { id: "ins-gib-3", name: "شركة ملاذ للتأمين", nameEn: "Malath", licenseNo: "IA-INS-003", vatNumber: "300000000000033", nationalAddress: "طريق العروبة، المروج، الرياض 12283", commissionRate: 17.5, settlementDays: 90, bankName: "الرياض", iban: "SA0380000000608010333333" },
-      { id: "ins-gib-4", name: "المتوسط والخليج للتأمين (ميدغلف)", nameEn: "MedGulf", licenseNo: "IA-INS-004", vatNumber: "300000000000043", nationalAddress: "طريق الملك عبدالعزيز، الخبر 34423", commissionRate: 14, settlementDays: 60, bankName: "سامبا", iban: "SA0380000000608010444444" },
+      { id: "ins-gib-1", name: "شركة التعاونية للتأمين", nameEn: "Tawuniya", licenseNo: "IA-INS-001", vatNumber: "300000000000013", nationalAddress: "طريق الملك فهد، العليا، الرياض 12211", commissionRate: 15, settlementDays: 60, bankName: "الراجحي", iban: "SA0380000000608010111111", contactName: "قسم الوسطاء", contactPhone: "0112180000", contactEmail: "underwriting@tawuniya.demo.sa" },
+      { id: "ins-gib-2", name: "بوبا العربية للتأمين", nameEn: "Bupa Arabia", licenseNo: "IA-INS-002", vatNumber: "300000000000023", nationalAddress: "طريق الأمير سلطان، الروضة، جدة 23434", commissionRate: 12.5, settlementDays: 45, bankName: "الأهلي", iban: "SA0380000000608010222222", contactName: "علاقات الوسطاء", contactPhone: "0126982222", contactEmail: "underwriting@bupa.demo.sa" },
+      { id: "ins-gib-3", name: "شركة ملاذ للتأمين", nameEn: "Malath", licenseNo: "IA-INS-003", vatNumber: "300000000000033", nationalAddress: "طريق العروبة، المروج، الرياض 12283", commissionRate: 17.5, settlementDays: 90, bankName: "الرياض", iban: "SA0380000000608010333333", contactEmail: "underwriting@malath.demo.sa" },
+      { id: "ins-gib-4", name: "المتوسط والخليج للتأمين (ميدغلف)", nameEn: "MedGulf", licenseNo: "IA-INS-004", vatNumber: "300000000000043", nationalAddress: "طريق الملك عبدالعزيز، الخبر 34423", commissionRate: 14, settlementDays: 60, bankName: "سامبا", iban: "SA0380000000608010444444", contactEmail: "underwriting@medgulf.demo.sa" },
     ];
     for (const ins of demoInsurers) {
-      await prisma.insurer.upsert({ where: { id: ins.id }, update: { commissionRate: ins.commissionRate, settlementDays: ins.settlementDays, vatNumber: ins.vatNumber, nationalAddress: ins.nationalAddress, status: "active" }, create: { tenantId: GIB_DEF.id, status: "active", ...ins } });
+      await prisma.insurer.upsert({ where: { id: ins.id }, update: { commissionRate: ins.commissionRate, settlementDays: ins.settlementDays, vatNumber: ins.vatNumber, nationalAddress: ins.nationalAddress, contactEmail: ins.contactEmail, status: "active" }, create: { tenantId: GIB_DEF.id, status: "active", ...ins } });
     }
 
     // هوية بصرية مميّزة لحساب GIB (White-label) — لون كحلي بدل الافتراضي، لعرض الميزة حيًّا

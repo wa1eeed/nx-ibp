@@ -2434,10 +2434,11 @@
     "rfq": {
       "action": "Send to insurers",
       "title": "Send RFQ to insurers",
-      "hint": "A quotation request is emailed to the selected insurers from your company domain; their replies come straight back to you. Insurers with no registered email are skipped.",
+      "hint": "A quotation request is emailed to the selected insurers from your company domain; their replies come straight back to you. For insurers with no email on file, type one to send.",
       "send": "Send request",
       "selected": "Selected: {n}",
       "noEmail": "No email on file",
+      "enterEmail": "Enter email",
       "noInsurers": "No insurers registered — add underwriting emails on the Insurers page first",
       "sentCount": "Sent to {n} insurer(s)",
       "skipped": "Skipped {n} (no email)",

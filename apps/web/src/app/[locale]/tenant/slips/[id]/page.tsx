@@ -373,18 +373,26 @@ function SendRfq({ slipId, onClose, onSent, onError }: { slipId: string; onClose
   const t = useTranslations();
   const [insurers, setInsurers] = useState<Array<{ id: string; name: string; contactEmail: string | null }>>([]);
   const [picked, setPicked] = useState<Set<string>>(new Set());
+  const [emails, setEmails] = useState<Record<string, string>>({}); // بريد فوري للشركات بلا بريد مسجّل
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<{ sent: Array<{ name: string }>; skipped: Array<{ name: string }> } | null>(null);
 
   useEffect(() => { void api<typeof insurers>("/insurers/options").then(setInsurers).catch(() => setInsurers([])); }, []);
 
+  const validEmail = (e: string) => /.+@.+\..+/.test(e);
   const toggle = (id: string) => setPicked((p) => { const n = new Set(p); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  // كتابة بريد فوري: تُحدّث القيمة وتُدرِج/تُخرِج الشركة تلقائيًا حسب صحّة البريد
+  const setEmail = (id: string, v: string) => {
+    setEmails((m) => ({ ...m, [id]: v }));
+    setPicked((p) => { const n = new Set(p); if (validEmail(v.trim())) n.add(id); else n.delete(id); return n; });
+  };
 
   async function send() {
     if (!picked.size) return;
     setSending(true); onError("");
     try {
-      const r = await api<{ sent: Array<{ name: string }>; skipped: Array<{ name: string }> }>(`/slips/${slipId}/send-rfq`, { method: "POST", body: JSON.stringify({ insurerIds: [...picked] }) });
+      const recipients = [...picked].map((id) => { const typed = emails[id]?.trim(); return typed ? { insurerId: id, email: typed } : { insurerId: id }; });
+      const r = await api<{ sent: Array<{ name: string }>; skipped: Array<{ name: string }> }>(`/slips/${slipId}/send-rfq`, { method: "POST", body: JSON.stringify({ recipients }) });
       setResult(r);
     } catch (e) { onError(e instanceof ApiError ? e.message : "خطأ"); setSending(false); }
   }
@@ -408,14 +416,20 @@ function SendRfq({ slipId, onClose, onSent, onError }: { slipId: string; onClose
           <p className="py-6 text-center text-[12.5px] text-subtle">{t("underwriting.rfq.noInsurers")}</p>
         ) : (
           <>
-            <div className="max-h-64 space-y-1 overflow-auto">
-              {insurers.map((i) => (
-                <label key={i.id} className={`flex items-center gap-2.5 rounded-lg border px-3 py-2 text-[13px] ${i.contactEmail ? "cursor-pointer border-line hover:bg-surface-2" : "border-line/60 opacity-60"}`}>
-                  <input type="checkbox" disabled={!i.contactEmail} checked={picked.has(i.id)} onChange={() => toggle(i.id)} className="accent-primary" />
-                  <span className="flex-1 text-ink">{i.name}</span>
-                  <span className="text-[11px] text-subtle">{i.contactEmail ?? t("underwriting.rfq.noEmail")}</span>
-                </label>
-              ))}
+            <div className="max-h-72 space-y-1 overflow-auto">
+              {insurers.map((i) => {
+                const canPick = !!i.contactEmail || validEmail((emails[i.id] ?? "").trim());
+                return (
+                  <div key={i.id} className="flex items-center gap-2.5 rounded-lg border border-line px-3 py-2 text-[13px]">
+                    <input type="checkbox" disabled={!canPick} checked={picked.has(i.id)} onChange={() => toggle(i.id)} className="accent-primary shrink-0" />
+                    <span className="flex-1 truncate text-ink">{i.name}</span>
+                    {i.contactEmail
+                      ? <span dir="ltr" className="text-[11px] text-subtle">{i.contactEmail}</span>
+                      : <input type="email" dir="ltr" value={emails[i.id] ?? ""} onChange={(e) => setEmail(i.id, e.target.value)} placeholder={t("underwriting.rfq.enterEmail")}
+                          className="h-7 w-40 shrink-0 rounded-md border border-line bg-card px-2 text-[11.5px] text-ink placeholder:text-subtle focus:outline-none focus:ring-1 focus:ring-primary/30" />}
+                  </div>
+                );
+              })}
             </div>
             <div className="mt-3 flex items-center justify-between">
               <span className="text-[11px] text-subtle">{t("underwriting.rfq.selected", { n: picked.size })}</span>

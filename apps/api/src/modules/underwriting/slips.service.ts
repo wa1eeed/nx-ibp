@@ -120,8 +120,8 @@ export class SlipsService {
    * يُرسَل من نطاق الوسيط (BYO Resend) مع Reply-To إيميله كي تصل ردود الشركات إليه.
    * الشركات بلا بريد مسجّل تُتخطّى وتُعاد في skipped. يُسجَّل مَن أُرسِل إليهم في slip.insurers + تدقيق.
    */
-  async sendRfq(tenantId: string, userId: string, slipId: string, insurerIds: string[]) {
-    if (!insurerIds?.length) throw new BadRequestException("اختر شركة تأمين واحدة على الأقل");
+  async sendRfq(tenantId: string, userId: string, slipId: string, recipients: Array<{ insurerId: string; email?: string }>) {
+    if (!recipients?.length) throw new BadRequestException("اختر شركة تأمين واحدة على الأقل");
     const slip = await this.prisma.slip.findFirst({
       where: { id: slipId },
       select: { id: true, sequenceNo: true, status: true, insurers: true, request: { select: { productLineCode: true, base: true, client: { select: { name: true } } } } },
@@ -129,7 +129,8 @@ export class SlipsService {
     if (!slip) throw new NotFoundException("طلب الأسعار غير موجود");
     if (slip.status === "SELECTED" || slip.status === "CLOSED") throw new ConflictException("لا يمكن إرسال طلب أسعار بعد الإسناد أو الإغلاق");
 
-    const insurers = await this.prisma.insurer.findMany({ where: { tenantId, id: { in: insurerIds } }, select: { id: true, name: true, contactEmail: true } });
+    const overrideById = new Map(recipients.map((r) => [r.insurerId, r.email?.trim()]));
+    const insurers = await this.prisma.insurer.findMany({ where: { tenantId, id: { in: recipients.map((r) => r.insurerId) } }, select: { id: true, name: true, contactEmail: true } });
     const line = await this.prisma.productLine.findFirst({ where: { code: slip.request?.productLineCode ?? "" }, select: { name: true } });
     const tenant = await this.prisma.tenant.findFirst({ where: { id: tenantId }, select: { name: true } });
 
@@ -142,7 +143,8 @@ export class SlipsService {
     const sent: Array<{ name: string; email: string }> = [];
     const skipped: Array<{ name: string; reason: string }> = [];
     for (const ins of insurers) {
-      if (!ins.contactEmail) { skipped.push({ name: ins.name, reason: "no_email" }); continue; }
+      const email = overrideById.get(ins.id) || ins.contactEmail; // البريد الفوري يتجاوز/يكمل السجلّ
+      if (!email) { skipped.push({ name: ins.name, reason: "no_email" }); continue; }
       const subject = `طلب عرض سعر — ${clientName} — ${lineName} (${ref})`;
       const body = [
         `السلام عليكم ورحمة الله وبركاته،`,
@@ -159,8 +161,8 @@ export class SlipsService {
         `مع خالص التقدير،`,
         tenant?.name ?? "",
       ].join("\n");
-      const res = await this.email.sendTenantEmail(tenantId, ins.contactEmail, subject, body, "ar");
-      if (res.ok) sent.push({ name: ins.name, email: ins.contactEmail });
+      const res = await this.email.sendTenantEmail(tenantId, email, subject, body, "ar");
+      if (res.ok) sent.push({ name: ins.name, email });
       else skipped.push({ name: ins.name, reason: "send_failed" });
     }
 

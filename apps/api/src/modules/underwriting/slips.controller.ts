@@ -64,7 +64,7 @@ export class SlipsController {
     @Param("id") id: string,
     @Body() dto: SendRfqDto,
   ) {
-    return this.slips.sendRfq(tenantId, userId, id, dto.insurerIds);
+    return this.slips.sendRfq(tenantId, userId, id, dto.recipients);
   }
 
   // أمر الإسناد (Firm Order)

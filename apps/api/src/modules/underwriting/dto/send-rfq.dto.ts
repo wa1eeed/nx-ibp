@@ -1,9 +1,21 @@
-import { ArrayNotEmpty, IsArray, IsString } from "class-validator";
+import { ArrayNotEmpty, IsArray, IsEmail, IsOptional, IsString, ValidateNested } from "class-validator";
+import { Type } from "class-transformer";
 
-/** إرسال طلب العرض (RFQ) بالبريد لشركات التأمين المختارة من السجلّ (بمعرّفاتها). */
+/** مُستلِم واحد: معرّف الشركة + بريد اختياري (يتجاوز/يكمل السجلّ عند غيابه). */
+export class RfqRecipientDto {
+  @IsString()
+  insurerId!: string;
+
+  @IsOptional()
+  @IsEmail()
+  email?: string;
+}
+
+/** إرسال طلب العرض (RFQ) بالبريد لشركات التأمين المختارة (مع إمكانية بريد فوري لمن لا بريد له). */
 export class SendRfqDto {
   @IsArray()
   @ArrayNotEmpty()
-  @IsString({ each: true })
-  insurerIds!: string[];
+  @ValidateNested({ each: true })
+  @Type(() => RfqRecipientDto)
+  recipients!: RfqRecipientDto[];
 }
