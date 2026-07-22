@@ -5,13 +5,14 @@ import { PAYMENT_GATEWAY } from "./gateway/gateway.types";
 import { TapGateway } from "./gateway/tap.gateway";
 import { SandboxGateway } from "./gateway/sandbox.gateway";
 import { NotificationsModule } from "../notifications/notifications.module";
+import { PlatformModule } from "../platform/platform.module";
 
 /**
  * فوترة الاشتراكات (المرحلة B2). بوّابة الدفع تُختار من BILLING_GATEWAY
  * (sandbox للتطوير/الاختبار · tap للإنتاج) — نقطة تبديل واحدة.
  */
 @Module({
-  imports: [NotificationsModule],
+  imports: [NotificationsModule, PlatformModule], // PlatformModule يوفّر مفتاح Tap الفعّال للمنصّة
   controllers: [BillingController],
   providers: [
     BillingService,

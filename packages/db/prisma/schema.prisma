@@ -535,6 +535,21 @@ model TenantPaymentSettings {
   updatedAt          DateTime @updatedAt
 }
 
+// إعدادات بوّابة دفع المنصّة (فوترة اشتراكات الوسطاء عبر Tap) — يديرها السوبر أدمن.
+// صفّ مفرد (id="singleton"). يُخزَّن مفتاحا الاختبار والحيّ معًا، والوضع يحدّد الفعّال — فيسهل التبديل.
+model PlatformPaymentSettings {
+  id                     String   @id @default("singleton")
+  provider               String   @default("tap") // tap
+  mode                   String   @default("test") // test | live — الوضع الفعّال
+  testPublicKey          String?
+  testSecretKeyEncrypted String? // مشفّر at-rest
+  livePublicKey          String?
+  liveSecretKeyEncrypted String? // مشفّر at-rest
+  merchantId             String? // معرّف التاجر (Tap) — للعرض/المطابقة
+  enabled                Boolean  @default(false)
+  updatedAt              DateTime @updatedAt
+}
+
 // عملية دفع إلكتروني من بوّابة العميل مقابل إشعار مدين — تربط شحنة البوّابة بالذمّة.
 // عند نجاح الدفع يُنشأ سند قبض (RCV) تلقائيًا ويُطبَّق شلال الأقساط.
 model PortalPayment {

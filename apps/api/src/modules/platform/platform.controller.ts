@@ -1,6 +1,7 @@
 import { Body, Controller, Get, HttpCode, Param, Post, Put, Query, UseGuards } from "@nestjs/common";
 import { PlatformService } from "./platform.service";
 import { PlatformGuard } from "./platform.guard";
+import { PlatformPaymentSettingsService } from "./platform-payment-settings.service";
 import { AuditViewService } from "../audit/audit-view.service";
 import { NotificationsService } from "../notifications/notifications.service";
 import { UpdateNotificationDto } from "../notifications/dto/notification.dto";
@@ -18,7 +19,19 @@ export class PlatformController {
     private readonly platform: PlatformService,
     private readonly notifications: NotificationsService,
     private readonly auditView: AuditViewService,
+    private readonly platformPay: PlatformPaymentSettingsService,
   ) {}
+
+  // ----- بوّابة دفع المنصّة (Tap لاشتراكات الوسطاء) — test/live -----
+  @Get("payment")
+  paymentSettings() {
+    return this.platformPay.get();
+  }
+
+  @Put("payment")
+  savePayment(@CurrentUser("userId") adminId: string, @Body() dto: Record<string, unknown>) {
+    return this.platformPay.save(adminId, dto as never);
+  }
 
   @Public()
   @Post("login")

@@ -3,6 +3,8 @@ import { PrismaService } from "../../prisma/prisma.service";
 import { AuditService } from "../../common/audit/audit.service";
 import { RequestContextService } from "../../common/request-context/request-context.service";
 import { PAYMENT_GATEWAY, type PaymentGateway } from "./gateway/gateway.types";
+import { TapGateway } from "./gateway/tap.gateway";
+import { PlatformPaymentSettingsService } from "../platform/platform-payment-settings.service";
 import { NotificationsService } from "../notifications/notifications.service";
 import type { CheckoutDto } from "./dto/checkout.dto";
 
@@ -17,7 +19,17 @@ export class BillingService {
     private readonly ctx: RequestContextService,
     @Inject(PAYMENT_GATEWAY) private readonly gateway: PaymentGateway,
     private readonly notifications: NotificationsService,
+    private readonly platformPay: PlatformPaymentSettingsService,
   ) {}
+
+  /**
+   * البوّابة الفعّالة لاشتراكات المنصّة: إن ضبط السوبر أدمن مفاتيح Tap (وفعّلها)، نستخدم
+   * المفتاح الفعّال حسب الوضع (test/live) — وإلا نعود للبوّابة الافتراضية (BILLING_GATEWAY/sandbox).
+   */
+  private async gw(): Promise<PaymentGateway> {
+    const active = await this.platformPay.activeSecret();
+    return active ? new TapGateway(active.secretKey) : this.gateway;
+  }
 
   private get apiBase(): string {
     return process.env.API_PUBLIC_URL ?? process.env.NEXT_PUBLIC_API_URL ?? `http://localhost:${process.env.API_PORT ?? 4000}`;
@@ -36,12 +48,13 @@ export class BillingService {
     const perUser = Number(cycle === "YEARLY" ? plan.priceYearly : plan.priceMonthly);
     const amount = Math.round(perUser * Math.max(1, seats) * 100) / 100;
 
+    const gw = await this.gw();
     const invoice = await this.prisma.subscriptionInvoice.create({
-      data: { tenantId, planCode: plan.code, cycle, amount, currency: this.currency, status: "PENDING", gateway: this.gateway.name },
+      data: { tenantId, planCode: plan.code, cycle, amount, currency: this.currency, status: "PENDING", gateway: gw.name },
       select: { id: true },
     });
 
-    const charge = await this.gateway.createCharge({
+    const charge = await gw.createCharge({
       amount,
       currency: this.currency,
       description: `اشتراك ${plan.name} (${cycle === "YEARLY" ? "سنوي" : "شهري"})`,
@@ -57,7 +70,7 @@ export class BillingService {
       where: { id: invoice.id },
       data: { gatewayChargeId: charge.chargeId, redirectUrl: charge.redirectUrl },
     });
-    await this.audit.log({ tenantId, userId, action: "create", entity: "subscription_invoice", entityId: invoice.id, meta: { plan: plan.code, cycle, amount, gateway: this.gateway.name } });
+    await this.audit.log({ tenantId, userId, action: "create", entity: "subscription_invoice", entityId: invoice.id, meta: { plan: plan.code, cycle, amount, gateway: gw.name } });
 
     return { invoiceId: invoice.id, redirectUrl: charge.redirectUrl, amount, currency: this.currency, status: "PENDING" };
   }
@@ -69,7 +82,7 @@ export class BillingService {
     if (invoice.status === "PAID") return { status: "PAID", invoiceId };
     if (!invoice.gatewayChargeId) throw new BadRequestException("لا توجد شحنة مرتبطة");
 
-    const charge = await this.gateway.retrieveCharge(invoice.gatewayChargeId);
+    const charge = await (await this.gw()).retrieveCharge(invoice.gatewayChargeId);
     if (charge.paid) {
       await this.activate(invoice.id, tenantId, invoice.planCode, invoice.cycle);
       await this.audit.log({ tenantId, userId, action: "update", entity: "subscription_invoice", entityId: invoice.id, meta: { paid: true, via: "confirm" } });
@@ -81,7 +94,7 @@ export class BillingService {
 
   /** نقطة الـ webhook (عامة) — تتحقّق من التوقيع ثم تفعّل بلا سياق مستأجر. */
   async handleWebhook(headers: Record<string, string | undefined>, body: Record<string, unknown>) {
-    const result = this.gateway.verifyWebhook(headers, body);
+    const result = (await this.gw()).verifyWebhook(headers, body);
     if (!result.valid) throw new ConflictException("توقيع غير صالح");
     if (!result.chargeId) return { ok: true };
 
@@ -226,12 +239,13 @@ export class BillingService {
     const unit = snap.addUnit > 0 ? snap.addUnit : snap.perUser; // احتياط: لو انتهت الدورة استخدم سعر المستخدم الكامل
     const amount = Math.round(unit * seats * 100) / 100;
 
+    const gw = await this.gw();
     const invoice = await this.prisma.subscriptionInvoice.create({
-      data: { tenantId, planCode: `SEATS+${seats}`, cycle: snap.cycle, amount, currency: this.currency, status: "PENDING", gateway: this.gateway.name, seatsDelta: seats },
+      data: { tenantId, planCode: `SEATS+${seats}`, cycle: snap.cycle, amount, currency: this.currency, status: "PENDING", gateway: gw.name, seatsDelta: seats },
       select: { id: true },
     });
 
-    const charge = await this.gateway.createCharge({
+    const charge = await gw.createCharge({
       amount,
       currency: this.currency,
       description: `شراء ${seats} مقعد إضافي (رفع رخصة المستخدمين)`,

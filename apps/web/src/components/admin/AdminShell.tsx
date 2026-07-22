@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import { ShieldCheck, Building2, Package, BarChart3, Bell, LogOut, Headset, ScrollText } from "lucide-react";
+import { ShieldCheck, Building2, Package, BarChart3, Bell, LogOut, Headset, ScrollText, CreditCard } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link, usePathname, useRouter } from "@/i18n/routing";
 import { getPlatformToken, clearPlatformToken } from "@/lib/api";
@@ -11,6 +11,7 @@ const NAV = [
   { key: "tenants", href: "/admin/tenants", icon: Building2 },
   { key: "leads", href: "/admin/leads", icon: Headset },
   { key: "plans", href: "/admin/plans", icon: Package },
+  { key: "payment", href: "/admin/payment", icon: CreditCard },
   { key: "notifications", href: "/admin/notifications", icon: Bell },
   { key: "audit", href: "/admin/audit", icon: ScrollText },
   { key: "security", href: "/admin/security", icon: ShieldCheck },
