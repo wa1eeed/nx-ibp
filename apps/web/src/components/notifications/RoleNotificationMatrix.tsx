@@ -62,16 +62,19 @@ export function RoleNotificationMatrix() {
         <h2 className="text-[13.5px] font-bold text-ink">{t("roleMatrix.title")}</h2>
       </div>
       <p className="mb-1 text-[12px] text-subtle">{t("roleMatrix.subtitle")}</p>
-      <p className="mb-3 text-[11.5px] text-subtle">{t("roleMatrix.hint")}</p>
+      <p className="mb-1.5 text-[11.5px] text-subtle">{t("roleMatrix.hint")}</p>
+      {/* توضيح القنوات: أين تصل هذه الإشعارات */}
+      <p className="mb-3 rounded-lg bg-primary-soft/50 px-3 py-2 text-[11.5px] text-primary-strong">{t("roleMatrix.channels")}</p>
       {error ? <p className="mb-3 rounded-lg bg-danger/10 px-3 py-2 text-[12px] font-medium text-danger">{error}</p> : null}
 
-      <div className="overflow-x-auto">
+      {/* حاوية بارتفاع محدود وتمرير داخلي كي يبقى رأس الجدول (الأدوار) ظاهرًا حتى آخر الصفوف */}
+      <div className="max-h-[65vh] overflow-auto rounded-lg border border-line">
         <table className="w-full border-collapse text-[12.5px]">
           <thead>
             <tr className="border-b border-line">
-              <th className="sticky start-0 z-10 bg-card py-2 pe-3 text-start font-bold text-ink">{t("roleMatrix.typeCol")}</th>
+              <th className="sticky start-0 top-0 z-30 border-b border-line bg-card py-2 pe-3 ps-2 text-start font-bold text-ink">{t("roleMatrix.typeCol")}</th>
               {data.roles.map((r) => (
-                <th key={r.id} className="px-2 py-2 text-center align-bottom font-semibold text-subtle">
+                <th key={r.id} className="sticky top-0 z-20 border-b border-line bg-card px-2 py-2 text-center align-bottom font-semibold text-subtle">
                   <span className="inline-block max-w-[92px] truncate" title={r.name}>{r.name}</span>
                 </th>
               ))}

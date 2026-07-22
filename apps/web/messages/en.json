@@ -1612,6 +1612,7 @@
       "title": "Staff notification routing by role",
       "subtitle": "Choose which roles receive each staff notification type. Default: every role with the module's permission receives it.",
       "hint": "✔ = receives. Unchecking mutes the type for that role (does not remove its permission). Direct-assignment notifications (task/deal assigned to you) always arrive.",
+      "channels": "These notifications appear in-app (the bell at the top), and are also delivered by email and/or SMS depending on each event's setup in Notification Settings.",
       "typeCol": "Notification type",
       "saved": "Saved",
       "error": "Failed to save preference"
