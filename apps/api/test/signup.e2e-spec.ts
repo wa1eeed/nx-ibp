@@ -78,6 +78,16 @@ describe("التسجيل الذاتي (e2e)", () => {
     await request(srv()).post("/signup").send({ ...payload(), adminEmail: p.adminEmail }).expect(409);
   });
 
+  it("فحص توفّر البريد قبل الخطوة التالية: متاح ⇒ true، ومستخدم (وبأحرف كبيرة) ⇒ false", async () => {
+    const p = payload();
+    const fresh = (await request(srv()).get(`/signup/check-email?email=${encodeURIComponent(p.adminEmail)}`).expect(200)).body;
+    expect(fresh.available).toBe(true);
+    await request(srv()).post("/signup").send(p).expect(201);
+    // مستخدم الآن — وبتطبيع الأحرف الكبيرة (نفس تطبيع signup)
+    const taken = (await request(srv()).get(`/signup/check-email?email=${encodeURIComponent(p.adminEmail.toUpperCase())}`).expect(200)).body;
+    expect(taken.available).toBe(false);
+  });
+
   it("كلمة مرور ضعيفة ⇒ 400", () =>
     request(srv()).post("/signup").send(payload({ password: "weak" })).expect(400));
 

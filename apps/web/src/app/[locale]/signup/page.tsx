@@ -28,10 +28,11 @@ function SignupWizard() {
   const [yearly, setYearly] = useState(params.get("cycle") === "yearly");
   const [seatCount, setSeatCount] = useState(1);
 
-  const [acc, setAcc] = useState({ companyName: "", companyNameEn: "", adminName: "", adminEmail: "", password: "" });
+  const [acc, setAcc] = useState({ companyName: "", adminName: "", adminEmail: "", password: "" });
   const [ob, setOb] = useState({ unifiedNumber: "", vatNumber: "", phone: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [checking, setChecking] = useState(false); // فحص توفّر البريد قبل الانتقال
 
   useEffect(() => { void api<PublicPlan[]>("/signup/plans").then((p) => { const sel = p.filter((x) => !CONTACT_PLANS.has(x.code)); setPlans(p); if (!sel.some((x) => x.code === planCode) && sel[0]) setPlanCode(sel[0].code); }).catch(() => undefined); }, [planCode]);
 
@@ -45,11 +46,23 @@ function SignupWizard() {
 
   const strongPw = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/.test(acc.password);
   const step1Valid = acc.companyName.trim().length >= 2 && acc.adminName.trim().length >= 2 && /.+@.+\..+/.test(acc.adminEmail) && strongPw;
-  const unifiedValid = ob.unifiedNumber.length === 10;
+  const unifiedValid = ob.unifiedNumber === "" || ob.unifiedNumber.length === 10; // اختياري
   const phoneValid = /^05\d{8}$/.test(ob.phone);
   const vatValid = ob.vatNumber === "" || ob.vatNumber.length === 15;
   const seatValid = seatCount >= 1; // تسعير لكل مستخدم، بلا سقف من الباقة
   const step2Valid = !!plan && seatValid && unifiedValid && phoneValid && vatValid;
+
+  // الانتقال من الخطوة 1: نتحقّق من توفّر البريد أولًا كي يُصحّحه العميل هنا (حيث حقل البريد) لا لاحقًا
+  async function nextFromStep1() {
+    if (!step1Valid) return;
+    setError(""); setChecking(true);
+    try {
+      const r = await api<{ available: boolean }>(`/signup/check-email?email=${encodeURIComponent(acc.adminEmail.trim())}`);
+      if (!r.available) { setError(t("emailTaken")); return; } // يبقى في الخطوة 1
+      setStep(2);
+    } catch { setStep(2); } // تعذّر الفحص ⇒ لا نمنع (يُلتقط عند الإرسال)
+    finally { setChecking(false); }
+  }
 
   async function submit() {
     if (!step1Valid || !step2Valid) return;
@@ -58,16 +71,17 @@ function SignupWizard() {
       const payload: Record<string, unknown> = {
         companyName: acc.companyName.trim(), adminName: acc.adminName.trim(), adminEmail: acc.adminEmail.trim(), password: acc.password,
         planCode, cycle: yearly ? "YEARLY" : "MONTHLY", seatCount,
-        unifiedNumber: ob.unifiedNumber, phone: ob.phone,
+        phone: ob.phone,
       };
-      if (acc.companyNameEn.trim()) payload.companyNameEn = acc.companyNameEn.trim();
+      if (ob.unifiedNumber) payload.unifiedNumber = ob.unifiedNumber;
       if (ob.vatNumber) payload.vatNumber = ob.vatNumber;
       const res = await api<{ accessToken: string }>("/signup", { method: "POST", body: JSON.stringify(payload) });
       setToken(res.accessToken);
       router.push("/tenant/dashboard");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : t("error"));
-      setStep(2);
+      // بريد مستخدم (409) ⇒ أعِده للخطوة 1 حيث حقل البريد، لا للخطوة 2
+      setStep(err instanceof ApiError && err.status === 409 ? 1 : 2);
     } finally { setLoading(false); }
   }
 
@@ -98,13 +112,11 @@ function SignupWizard() {
         {step === 1 ? (
           <div className="space-y-3">
             <label className="block"><span className={label}>{t("company")}</span><input value={acc.companyName} onChange={setA("companyName")} className={field} /></label>
-            <div className="grid grid-cols-2 gap-3">
-              <label className="block"><span className={label}>{t("companyEn")}</span><input value={acc.companyNameEn} onChange={setA("companyNameEn")} dir="ltr" className={field} /></label>
-              <label className="block"><span className={label}>{t("adminName")}</span><input value={acc.adminName} onChange={setA("adminName")} className={field} /></label>
-            </div>
-            <label className="block"><span className={label}>{t("email")}</span><input type="email" value={acc.adminEmail} onChange={setA("adminEmail")} dir="ltr" className={field} /></label>
+            <label className="block"><span className={label}>{t("adminName")}</span><input value={acc.adminName} onChange={setA("adminName")} className={field} /></label>
+            <label className="block"><span className={label}>{t("email")}</span><input type="email" value={acc.adminEmail} onChange={(e) => { setError(""); setA("adminEmail")(e); }} dir="ltr" className={field} /></label>
             <label className="block"><span className={label}>{t("password")}</span><input type="password" value={acc.password} onChange={setA("password")} dir="ltr" className={field} /><span className={`mt-1 block text-[11px] ${acc.password && !strongPw ? "text-danger" : "text-subtle"}`}>{t("passwordHint")}</span></label>
-            <button disabled={!step1Valid} onClick={() => { setError(""); setStep(2); }} className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-primary-strong text-[13px] font-semibold text-primary-fg hover:bg-primary disabled:opacity-50">{t("next")} <ArrowRight size={16} className="rtl:rotate-180" /></button>
+            {error ? <p className="text-[12.5px] font-medium text-danger">{error}</p> : null}
+            <button disabled={!step1Valid || checking} onClick={nextFromStep1} className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-primary-strong text-[13px] font-semibold text-primary-fg hover:bg-primary disabled:opacity-50">{checking ? "…" : t("next")} <ArrowRight size={16} className="rtl:rotate-180" /></button>
           </div>
         ) : null}
 
@@ -157,7 +169,7 @@ function SignupWizard() {
               <div className="mb-2 text-[12px] font-semibold text-ink">{t("onboarding")}</div>
               <div className="space-y-2.5">
                 <label className="block">
-                  <span className={label}>{t("unifiedNumber")}</span>
+                  <span className={label}>{t("unifiedNumber")} <span className="text-subtle">({t("optional")})</span></span>
                   <input value={ob.unifiedNumber} onChange={(e) => setOb((f) => ({ ...f, unifiedNumber: onlyDigits(e.target.value, 10) }))} inputMode="numeric" dir="ltr" maxLength={10} placeholder="7XXXXXXXXX" className={digitField(unifiedValid, ob.unifiedNumber)} />
                   <span className={`mt-0.5 block text-[10.5px] ${ob.unifiedNumber && !unifiedValid ? "text-danger" : "text-subtle"}`}>{t("unifiedHint")}</span>
                 </label>

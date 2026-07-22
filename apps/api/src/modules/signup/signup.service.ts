@@ -125,6 +125,14 @@ export class SignupService {
     return { ok: true, id: lead.id };
   }
 
+  /** توفّر البريد (فريد عالميًا) — يُستدعى قبل الانتقال بين خطوات التسجيل. نفس تطبيع signup. */
+  async checkEmail(rawEmail: string) {
+    const email = rawEmail.toLowerCase().trim();
+    if (!/.+@.+\..+/.test(email)) return { available: false };
+    const existing = await this.prisma.user.findFirst({ where: { email }, select: { id: true } });
+    return { available: !existing };
+  }
+
   async signup(dto: SignupDto) {
     const email = dto.adminEmail.toLowerCase().trim();
     await this.rateLimit.assertNotLocked("signup", email); // كبح إساءة التسجيل

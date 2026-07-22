@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post } from "@nestjs/common";
+import { Body, Controller, Get, Post, Query } from "@nestjs/common";
 import { SignupService } from "./signup.service";
 import { SignupDto, LeadDto } from "./dto/signup.dto";
 import { Public } from "../auth/public.decorator";
@@ -19,6 +19,13 @@ export class SignupController {
   @Get("compare")
   compare() {
     return this.signup.compare();
+  }
+
+  /** تحقّق فوري من توفّر البريد (قبل الانتقال بين خطوات التسجيل) — عام. */
+  @Public()
+  @Get("check-email")
+  checkEmail(@Query("email") email: string) {
+    return this.signup.checkEmail(email ?? "");
   }
 
   /** تسجيل ذاتي لشركة وساطة جديدة — عام، يُزوّد المستأجر ويُسجّل الدخول مباشرةً. */
