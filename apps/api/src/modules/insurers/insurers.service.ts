@@ -45,6 +45,74 @@ export class InsurersService {
     }));
   }
 
+  /**
+   * نظرة 360° لشركة تأمين واحدة — تجمع كل ما يخصّها في مكان واحد بدل تشتّته:
+   * وثائقها · عمولتها (مستحقّة/محصّلة/متبقّية) · مطالباتها · سجل تسوياتها (سندات PYV) — مع أسماء العملاء للربط.
+   * الربط بالاسم (insurerName نصّي على الوثيقة/المطالبة/العمولة) — مطابق لمنطق القائمة.
+   */
+  async overview(tenantId: string, id: string) {
+    const insurer = await this.prisma.insurer.findFirst({ where: { id, tenantId } });
+    if (!insurer) throw new NotFoundException("شركة التأمين غير موجودة");
+    const name = insurer.name.trim();
+
+    const [policies, claims, commissions, settlements] = await Promise.all([
+      this.prisma.policy.findMany({
+        where: { tenantId, insurerName: name },
+        orderBy: { createdAt: "desc" },
+        select: { id: true, sequenceNo: true, clientId: true, status: true, productLineCode: true, totalPremium: true, commissionAmount: true, startDate: true, endDate: true, createdAt: true },
+      }),
+      this.prisma.claim.findMany({
+        where: { tenantId, insurerName: name },
+        orderBy: { createdAt: "desc" },
+        select: { id: true, sequenceNo: true, clientId: true, status: true, claimedAmount: true, settledAmount: true, incidentDate: true, createdAt: true },
+      }),
+      this.prisma.commission.findMany({ where: { tenantId, insurerName: name }, orderBy: { createdAt: "desc" } }),
+      this.prisma.voucher.findMany({ where: { tenantId, type: "PYV", reference: name }, orderBy: { createdAt: "desc" }, select: { id: true, sequenceNo: true, amount: true, lines: true, createdAt: true } }),
+    ]);
+
+    // أسماء العملاء للربط (لا علاقة Prisma على clientId — نحلّها بجلب دفعة واحدة)
+    const clientIds = [...new Set([...policies, ...claims].map((r) => r.clientId).filter((v): v is string => !!v))];
+    const clients = clientIds.length ? await this.prisma.client.findMany({ where: { tenantId, id: { in: clientIds } }, select: { id: true, name: true } }) : [];
+    const nameOf = new Map(clients.map((c) => [c.id, c.name]));
+
+    const gwp = r2(policies.reduce((s, p) => s + num(p.totalPremium), 0));
+    const commissionAccrued = r2(commissions.reduce((s, c) => s + num(c.amount), 0));
+    const commissionReceived = r2(commissions.reduce((s, c) => s + num(c.receivedAmount), 0));
+    const claimsSettled = r2(claims.reduce((s, c) => s + num(c.settledAmount), 0));
+    const settledToInsurer = r2(settlements.reduce((s, v) => s + num(v.amount), 0));
+
+    return {
+      insurer: { ...insurer, commissionRate: insurer.commissionRate != null ? Number(insurer.commissionRate) : null },
+      stats: {
+        policyCount: policies.length,
+        gwp,
+        commissionAccrued,
+        commissionReceived,
+        commissionOutstanding: r2(Math.max(0, commissionAccrued - commissionReceived)),
+        claimCount: claims.length,
+        claimsSettled,
+        settledToInsurer,
+      },
+      policies: policies.map((p) => ({
+        id: p.id, sequenceNo: p.sequenceNo, clientId: p.clientId, clientName: p.clientId ? nameOf.get(p.clientId) ?? null : null,
+        status: p.status, productLineCode: p.productLineCode, totalPremium: num(p.totalPremium), commissionAmount: num(p.commissionAmount),
+        startDate: p.startDate, endDate: p.endDate, createdAt: p.createdAt,
+      })),
+      commissions: commissions.map((c) => ({
+        id: c.id, policyId: c.policyId, clientName: c.clientName, productLine: c.productLine,
+        rate: c.rate != null ? Number(c.rate) : null, amount: num(c.amount), receivedAmount: num(c.receivedAmount), status: c.status, periodMonth: c.periodMonth,
+      })),
+      claims: claims.map((c) => ({
+        id: c.id, sequenceNo: c.sequenceNo, clientId: c.clientId, clientName: c.clientId ? nameOf.get(c.clientId) ?? null : null,
+        status: c.status, claimedAmount: num(c.claimedAmount), settledAmount: num(c.settledAmount), incidentDate: c.incidentDate, createdAt: c.createdAt,
+      })),
+      settlements: settlements.map((v) => {
+        const meta = (v.lines as { ref?: string | null; paidDate?: string | null } | null) ?? {};
+        return { id: v.id, sequenceNo: v.sequenceNo, amount: num(v.amount), reference: meta.ref ?? null, paidDate: meta.paidDate ?? null, createdAt: v.createdAt };
+      }),
+    };
+  }
+
   /** خيارات مبسّطة للمؤمِّنين النشطين (لنموذج التسعير) — اسم + نسبة العمولة المتّفق عليها لتعبئتها تلقائيًا. */
   async options(tenantId: string) {
     const rows = await this.prisma.insurer.findMany({

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Umbrella, Plus, Pencil, Trash2, Check, X, Building2, Landmark, Percent, CalendarClock, FileCheck2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { api, ApiError } from "@/lib/api";
+import { Link } from "@/i18n/routing";
 import { usePermissions } from "@/hooks/usePermissions";
 import { PageHeader } from "@/components/ui/PageHeader";
 
@@ -105,7 +106,7 @@ export default function InsurersPage() {
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="text-[14.5px] font-bold text-ink">{i.name}</span>
+                    <Link href={`/tenant/insurers/${i.id}`} className="text-[14.5px] font-bold text-ink hover:text-primary hover:underline">{i.name}</Link>
                     <span className={`rounded-full px-2 py-0.5 text-[10.5px] font-semibold ${i.status === "active" ? "bg-success-soft text-success" : "bg-surface-2 text-subtle"}`}>{t(i.status === "active" ? "active" : "inactive")}</span>
                   </div>
                   {i.nameEn ? <div className="text-[11.5px] text-subtle" dir="ltr">{i.nameEn}</div> : null}
@@ -116,12 +117,12 @@ export default function InsurersPage() {
                 </div>
               </div>
 
-              {/* الإنتاج الفعلي */}
-              <div className="mt-3 grid grid-cols-3 gap-2 rounded-lg bg-surface-2/50 p-2.5 text-center">
+              {/* الإنتاج الفعلي — قابل للنقر ⇐ نظرة 360° للشركة */}
+              <Link href={`/tenant/insurers/${i.id}`} className="mt-3 grid grid-cols-3 gap-2 rounded-lg bg-surface-2/50 p-2.5 text-center transition-colors hover:bg-surface-2 hover:ring-1 hover:ring-primary/30">
                 <div><div className="inline-flex items-center gap-1 text-[10.5px] text-subtle"><FileCheck2 size={11} /> {t("policies")}</div><div className="text-[14px] font-bold text-ink tnum">{i.stats.count}</div></div>
                 <div><div className="text-[10.5px] text-subtle">{t("grossPremium")}</div><div className="text-[13px] font-bold text-ink tnum">{fmt(i.stats.grossPremium)}</div></div>
                 <div><div className="text-[10.5px] text-subtle">{t("commission")}</div><div className="text-[13px] font-bold text-success tnum">{fmt(i.stats.commission)}</div></div>
-              </div>
+              </Link>
 
               {/* الاتفاقية والبنك */}
               <div className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1 text-[11.5px] text-muted">

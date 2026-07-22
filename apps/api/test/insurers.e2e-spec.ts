@@ -65,6 +65,34 @@ describe("شركات التأمين (e2e)", () => {
     await request(srv()).delete(`/insurers/${fresh.id}`).set(auth(gulf)).expect(200);
   });
 
+  it("نظرة 360° لشركة: تجمع الوثائق/العمولة/المطالبات + أسماء العملاء + عزل + 404 لغير الموجود", async () => {
+    const gulf = (await request(srv()).post("/auth/login").send({ email: "waleed@gulf-demo.sa", password: "Passw0rd!" })).body.accessToken;
+    // «التعاونية» (ins-dt-tw) لها وثيقتان + مطالبة + عمولة مستحقّة (4500) مزروعة
+    const ov = (await request(srv()).get("/insurers/ins-dt-tw/overview").set(auth(gulf)).expect(200)).body as {
+      insurer: { name: string }; stats: { policyCount: number; commissionAccrued: number; commissionReceived: number; commissionOutstanding: number; claimCount: number };
+      policies: Array<{ clientName: string | null }>; commissions: unknown[]; claims: unknown[];
+    };
+    expect(ov.insurer.name).toBe("التعاونية للتأمين");
+    expect(ov.stats.policyCount).toBeGreaterThanOrEqual(2);
+    expect(ov.stats.commissionAccrued).toBeGreaterThanOrEqual(4500);
+    expect(ov.stats.commissionOutstanding).toBe(Math.max(0, ov.stats.commissionAccrued - ov.stats.commissionReceived));
+    expect(ov.stats.claimCount).toBeGreaterThanOrEqual(1);
+    expect(ov.policies.some((p) => !!p.clientName)).toBe(true); // اسم العميل محلول للربط
+    // عزل: مستأجر آخر لا يصل نظرة مؤمِّن الخليج ⇒ 404
+    const other = await newOwner();
+    await request(srv()).get("/insurers/ins-dt-tw/overview").set(auth(other)).expect(404);
+    // غير موجود ⇒ 404
+    await request(srv()).get(`/insurers/none-${uniq()}/overview`).set(auth(gulf)).expect(404);
+  });
+
+  it("نظرة 360°: موظف بلا صلاحية المالية ⇒ 403", async () => {
+    const token = await newOwner();
+    const email = `nf360-${uniq()}@brk.sa`;
+    await request(srv()).post("/staff").set(auth(token)).send({ fullName: "موظف", email, password: "Worker1Pass", roleName: `بلا مالية ${uniq()}`, permissions: [{ module: "clients", canAccess: true, canCreate: false, canEdit: false, canDelete: false }] }).expect(201);
+    const staff = (await request(srv()).post("/auth/login").send({ email, password: "Worker1Pass" })).body.accessToken;
+    await request(srv()).get("/insurers/any/overview").set(auth(staff)).expect(403);
+  });
+
   it("عزل: مستأجر لا يرى مؤمِّني غيره", async () => {
     const a = await newOwner();
     const c = await request(srv()).post("/insurers").set(auth(a)).send({ name: `سرّي ${uniq()}` }).expect(201);

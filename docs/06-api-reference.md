@@ -631,6 +631,7 @@ curl -X POST http://localhost:4000/staff \
 | GET | `/portal/branding` | portal | هوية شركة الوساطة لتلوين بوّابة العميل |
 | GET | `/audit` | compliance:read | **سجل تدقيق الشركة** — «من فعل ماذا ومتى» بأسماء المنفّذين + IP/الجهاز/الوقت (فلترة `?action=&entity=`). سجل ثابت (قراءة فقط) |
 | GET · POST · PUT · DELETE | `/insurers` · `/insurers/:id` | finance:* + module.finance | **إدارة شركات التأمين**: سجلّ + نِسبة عمولة/دورة تسوية/حساب بنكي/ترخيص + **إحصاءات إنتاج فعلية** لكل شركة (عدد/أقساط/عمولة). نسبة>100 ⇒ 400 |
+| GET | `/insurers/:id/overview` | finance:read + module.finance | **نظرة 360° لشركة** (لصفحة `/tenant/insurers/[id]`): الوثائق + العمولة (مستحقّة/محصّلة/متبقّية) + المطالبات + التسويات (سندات PYV) + أسماء العملاء للربط. عزل ⇒ 404 لغير المالك |
 | GET | `/targets` · `/targets/options` | reports:read + module.reports | **أهداف الأداء** (P1-B): القائمة مع **الفعلي المحسوب و% الإنجاز** (فلترة `?period=`) · خيارات الإنشاء (منتِجون/فروع/مقاييس) |
 | POST · DELETE | `/targets` · `/targets/:id` | reports:create/delete + module.reports | إنشاء هدف (وسيط فرعي/فرع · مقياس · فترة · قيمة) · حذف — قيمة غير موجبة ⇒ 400 |
 | POST | `/clients/:id/erase` | clients:delete | **حق المحو (PDPL)** — يُخفي كل PII ويُبقي الهيكل المالي + سجلّ إتلاف ثابت (لا يتكرّر ⇒ 409) |

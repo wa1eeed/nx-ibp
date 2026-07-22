@@ -10,6 +10,7 @@ import { Test } from "@nestjs/testing";
 import { INestApplication, ValidationPipe } from "@nestjs/common";
 import request from "supertest";
 import { AppModule } from "../src/app.module";
+import { PrismaService } from "../src/prisma/prisma.service";
 
 describe("بوّابة دفع المنصّة (e2e)", () => {
   let app: INestApplication;
@@ -23,13 +24,15 @@ describe("بوّابة دفع المنصّة (e2e)", () => {
     app = moduleRef.createNestApplication();
     app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
     await app.init();
+    // بدء نظيف: احذف السجل المفرد (البذرة لا تمسّه، فمفاتيح تشغيل سابق قد تبقى) — ليكون الاختبار محايداً للتاريخ
+    await app.get(PrismaService).platformPaymentSettings.deleteMany({});
     platform = (await request(srv()).post("/platform/login").send({ email: "admin@ibp-platform.sa", password: "Passw0rd!" })).body.accessToken;
     tenantUser = (await request(srv()).post("/auth/login").send({ email: "waleed@gulf-demo.sa", password: "Passw0rd!" })).body.accessToken;
   });
 
   afterAll(async () => {
-    // أمان: تعطيل البوّابة كي لا تتصل فوترة الاشتراكات بشبكة Tap في بقية الاختبارات
-    try { await request(srv()).put("/platform/payment").set(auth(platform)).send({ enabled: false }); } catch { /* ignore */ }
+    // نظافة: احذف السجل المفرد كي لا تلتقطه فوترة الاشتراكات (اتصال Tap حقيقي) ولا يلوّث تشغيلاً لاحقاً
+    try { await app.get(PrismaService).platformPaymentSettings.deleteMany({}); } catch { /* ignore */ }
     await app?.close();
   });
 

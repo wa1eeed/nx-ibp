@@ -1944,6 +1944,31 @@
     "description": "الوصف",
     "cancel": "إلغاء"
   },
+  "insurer360": {
+    "back": "عودة لشركات التأمين",
+    "active": "نشطة",
+    "inactive": "معطّلة",
+    "commissionRate": "نسبة العمولة",
+    "settlement": "دورة تسوية {days} يوم",
+    "sar": "ريال",
+    "settledTotal": "إجمالي المُسوّى لهذه الشركة",
+    "emptyTab": "لا سجلّات في هذا التبويب",
+    "kpi": {
+      "policies": "الوثائق",
+      "gwp": "إجمالي الأقساط",
+      "commissionAccrued": "عمولة مستحقّة",
+      "commissionReceived": "عمولة محصّلة",
+      "commissionOutstanding": "عمولة متبقّية",
+      "claims": "المطالبات"
+    },
+    "tabs": { "policies": "الوثائق", "commissions": "العمولات", "claims": "المطالبات", "settlements": "التسويات" },
+    "col": {
+      "ref": "المرجع", "client": "العميل", "line": "الفرع", "premium": "القسط", "commission": "العمولة",
+      "status": "الحالة", "end": "الانتهاء", "rate": "النسبة", "accrued": "مستحقّ", "received": "محصّل",
+      "outstanding": "متبقّي", "period": "الفترة", "policy": "الوثيقة", "claimed": "المطالَب", "settled": "المُسوّى",
+      "date": "التاريخ", "voucher": "السند", "amount": "المبلغ", "paidDate": "تاريخ الدفع"
+    }
+  },
   "client360": {
     "erase": {
       "action": "محو البيانات (PDPL)",

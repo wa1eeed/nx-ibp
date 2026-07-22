@@ -1944,6 +1944,31 @@
     "description": "Description",
     "cancel": "Cancel"
   },
+  "insurer360": {
+    "back": "Back to insurers",
+    "active": "Active",
+    "inactive": "Inactive",
+    "commissionRate": "Commission rate",
+    "settlement": "{days}-day settlement",
+    "sar": "SAR",
+    "settledTotal": "Total settled to this insurer",
+    "emptyTab": "No records in this tab",
+    "kpi": {
+      "policies": "Policies",
+      "gwp": "Gross premium",
+      "commissionAccrued": "Commission accrued",
+      "commissionReceived": "Commission received",
+      "commissionOutstanding": "Commission outstanding",
+      "claims": "Claims"
+    },
+    "tabs": { "policies": "Policies", "commissions": "Commissions", "claims": "Claims", "settlements": "Settlements" },
+    "col": {
+      "ref": "Ref", "client": "Client", "line": "Line", "premium": "Premium", "commission": "Commission",
+      "status": "Status", "end": "Expiry", "rate": "Rate", "accrued": "Accrued", "received": "Received",
+      "outstanding": "Outstanding", "period": "Period", "policy": "Policy", "claimed": "Claimed", "settled": "Settled",
+      "date": "Date", "voucher": "Voucher", "amount": "Amount", "paidDate": "Paid date"
+    }
+  },
   "client360": {
     "erase": {
       "action": "Erase data (PDPL)",

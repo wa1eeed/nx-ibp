@@ -40,6 +40,13 @@ export class InsurersController {
     return this.insurers.options(tenantId);
   }
 
+  // نظرة 360° لشركة تأمين واحدة (وثائق/عمولة/مطالبات/تسويات) — نفس صلاحية القائمة
+  @Authorize({ module: "finance", action: "read", entitlement: "module.finance" })
+  @Get(":id/overview")
+  overview(@CurrentUser("tenantId") tenantId: string, @Param("id") id: string) {
+    return this.insurers.overview(tenantId, id);
+  }
+
   @Authorize({ module: "finance", action: "create", entitlement: "module.finance" })
   @Post()
   create(@CurrentUser("tenantId") tenantId: string, @CurrentUser("userId") userId: string, @Body() dto: InsurerDto) {
