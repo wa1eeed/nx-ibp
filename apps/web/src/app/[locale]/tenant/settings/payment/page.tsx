@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { CreditCard, ShieldCheck, KeyRound, ExternalLink } from "lucide-react";
+import { CreditCard, ShieldCheck, KeyRound, ExternalLink, FlaskConical, Zap, AlertTriangle } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { api, ApiError } from "@/lib/api";
 
@@ -12,7 +12,10 @@ interface PaymentSettings {
   publicKey: string | null;
   secretKeyMasked: string | null;
   hasSecret: boolean;
+  mode: "test" | "live" | null;
 }
+
+const keyMode = (k: string): "test" | "live" | null => (/_live_/.test(k) ? "live" : /_test_/.test(k) ? "test" : null);
 
 const PROVIDERS = [
   { key: "tap", docUrl: "https://developers.tap.company/reference/api-endpoint" },
@@ -42,7 +45,16 @@ export default function TenantPaymentPage() {
   useEffect(() => { void load().catch(() => undefined); }, [load]);
 
   const save = async () => {
-    setError(""); setNotice(""); setBusy(true);
+    setError(""); setNotice("");
+    // تحقّق من صيغة المفاتيح وتطابق الوضع قبل الإرسال
+    if (provider !== "none") {
+      if (publicKey && !/^pk_(test|live)_/.test(publicKey)) { setError(t("badPublic")); return; }
+      const sk = secretKey.trim();
+      if (sk && !/^sk_(test|live)_/.test(sk)) { setError(t("badSecret")); return; }
+      const pub = keyMode(publicKey), sec = sk ? keyMode(sk) : null;
+      if (pub && sec && pub !== sec) { setError(t("modeMismatch")); return; }
+    }
+    setBusy(true);
     try {
       const body: Record<string, unknown> = { provider, publicKey, currency, enabled };
       if (secretKey.trim()) body.secretKey = secretKey.trim();
@@ -54,13 +66,18 @@ export default function TenantPaymentPage() {
 
   const field = "h-10 w-full rounded-lg border border-line bg-card px-3 text-[14px] text-ink focus:outline-none focus:ring-2 focus:ring-primary/30";
   const activeDoc = PROVIDERS.find((p) => p.key === provider)?.docUrl;
+  // الوضع الحالي: من المفتاح المُدخَل، وإلا من المحفوظ
+  const mode = keyMode(publicKey) ?? (secretKey ? keyMode(secretKey) : null) ?? s?.mode ?? null;
 
   return (
     <div className="mx-auto max-w-2xl space-y-5 pb-10">
       <div className="flex items-center gap-3">
         <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary"><CreditCard size={20} /></div>
         <div><h1 className="text-lg font-bold text-ink">{t("title")}</h1><p className="text-[12.5px] text-subtle">{t("subtitle")}</p></div>
-        {s?.enabled ? <span className="ms-auto inline-flex items-center gap-1 rounded-full bg-success-soft px-2.5 py-1 text-[11.5px] font-medium text-success"><ShieldCheck size={13} /> {t("active")}</span> : null}
+        <div className="ms-auto flex items-center gap-2">
+          {mode ? <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11.5px] font-medium ${mode === "live" ? "bg-success-soft text-success" : "bg-warning-soft text-warning"}`}>{mode === "live" ? <Zap size={12} /> : <FlaskConical size={12} />} {t(`mode.${mode}`)}</span> : null}
+          {s?.enabled ? <span className="inline-flex items-center gap-1 rounded-full bg-success-soft px-2.5 py-1 text-[11.5px] font-medium text-success"><ShieldCheck size={13} /> {t("active")}</span> : null}
+        </div>
       </div>
 
       <div className="rounded-card border border-line bg-card p-5 shadow-card">
@@ -81,6 +98,16 @@ export default function TenantPaymentPage() {
             <div className="flex items-center gap-2 text-[12px] text-subtle"><KeyRound size={14} /> {t("keysFor", { provider: t(`providers.${provider}`) })}
               {activeDoc ? <a href={activeDoc} target="_blank" rel="noopener noreferrer" className="ms-auto inline-flex items-center gap-1 text-primary hover:underline">{t("apiDocs")} <ExternalLink size={12} /></a> : null}
             </div>
+
+            {/* وضع البوّابة: اختبار (لا خصم حقيقي) أو حيّ (خصم فعلي) — مُشتقّ من بادئة المفتاح */}
+            {mode ? (
+              <div className={`flex items-start gap-2 rounded-lg px-3 py-2 text-[11.5px] ${mode === "live" ? "bg-success-soft text-success" : "bg-warning-soft text-warning"}`}>
+                {mode === "live" ? <Zap size={14} className="mt-0.5 shrink-0" /> : <FlaskConical size={14} className="mt-0.5 shrink-0" />}
+                <span><b>{t(`mode.${mode}`)}</b> — {t(`mode.${mode}Hint`)}</span>
+              </div>
+            ) : (
+              <div className="flex items-start gap-2 rounded-lg bg-surface-2 px-3 py-2 text-[11.5px] text-subtle"><AlertTriangle size={14} className="mt-0.5 shrink-0" /> {t("mode.hint")}</div>
+            )}
             <label className="block"><span className="mb-1 block text-[12px] font-medium text-muted">{t("publicKey")}</span>
               <input value={publicKey} onChange={(e) => setPublicKey(e.target.value)} placeholder="pk_..." className={`${field} tnum`} /></label>
             <label className="block"><span className="mb-1 block text-[12px] font-medium text-muted">{t("secretKey")}</span>

@@ -14,7 +14,12 @@ export interface PaymentSettingsView {
   publicKey: string | null;
   secretKeyMasked: string | null;
   hasSecret: boolean;
+  mode: "test" | "live" | null; // مُشتقّ من بادئة المفتاح (pk_test_/pk_live_)
 }
+
+/** وضع البوّابة من بادئة المفتاح (Tap/Moyasar: pk_/sk_ + test/live). */
+export const keyMode = (key: string | null | undefined): "test" | "live" | null =>
+  !key ? null : /_live_/.test(key) ? "live" : /_test_/.test(key) ? "test" : null;
 
 /**
  * إعدادات بوّابة الدفع للمستأجر (BYO) — يستقبل الوسيط مدفوعات عملائه عبر بوّابة واحدة
@@ -43,6 +48,7 @@ export class PaymentSettingsService {
       publicKey: r?.publicKey ?? null,
       secretKeyMasked: this.vault.mask(r?.secretKeyEncrypted ?? null),
       hasSecret: !!r?.secretKeyEncrypted,
+      mode: keyMode(r?.publicKey),
     };
   }
 
@@ -65,6 +71,15 @@ export class PaymentSettingsService {
       : (existing?.secretKeyEncrypted ?? null);
     const publicKey = dto.publicKey?.trim() ?? existing?.publicKey ?? null;
     const currency = (dto.currency?.trim() || existing?.currency || "SAR").toUpperCase();
+
+    // تحقّق من صيغة المفاتيح وتطابق الوضع (اختبار/حيّ) لبوّابة فعلية
+    if (provider !== "none") {
+      if (publicKey && !/^pk_(test|live)_/.test(publicKey)) throw new BadRequestException("المفتاح العام يجب أن يبدأ بـ pk_test_ أو pk_live_");
+      const effectiveSecret = dto.secretKey?.trim() || (existing?.secretKeyEncrypted ? this.vault.decrypt(existing.secretKeyEncrypted) : "");
+      if (effectiveSecret && !/^sk_(test|live)_/.test(effectiveSecret)) throw new BadRequestException("المفتاح السرّي يجب أن يبدأ بـ sk_test_ أو sk_live_");
+      const pub = keyMode(publicKey), sec = keyMode(effectiveSecret || null);
+      if (pub && sec && pub !== sec) throw new BadRequestException("المفتاح العام والسرّي يجب أن يكونا من نفس الوضع (اختبار أو حيّ) — لا تخلط بينهما");
+    }
 
     // لا تفعيل بلا بوّابة فعلية ومفتاح سرّي
     const wantEnabled = dto.enabled ?? existing?.enabled ?? false;

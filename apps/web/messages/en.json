@@ -1051,6 +1051,16 @@
     "secretKey": "Secret key",
     "keySet": "set",
     "secretHint": "The secret key is stored encrypted at-rest and never shown again. Leave empty to keep the current one.",
+    "badPublic": "Public key must start with pk_test_ (test) or pk_live_ (live)",
+    "badSecret": "Secret key must start with sk_test_ (test) or sk_live_ (live)",
+    "modeMismatch": "Public and secret keys are different modes — both must be test or both live",
+    "mode": {
+      "test": "Test mode",
+      "live": "Live mode",
+      "testHint": "Test keys — no real charges; for trials before going live",
+      "liveHint": "Live keys — real charges will be made to clients’ cards",
+      "hint": "Enter test keys to try, or live keys for production — mode is auto-detected from the key prefix"
+    },
     "currency": "Currency",
     "enable": "Enable online payment",
     "enableHint": "requires a gateway and a secret key",

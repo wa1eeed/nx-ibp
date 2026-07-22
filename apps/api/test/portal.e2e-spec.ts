@@ -316,7 +316,7 @@ describe("بوّابة العميل (e2e)", () => {
   it("§2.2-ب الدفع الإلكتروني: دفع إشعار ⇒ تأكيد ⇒ سند قبض تلقائي (المتبقّي ينقص) · تجاوز 400 · webhook موقّع · idempotent", async () => {
     const srv = app.getHttpServer();
     // تفعيل بوّابة الدفع للمستأجر (البيئة test ⇒ SandboxGateway حتمي)
-    await request(srv).put("/config/payment").set(auth(employee)).send({ provider: "tap", publicKey: "pk_t", secretKey: "sk_t", enabled: true }).expect(200);
+    await request(srv).put("/config/payment").set(auth(employee)).send({ provider: "tap", publicKey: "pk_test_t", secretKey: "sk_test_t", enabled: true }).expect(200);
 
     // إشعار مدين قائم لعميل الفهد (من ذمم الموظف)
     const notes = (await request(srv).get("/finance/receivables").set(auth(employee))).body.notes as Array<{ id: string; clientId: string; outstanding: number }>;

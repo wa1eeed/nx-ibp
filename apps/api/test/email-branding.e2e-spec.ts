@@ -203,7 +203,7 @@ describe("البريد + الهوية البصرية (e2e)", () => {
   it("عزل: إعداد دفع مستأجر لا يظهر لغيره · موظف بلا صلاحية الإعدادات ⇒ 403", async () => {
     const a = await newOwner();
     const b = await newOwner();
-    await request(srv()).put("/config/payment").set(auth(a.token)).send({ provider: "moyasar", publicKey: "pk_a", secretKey: "sk_a_secret", enabled: true }).expect(200);
+    await request(srv()).put("/config/payment").set(auth(a.token)).send({ provider: "moyasar", publicKey: "pk_test_a", secretKey: "sk_test_a_secret", enabled: true }).expect(200);
     const bView = (await request(srv()).get("/config/payment").set(auth(b.token)).expect(200)).body;
     expect(bView.provider).toBe("none"); // عزل تام
     expect(bView.hasSecret).toBe(false);
