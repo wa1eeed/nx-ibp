@@ -2,6 +2,7 @@ import { BadRequestException, ConflictException, HttpException, HttpStatus, Inje
 import * as bcrypt from "bcryptjs";
 import { PrismaService } from "../../prisma/prisma.service";
 import { AuditService } from "../../common/audit/audit.service";
+import { auditPhase, describeAudit } from "../../common/audit/audit-describe";
 import { NotificationsService } from "../notifications/notifications.service";
 import type { AuthUser } from "../auth/current-user.decorator";
 import type { CreateStaffDto } from "./dto/create-staff.dto";
@@ -63,7 +64,9 @@ export class StaffService {
     const clients = clientIds.length ? await this.prisma.client.findMany({ where: { id: { in: clientIds } }, select: { id: true, name: true } }) : [];
     const cn = Object.fromEntries(clients.map((c) => [c.id, c.name]));
     const dealsEnriched = deals.map((d) => ({ ...d, clientName: d.clientId ? cn[d.clientId] ?? null : null }));
-    return { user, activity, stats: { totalActions, policiesCreated, approvals }, policies, deals: dealsEnriched, tasks };
+    // إثراء النشاط بوصف عربي مقروء وطور ملوّن (لعرضه كخطّ زمني احترافي)
+    const activityRich = activity.map((a) => ({ ...a, phase: auditPhase(a.entity), label: describeAudit(a.entity, a.action) }));
+    return { user, activity: activityRich, stats: { totalActions, policiesCreated, approvals }, policies, deals: dealsEnriched, tasks };
   }
 
   /** قوالب الأدوار الجاهزة لتعبئة مصفوفة الصلاحيات في الشاشة. */

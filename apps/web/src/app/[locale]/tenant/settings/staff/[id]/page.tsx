@@ -7,12 +7,13 @@ import { useTranslations } from "next-intl";
 import { RBAC_MODULES, type RbacModule } from "@ibp/shared";
 import { Link } from "@/i18n/routing";
 import { api, getToken } from "@/lib/api";
+import { LifecycleTimeline } from "@/components/LifecycleTimeline";
 import { Badge } from "@/components/ui/Badge";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 
 interface Detail {
   user: { id: string; fullName: string; email: string; status: string; mfaEnabled: boolean; createdAt: string; allowedProductLines: string[]; commissionRate: number | null; role: { id: string; name: string; isPreset: boolean; permissions: Array<{ module: string; canAccess: boolean; canCreate: boolean; canEdit: boolean; canDelete: boolean; canRevert: boolean }> } | null; department: { name: string } | null };
-  activity: Array<{ action: string; entity: string; entityId: string | null; meta: unknown; createdAt: string }>;
+  activity: Array<{ action: string; entity: string; entityId: string | null; meta: unknown; createdAt: string; phase: string; label: string }>;
   stats: { totalActions: number; policiesCreated: number; approvals: number };
   policies: Array<{ id: string; sequenceNo: string | null; insurerName: string | null; totalPremium: string | null; status: string; endDate: string | null }>;
   deals: Array<{ id: string; title: string; stage: string; status: string; value: string | null; productLineCode: string | null; clientName: string | null; createdAt: string }>;
@@ -34,7 +35,6 @@ const PERM_COLS: Array<{ key: "canAccess" | "canCreate" | "canEdit" | "canDelete
 const dt = (s: string) => new Date(s).toLocaleString("en-GB", { dateStyle: "short", timeStyle: "short" });
 const d2 = (s: string | null) => (s ? new Date(s).toLocaleDateString("en-GB") : "—");
 const fmt = (n: string | null) => (n == null ? "—" : Number(n).toLocaleString("en-US"));
-const ACTION_AR: Record<string, string> = { create: "إنشاء", update: "تحديث", approve: "اعتماد", verify: "تحقّق", revert: "تراجع", login: "دخول", delete: "حذف", file_url: "فتح مستند", seed: "بذر" };
 
 export default function StaffDetailPage() {
   const t = useTranslations("staffDetail");
@@ -205,19 +205,7 @@ export default function StaffDetailPage() {
           })}</div>
         ) : <p className="rounded-card border border-dashed border-line px-3 py-8 text-center text-[12.5px] text-subtle">{t("noTasks")}</p>) : null}
 
-        {tab === "activity" ? (d.activity.length === 0 ? <p className="rounded-card border border-dashed border-line px-3 py-8 text-center text-[12.5px] text-subtle">{t("empty")}</p> : (
-          <ol className="relative space-y-3 border-s-2 border-line ps-4">
-            {d.activity.map((a, i) => (
-              <li key={i} className="relative">
-                <span className="absolute -start-[21px] top-1 h-2.5 w-2.5 rounded-full bg-primary ring-2 ring-card" />
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-[12.5px] text-ink"><span className="font-semibold">{ACTION_AR[a.action] ?? a.action}</span> · {a.entity}{a.entityId ? ` (${a.entityId.slice(0, 8)})` : ""}</span>
-                  <span className="shrink-0 text-[11px] text-subtle"><Clock size={10} className="inline" /> {dt(a.createdAt)}</span>
-                </div>
-              </li>
-            ))}
-          </ol>
-        )) : null}
+        {tab === "activity" ? <LifecycleTimeline events={d.activity.map((a) => ({ at: a.createdAt, phase: a.phase, label: a.label }))} descending /> : null}
       </div>
     </div>
   );

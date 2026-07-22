@@ -7,7 +7,11 @@ import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
 import { api, ApiError, getToken } from "@/lib/api";
 import { Badge } from "@/components/ui/Badge";
+import { LifecycleTimeline } from "@/components/LifecycleTimeline";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
+
+// طور كل نوع في الخطّ الزمني للعميل (يقابل ألوان LifecycleTimeline)
+const TL_PHASE: Record<string, string> = { policy: "issuance", claim: "service", request: "request", verify: "crm", note: "crm", call: "crm", email: "crm", meeting: "crm", stage_change: "crm" };
 
 interface Overview {
   client: { id: string; name: string; type: string; code: string | null; crNumber: string | null; nationalId: string | null; email: string | null; phone: string | null; city: string | null; vatNumber: string | null; iban: string | null; producerName: string | null; businessActivity: string | null; complianceStatus: string | null; erasedAt: string | null };
@@ -203,19 +207,7 @@ export default function ClientDetailPage() {
               <input value={note} onChange={(e) => setNote(e.target.value)} onKeyDown={(e) => e.key === "Enter" && void addNote()} placeholder={t("addNote")} className="h-9 flex-1 rounded-lg border border-line bg-card px-3 text-[13px] text-ink focus:outline-none focus:ring-2 focus:ring-primary/30" />
               <button onClick={() => void addNote()} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-ink px-3 text-[12px] font-semibold text-white hover:opacity-90"><Send size={14} /> {t("add")}</button>
             </div>
-            {timeline.length === 0 ? <p className="text-[12.5px] text-subtle">{t("empty")}</p> : (
-              <ol className="relative space-y-3 border-s-2 border-line ps-4">
-                {timeline.slice(0, 60).map((e, i) => (
-                  <li key={i} className="relative">
-                    <span className="absolute -start-[21px] top-1 h-2.5 w-2.5 rounded-full bg-primary ring-2 ring-card" />
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-[12.5px] text-ink">{e.label}</span>
-                      <span className="shrink-0 text-[11px] text-subtle"><Clock size={10} className="inline" /> {dt(e.date)}</span>
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            )}
+            <LifecycleTimeline events={timeline.slice(0, 60).map((e) => ({ at: e.date, phase: TL_PHASE[e.kind] ?? "crm", label: e.label }))} descending />
           </div>
         ) : null}
       </div>
