@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { useParams } from "next/navigation";
-import { Plus, Award, Trophy, Info, Send, CheckCircle2, XCircle, Clock, FileSignature } from "lucide-react";
+import { Plus, Award, Trophy, Info, Send, CheckCircle2, XCircle, Clock, FileSignature, Mail, X } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/routing";
 import { api, getToken, ApiError } from "@/lib/api";
@@ -30,6 +30,7 @@ export default function SlipWorkbenchPage() {
   const [cmp, setCmp] = useState<Comparison | null>(null);
   const [error, setError] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [showRfq, setShowRfq] = useState(false);
 
   const load = useCallback(async () => {
     const [s, c] = await Promise.all([api<Slip>(`/slips/${id}`), api<Comparison>(`/slips/${id}/comparison`)]);
@@ -102,6 +103,9 @@ export default function SlipWorkbenchPage() {
         actions={
           slip && slip.status !== "SELECTED" ? (
             <div className="flex items-center gap-2">
+              <button onClick={() => setShowRfq(true)} className="inline-flex items-center gap-1.5 rounded-lg border border-line px-3.5 py-2 text-[13px] font-semibold text-ink hover:bg-surface-2">
+                <Mail size={15} /> {t("underwriting.rfq.action")}
+              </button>
               {canPresent ? (
                 <button onClick={present} className="inline-flex items-center gap-1.5 rounded-lg border border-primary/40 bg-primary-soft/40 px-3.5 py-2 text-[13px] font-semibold text-primary hover:bg-primary-soft">
                   <Send size={15} /> {slip.presentedAt ? t("underwriting.present.again") : t("underwriting.present.action")}
@@ -145,6 +149,8 @@ export default function SlipWorkbenchPage() {
       {error ? <p className="mb-3 rounded-lg bg-danger-soft px-3 py-2 text-[12.5px] font-medium text-danger">{error}</p> : null}
 
       {showForm ? <AddQuotation slipId={id} vatRate={slip?.vatRate ?? 15} onDone={() => { setShowForm(false); void load(); }} onError={setError} /> : null}
+
+      {showRfq ? <SendRfq slipId={id} onClose={() => setShowRfq(false)} onSent={() => { setShowRfq(false); void load(); }} onError={setError} /> : null}
 
       {/* جدول المقارنة الآلي */}
       <div className="overflow-hidden rounded-card border border-line bg-card shadow-card">
@@ -359,5 +365,68 @@ function AddQuotation({ slipId, vatRate, onDone, onError }: { slipId: string; va
         </button>
       </div>
     </form>
+  );
+}
+
+/** الطبقة ١ — إرسال طلب العرض (RFQ) بالبريد لشركات التأمين المختارة من السجلّ. */
+function SendRfq({ slipId, onClose, onSent, onError }: { slipId: string; onClose: () => void; onSent: () => void; onError: (s: string) => void }) {
+  const t = useTranslations();
+  const [insurers, setInsurers] = useState<Array<{ id: string; name: string; contactEmail: string | null }>>([]);
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const [sending, setSending] = useState(false);
+  const [result, setResult] = useState<{ sent: Array<{ name: string }>; skipped: Array<{ name: string }> } | null>(null);
+
+  useEffect(() => { void api<typeof insurers>("/insurers/options").then(setInsurers).catch(() => setInsurers([])); }, []);
+
+  const toggle = (id: string) => setPicked((p) => { const n = new Set(p); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+
+  async function send() {
+    if (!picked.size) return;
+    setSending(true); onError("");
+    try {
+      const r = await api<{ sent: Array<{ name: string }>; skipped: Array<{ name: string }> }>(`/slips/${slipId}/send-rfq`, { method: "POST", body: JSON.stringify({ insurerIds: [...picked] }) });
+      setResult(r);
+    } catch (e) { onError(e instanceof ApiError ? e.message : "خطأ"); setSending(false); }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onMouseDown={onClose}>
+      <div className="w-full max-w-md rounded-card border border-line bg-card p-5 shadow-card" onMouseDown={(e) => e.stopPropagation()}>
+        <div className="mb-1 flex items-center justify-between">
+          <h2 className="inline-flex items-center gap-2 text-[15px] font-bold text-ink"><Mail size={17} className="text-primary" /> {t("underwriting.rfq.title")}</h2>
+          <button onClick={onClose} className="text-subtle hover:text-ink"><X size={18} /></button>
+        </div>
+        <p className="mb-3 text-[12px] text-subtle">{t("underwriting.rfq.hint")}</p>
+
+        {result ? (
+          <div className="space-y-2 text-[12.5px]">
+            <p className="rounded-lg bg-success-soft px-3 py-2 font-medium text-success">{t("underwriting.rfq.sentCount", { n: result.sent.length })}{result.sent.length ? ` — ${result.sent.map((s) => s.name).join("، ")}` : ""}</p>
+            {result.skipped.length ? <p className="rounded-lg bg-warning-soft px-3 py-2 font-medium text-warning">{t("underwriting.rfq.skipped", { n: result.skipped.length })} — {result.skipped.map((s) => s.name).join("، ")}</p> : null}
+            <div className="flex justify-end pt-1"><button onClick={onSent} className="h-9 rounded-lg bg-primary-strong px-4 text-[12.5px] font-semibold text-primary-fg hover:bg-primary">{t("underwriting.rfq.done")}</button></div>
+          </div>
+        ) : insurers.length === 0 ? (
+          <p className="py-6 text-center text-[12.5px] text-subtle">{t("underwriting.rfq.noInsurers")}</p>
+        ) : (
+          <>
+            <div className="max-h-64 space-y-1 overflow-auto">
+              {insurers.map((i) => (
+                <label key={i.id} className={`flex items-center gap-2.5 rounded-lg border px-3 py-2 text-[13px] ${i.contactEmail ? "cursor-pointer border-line hover:bg-surface-2" : "border-line/60 opacity-60"}`}>
+                  <input type="checkbox" disabled={!i.contactEmail} checked={picked.has(i.id)} onChange={() => toggle(i.id)} className="accent-primary" />
+                  <span className="flex-1 text-ink">{i.name}</span>
+                  <span className="text-[11px] text-subtle">{i.contactEmail ?? t("underwriting.rfq.noEmail")}</span>
+                </label>
+              ))}
+            </div>
+            <div className="mt-3 flex items-center justify-between">
+              <span className="text-[11px] text-subtle">{t("underwriting.rfq.selected", { n: picked.size })}</span>
+              <div className="flex gap-2">
+                <button onClick={onClose} className="h-9 rounded-lg border border-line px-3 text-[12.5px] font-medium text-muted hover:bg-surface-2">{t("underwriting.rfq.cancel")}</button>
+                <button onClick={send} disabled={sending || !picked.size} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary-strong px-4 text-[12.5px] font-semibold text-primary-fg hover:bg-primary disabled:opacity-60"><Mail size={15} /> {sending ? "…" : t("underwriting.rfq.send")}</button>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
   );
 }

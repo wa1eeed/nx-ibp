@@ -50,9 +50,9 @@ export class InsurersService {
     const rows = await this.prisma.insurer.findMany({
       where: { tenantId, status: "active" },
       orderBy: { name: "asc" },
-      select: { id: true, name: true, nameEn: true, commissionRate: true },
+      select: { id: true, name: true, nameEn: true, commissionRate: true, contactEmail: true },
     });
-    return rows.map((r) => ({ id: r.id, name: r.name, nameEn: r.nameEn, commissionRate: r.commissionRate != null ? Number(r.commissionRate) : null }));
+    return rows.map((r) => ({ id: r.id, name: r.name, nameEn: r.nameEn, commissionRate: r.commissionRate != null ? Number(r.commissionRate) : null, contactEmail: r.contactEmail }));
   }
 
   async create(tenantId: string, userId: string, dto: InsurerInput) {

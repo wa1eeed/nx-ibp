@@ -2431,6 +2431,19 @@
       "selected": "Placed",
       "closed": "Closed"
     },
+    "rfq": {
+      "action": "Send to insurers",
+      "title": "Send RFQ to insurers",
+      "hint": "A quotation request is emailed to the selected insurers from your company domain; their replies come straight back to you. Insurers with no registered email are skipped.",
+      "send": "Send request",
+      "selected": "Selected: {n}",
+      "noEmail": "No email on file",
+      "noInsurers": "No insurers registered — add underwriting emails on the Insurers page first",
+      "sentCount": "Sent to {n} insurer(s)",
+      "skipped": "Skipped {n} (no email)",
+      "done": "Done",
+      "cancel": "Cancel"
+    },
     "present": {
       "action": "Present to client",
       "again": "Re-present to client",

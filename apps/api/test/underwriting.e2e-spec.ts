@@ -84,6 +84,29 @@ describe("الاكتتاب الفني وعروض الأسعار (e2e)", () => {
     expect(req.body.status).toBe("QUOTING");
   });
 
+  it("الطبقة ١ — إرسال RFQ بالبريد: شركة ببريد تُرسَل، وبلا بريد تُتخطّى؛ قائمة فارغة ⇒ 400", async () => {
+    const srv = app.getHttpServer();
+    const { requestId } = await createApprovedRequest();
+    const slip = (await request(srv).post("/slips").set(auth(underwriter)).send({ requestId }).expect(201)).body;
+
+    const opts = (await request(srv).get("/insurers/options").set(auth(underwriter)).expect(200)).body as Array<{ id: string; name: string; contactEmail: string | null }>;
+    const withEmail = opts.find((o) => o.name === "التعاونية للتأمين")!; // بريد مسجّل (seed)
+    const noEmail = opts.find((o) => o.name === "وقاية للتأمين")!; // بلا بريد (seed)
+    expect(withEmail.contactEmail).toBeTruthy();
+    expect(noEmail.contactEmail).toBeFalsy();
+
+    const res = (await request(srv).post(`/slips/${slip.id}/send-rfq`).set(auth(underwriter)).send({ insurerIds: [withEmail.id, noEmail.id] }).expect(200)).body;
+    expect(res.sent.map((s: { name: string }) => s.name)).toEqual(["التعاونية للتأمين"]);
+    expect(res.skipped.map((s: { name: string }) => s.name)).toEqual(["وقاية للتأمين"]);
+
+    // تُسجَّل الشركة المُرسَل إليها على الـslip («أُرسل إلى»)
+    const after = (await request(srv).get(`/slips/${slip.id}`).set(auth(underwriter)).expect(200)).body;
+    expect(after.insurers).toContain("التعاونية للتأمين");
+
+    // قائمة فارغة ⇒ 400
+    await request(srv).post(`/slips/${slip.id}/send-rfq`).set(auth(underwriter)).send({ insurerIds: [] }).expect(400);
+  });
+
   it("جدول المقارنة الآلي + أمر الإسناد ⇒ الطلب AWARDED", async () => {
     const { requestId } = await createApprovedRequest();
     const slip = (await request(app.getHttpServer()).post("/slips").set(auth(underwriter)).send({ requestId }).expect(201)).body;

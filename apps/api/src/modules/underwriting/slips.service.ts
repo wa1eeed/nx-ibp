@@ -4,6 +4,7 @@ import { PrismaService } from "../../prisma/prisma.service";
 import { SequenceService } from "../../common/sequence/sequence.service";
 import { AuditService } from "../../common/audit/audit.service";
 import { NotificationsService } from "../notifications/notifications.service";
+import { TenantEmailService } from "../email/tenant-email.service";
 import { vatTreatmentForClass } from "../../common/tax/vat";
 import type { CreateSlipDto } from "./dto/create-slip.dto";
 import type { CreateQuotationDto } from "./dto/create-quotation.dto";
@@ -22,6 +23,7 @@ export class SlipsService {
     private readonly seq: SequenceService,
     private readonly audit: AuditService,
     private readonly notifications: NotificationsService,
+    private readonly email: TenantEmailService,
   ) {}
 
   listSlips() {
@@ -111,6 +113,64 @@ export class SlipsService {
 
     await this.audit.log({ tenantId, userId, action: "create", entity: "slip", entityId: slip.id, meta: { requestId: request.id, sequenceNo } });
     return slip;
+  }
+
+  /**
+   * الطبقة ١ — إرسال طلب العرض (RFQ) بالبريد لشركات التأمين المختارة من السجلّ.
+   * يُرسَل من نطاق الوسيط (BYO Resend) مع Reply-To إيميله كي تصل ردود الشركات إليه.
+   * الشركات بلا بريد مسجّل تُتخطّى وتُعاد في skipped. يُسجَّل مَن أُرسِل إليهم في slip.insurers + تدقيق.
+   */
+  async sendRfq(tenantId: string, userId: string, slipId: string, insurerIds: string[]) {
+    if (!insurerIds?.length) throw new BadRequestException("اختر شركة تأمين واحدة على الأقل");
+    const slip = await this.prisma.slip.findFirst({
+      where: { id: slipId },
+      select: { id: true, sequenceNo: true, status: true, insurers: true, request: { select: { productLineCode: true, base: true, client: { select: { name: true } } } } },
+    });
+    if (!slip) throw new NotFoundException("طلب الأسعار غير موجود");
+    if (slip.status === "SELECTED" || slip.status === "CLOSED") throw new ConflictException("لا يمكن إرسال طلب أسعار بعد الإسناد أو الإغلاق");
+
+    const insurers = await this.prisma.insurer.findMany({ where: { tenantId, id: { in: insurerIds } }, select: { id: true, name: true, contactEmail: true } });
+    const line = await this.prisma.productLine.findFirst({ where: { code: slip.request?.productLineCode ?? "" }, select: { name: true } });
+    const tenant = await this.prisma.tenant.findFirst({ where: { id: tenantId }, select: { name: true } });
+
+    const base = (slip.request?.base ?? {}) as { startDate?: string; endDate?: string; insuredName?: string };
+    const clientName = slip.request?.client?.name ?? base.insuredName ?? "—";
+    const lineName = line?.name ?? slip.request?.productLineCode ?? "—";
+    const period = base.startDate && base.endDate ? `${base.startDate} — ${base.endDate}` : "—";
+    const ref = slip.sequenceNo ?? slip.id;
+
+    const sent: Array<{ name: string; email: string }> = [];
+    const skipped: Array<{ name: string; reason: string }> = [];
+    for (const ins of insurers) {
+      if (!ins.contactEmail) { skipped.push({ name: ins.name, reason: "no_email" }); continue; }
+      const subject = `طلب عرض سعر — ${clientName} — ${lineName} (${ref})`;
+      const body = [
+        `السلام عليكم ورحمة الله وبركاته،`,
+        ``,
+        `نأمل تزويدنا بعرض سعر للتغطية التالية:`,
+        `• شركة التأمين: ${ins.name}`,
+        `• العميل: ${clientName}`,
+        `• فرع التأمين: ${lineName}`,
+        `• مدة التغطية: ${period}`,
+        `• رقم المرجع: ${ref}`,
+        ``,
+        `نرجو موافاتنا بأفضل الشروط والأسعار في أقرب وقت ممكن. وللاستفسار يُرجى الرد على هذا البريد مباشرةً.`,
+        ``,
+        `مع خالص التقدير،`,
+        tenant?.name ?? "",
+      ].join("\n");
+      const res = await this.email.sendTenantEmail(tenantId, ins.contactEmail, subject, body, "ar");
+      if (res.ok) sent.push({ name: ins.name, email: ins.contactEmail });
+      else skipped.push({ name: ins.name, reason: "send_failed" });
+    }
+
+    // سجّل مَن أُرسِل إليهم على الـslip (اتحاد بلا تكرار) لعرض «أُرسل إلى»
+    if (sent.length) {
+      const names = [...new Set([...(slip.insurers ?? []), ...sent.map((s) => s.name)])];
+      await this.prisma.slip.update({ where: { id: slip.id }, data: { insurers: names } });
+    }
+    await this.audit.log({ tenantId, userId, action: "update", entity: "slip_rfq_sent", entityId: slip.id, meta: { sent: sent.map((s) => s.name), skipped: skipped.map((s) => s.name), ref } });
+    return { sent, skipped };
   }
 
   async addQuotation(tenantId: string, userId: string, slipId: string, dto: CreateQuotationDto) {

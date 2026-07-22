@@ -4,6 +4,7 @@ import { CreateSlipDto } from "./dto/create-slip.dto";
 import { CreateQuotationDto } from "./dto/create-quotation.dto";
 import { SelectQuotationDto } from "./dto/select-quotation.dto";
 import { PresentProposalDto } from "./dto/present-proposal.dto";
+import { SendRfqDto } from "./dto/send-rfq.dto";
 import { Authorize } from "../rbac/authorize.decorator";
 import { CurrentUser } from "../auth/current-user.decorator";
 
@@ -51,6 +52,19 @@ export class SlipsController {
     @Body() dto: CreateQuotationDto,
   ) {
     return this.slips.addQuotation(tenantId, userId, id, dto);
+  }
+
+  // الطبقة ١ — إرسال طلب العرض (RFQ) بالبريد لشركات التأمين المختارة
+  @Authorize({ module: "underwriting", action: "create", entitlement: "module.production" })
+  @HttpCode(200)
+  @Post(":id/send-rfq")
+  sendRfq(
+    @CurrentUser("tenantId") tenantId: string,
+    @CurrentUser("userId") userId: string,
+    @Param("id") id: string,
+    @Body() dto: SendRfqDto,
+  ) {
+    return this.slips.sendRfq(tenantId, userId, id, dto.insurerIds);
   }
 
   // أمر الإسناد (Firm Order)

@@ -259,8 +259,9 @@ sequenceDiagram
 المنضدة في [`apps/web/src/app/[locale]/tenant/slips/[id]/page.tsx`](../apps/web/src/app/[locale]/tenant/slips/[id]/page.tsx) — `SlipWorkbenchPage`. وظائفها:
 
 - **التحميل المتوازي:** `Promise.all([GET /slips/:id, GET /slips/:id/comparison])`.
-- **شارة الحالة** (`Badge`) بألوان حسب `SlipStatus`، وقائمة شركات التأمين المُرسَل إليها.
-- **نموذج إضافة عرض** (`AddQuotation`): حقول معيارية (insurer, rate, premium, vat, totalPremium, deductible, limit) + `generalRemarks` كنص حر ⇒ `POST /slips/:id/quotations`. يظهر فقط ما دام الـ Slip لم يُحسَم (`status !== "SELECTED"`).
+- **شارة الحالة** (`Badge`) بألوان حسب `SlipStatus` (نص مُترجم)، وقائمة شركات التأمين المُرسَل إليها.
+- **إرسال طلب العرض (RFQ) بالبريد** (`SendRfq` · الطبقة ١): زر «إرسال للمؤمِّنين» ⇒ منتقٍ لشركات السجلّ (المسجّلة ببريد فقط) ⇒ **`POST /slips/:id/send-rfq {insurerIds}`** يرسل رسالة طلب عرض ثنائية اللغة عبر بريد المستأجر (Resend BYO/fallback) مع **Reply-To = بريد الوسيط** (تصل ردود الشركات إليه). بلا بريد ⇒ تُتخطّى (`skipped`)؛ بعد الإسناد/الإغلاق ⇒ 409؛ قائمة فارغة ⇒ 400. يطابق أويسس (Table 5: Email to Insurance Companies requesting Quotation). التقاط الردود آليًا = الطبقة ٢ (لاحقًا).
+- **نموذج إضافة عرض** (`AddQuotation`): حقول معيارية (insurer, rate=معدّل القسط, premium, vat, totalPremium, deductible, limit) + `generalRemarks` كنص حر ⇒ `POST /slips/:id/quotations`. يظهر فقط ما دام الـ Slip لم يُحسَم (`status !== "SELECTED"`).
 - **جدول المقارنة:** صف لكل عرض، أعمدة معيارية، والإجمالي بخطّ عريض. العرض الأرخص (`bestByPrice`) يُبرز بأيقونة 🏆 وخلفية، والعرض المختار بخلفية نجاح وشارة «مختار».
 - **زرّ أمر الإسناد** (`Award`) لكل صف ⇒ `POST /slips/:id/select`؛ يختفي بعد الحسم.
 
