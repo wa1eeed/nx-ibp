@@ -1733,6 +1733,11 @@
     "col": { "employee": "Employee", "dept": "Department", "status": "Status", "date": "Day", "duration": "Duration" },
     "status": { "in": "Present", "out": "Left", "absent": "Absent" }
   },
+  "checklist": {
+    "title": { "onboarding": "Onboarding checklist", "offboarding": "Offboarding checklist" },
+    "addPlaceholder": "Add an item…",
+    "add": "Add"
+  },
   "leave": {
     "nav": "Leave",
     "title": "Leave requests",

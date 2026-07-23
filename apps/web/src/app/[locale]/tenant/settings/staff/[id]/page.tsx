@@ -522,6 +522,58 @@ function HrTab({ userId }: { userId: string }) {
           <button onClick={addDoc} disabled={busy || !doc.title.trim()} className="inline-flex items-center gap-1 rounded-lg bg-primary-strong px-3 py-1.5 text-[12px] font-semibold text-primary-fg hover:bg-primary disabled:opacity-50">{t("doc.add")}</button>
         </div>
       </section>
+
+      <ChecklistSection userId={userId} />
     </div>
+  );
+}
+
+interface ChecklistItem { id: string; kind: string; label: string; done: boolean; order: number }
+
+/** قوائم التعيين/الإنهاء (Onboarding/Offboarding) — مربّعات إنجاز بشريط تقدّم. تُبذَر افتراضيًا عند التعيين/الإنهاء. */
+function ChecklistSection({ userId }: { userId: string }) {
+  const t = useTranslations("checklist");
+  const [items, setItems] = useState<ChecklistItem[]>([]);
+  const [add, setAdd] = useState<Record<string, string>>({ onboarding: "", offboarding: "" });
+  const load = useCallback(async () => { setItems(await api<ChecklistItem[]>(`/hr/employees/${userId}/checklist`).catch(() => [])); }, [userId]);
+  useEffect(() => { void load(); }, [load]);
+
+  const toggle = async (id: string, done: boolean) => { await api(`/hr/checklist/${id}/toggle`, { method: "POST", body: JSON.stringify({ done }) }).catch(() => undefined); await load(); };
+  const remove = async (id: string) => { await api(`/hr/checklist/${id}`, { method: "DELETE" }).catch(() => undefined); await load(); };
+  const create = async (kind: string) => { const label = (add[kind] ?? "").trim(); if (!label) return; await api(`/hr/employees/${userId}/checklist`, { method: "POST", body: JSON.stringify({ kind, label }) }).catch(() => undefined); setAdd({ ...add, [kind]: "" }); await load(); };
+
+  const kinds = [...new Set(items.map((i) => i.kind))];
+  if (!kinds.length) return null;
+
+  return (
+    <>
+      {kinds.map((kind) => {
+        const list = items.filter((i) => i.kind === kind);
+        const done = list.filter((i) => i.done).length;
+        const pct = list.length ? Math.round((done / list.length) * 100) : 0;
+        return (
+          <section key={kind} className="rounded-card border border-line bg-card p-4 shadow-card">
+            <div className="mb-2 flex items-center justify-between">
+              <h3 className="text-[13.5px] font-bold text-ink">{t(`title.${kind}`)}</h3>
+              <span className="text-[12px] font-semibold text-muted tnum">{done}/{list.length}</span>
+            </div>
+            <div className="mb-3 h-1.5 w-full overflow-hidden rounded-full bg-surface-2"><div className="h-full rounded-full bg-primary transition-all" style={{ width: `${pct}%` }} /></div>
+            <ul className="space-y-1.5">
+              {list.map((i) => (
+                <li key={i.id} className="flex items-center gap-2.5 rounded-lg px-1 py-1 hover:bg-surface-2/50">
+                  <input type="checkbox" checked={i.done} onChange={(e) => void toggle(i.id, e.target.checked)} className="h-4 w-4 rounded border-line" />
+                  <span className={`flex-1 text-[12.5px] ${i.done ? "text-subtle line-through" : "text-ink"}`}>{i.label}</span>
+                  <button onClick={() => void remove(i.id)} className="rounded p-1 text-subtle hover:bg-danger/10 hover:text-danger"><X size={13} /></button>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-2 flex gap-2">
+              <input value={add[kind] ?? ""} onChange={(e) => setAdd({ ...add, [kind]: e.target.value })} onKeyDown={(e) => { if (e.key === "Enter") void create(kind); }} placeholder={t("addPlaceholder")} className="flex-1 rounded-lg border border-line bg-bg px-2.5 py-1.5 text-[12.5px] text-ink" />
+              <button onClick={() => void create(kind)} className="rounded-lg border border-line px-3 py-1.5 text-[12px] font-medium text-muted hover:bg-surface-2">{t("add")}</button>
+            </div>
+          </section>
+        );
+      })}
+    </>
   );
 }

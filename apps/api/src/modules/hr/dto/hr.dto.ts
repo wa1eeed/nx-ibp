@@ -1,4 +1,4 @@
-import { IsIn, IsISO8601, IsNumber, IsOptional, IsString, MaxLength } from "class-validator";
+import { IsBoolean, IsIn, IsISO8601, IsNumber, IsOptional, IsString, MaxLength } from "class-validator";
 
 export const EMPLOYEE_DOC_TYPES = ["contract", "national_id", "iqama", "passport", "certificate", "other"] as const;
 
@@ -14,6 +14,15 @@ export class UpdateEmployeeProfileDto {
   @IsOptional() @IsNumber() baseSalary?: number;
   @IsOptional() @IsString() @MaxLength(160) emergencyContact?: string;
   @IsOptional() @IsString() @MaxLength(240) addressLine?: string;
+}
+
+export class ToggleChecklistDto {
+  @IsIn([true, false] as unknown as string[]) done!: boolean;
+}
+
+export class AddChecklistItemDto {
+  @IsIn(["onboarding", "offboarding"]) kind!: "onboarding" | "offboarding";
+  @IsString() @MaxLength(200) label!: string;
 }
 
 export class CreateEmployeeDocumentDto {

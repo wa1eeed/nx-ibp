@@ -1733,6 +1733,11 @@
     "col": { "employee": "الموظف", "dept": "القسم", "status": "الحالة", "date": "اليوم", "duration": "المدة" },
     "status": { "in": "حاضر", "out": "انصرف", "absent": "غائب" }
   },
+  "checklist": {
+    "title": { "onboarding": "قائمة التعيين (الالتحاق)", "offboarding": "قائمة إنهاء الخدمة" },
+    "addPlaceholder": "أضف بندًا…",
+    "add": "إضافة"
+  },
   "leave": {
     "nav": "الإجازات",
     "title": "طلبات الإجازات",

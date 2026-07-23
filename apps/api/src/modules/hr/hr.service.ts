@@ -76,6 +76,59 @@ export class HrService {
     return { ok: true };
   }
 
+  // ————————————————————————— قوائم التعيين/الإنهاء (Onboarding/Offboarding) —————————————————————————
+
+  /** بنود التعيين الافتراضية — تُبذَر عند إنشاء الموظف (البند الأول مكتمل تلقائيًا: أُنشئ الحساب). */
+  static readonly ONBOARDING_DEFAULTS = [
+    "إنشاء البريد وحساب النظام",
+    "توقيع عقد العمل",
+    "تسليم العهدة (حاسوب/هاتف)",
+    "إضافة بيانات الهوية والوثائق",
+    "تعريف بالفريق والأنظمة",
+  ];
+  /** بنود إنهاء الخدمة الافتراضية — تُبذَر عند إنهاء الخدمة. */
+  static readonly OFFBOARDING_DEFAULTS = [
+    "استرجاع العهدة (حاسوب/هاتف/بطاقات)",
+    "تعطيل الوصول للأنظمة",
+    "تسوية المستحقّات المالية",
+    "استلام العمل وتسليم المهام",
+    "مخالصة نهاية الخدمة",
+  ];
+
+  /** يبذر قائمة تعيين/إنهاء افتراضية لموظف (يُستدعى من StaffService عند الإنشاء/الإنهاء). idempotent-ish. */
+  async seedChecklist(tenantId: string, userId: string, kind: "onboarding" | "offboarding") {
+    const labels = kind === "onboarding" ? HrService.ONBOARDING_DEFAULTS : HrService.OFFBOARDING_DEFAULTS;
+    const existing = await this.prisma.employeeChecklistItem.count({ where: { userId, kind } });
+    if (existing > 0) return;
+    await this.prisma.employeeChecklistItem.createMany({
+      data: labels.map((label, i) => ({ tenantId, userId, kind, label, order: i, done: kind === "onboarding" && i === 0, doneAt: kind === "onboarding" && i === 0 ? new Date() : null })),
+    });
+  }
+
+  checklist(userId: string) {
+    return this.prisma.employeeChecklistItem.findMany({ where: { userId }, orderBy: [{ kind: "asc" }, { order: "asc" }] });
+  }
+
+  async toggleChecklistItem(admin: AuthUser, id: string, done: boolean) {
+    const item = await this.prisma.employeeChecklistItem.findFirst({ where: { id }, select: { id: true, label: true } });
+    if (!item) throw new NotFoundException("البند غير موجود");
+    await this.prisma.employeeChecklistItem.update({ where: { id }, data: { done, doneAt: done ? new Date() : null, doneBy: done ? admin.userId : null } });
+    return { ok: true, done };
+  }
+
+  async addChecklistItem(admin: AuthUser, userId: string, kind: "onboarding" | "offboarding", label: string) {
+    const max = await this.prisma.employeeChecklistItem.aggregate({ where: { userId, kind }, _max: { order: true } });
+    const item = await this.prisma.employeeChecklistItem.create({ data: { tenantId: admin.tenantId, userId, kind, label: label.trim(), order: (max._max.order ?? -1) + 1 } });
+    return item;
+  }
+
+  async deleteChecklistItem(admin: AuthUser, id: string) {
+    const item = await this.prisma.employeeChecklistItem.findFirst({ where: { id }, select: { id: true } });
+    if (!item) throw new NotFoundException("البند غير موجود");
+    await this.prisma.employeeChecklistItem.delete({ where: { id } });
+    return { ok: true };
+  }
+
   // ————————————————————————— الحضور والانصراف —————————————————————————
 
   /** مفتاح اليوم (منتصف ليل UTC ليوم الرياض المحلي) — ثابت للمطابقة على حقل @db.Date. */

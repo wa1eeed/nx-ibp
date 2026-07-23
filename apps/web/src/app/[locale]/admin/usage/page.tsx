@@ -40,7 +40,7 @@ export default function AdminUsagePage() {
           <StatCard tone="primary" icon={<Building2 size={18} />} title={t("admin.overview.active")} value={o.byStatus.ACTIVE ?? 0} />
           <StatCard tone="warning" icon={<Clock size={18} />} title={t("admin.overview.trial")} value={o.byStatus.TRIAL ?? 0} />
           <StatCard tone="danger" icon={<Building2 size={18} />} title={t("admin.overview.suspended")} value={o.byStatus.SUSPENDED ?? 0} />
-          <StatCard tone="neutral" icon={<Building2 size={18} />} title={t("admin.overview.cancelled")} value={o.byStatus.CANCELLED ?? 0} />
+          <StatCard tone="info" icon={<Building2 size={18} />} title={t("admin.overview.cancelled")} value={o.byStatus.CANCELLED ?? 0} />
           <StatCard tone="info" icon={<Inbox size={18} />} title={t("admin.overview.newLeads")} value={o.newLeads} />
         </div>
       ) : null}

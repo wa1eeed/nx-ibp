@@ -10,6 +10,8 @@ import request from "supertest";
 import { AppModule } from "../src/app.module";
 import { PrismaService } from "../src/prisma/prisma.service";
 
+interface ChecklistRow { id: string; kind: string; label: string; done: boolean }
+
 describe("الموارد البشرية (e2e)", () => {
   let app: INestApplication;
   let prisma: PrismaService;
@@ -83,6 +85,21 @@ describe("الموارد البشرية (e2e)", () => {
     const me = team.rows.find((r) => r.userId === ownerId);
     expect(me).toBeTruthy();
     expect(["in", "out"]).toContain(me!.status);
+  });
+
+  it("قائمة التعيين (Onboarding): تُبذَر عند إنشاء الموظف + تبديل بند + إضافة/حذف", async () => {
+    const email = `onb-${uniq()}@gulf-demo.sa`;
+    const created = (await request(srv()).post("/staff").set(auth(owner)).send({ fullName: "موظف تعيين", email, password: "Passw0rd1", roleName: `role-onb-${uniq()}`, permissions: [{ module: "dashboard", canAccess: true, canCreate: false, canEdit: false, canDelete: false, canRevert: false }] }).expect(201)).body;
+    const list = (await request(srv()).get(`/hr/employees/${created.id}/checklist`).set(auth(owner)).expect(200)).body as ChecklistRow[];
+    expect(list.length).toBeGreaterThanOrEqual(5); // بنود التعيين الافتراضية
+    expect(list[0].done).toBe(true); // «أُنشئ الحساب» مكتمل تلقائيًا
+    const pending = list.find((i) => !i.done)!;
+    await request(srv()).post(`/hr/checklist/${pending.id}/toggle`).set(auth(owner)).send({ done: true }).expect(200);
+    const added = (await request(srv()).post(`/hr/employees/${created.id}/checklist`).set(auth(owner)).send({ kind: "onboarding", label: "بند مخصّص" }).expect(201)).body;
+    await request(srv()).delete(`/hr/checklist/${added.id}`).set(auth(owner)).expect(200);
+    const after = (await request(srv()).get(`/hr/employees/${created.id}/checklist`).set(auth(owner)).expect(200)).body as ChecklistRow[];
+    expect(after.find((i) => i.id === pending.id)!.done).toBe(true);
+    expect(after.find((i) => i.id === added.id)).toBeFalsy();
   });
 
   it("عزل الصلاحية: موظف بلا صلاحية hr ⇒ 403 على الملف الوظيفي", async () => {

@@ -4,6 +4,7 @@ import { PrismaService } from "../../prisma/prisma.service";
 import { AuditService } from "../../common/audit/audit.service";
 import { auditPhase, describeAudit } from "../../common/audit/audit-describe";
 import { NotificationsService } from "../notifications/notifications.service";
+import { HrService } from "../hr/hr.service";
 import type { AuthUser } from "../auth/current-user.decorator";
 import type { CreateStaffDto } from "./dto/create-staff.dto";
 import { RBAC_MODULES } from "../rbac/rbac.constants";
@@ -19,6 +20,7 @@ export class StaffService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly notifications: NotificationsService,
+    private readonly hr: HrService,
   ) {}
 
   list() {
@@ -150,6 +152,9 @@ export class StaffService {
 
     // مزامنة عدّاد المقاعد المستخدمة (للعرض في لوحة المنصّة)
     await this.prisma.subscription.updateMany({ where: { tenantId }, data: { seatsUsed: await this.prisma.user.count({ where: { tenantId, status: "ACTIVE" } }) } });
+
+    // بذر قائمة التعيين الافتراضية (Onboarding) — لمتابعة إجراءات الالتحاق
+    await this.hr.seedChecklist(tenantId, user.id, "onboarding").catch(() => undefined);
 
     return user;
   }
@@ -334,6 +339,9 @@ export class StaffService {
       data.seatsLicensed = Math.max(seatsUsed, (sub?.seatsLicensed ?? seatsUsed) - 1);
     }
     await this.prisma.subscription.updateMany({ where: { tenantId: admin.tenantId }, data });
+
+    // بذر قائمة إنهاء الخدمة الافتراضية (Offboarding) — لمتابعة إجراءات المغادرة
+    await this.hr.seedChecklist(admin.tenantId, id, "offboarding").catch(() => undefined);
 
     await this.audit.log({ tenantId: admin.tenantId, userId: admin.userId, action: "delete", entity: "user_offboard", entityId: id, meta: { target: target.email, reassignedTo: reassignedToEmail, reassigned, cancelSeat: !!opts.cancelSeat, seatsUsed } });
     return { ok: true, reassigned, reassignedToEmail, seatsUsed, licenseCancelled: !!opts.cancelSeat, seatsLicensed: data.seatsLicensed };

@@ -24,6 +24,7 @@ export type ModuleKey =
   | "insurers"
   | "compliance"
   | "finance"
+  | "attendance"
   | "payroll"
   | "leave"
   | "settings.account"

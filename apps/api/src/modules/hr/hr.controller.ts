@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, Post, Put, Query } from "@nestjs/common";
 import { HrService } from "./hr.service";
-import { CreateEmployeeDocumentDto, UpdateEmployeeProfileDto } from "./dto/hr.dto";
+import { AddChecklistItemDto, CreateEmployeeDocumentDto, ToggleChecklistDto, UpdateEmployeeProfileDto } from "./dto/hr.dto";
 import { Authorize } from "../rbac/authorize.decorator";
 import { CurrentUser, type AuthUser } from "../auth/current-user.decorator";
 
@@ -77,5 +77,32 @@ export class HrController {
   @Delete("documents/:id")
   deleteDocument(@CurrentUser() user: AuthUser, @Param("id") id: string) {
     return this.hr.deleteDocument(user, id);
+  }
+
+  // ————— قوائم التعيين/الإنهاء (Onboarding/Offboarding) —————
+  @Authorize({ module: "hr", action: "read" })
+  @Get("employees/:id/checklist")
+  checklist(@Param("id") id: string) {
+    return this.hr.checklist(id);
+  }
+
+  @Authorize({ module: "hr", action: "update" })
+  @HttpCode(200)
+  @Post("checklist/:id/toggle")
+  toggleChecklist(@CurrentUser() user: AuthUser, @Param("id") id: string, @Body() dto: ToggleChecklistDto) {
+    return this.hr.toggleChecklistItem(user, id, dto.done);
+  }
+
+  @Authorize({ module: "hr", action: "create" })
+  @Post("employees/:id/checklist")
+  addChecklist(@CurrentUser() user: AuthUser, @Param("id") id: string, @Body() dto: AddChecklistItemDto) {
+    return this.hr.addChecklistItem(user, id, dto.kind, dto.label);
+  }
+
+  @Authorize({ module: "hr", action: "delete" })
+  @HttpCode(200)
+  @Delete("checklist/:id")
+  deleteChecklist(@CurrentUser() user: AuthUser, @Param("id") id: string) {
+    return this.hr.deleteChecklistItem(user, id);
   }
 }
