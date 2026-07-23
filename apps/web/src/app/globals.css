@@ -74,3 +74,31 @@ body {
   border: 3px solid transparent;
   background-clip: content-box;
 }
+
+/* ————— أنيميشن اللاندنق بيج (سير المعاملات + المميزات) — مصمَّم بالكود ————— */
+@keyframes wf-flow {
+  0%, 12% { opacity: .35; transform: scale(.96); }
+  6% { opacity: 1; transform: scale(1.06); }
+  18%, 100% { opacity: .35; transform: scale(.96); }
+}
+@keyframes wf-ring {
+  0%, 12% { box-shadow: 0 0 0 0 var(--wf-glow, rgba(16,127,109,.45)); }
+  6% { box-shadow: 0 0 0 7px rgba(16,127,109,0); }
+  18%, 100% { box-shadow: 0 0 0 0 rgba(16,127,109,0); }
+}
+@keyframes wf-track {
+  from { background-position: 300% 0; }
+  to { background-position: -300% 0; }
+}
+@keyframes wf-check { 0%,55% { stroke-dashoffset: 22; opacity: 0; } 70% { opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 1; } }
+@keyframes fx-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fx-bar { from { transform: scaleY(.15); } to { transform: scaleY(1); } }
+@keyframes fx-spin { to { transform: rotate(360deg); } }
+@keyframes fx-pulse { 0%,100% { opacity: .5; transform: scale(.92); } 50% { opacity: 1; transform: scale(1.05); } }
+@keyframes fx-draw { to { stroke-dashoffset: 0; } }
+@keyframes fx-sweep { 0% { transform: translateX(-120%); } 100% { transform: translateX(120%); } }
+@keyframes fx-count { 0% { opacity: .4; } 100% { opacity: 1; } }
+@keyframes fx-scan { 0% { top: -24px; } 100% { top: 105%; } }
+@media (prefers-reduced-motion: reduce) {
+  [class*="wf-"], [class*="fx-"] { animation: none !important; }
+}

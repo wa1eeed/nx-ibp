@@ -1,20 +1,25 @@
 "use client";
 
-import { ShieldCheck, ArrowLeft, Users, FileText, Landmark, ClipboardList, BadgeCheck, BarChart3, Check, Building2, Headset, QrCode } from "lucide-react";
+import { ShieldCheck, ArrowLeft, Users, FileText, Landmark, ClipboardList, BadgeCheck, Check, Building2, Headset, QrCode, KanbanSquare, Percent, Wallet } from "lucide-react";
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
 import { LocaleSwitcher } from "@/components/layout/LocaleSwitcher";
 import { PricingSection } from "@/components/landing/PricingSection";
 import { PlanComparisonTable } from "@/components/landing/PlanComparisonTable";
+import { WorkflowAnimation } from "@/components/landing/WorkflowAnimation";
+import { AiAgentsSection } from "@/components/landing/AiAgentsSection";
 
+// المميزات تغطّي كل الموديولات (تشمل CRM · المالية · العمولات · الموارد البشرية)
 const FEATURES = [
   { key: "lifecycle", icon: FileText },
+  { key: "crm", icon: KanbanSquare },
   { key: "underwriting", icon: BadgeCheck },
   { key: "finance", icon: Landmark },
+  { key: "commissions", icon: Percent },
   { key: "claims", icon: ClipboardList },
+  { key: "hr", icon: Wallet },
   { key: "verification", icon: Users },
-  { key: "multitenant", icon: BarChart3 },
 ];
 
 export default function LandingPage() {
@@ -33,7 +38,14 @@ export default function LandingPage() {
               <div className="text-[11px] text-subtle">{t("brand.tagline")}</div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-3">
+            {/* روابط القسم الرئيسي — مخفية على الجوّال */}
+            <nav className="hidden items-center gap-5 text-[13px] font-medium text-muted md:flex">
+              <a href="#features" className="hover:text-ink">{t("landing.nav.features")}</a>
+              <a href="#ai" className="hover:text-ink">{t("landing.nav.ai")}</a>
+              <a href="#pricing" className="hover:text-ink">{t("landing.nav.pricing")}</a>
+              <Link href="/ownership" className="hover:text-ink">{t("landing.nav.ownership")}</Link>
+            </nav>
             <LocaleSwitcher />
             <Link href="/login" className="rounded-lg bg-primary-strong px-4 py-2 text-[13px] font-semibold text-primary-fg hover:bg-primary">{t("landing.nav.login")}</Link>
           </div>
@@ -59,22 +71,38 @@ export default function LandingPage() {
           <span className="inline-flex items-center gap-1.5"><Check size={14} className="text-success" /> {t("landing.hero.t2")}</span>
           <span className="inline-flex items-center gap-1.5"><Check size={14} className="text-success" /> {t("landing.hero.t3")}</span>
         </div>
+
+        {/* أنيميشن سير المعاملة — مصمَّم بالكود (يعطي انطباع منصّة متقدّمة) */}
+        <div className="mt-12">
+          <WorkflowAnimation />
+        </div>
       </section>
 
-      {/* المزايا */}
-      <section className="mx-auto max-w-6xl px-5 py-12">
+      {/* المزايا — تغطّي كل الموديولات */}
+      <section id="features" className="mx-auto max-w-6xl scroll-mt-20 px-5 py-12">
         <h2 className="text-center text-[26px] font-bold tracking-tight text-ink">{t("landing.features.title")}</h2>
         <p className="mx-auto mt-2 max-w-xl text-center text-[14px] text-muted">{t("landing.features.subtitle")}</p>
-        <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {FEATURES.map((f) => (
-            <div key={f.key} className="rounded-card border border-line bg-card p-5 shadow-card">
+            <div key={f.key} className="rounded-card border border-line bg-card p-5 shadow-card transition-shadow hover:shadow-lg">
               <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary-soft text-primary"><f.icon size={20} /></div>
               <h3 className="mt-3 text-[15px] font-bold text-ink">{t(`landing.features.${f.key}.title`)}</h3>
               <p className="mt-1.5 text-[13px] leading-relaxed text-muted">{t(`landing.features.${f.key}.desc`)}</p>
             </div>
           ))}
         </div>
+        {/* تصفّح جميع المميزات — يقود للصفحة المستقلّة */}
+        <div className="mt-8 text-center">
+          <Link href="/features" className="inline-flex items-center gap-2 rounded-lg border border-primary/30 bg-primary-soft px-5 py-2.5 text-[14px] font-semibold text-primary-strong hover:bg-primary/15">
+            {t("landing.features.browseAll")} <ArrowLeft size={16} className="ltr:rotate-180" />
+          </Link>
+        </div>
       </section>
+
+      {/* وكلاء الذكاء الاصطناعي */}
+      <div id="ai" className="scroll-mt-16">
+        <AiAgentsSection />
+      </div>
 
       {/* مخصّص لشركات الوساطة */}
       <section className="border-y border-line bg-card/50">

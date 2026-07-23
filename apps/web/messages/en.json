@@ -3191,9 +3191,58 @@
       "saved": "Contact details saved"
     }
   },
+  "featuresPage": {
+    "back": "Back to home",
+    "title": "Every feature a brokerage needs — in detail",
+    "subtitle": "A full tour of the platform's modules, each with a code-designed animation showing how it works.",
+    "ctaTitle": "Try the whole platform free",
+    "ctaSubtitle": "Start your trial today — no infrastructure, no card.",
+    "items": {
+      "crm": { "title": "CRM & relationships", "desc": "Visual sales pipelines, deals, tasks and follow-ups, and a 360° client view gathering every interaction, document and claim in one screen." },
+      "underwriting": { "title": "Underwriting & RFQ", "desc": "Send an RFQ to multiple carriers, compare quotes in an automated table that flags the best fit, and issue the placement order in one click." },
+      "policies": { "title": "Policy issuance & endorsements", "desc": "Issue policies with sequence numbers, endorsements (amend/cancel/renew), and temporary cover notes through a governed approval flow." },
+      "finance": { "title": "Finance & accounting", "desc": "Balanced double-entry, chart of accounts, general ledger, trial balance and financial statements, plus flexible-schedule installments." },
+      "commissions": { "title": "Commissions & sub-brokers", "desc": "Automatic brokerage commission per policy, rep incentives, and transparent sub-broker settlements." },
+      "claims": { "title": "Claims & customer service", "desc": "Full claims lifecycle with a conversation thread, SLA-tiered service requests, and renewals with status tracking and alerts." },
+      "hr": { "title": "HR & payroll", "desc": "Employee profiles and (encrypted) documents, leave, smart attendance, payroll, and onboarding/offboarding checklists." },
+      "compliance": { "title": "Compliance & AML", "desc": "KYC risk assessment, sanctions and PEP screening, a suspicious-activity log, and a structured complaints register." },
+      "verification": { "title": "Government verification", "desc": "Ready connectors: Yakeen · Wathq · Nafath · National Address — smart client-data prefill (activated with a provider contract)." },
+      "reports": { "title": "Reports & analytics", "desc": "KPI dashboards, exportable reports (Excel/PDF), and scheduled reports emailed to management periodically." },
+      "zatca": { "title": "E-invoicing (ZATCA)", "desc": "Invoices built to the Phase 2 (Fatoora) spec — QR, signature, and complete tax fields." },
+      "multitenant": { "title": "Multi-tenancy & governance", "desc": "Full data isolation per company, granular editable permissions, and an immutable audit log." }
+    }
+  },
   "landing": {
     "nav": {
+      "features": "Features",
+      "ai": "AI agents",
+      "pricing": "Pricing",
+      "ownership": "Ownership",
       "login": "Sign in"
+    },
+    "workflow": {
+      "caption": "Every transaction flows through a governed path — state machine, permission gates, full audit — ending in a signed, ZATCA-ready invoice.",
+      "stages": {
+        "request": "Request",
+        "underwriting": "Underwriting",
+        "quote": "Quote",
+        "issue": "Issue",
+        "verify": "Verify"
+      }
+    },
+    "ai": {
+      "badge": "Coming — AI agents",
+      "title": "Every module supercharged with an AI agent",
+      "subtitle": "Agents that work alongside your team: suggest the next action, surface risk, and automate repetitive work — across every part of the platform.",
+      "soon": "Soon",
+      "agents": {
+        "crm": { "name": "Client follow-up agent", "desc": "Suggests the next step for every deal and flags at-risk clients before they churn." },
+        "pricing": { "name": "Smart pricing agent", "desc": "Analyzes risk data and proposes the best price, comparing carrier quotes automatically." },
+        "claims": { "name": "Claims triage agent", "desc": "Classifies incoming claims, detects duplicates and potential fraud, and recommends a decision." },
+        "finance": { "name": "Reconciliation agent", "desc": "Matches payments and commissions and flags variances and anomalies in entries automatically." },
+        "compliance": { "name": "Compliance agent", "desc": "Continuously screens sanctions and PEP lists and alerts on regulatory obligations before they're due." },
+        "hr": { "name": "HR agent", "desc": "Summarizes attendance and leave, and alerts on expiring documents and assets ahead of time." }
+      }
     },
     "hero": {
       "badge": "Prepared for ZATCA Phase 2 (Fatoora) integration",
@@ -3209,6 +3258,19 @@
     "features": {
       "title": "Everything a brokerage needs, in one platform",
       "subtitle": "Integrated modules covering the workflow end to end.",
+      "browseAll": "Browse all features",
+      "crm": {
+        "title": "CRM & relationships",
+        "desc": "Sales pipelines, deals, tasks and follow-ups, and a 360° client view of every interaction in one place."
+      },
+      "commissions": {
+        "title": "Commissions & sub-brokers",
+        "desc": "Automatic brokerage commission calculation, rep incentives, and sub-broker settlements."
+      },
+      "hr": {
+        "title": "HR & payroll",
+        "desc": "Employee profiles and documents, leave, smart attendance, payroll, and onboarding/offboarding checklists."
+      },
       "lifecycle": {
         "title": "Full deal lifecycle",
         "desc": "Sales → pricing → production → service → claims → finance, with governed state machines and gates."
