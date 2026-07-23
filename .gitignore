@@ -33,3 +33,10 @@ pnpm-debug.log*
 
 # test / coverage
 coverage/
+
+# Open-data CR dataset snapshots (large, imported not committed)
+*.xlsx
+2026*active*.xlsx
+data/cr-registry/*.xlsx
+data/cr-registry/*.csv
+!data/cr-registry/README.md

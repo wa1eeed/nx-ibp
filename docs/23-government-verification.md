@@ -44,7 +44,11 @@
 مصدر **مجاني** بديل/مكمّل لواثق للتحقّق من السجل التجاري — مبنيّ على [داتاست السجلات القائمة](https://open.data.gov.sa/ar/datasets/view/aef772cd-354c-48bb-9819-c60706dc8b56) (لقطة فصلية). لأن الداتاست يُنشَر **ملفًّا مجمَّعًا** (لا واجهة استعلام لحظي)، نستورده إلى جدول مرجعي محليّ ([`CrRegistryRecord`](../packages/db/prisma/schema.prisma)) فيصبح البحث **فوريًّا برقم السجل بلا نداء خارجي**.
 
 - **البحث** [`CrRegistryService.lookup`](../apps/api/src/modules/verification/cr-registry.service.ts): يُطبّع الرقم (يقبل الأرقام العربية) ويعيد السجل نظيفًا (اسم · نشاط · كيان قانوني · رقم موحّد · منطقة · مدينة · رأس مال · نوع السجل · تاريخ الإنشاء) أو `found:false`. الوجود ⇒ يُسجَّل كعملية تحقّق **مجانية** (`checkType=cr_opendata`, provider `opendata`).
-- **الاستيراد**: عيّنة تُبذَر تلقائيًّا في `seed.ts` لتعمل الميزة فورًا؛ والملفّ الكامل يُستورَد عبر [`prisma/import-cr-registry.ts`](../packages/db/prisma/import-cr-registry.ts) — نزّل لقطة الداتاست وصدّرها CSV ثم: `ts-node prisma/import-cr-registry.ts <file.csv> [source]`. المجلد المصدر (SharePoint) يحتاج تنزيلًا يدويًّا.
+- **الاستيراد — مجلد إسقاط (drop folder)**: تجلب المنصّة البيانات من مجلد مخصّص [`data/cr-registry/`](../data/cr-registry/README.md) (أو `$CR_REGISTRY_DIR`). أسقِط ملفّات اللقطة (`.xlsx`) ثم:
+  - `node packages/db/prisma/import-cr-dir.cjs` — يستورد **الجديد فقط** (يتخطّى المتطابق عبر جدول `CrRegistryImport` بمطابقة الاسم+الحجم+زمن التعديل)، فإضافة شركات جديدة = إسقاط ملفّ جديد.
+  - `node packages/db/prisma/import-cr-dir.cjs --fresh` — لقطة فصلية نظيفة (يمسح ثم يعيد الاستيراد الكامل).
+  - يُوصى بربطه بـ**cron** ليجلب الملفّات الجديدة آليًّا. المستورِد يبثّ ورقة الإكسل عبر `unzip -p` فيتحمّل الملايين بذاكرة منخفضة (`createMany` بالدُّفعات). ملفّات CSV تُستورَد بـ[`import-cr-registry.ts`](../packages/db/prisma/import-cr-registry.ts). البيانات لا تُرفَع على git.
+  - عيّنة (١٢ سجلًّا) تُبذَر في `seed.ts` لتعمل الميزة فورًا قبل أول استيراد.
 - **الواجهة**: بطاقة «التحقّق من السجل التجاري» في صفحة التحقّق — إدخال رقم ⇒ عرض فوريّ لكل بيانات السجل مع وسم المصدر واللقطة، أو «غير موجود في اللقطة».
 
 ## 5. الـ endpoints
