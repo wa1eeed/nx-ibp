@@ -1,4 +1,4 @@
-import { IsEmail, IsIn, IsInt, IsNumber, IsOptional, IsString, Max, Min } from "class-validator";
+import { ArrayMaxSize, ArrayMinSize, IsArray, IsEmail, IsIn, IsInt, IsNumber, IsOptional, IsString, Max, MaxLength, Min } from "class-validator";
 
 export class PlatformLoginDto {
   @IsEmail() email!: string;
@@ -49,4 +49,15 @@ export class UpdateEntitlementDto {
 
   @IsOptional() @IsNumber() numericValue?: number;
   @IsOptional() @IsNumber() unitFee?: number;
+}
+
+/**
+ * استيراد دفعة سجلات تجارية من السوبر أدمن (upsert برقم السجل). الواجهة تُقسّم الملفّ
+ * إلى دُفعات (≤ حدّ الجسم 2mb) وتُرسل كلّ دفعة على حدة. الحدّ 5000 صفّ/طلب.
+ */
+export class ImportCrRegistryDto {
+  @IsArray() @ArrayMinSize(1) @ArrayMaxSize(5000)
+  rows!: Array<Record<string, unknown>>;
+
+  @IsOptional() @IsString() @MaxLength(120) source?: string; // وسم اللقطة/المصدر (مثال: manual_2026q3)
 }

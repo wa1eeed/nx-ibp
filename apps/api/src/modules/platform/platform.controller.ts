@@ -5,7 +5,7 @@ import { PlatformPaymentSettingsService } from "./platform-payment-settings.serv
 import { AuditViewService } from "../audit/audit-view.service";
 import { NotificationsService } from "../notifications/notifications.service";
 import { UpdateNotificationDto } from "../notifications/dto/notification.dto";
-import { ChangeTenantPlanDto, LeadStatusDto, MfaCodeDto, PlatformLoginDto, SetRenewalDto, TenantStatusDto, UpdateEntitlementDto, UpdatePlanDto } from "./dto/platform.dto";
+import { ChangeTenantPlanDto, ImportCrRegistryDto, LeadStatusDto, MfaCodeDto, PlatformLoginDto, SetRenewalDto, TenantStatusDto, UpdateEntitlementDto, UpdatePlanDto } from "./dto/platform.dto";
 import { Public } from "../auth/public.decorator";
 import { CurrentUser } from "../auth/current-user.decorator";
 
@@ -31,6 +31,18 @@ export class PlatformController {
   @Put("payment")
   savePayment(@CurrentUser("userId") adminId: string, @Body() dto: Record<string, unknown>) {
     return this.platformPay.save(adminId, dto as never);
+  }
+
+  // ----- سجلّ السجلات التجارية المرجعي — عرض العدد + استيراد دفعة جديدة (upsert برقم السجل) -----
+  @Get("cr-registry/meta")
+  crRegistryMeta() {
+    return this.platform.crRegistryMeta();
+  }
+
+  @HttpCode(200)
+  @Post("cr-registry/import")
+  importCrRegistry(@CurrentUser("userId") adminId: string, @Body() dto: ImportCrRegistryDto) {
+    return this.platform.importCrRegistry(adminId, dto.rows, dto.source);
   }
 
   @Public()

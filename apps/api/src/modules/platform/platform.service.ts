@@ -6,6 +6,7 @@ import { PrismaService } from "../../prisma/prisma.service";
 import { AuditService } from "../../common/audit/audit.service";
 import { RateLimitService } from "../../common/security/rate-limit.service";
 import { TenantAccessService } from "../access/tenant-access.service";
+import { CrRegistryService } from "../verification/cr-registry.service";
 import type { TenantStatusDto, UpdateEntitlementDto, UpdatePlanDto } from "./dto/platform.dto";
 
 /**
@@ -20,7 +21,25 @@ export class PlatformService {
     private readonly audit: AuditService,
     private readonly rateLimit: RateLimitService,
     private readonly access: TenantAccessService,
+    private readonly crRegistry: CrRegistryService,
   ) {}
+
+  /** وصف سجلّ السجلات التجارية المرجعي (العدد + اللقطة/المصدر) — للعرض في لوحة السوبر أدمن. */
+  crRegistryMeta() {
+    return this.crRegistry.meta();
+  }
+
+  /**
+   * **استيراد دفعة سجلات تجارية** (السوبر أدمن) — upsert برقم السجل، فتُضاف الجديدة وتُحدَّث القائمة.
+   * تقبل مفاتيح الأعمدة العربية للداتاست أو مرادفاتها الإنجليزية (مطابِقة للقالب القابل للتنزيل).
+   * تُرسل الواجهة الملفّ على دُفعات؛ كل نداء يُدقَّق ويُعيد العدد المُستورَد والإجمالي الحالي.
+   */
+  async importCrRegistry(adminId: string, rows: Array<Record<string, unknown>>, source?: string) {
+    const { imported } = await this.crRegistry.importRows(rows, source && source.trim() ? source.trim() : "manual_import");
+    const { count } = await this.crRegistry.meta();
+    await this.audit.log({ tenantId: "platform", userId: adminId, action: "import", entity: "cr_registry", entityId: "cr_registry", meta: { imported, total: count, source: source ?? null } });
+    return { imported, total: count };
+  }
 
   async login(email: string, password: string, mfaCode?: string) {
     await this.rateLimit.assertNotLocked("login", email);
