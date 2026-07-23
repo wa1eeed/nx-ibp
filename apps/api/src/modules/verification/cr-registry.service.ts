@@ -34,11 +34,14 @@ export function normalizeCrNumber(input: string): string {
 export class CrRegistryService {
   constructor(private readonly prisma: PrismaService) {}
 
-  /** بحث فوريّ برقم السجل — يُعيد السجل نظيفًا أو null. */
+  /** بحث فوريّ بـ**رقم السجل أو الرقم الموحّد** (يقبل أيّ المُعرّفين) — يُعيد السجل نظيفًا أو null. */
   async lookup(crNumber: string): Promise<CrRecord | null> {
     const cr = normalizeCrNumber(crNumber);
     if (!cr) return null;
-    const r = await this.prisma.crRegistryRecord.findUnique({ where: { crNumber: cr } });
+    // رقم السجل (فريد، سريع) أولًا، ثم الرقم الموحّد (700…) — فيعمل البحث بأيّ المُعرّفين
+    const r =
+      (await this.prisma.crRegistryRecord.findUnique({ where: { crNumber: cr } })) ??
+      (await this.prisma.crRegistryRecord.findFirst({ where: { unifiedNumber: cr } }));
     if (!r) return null;
     return {
       crNumber: r.crNumber,

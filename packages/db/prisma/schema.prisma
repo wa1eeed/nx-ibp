@@ -1643,6 +1643,7 @@ model CrRegistryRecord {
   importedAt    DateTime  @default(now())
 
   @@index([name])
+  @@index([unifiedNumber]) // البحث بالرقم الموحّد (700…) بجانب رقم السجل
 }
 
 model VerificationCheck {
