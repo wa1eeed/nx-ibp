@@ -3,6 +3,7 @@ import { JwtService } from "@nestjs/jwt";
 import * as bcrypt from "bcryptjs";
 import { createHash, randomBytes } from "node:crypto";
 import { PrismaService } from "../../prisma/prisma.service";
+import { TenantAccessService } from "../access/tenant-access.service";
 import { AuditService } from "../../common/audit/audit.service";
 import { RateLimitService } from "../../common/security/rate-limit.service";
 import { generateTotpSecret, otpauthUri, verifyTotp } from "../../common/security/totp";
@@ -18,6 +19,7 @@ export class AuthService {
     private readonly jwt: JwtService,
     private readonly audit: AuditService,
     private readonly rateLimit: RateLimitService,
+    private readonly access: TenantAccessService,
   ) {}
 
   /** هل تُلزِم الشركة موظفيها بالمصادقة الثنائية؟ (سياسة أمان على مستوى المستأجر). */
@@ -132,7 +134,7 @@ export class AuthService {
       include: { plan: { select: { entitlements: { select: { featureKey: true, mode: true } } } }, addons: { select: { addonKey: true } } },
     });
     const purchased = new Set(sub?.addons.map((a) => a.addonKey) ?? []);
-    const features = [
+    let features = [
       ...new Set([
         ...purchased,
         ...(sub?.plan.entitlements ?? [])
@@ -140,7 +142,16 @@ export class AuthService {
           .map((e) => e.featureKey),
       ]),
     ];
-    return { ...rest, roleName: role?.name ?? null, permissions, features, mfaEnrollmentRequired };
+    // حالة الوصول (انتهاء التجربة/الإيقاف) — للواجهة (شريط التنبيه + إخفاء المتقدّم)
+    const acc = await this.access.resolve(user.tenantId);
+    if (acc.downgradeToBasic) {
+      // خفض لميزات الباقة الأساسية عند انتهاء التجربة — فتُخفي الواجهة المتقدّم لا أن تُظهره ثم يُرفَض
+      const basic = await this.prisma.plan.findUnique({ where: { code: "basic" }, include: { entitlements: { select: { featureKey: true, mode: true } } } });
+      const basicKeys = new Set((basic?.entitlements ?? []).filter((e) => e.mode === "INCLUDED" || e.mode === "QUOTA" || e.mode === "METERED").map((e) => e.featureKey));
+      features = features.filter((f) => basicKeys.has(f));
+    }
+    const access = { state: acc.state, status: acc.status, trialEndsAt: acc.trialEndsAt, daysLeft: acc.daysLeft, writeBlocked: acc.writeBlocked, downgradeToBasic: acc.downgradeToBasic, hardBlocked: acc.hardBlocked };
+    return { ...rest, roleName: role?.name ?? null, permissions, features, access, mfaEnrollmentRequired };
   }
 
   // ————————————————— المصادقة الثنائية (TOTP) للموظف —————————————————

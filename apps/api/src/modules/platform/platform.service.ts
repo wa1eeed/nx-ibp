@@ -5,6 +5,7 @@ import * as bcrypt from "bcryptjs";
 import { PrismaService } from "../../prisma/prisma.service";
 import { AuditService } from "../../common/audit/audit.service";
 import { RateLimitService } from "../../common/security/rate-limit.service";
+import { TenantAccessService } from "../access/tenant-access.service";
 import type { TenantStatusDto, UpdateEntitlementDto, UpdatePlanDto } from "./dto/platform.dto";
 
 /**
@@ -18,6 +19,7 @@ export class PlatformService {
     private readonly jwt: JwtService,
     private readonly audit: AuditService,
     private readonly rateLimit: RateLimitService,
+    private readonly access: TenantAccessService,
   ) {}
 
   async login(email: string, password: string, mfaCode?: string) {
@@ -113,6 +115,7 @@ export class PlatformService {
     const exists = await this.prisma.tenant.findFirst({ where: { id }, select: { id: true } });
     if (!exists) throw new NotFoundException("المستأجر غير موجود");
     await this.prisma.tenant.update({ where: { id }, data: { status: dto.status } });
+    this.access.invalidate(id); // يفرض/يرفع الحجب فورًا (تعليق/إعادة تفعيل)
     await this.audit.log({ tenantId: id, userId: adminId, action: "update", entity: "tenant_status", entityId: id, meta: { status: dto.status, by: "platform" } });
     return { id, status: dto.status };
   }

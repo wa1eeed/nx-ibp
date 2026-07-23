@@ -2,6 +2,15 @@
 
 كل التغييرات الملموسة في منصة IBP، منظّمة حسب المراحل. الصيغة مستلهمة من [Keep a Changelog](https://keepachangelog.com).
 
+## [فرض انتهاء التجربة والإيقاف الإداري (حجب متدرّج + خفض للأساسية)] ✅
+كانت التجربة تنتهي بلا أثر (وصول كامل دائم)، وحتى إيقاف السوبر أدمن غير مفروض — **ثغرة قبل الإطلاق**. أُضيف فرضٌ عند **نقطة واحدة** مع تدرّج لطيف:
+- **مُحلِّل الحالة** [`TenantAccessService`](apps/api/src/modules/access/tenant-access.service.ts): يحسب الحالة الفعّالة (`active`/`trial`/`trial_expired`/`suspended`/`cancelled`) من `Tenant.status` + `trialEndsAt` الحيّ، بكاش 60 ثانية في الذاكرة (بلا استعلام لكل طلب). يُبطَل فورًا عند الدفع/التعليق.
+- **حارس عالمي** [`TenantAccessGuard`](apps/api/src/modules/access/tenant-access.guard.ts): **انتهاء التجربة ⇒ قراءة فقط** (الكتابة **402**)؛ **SUSPENDED/CANCELLED ⇒ 403** على كل شيء؛ الدخول/الفوترة/الإشعارات **مستثناة دائمًا** (كي يستطيع الدفع)؛ نطاقا المنصّة والعميل مستثنيان.
+- **خفض للباقة الأساسية** عند انتهاء التجربة: [`EntitlementService`](apps/api/src/modules/rbac/entitlement.service.ts) يقصر الميزات على المشمول في «basic» — كل `feature.*` المتقدّمة (CRM/ZATCA/التحليلات…) تُحجب (**403**) وتختفي من `features` في `/auth/me`.
+- **الواجهة**: `/auth/me` يعيد `access` (الحالة + الأيام المتبقية)؛ **شريط تنبيه دائم** [`AccessBanner`](apps/web/src/components/layout/AccessBanner.tsx) — عدّاد كهرماني (≤7 أيام) · «انتهت — جدّد» أحمر · «موقوف». يحترم RTL/LTR.
+- **الرموز الدلالية**: **402** (تجربة/دفع) · **403** (إيقاف) — الواجهة تعرض الرسالة الواضحة مع مسار التجديد.
+- **الاختبار** [`access-enforcement.e2e-spec.ts`](apps/api/test/access-enforcement.e2e-spec.ts) — **4**: سارية (كامل) · منتهية (قراءة/402/خفض ZATCA 403/فوترة مستثناة) · SUSPENDED (403 + إعادة تفعيل فورية). المجموع **422/422 (59 حزمة)** · بناء web ✅.
+
 ## [توحيد الخطّ الزمني الاحترافي: الموظف والعميل + RTL/LTR] ✅
 تعميم تصميم سجلّ الرحلة على كل الأسطح ليكون **موحّدًا واحترافيًا** ويحترم اتجاه اللغة:
 - **مكوّن مرن** [`LifecycleTimeline`](apps/web/src/components/LifecycleTimeline.tsx): صار يقبل `events` جاهزة (لا `path` فقط) + خيار `descending` (الأحدث أولًا) — خطّ عمودي بعُقَد ملوّنة حسب الطور، **خصائص منطقية `ps`/`start` تحترم RTL وLTR** تلقائيًا.

@@ -232,6 +232,13 @@
     "empty": "No history yet",
     "phase": { "crm": "CRM", "request": "Request", "underwriting": "Underwriting", "issuance": "Issuance", "finance": "Finance", "service": "Service", "other": "Other" }
   },
+  "access": {
+    "trialSoon": "Your free trial ends in {days} day(s) — renew to keep working without interruption.",
+    "expired": "Your free trial has ended — your data is safe and read access remains. Renew to resume creating and editing.",
+    "suspended": "Account temporarily suspended — contact support to reactivate.",
+    "cancelled": "Account cancelled — contact support.",
+    "renew": "Renew now"
+  },
   "demo": {
     "title": "Demo Session",
     "subtitle": "Temporary preview mode"

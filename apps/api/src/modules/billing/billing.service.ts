@@ -5,6 +5,7 @@ import { RequestContextService } from "../../common/request-context/request-cont
 import { PAYMENT_GATEWAY, type PaymentGateway } from "./gateway/gateway.types";
 import { TapGateway } from "./gateway/tap.gateway";
 import { PlatformPaymentSettingsService } from "../platform/platform-payment-settings.service";
+import { TenantAccessService } from "../access/tenant-access.service";
 import { NotificationsService } from "../notifications/notifications.service";
 import type { CheckoutDto } from "./dto/checkout.dto";
 
@@ -20,6 +21,7 @@ export class BillingService {
     @Inject(PAYMENT_GATEWAY) private readonly gateway: PaymentGateway,
     private readonly notifications: NotificationsService,
     private readonly platformPay: PlatformPaymentSettingsService,
+    private readonly access: TenantAccessService,
   ) {}
 
   /**
@@ -134,6 +136,7 @@ export class BillingService {
       await tx.subscription.updateMany({ where: { tenantId }, data: { ...(plan ? { planId: plan.id } : {}), cycle, renewsAt } });
       await tx.tenant.update({ where: { id: tenantId }, data: { status: "ACTIVE" } });
     });
+    this.access.invalidate(tenantId); // رفع الحجب فورًا بعد الدفع
     this.logger.log(`تفعيل اشتراك المستأجر ${tenantId} (${planCode}/${cycle})`);
     // إشعار إداري بتفعيل/تحديث الاشتراك
     void this.notifications.notifyStaff(tenantId, "staff_subscription_status", { status: `مُفعّل — ${planCode}/${cycle}` }).catch(() => undefined);

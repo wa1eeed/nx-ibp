@@ -392,5 +392,23 @@ CRM بلا تذكير آلي نصف حلّ: المهام تفوت والوثائ
   - **العميل 360°** (تبويب الخط الزمني): تُطوّر الأحداث (نشاط/وثائق/مطالبات/طلبات/تحقّق) إلى أطوار ملوّنة بنفس التصميم.
   - **الوثيقة والطلب**: عبر `path` (endpoint الرحلة).
 
+## 42. فرض حالة الوصول — انتهاء التجربة والإيقاف الإداري
+
+كانت الفترة التجريبية تنتهي بلا أثر (وصول كامل دائم) وحتى الإيقاف اليدوي غير مفروض — عولجت الثغرة بنقطة فرض واحدة مع تدرّج لطيف (يسمح بالدفع للتعافي بدل حجب مفاجئ):
+
+- **مُحلِّل الحالة** [`TenantAccessService`](../apps/api/src/modules/access/tenant-access.service.ts): الحالة الفعّالة من `Tenant.status` + `trialEndsAt = subscription.startedAt + plan.trialDays` (فحص حيّ يسدّ فجوة الكرون). كاش 60 ثانية في الذاكرة، يُبطَل فورًا عند الدفع (`billing.activate`) أو تغيير الحالة (`platform.setStatus`).
+- **الحارس العالمي** [`TenantAccessGuard`](../apps/api/src/modules/access/tenant-access.guard.ts) (APP_GUARD بعد المصادقة): مصفوفة الحجب —
+  | الحالة | القراءة | الكتابة | الميزات المتقدّمة |
+  |---|---|---|---|
+  | `active` / `trial` سارية | ✓ | ✓ | ✓ |
+  | `trial_expired` | ✓ | **402** | **محجوبة (خفض للأساسية)** |
+  | `SUSPENDED`/`CANCELLED` | **403** | **403** | 403 |
+  - مستثنى دائمًا: `/auth` · `/billing` · `/config/payment` · `/notifications` · `/health`. مُتخطّى: `/platform` · `/portal` (دورة حياة خاصة).
+- **الخفض للأساسية** [`EntitlementService`](../apps/api/src/modules/rbac/entitlement.service.ts): عند `downgradeToBasic` تُقصَر الميزات على المشمول في باقة «basic» — كل `feature.*` المتقدّمة (CRM/ZATCA/التحليلات…) ⇒ 403، وتختفي من `features` في `/auth/me`.
+- **الواجهة**: `/auth/me` يعيد `access {state, trialEndsAt, daysLeft, writeBlocked, hardBlocked}`؛ شريط [`AccessBanner`](../apps/web/src/components/layout/AccessBanner.tsx) دائم (عدّاد ≤7 أيام · «انتهت» · «موقوف») يحترم RTL/LTR.
+- **رموز HTTP**: 402 (تجربة/دفع) · 403 (إيقاف). **الاختبار** [`access-enforcement.e2e-spec.ts`](../apps/api/test/access-enforcement.e2e-spec.ts) — 4. المجموع **422/422**.
+
+> **تذكيرات استباقية (متعدّدة القنوات) قبل الانتهاء (7/3/1/يوم الانتهاء):** الشريط الدائم يوفّر الوعي داخل المنصّة الآن؛ إرسال البريد/SMS عبر `RemindersService` (الكرون اليومي) — إضافة موثّقة قادمة تعيد استخدام نظام الإشعارات ثلاثي القناة.
+
 ## انظر أيضاً
 [00 — الحالة](./00-project-status.md) · [03 — البيانات](./03-data-model.md) · [06 — API](./06-api-reference.md) · [07 — الوحدات](./07-backend-modules.md) · [10 — الاكتتاب/العروض](./10-underwriting-rfq.md) · [17 — الامتثال](./17-compliance-and-regulatory.md) · [20 — الإصدار والمالية](./20-issuance-and-finance-core.md) · [25 — بوّابة العميل](./25-client-portal.md) · [30 — الأمن](./30-security-and-compliance.md) · [31 — كتالوج المزايا](./31-feature-catalog.md) · [35 — تدقيق النواقص](./35-gap-audit.md) · [CHANGELOG](../CHANGELOG.md)
