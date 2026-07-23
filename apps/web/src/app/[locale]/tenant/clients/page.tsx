@@ -252,9 +252,9 @@ export default function ClientsPage() {
             <span className="mb-1 block text-[12px] font-medium text-muted">آلية التحصيل</span>
             <select value={collectionModel} onChange={(e) => setCollectionModel(e.target.value)} className="h-9 w-full rounded-lg border border-line bg-card px-2 text-[13px]">
               <option value="collect_full">تحصيل كامل القسط (أمانات)</option>
-              <option value="direct">العميل يدفع للمؤمِّن مباشرةً</option>
+              <option value="direct">العميل يدفع لشركة التأمين مباشرةً</option>
             </select>
-            <span className="mt-1 block text-[10.5px] leading-tight text-subtle">{collectionModel === "direct" ? "الوسيط يُفوتر عمولته فقط على المؤمِّن — بلا أمانة ولا تسوية" : "الوسيط يُحصّل القسط كاملًا من العميل ويورّد أمانة المؤمِّن"}</span>
+            <span className="mt-1 block text-[10.5px] leading-tight text-subtle">{collectionModel === "direct" ? "الوسيط يُفوتر عمولته فقط على شركة التأمين — بلا أمانة ولا تسوية" : "الوسيط يُحصّل القسط كاملًا من العميل ويورّد أمانة شركة التأمين"}</span>
           </label>
           <Field label="العنوان الوطني" value={nationalAddress} onChange={setNationalAddress} />
           <div className="flex items-end">

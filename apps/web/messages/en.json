@@ -1195,7 +1195,7 @@
     "backHome": "Home",
     "nav": "Ownership",
     "heroTitle": "License your operating platform — an enterprise alternative",
-    "heroSub": "An enterprise alternative to recurring subscription — a perpetual license with source code and a dedicated environment, for brokerage groups and large entities (NX Solutions retains the intellectual property).",
+    "heroSub": "An enterprise alternative to recurring subscription — a perpetual license with source code and a dedicated environment, for brokerage groups and large entities (Sky Solutions retains the intellectual property).",
     "consultative": "Consultative sale — contact us",
     "tier1Name": "Ownership license (Source-Available)",
     "tier1Tagline": "Perpetual use license with full source access.",
@@ -1204,11 +1204,11 @@
     "tier1P3": "Freedom to deploy and modify internally",
     "tier1P4": "Single restriction: no resale or redistribution",
     "tier2Name": "Enterprise ownership (extended perpetual license)",
-    "tier2Tagline": "Perpetual license with source code and a dedicated isolated environment — NX Solutions retains the intellectual property.",
+    "tier2Tagline": "Perpetual license with source code and a dedicated isolated environment — Sky Solutions retains the intellectual property.",
     "tier2P1": "Extended perpetual use license with no recurring fees",
     "tier2P2": "Full source code + a dedicated isolated environment",
     "tier2P3": "Full handover and knowledge transfer + deeper customization",
-    "tier2P4": "NX Solutions retains the IP (no resale or redistribution)",
+    "tier2P4": "Sky Solutions retains the IP (no resale or redistribution)",
     "cta": "Contact us",
     "deployTitle": "Flexible deployment",
     "deploySub": "On your own servers (on-premise) or an isolated private cloud — per your company policy and data sovereignty.",
@@ -3385,7 +3385,7 @@
     "footer": {
       "rights": "All rights reserved",
       "madeIn": "Hosted inside Saudi Arabia",
-      "byNx": "A product of NX Solutions",
+      "byNx": "A product of Sky Solutions",
       "legalTitle": "Legal",
       "terms": "Terms of Service",
       "privacy": "Privacy Policy",
@@ -3398,11 +3398,11 @@
     "lastUpdated": "Last updated",
     "updatedDate": "19 July 2026",
     "tocTitle": "Legal documents",
-    "provider": "Provider: NX Solutions",
+    "provider": "Provider: Sky Solutions",
     "contactTitle": "Legal enquiries",
-    "contactBody": "For any question about these documents or data processing, contact the NX Solutions team via the contact form on the home page.",
+    "contactBody": "For any question about these documents or data processing, contact the Sky Solutions team via the contact form on the home page.",
     "contactCta": "Contact us",
-    "disclaimer": "These documents form a general contractual framework for the NX-IBP platform and may be supplemented by a signed subscription agreement; in case of conflict, the signed agreement prevails.",
+    "disclaimer": "These documents form a general contractual framework for the IBP platform and may be supplemented by a signed subscription agreement; in case of conflict, the signed agreement prevails.",
     "nav": {
       "terms": "Terms of Service",
       "privacy": "Privacy Policy",
@@ -3411,14 +3411,14 @@
     },
     "terms": {
       "title": "Terms of Service",
-      "intro": "These terms govern your use of the NX-IBP insurance-brokerage operations platform, and are entered into between the brokerage (the Customer) and NX Solutions (the Provider).",
+      "intro": "These terms govern your use of the IBP insurance-brokerage operations platform, and are entered into between the brokerage (the Customer) and Sky Solutions (the Provider).",
       "sections": [
-        { "h": "Definitions", "b": "“Platform” means the NX-IBP system and its cloud services. “Customer” is the subscribing brokerage. “User” is any employee account created under the Customer’s subscription. “Customer Data” is everything entered into the Platform by the Customer, its users, or its clients." },
+        { "h": "Definitions", "b": "“Platform” means the IBP system and its cloud services. “Customer” is the subscribing brokerage. “User” is any employee account created under the Customer’s subscription. “Customer Data” is everything entered into the Platform by the Customer, its users, or its clients." },
         { "h": "Account & subscription", "b": "Self-service sign-up is available for standard plans with a stated trial period; the Enterprise plan is offered via the sales team. The Customer confirms the accuracy of its entity details (CR, unified number, VAT number) and is responsible for the confidentiality of login credentials." },
         { "h": "Pricing & billing", "b": "Pricing is based on the number of actual active users with no plan seat cap; users added mid-cycle are prorated for the remaining period. VAT is added per applicable regulations, and fees are payable in advance each cycle." },
         { "h": "Acceptable use", "b": "The Customer will use the Platform for its lawful insurance-brokerage purposes in compliance with the laws of the Kingdom, and will not attempt to breach it, resell it, misuse its resources, or upload unlawful content." },
         { "h": "Customer data & privacy", "b": "The Customer owns its client and business data entered into the Platform. Personal data is processed per the attached Privacy Policy and Data Processing Agreement, consistent with the principles of the Personal Data Protection Law." },
-        { "h": "Intellectual property", "b": "All intellectual property rights in the Platform, its code, and its marks remain owned by NX Solutions. The subscription grants only a limited, non-exclusive, non-transferable license to use, and transfers no intellectual property." },
+        { "h": "Intellectual property", "b": "All intellectual property rights in the Platform, its code, and its marks remain owned by Sky Solutions. The subscription grants only a limited, non-exclusive, non-transferable license to use, and transfers no intellectual property." },
         { "h": "Limitation of liability", "b": "The Platform is provided “as is” with reasonable professional care. The Provider is not liable for indirect or consequential damages, and its aggregate liability — to the extent permitted by law — is limited to the fees paid in the twelve months preceding the event." },
         { "h": "Termination & data export", "b": "Either party may terminate per the agreed term. On termination the Customer may export its data within a reasonable period, after which data is deleted or returned per the Data Processing Agreement." },
         { "h": "Governing law", "b": "These terms are governed by the laws of the Kingdom of Saudi Arabia, and disputes are settled before the competent judicial authorities in the Kingdom." },
@@ -3427,7 +3427,7 @@
     },
     "privacy": {
       "title": "Privacy Policy",
-      "intro": "This policy explains how NX-IBP handles personal data, and is designed to align with the principles of the Kingdom’s Personal Data Protection Law (PDPL).",
+      "intro": "This policy explains how IBP handles personal data, and is designed to align with the principles of the Kingdom’s Personal Data Protection Law (PDPL).",
       "sections": [
         { "h": "Data we collect", "b": "Account and entity data, users’ work-related data, the Customer’s client data entered to conduct brokerage business (such as identity, contact details, and policy information), and usage and technical logs." },
         { "h": "Purposes of processing", "b": "Operating and delivering the Platform, issuing policies and invoices, sending operational notifications, preventing fraud and meeting regulatory obligations, and improving performance and support." },
@@ -3437,14 +3437,14 @@
         { "h": "Data subject rights", "b": "Subject to law, a data subject has the right to be informed, to access, rectify, delete, and object within legal limits. These rights are usually exercised through the brokerage (the controller), which we support as a processor." },
         { "h": "Data security", "b": "We apply reasonable technical and organizational controls including encryption in transit, tenant data isolation, role-based access control, immutable audit logs, and periodic backups." },
         { "h": "Data hosting", "b": "Platform data is hosted inside the Kingdom of Saudi Arabia. It is not transferred outside the Kingdom except where legally justified and with the required safeguards." },
-        { "h": "Contact", "b": "For any privacy question or request, contact the NX Solutions team via the contact form on the home page." }
+        { "h": "Contact", "b": "For any privacy question or request, contact the Sky Solutions team via the contact form on the home page." }
       ]
     },
     "dpa": {
       "title": "Data Processing Agreement",
-      "intro": "This agreement governs NX Solutions’ processing of personal data on the Customer’s behalf, and supplements the Terms of Service.",
+      "intro": "This agreement governs Sky Solutions’ processing of personal data on the Customer’s behalf, and supplements the Terms of Service.",
       "sections": [
-        { "h": "Roles of the parties", "b": "The Customer acts as the “controller” of its client and employee data, and NX Solutions acts as the “processor” that processes data per the Customer’s documented instructions and in compliance with law." },
+        { "h": "Roles of the parties", "b": "The Customer acts as the “controller” of its client and employee data, and Sky Solutions acts as the “processor” that processes data per the Customer’s documented instructions and in compliance with law." },
         { "h": "Scope & instructions", "b": "Processing is limited to what is necessary to provide the Platform services (storage, processing, issuing documents and invoices, notifications). The processor does not process data for its own purposes." },
         { "h": "Sub-processors", "b": "The processor may engage sub-processors to operate the service, binds them to data-protection obligations no less than this agreement, remains responsible for their performance, and notifies the Customer of any material change." },
         { "h": "Security of processing", "b": "The processor applies technical and organizational controls appropriate to the risk, including encryption in transit, access control, tenant isolation, audit logs, and backups." },

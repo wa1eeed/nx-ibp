@@ -1,5 +1,5 @@
-# NX-IBP — سياسة الإفصاح المسؤول عن الثغرات (Responsible Disclosure, RFC 9116)
-# NX-IBP — Responsible vulnerability disclosure policy
+# IBP — سياسة الإفصاح المسؤول عن الثغرات (Responsible Disclosure, RFC 9116)
+# IBP — Responsible vulnerability disclosure policy
 Contact: mailto:security@nx.sa
 Contact: https://ibp.payone.one/ar
 Policy: https://ibp.payone.one/legal/privacy
