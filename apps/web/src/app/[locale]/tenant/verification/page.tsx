@@ -47,7 +47,7 @@ export default function VerificationPage() {
       const res = await api<{ found: boolean; crNumber?: string; source?: string; data?: Record<string, unknown> }>("/verification/cr-registry", { method: "POST", body: JSON.stringify({ crNumber }) });
       setCrResult(res);
       if (res.found) await load();
-    } catch (err) { setError(err instanceof ApiError ? err.message : "خطأ"); }
+    } catch (err) { setError(err instanceof ApiError ? `${err.message} (${err.status})` : err instanceof Error ? `تعذّر الوصول للخادم: ${err.message}` : "خطأ غير معروف"); }
     finally { setCrBusy(false); }
   }
 
