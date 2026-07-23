@@ -3,7 +3,7 @@ import { FinanceService } from "./finance.service";
 import { RecordReceiptDto } from "./dto/record-receipt.dto";
 import { CancelPolicyDto } from "./dto/cancel-policy.dto";
 import { SettleInsurerDto } from "./dto/settle-insurer.dto";
-import { CreateJournalDto } from "./dto/create-journal.dto";
+import { CreateJournalDto, CreateVoucherDto, UpdateVoucherDto } from "./dto/create-journal.dto";
 import { SettleCommissionDto } from "./dto/settle-commission.dto";
 import { CreateInstallmentPlanDto } from "./dto/installments.dto";
 import { RefundCreditNoteDto } from "./dto/refund-credit-note.dto";
@@ -81,6 +81,27 @@ export class FinanceController {
     @Body() dto: CreateJournalDto,
   ) {
     return this.finance.createJournal(tenantId, userId, dto);
+  }
+
+  // ——— السندات اليدوية الكاملة (JRV/PYV/RCV/DPV): إنشاء مسودّة ⇐ تعديل ⇐ اعتماد ———
+  @Authorize({ module: "finance", action: "create", entitlement: "module.finance" })
+  @HttpCode(201)
+  @Post("vouchers")
+  createVoucher(@CurrentUser("tenantId") tenantId: string, @CurrentUser("userId") userId: string, @Body() dto: CreateVoucherDto) {
+    return this.finance.createManualVoucher(tenantId, userId, dto);
+  }
+
+  @Authorize({ module: "finance", action: "update", entitlement: "module.finance" })
+  @Put("vouchers/:id")
+  updateVoucher(@CurrentUser("tenantId") tenantId: string, @CurrentUser("userId") userId: string, @Param("id") id: string, @Body() dto: UpdateVoucherDto) {
+    return this.finance.updateManualVoucher(tenantId, userId, id, dto);
+  }
+
+  @Authorize({ module: "finance", action: "update", entitlement: "module.finance" })
+  @HttpCode(200)
+  @Post("vouchers/:id/approve")
+  approveVoucher(@CurrentUser("tenantId") tenantId: string, @CurrentUser("userId") userId: string, @Param("id") id: string) {
+    return this.finance.approveVoucher(tenantId, userId, id);
   }
 
   // ——— عمولات الموظفين (مندوبي المبيعات) ———

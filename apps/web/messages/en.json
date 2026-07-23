@@ -571,7 +571,19 @@
       "posted": "Entry posted successfully",
       "log": "Journal log",
       "logSub": "Manually entered journals & expenses",
-      "empty": "No manual entries yet"
+      "empty": "No manual entries yet",
+      "voucherType": "Voucher type",
+      "vtype": {
+        "JRV": "Journal voucher",
+        "PYV": "Payment voucher",
+        "RCV": "Receipt voucher",
+        "DPV": "Direct payment"
+      },
+      "saveDraft": "Save as draft",
+      "draftHint": "Saved as a draft, then posted after approval",
+      "draft": "Draft",
+      "approve": "Approve & post",
+      "approved": "Voucher approved and posted"
     },
     "acctType": {
       "asset": "Assets",

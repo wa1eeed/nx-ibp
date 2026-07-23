@@ -857,13 +857,13 @@ export class FinanceService {
       .map((a) => ({ code: a.code, name: a.name, accountType: a.accountType, isOnBalance: a.isOnBalance }));
   }
 
-  /** سندات القيود اليدوية (JRV) — القيود والمصروفات المُدخلة يدويًا (تُستثنى القيود الآلية). */
+  /** السندات اليدوية (JRV·PYV·RCV·DPV) — المُدخلة يدويًا بكل حالاتها (مسودّة/مرحَّل)؛ تُستثنى القيود الآلية. */
   journalVouchers() {
     return this.prisma.voucher.findMany({
-      where: { type: "JRV", isAuto: false },
+      where: { isAuto: false },
       orderBy: { createdAt: "desc" },
       take: 100,
-      select: { id: true, sequenceNo: true, amount: true, reference: true, lines: true, createdAt: true },
+      select: { id: true, sequenceNo: true, type: true, status: true, amount: true, reference: true, lines: true, createdAt: true },
     });
   }
 
@@ -913,6 +913,79 @@ export class FinanceService {
     });
     await this.audit.log({ tenantId, userId, action: "create", entity: "voucher", entityId: voucher.id, meta: { type: "JRV", amount: totalDebit } });
     return { id: voucher.id, sequenceNo: voucher.sequenceNo, amount: totalDebit };
+  }
+
+  // ————— السندات المحاسبية اليدوية بالكامل: JRV·PYV·RCV·DPV (إنشاء مسودّة ⇐ تعديل ⇐ اعتماد) —————
+
+  private readonly VOUCHER_TYPES = ["JRV", "PYV", "RCV", "DPV"] as const;
+
+  /** يتحقّق من الأطراف (حساب ترحيل صالح + مدين/دائن حصريّ) ويعيدها محلولة مع الإجمالي المتوازن. */
+  private async resolveEntries(entries: Array<{ account: string; debit?: number; credit?: number }>) {
+    if (!entries || entries.length < 2) throw new BadRequestException("السند يحتاج طرفين على الأقل");
+    const codes = [...new Set(entries.map((e) => e.account))];
+    const accounts = await this.prisma.chartOfAccount.findMany({ where: { code: { in: codes } }, select: { id: true, code: true, name: true, level: true } });
+    const byCode = new Map(accounts.map((a) => [a.code, a]));
+    const all = await this.prisma.chartOfAccount.findMany({ select: { id: true, parentId: true } });
+    const parentIds = new Set(all.map((a) => a.parentId).filter((x): x is string => !!x));
+    let totalDebit = 0, totalCredit = 0;
+    const resolved: Array<{ account: string; name: string; debit: number; credit: number }> = [];
+    for (const e of entries) {
+      const acc = byCode.get(e.account);
+      if (!acc) throw new BadRequestException(`حساب غير موجود: ${e.account}`);
+      if (acc.level < 2 || parentIds.has(acc.id)) throw new BadRequestException(`لا يمكن الترحيل إلى حساب عنوان: ${acc.name}`);
+      const debit = r2(num(e.debit)), credit = r2(num(e.credit));
+      if (debit < 0 || credit < 0) throw new BadRequestException("لا يُسمح بقيم سالبة");
+      if ((debit > 0) === (credit > 0)) throw new BadRequestException(`كل سطر إمّا مدين أو دائن: ${acc.name}`);
+      totalDebit = r2(totalDebit + debit); totalCredit = r2(totalCredit + credit);
+      resolved.push({ account: acc.code, name: acc.name, debit, credit });
+    }
+    if (totalDebit <= 0) throw new BadRequestException("قيمة السند صفر");
+    if (Math.abs(totalDebit - totalCredit) > 0.01) throw new UnprocessableEntityException(`السند غير متوازن: المدين ${totalDebit} ≠ الدائن ${totalCredit}`);
+    return { resolved, total: totalDebit };
+  }
+
+  /** إنشاء سند يدويّ (أي نوع) كـ**مسودّة** بأطراف متوازنة — يحتاج اعتمادًا لاحقًا لترحيله. */
+  async createManualVoucher(tenantId: string, userId: string, dto: { type?: string; description: string; date?: string; reference?: string; entries: Array<{ account: string; debit?: number; credit?: number }> }) {
+    const type = (dto.type ?? "JRV").toUpperCase();
+    if (!(this.VOUCHER_TYPES as readonly string[]).includes(type)) throw new BadRequestException("نوع سند غير صالح");
+    const { resolved, total } = await this.resolveEntries(dto.entries);
+    const seq = await this.seq.nextVoucherSeq(type as "JRV" | "PYV" | "RCV" | "DPV");
+    const voucher = await this.prisma.voucher.create({
+      data: { tenantId, type: type as "JRV", sequenceNo: seq, amount: total, status: "draft", isAuto: false, reference: dto.reference ?? null, lines: asJson({ description: dto.description, date: dto.date ?? null, entries: resolved }) },
+      select: { id: true, sequenceNo: true, type: true, amount: true, status: true },
+    });
+    await this.audit.log({ tenantId, userId, action: "create", entity: "voucher", entityId: voucher.id, meta: { type, amount: total, status: "draft" } });
+    return { id: voucher.id, sequenceNo: voucher.sequenceNo, type: voucher.type, amount: num(voucher.amount), status: voucher.status };
+  }
+
+  /** تعديل سند **مسودّة** (لا يُعدَّل المرحَّل ولا المولّد آليًّا). */
+  async updateManualVoucher(tenantId: string, userId: string, id: string, dto: { description?: string; date?: string; reference?: string; entries?: Array<{ account: string; debit?: number; credit?: number }> }) {
+    const v = await this.prisma.voucher.findFirst({ where: { id, tenantId }, select: { id: true, status: true, isAuto: true, lines: true, reference: true } });
+    if (!v) throw new NotFoundException("السند غير موجود");
+    if (v.isAuto || v.status !== "draft") throw new ConflictException("لا يمكن تعديل سند مرحَّل أو مولّد آليًّا");
+    const prev = (v.lines as { description?: string; date?: string | null; entries?: unknown[] }) ?? {};
+    const data: Prisma.VoucherUpdateInput = {};
+    if (dto.entries) {
+      const { resolved, total } = await this.resolveEntries(dto.entries);
+      data.amount = total;
+      data.lines = asJson({ description: dto.description ?? prev.description, date: dto.date ?? prev.date ?? null, entries: resolved });
+    } else if (dto.description !== undefined || dto.date !== undefined) {
+      data.lines = asJson({ ...prev, description: dto.description ?? prev.description, date: dto.date ?? prev.date ?? null });
+    }
+    if (dto.reference !== undefined) data.reference = dto.reference || null;
+    const updated = await this.prisma.voucher.update({ where: { id }, data, select: { id: true, sequenceNo: true, amount: true, status: true } });
+    await this.audit.log({ tenantId, userId, action: "update", entity: "voucher", entityId: id, meta: { status: "draft" } });
+    return { id: updated.id, sequenceNo: updated.sequenceNo, amount: num(updated.amount), status: updated.status };
+  }
+
+  /** اعتماد سند مسودّة ⇒ ترحيله (posted). */
+  async approveVoucher(tenantId: string, userId: string, id: string) {
+    const v = await this.prisma.voucher.findFirst({ where: { id, tenantId }, select: { id: true, status: true, type: true, amount: true } });
+    if (!v) throw new NotFoundException("السند غير موجود");
+    if (v.status !== "draft") throw new ConflictException("السند ليس مسودّة");
+    await this.prisma.voucher.update({ where: { id }, data: { status: "posted" } });
+    await this.audit.log({ tenantId, userId, action: "update", entity: "voucher_approved", entityId: id, meta: { type: v.type, amount: num(v.amount) } });
+    return { id, status: "posted" };
   }
 
   /**

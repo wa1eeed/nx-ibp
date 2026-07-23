@@ -27,7 +27,8 @@ interface TrialRow { account: string; name: string; debit: number; credit: numbe
 interface Trial { rows: TrialRow[]; totals: { debit: number; credit: number; balanced: boolean } }
 interface PostAccount { code: string; name: string; accountType: string | null; isOnBalance: boolean }
 interface JournalEntry { account: string; name: string; debit: number; credit: number }
-interface JournalVoucher { id: string; sequenceNo: string | null; amount: string | null; reference: string | null; createdAt: string; lines: { description?: string; date?: string; entries?: JournalEntry[] } | null }
+interface JournalVoucher { id: string; sequenceNo: string | null; type?: string; status?: string; amount: string | null; reference: string | null; createdAt: string; lines: { description?: string; date?: string; entries?: JournalEntry[] } | null }
+const VOUCHER_TYPES = ["JRV", "PYV", "RCV", "DPV"] as const;
 interface EmpCommRow { userId: string; name: string; commissionRate: number | null; policies: number; accrued: number; eligible: number; paid: number; outstanding: number }
 interface EmpComm { rows: EmpCommRow[]; summary: { employees: number; accrued: number; eligible: number; paid: number; outstanding: number } }
 interface ProducerRow { id: string; name: string; code: string | null; policies: number; commissionOwed: number; paid: number; outstanding: number; status: string | null }
@@ -1160,6 +1161,7 @@ const ACCT_GROUPS = ["asset", "liability", "equity", "revenue", "expense"] as co
 function JournalTab({ accounts, vouchers, canWrite, onPosted }: { accounts: PostAccount[]; vouchers: JournalVoucher[]; canWrite: boolean; onPosted: () => void }) {
   const t = useTranslations();
   const blank = (): JLine => ({ account: "", debit: "", credit: "" });
+  const [type, setType] = useState<string>("JRV");
   const [desc, setDesc] = useState("");
   const [date, setDate] = useState("");
   const [reference, setReference] = useState("");
@@ -1167,6 +1169,13 @@ function JournalTab({ accounts, vouchers, canWrite, onPosted }: { accounts: Post
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
   const [openV, setOpenV] = useState("");
+  const [busyV, setBusyV] = useState("");
+
+  async function approveVoucher(id: string) {
+    setBusyV(id);
+    try { await api(`/finance/vouchers/${id}/approve`, { method: "POST" }); onPosted(); }
+    catch (e) { setErr(e instanceof ApiError ? e.message : "خطأ"); } finally { setBusyV(""); }
+  }
 
   const n = (v: string) => Number(v) || 0;
   const totD = lines.reduce((s, l) => s + n(l.debit), 0);
@@ -1186,7 +1195,7 @@ function JournalTab({ accounts, vouchers, canWrite, onPosted }: { accounts: Post
     setErr(""); setSaving(true);
     try {
       const entries = lines.filter((l) => l.account && (n(l.debit) > 0 || n(l.credit) > 0)).map((l) => ({ account: l.account, debit: n(l.debit) || undefined, credit: n(l.credit) || undefined }));
-      await api("/finance/journal", { method: "POST", body: JSON.stringify({ description: desc, date: date || undefined, reference: reference || undefined, entries }) });
+      await api("/finance/vouchers", { method: "POST", body: JSON.stringify({ type, description: desc, date: date || undefined, reference: reference || undefined, entries }) });
       clearForm(); onPosted();
     } catch (e) { setErr(e instanceof ApiError ? (e.details?.[0] ?? e.message) : "خطأ"); } finally { setSaving(false); }
   }
@@ -1201,6 +1210,9 @@ function JournalTab({ accounts, vouchers, canWrite, onPosted }: { accounts: Post
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-5 py-3.5">
           <div><h2 className="flex items-center gap-2 text-[15px] font-semibold text-ink"><BookText size={17} className="text-primary" /> {t("finance.journal.title")}</h2><p className="text-[12px] text-subtle">{t("finance.journal.sub")}</p></div>
           <div className="flex items-center gap-1.5">
+            <select value={type} onChange={(e) => setType(e.target.value)} title={t("finance.journal.voucherType")} className="h-8 rounded-lg border border-line bg-card px-2 text-[11.5px] font-semibold text-ink">
+              {VOUCHER_TYPES.map((tp) => <option key={tp} value={tp}>{tp} · {t(`finance.journal.vtype.${tp}`)}</option>)}
+            </select>
             <button onClick={expenseTemplate} className="inline-flex items-center gap-1 rounded-lg border border-line px-2.5 py-1.5 text-[11.5px] font-medium text-muted hover:bg-surface-2"><Receipt size={13} /> {t("finance.journal.expenseTemplate")}</button>
             <button onClick={clearForm} className="rounded-lg border border-line px-2.5 py-1.5 text-[11.5px] font-medium text-muted hover:bg-surface-2">{t("finance.journal.clear")}</button>
           </div>
@@ -1250,7 +1262,8 @@ function JournalTab({ accounts, vouchers, canWrite, onPosted }: { accounts: Post
           </div>
 
           {err ? <p className="rounded-lg bg-danger-soft px-3 py-2 text-[12px] font-medium text-danger">{err}</p> : null}
-          <button onClick={post} disabled={saving || !balanced || desc.trim().length < 2} className="inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-lg bg-primary-strong text-[13px] font-semibold text-primary-fg hover:bg-primary disabled:opacity-50"><BookText size={15} /> {saving ? "…" : t("finance.journal.post")}</button>
+          <button onClick={post} disabled={saving || !balanced || desc.trim().length < 2} className="inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-lg bg-primary-strong text-[13px] font-semibold text-primary-fg hover:bg-primary disabled:opacity-50"><BookText size={15} /> {saving ? "…" : t("finance.journal.saveDraft")}</button>
+          <p className="text-center text-[11px] text-subtle">{t("finance.journal.draftHint")}</p>
         </div>
       </section>
 
@@ -1265,11 +1278,20 @@ function JournalTab({ accounts, vouchers, canWrite, onPosted }: { accounts: Post
               <li key={v.id}>
                 <button onClick={() => setOpenV(openV === v.id ? "" : v.id)} className="flex w-full items-center justify-between gap-2 px-5 py-3 text-start hover:bg-surface-2/60">
                   <div className="min-w-0">
-                    <div className="truncate text-[12.5px] font-medium text-ink">{v.lines?.description ?? "—"}</div>
+                    <div className="flex items-center gap-1.5">
+                      {v.type ? <span className="rounded bg-surface-2 px-1.5 py-0.5 text-[10px] font-bold text-muted">{v.type}</span> : null}
+                      {v.status === "draft" ? <span className="rounded bg-warning-soft px-1.5 py-0.5 text-[10px] font-semibold text-warning">{t("finance.journal.draft")}</span> : null}
+                      <span className="truncate text-[12.5px] font-medium text-ink">{v.lines?.description ?? "—"}</span>
+                    </div>
                     <div className="text-[11px] text-subtle tnum">{v.sequenceNo ?? "—"} · {new Date(v.createdAt).toLocaleDateString("en-GB")}</div>
                   </div>
                   <span className="tnum shrink-0 text-[12.5px] font-semibold text-ink">{money(v.amount)}</span>
                 </button>
+                {v.status === "draft" && canWrite ? (
+                  <div className="flex justify-end gap-2 px-5 pb-2">
+                    <button onClick={() => void approveVoucher(v.id)} disabled={busyV === v.id} className="inline-flex items-center gap-1 rounded-md bg-success px-2.5 py-1 text-[11.5px] font-semibold text-white hover:opacity-90 disabled:opacity-60"><Check size={12} /> {busyV === v.id ? "…" : t("finance.journal.approve")}</button>
+                  </div>
+                ) : null}
                 {openV === v.id && v.lines?.entries ? (
                   <div className="bg-surface-2/40 px-5 py-2">
                     <table className="w-full text-[11.5px]"><tbody>
