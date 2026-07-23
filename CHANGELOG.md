@@ -780,8 +780,8 @@
 - **البذر المنشور صار يحترم البيئة**: `seed:demo`/`seed:prod` يستخدمان `PLATFORM_ADMIN_EMAIL`/`PLATFORM_ADMIN_PASSWORD` إن ضُبطت (بدل `Passw0rd!` التطويري) — فلا تبقى كلمة المرور الافتراضية على بيئة منشورة.
 - **الغرض**: تحصين staging/production — تغيير كلمة مرور `/admin/login` من متغيّرات Coolify. موثّق في [`coolify.md §8`](infra/docker/coolify.md). مُتحقَّق (guards + happy path + تحديث متكرّر على قاعدة نظيفة).
 
-## [نشر staging] — المنصّة حيّة على `ibp.nx.sa` + تحصين مطابقة الإنتاج ✅
-- **staging منشورة** (2026-07-05) على Coolify: `https://ibp.nx.sa` (واجهة) + `https://api.ibp.nx.sa` (API)، Postgres+Redis داخل الحزمة، تكاملات Sandbox، بيانات ديمو GIB عبر `seed:demo`. تُحاكي الإنتاج. **البيئات الثلاث موثّقة** في [docs/32](docs/32-environments.md): dev (جهاز المطوّر) · staging (السيرفر الحالي) · production (لاحقًا، داخل المملكة).
+## [نشر staging] — المنصّة حيّة على `ibp.payone.one` + تحصين مطابقة الإنتاج ✅
+- **staging منشورة** (2026-07-05) على Coolify: `https://ibp.payone.one` (واجهة) + `https://api.ibp.payone.one` (API)، Postgres+Redis داخل الحزمة، تكاملات Sandbox، بيانات ديمو GIB عبر `seed:demo`. تُحاكي الإنتاج. **البيئات الثلاث موثّقة** في [docs/32](docs/32-environments.md): dev (جهاز المطوّر) · staging (السيرفر الحالي) · production (لاحقًا، داخل المملكة).
 - **إصلاح نشر Coolify:** `build.context` من `../..` إلى `.` (Coolify يبني من جذر المستودع؛ `../..` كان يفشل بـ`lstat /apps`).
 - **تحصين مطابقة الإنتاج (Dev-only UI):** تعبئة بيانات الدخول المسبقة (صفحات `login`/`admin`/`portal`) + تلميح «حساب تجريبي» + شارة «Demo Session» — كلها الآن مشروطة بـ`NODE_ENV!=production`، فتُخفى تمامًا في staging/production (خانات دخول فارغة، بلا إشارات ديمو).
 - **توثيق:** قسم استكشاف أخطاء واقعي في [`coolify.md`](infra/docker/coolify.md) (مسار الملف، السياق، `exit 255`/الـcache الدافئ، خطوة البذرة عبر `docker exec`) + تحديث [docs/00](docs/00-project-status.md) و[docs/33](docs/33-launch-runbook.md).

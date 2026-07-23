@@ -4,7 +4,7 @@
 >
 > **الحالة (2026-07-05):**
 > - **dev** — جهاز المطوّر (محلي): Postgres 5434 · Redis 6381 · `NODE_ENV=development`.
-> - **staging** — ✅ **منشورة حيًّا** على Coolify: الواجهة `https://ibp.nx.sa` · الـAPI `https://api.ibp.nx.sa` · بيانات ديمو (`seed:demo`) · تكاملات Sandbox. تُحاكي الإنتاج (نفس البناء والسلوك) وتُستخدم للاختبار/UAT. **قاعدة البيانات مدمجة كحاوية ضمن حزمة الـcompose** (volume دائم `ibp_pgdata`) — مناسب لبيئة تجربة ببيانات ديمو، بلا نسخ احتياطي مطلوب.
+> - **staging** — ✅ **منشورة حيًّا** على Coolify: الواجهة `https://ibp.payone.one` · الـAPI `https://api.ibp.payone.one` · بيانات ديمو (`seed:demo`) · تكاملات Sandbox. تُحاكي الإنتاج (نفس البناء والسلوك) وتُستخدم للاختبار/UAT. **قاعدة البيانات مدمجة كحاوية ضمن حزمة الـcompose** (volume دائم `ibp_pgdata`) — مناسب لبيئة تجربة ببيانات ديمو، بلا نسخ احتياطي مطلوب.
 > - **production** — ⏳ لاحقًا: تُنشأ **كبيئة منفصلة** (لا تُرقَّى staging نفسها)، بمفاتيح وبيانات حقيقية **داخل المملكة**، و**قاعدة بيانات مفصولة/مُدارة مع نسخ احتياطي آلي** — انظر «المهمة القادمة رقم 1» أدناه (§6أ).
 
 ## 1. البيئات والغرض
@@ -29,8 +29,8 @@
 | `NODE_ENV` | development | production | production |
 | `DATABASE_URL` / `REDIS_URL` | محلي (5434/6381) | Postgres/Redis داخل حزمة Coolify | **مستقلّة للإنتاج، داخل المملكة** |
 | `JWT_SECRET` / `ZATCA_ENC_KEY` | تطوير فقط | سرّ مستقلّ (`openssl rand`) | سرّ مستقلّ (KMS لاحقًا) |
-| `CORS_ORIGINS` | localhost:3000 | `https://ibp.nx.sa` | دومين الإنتاج |
-| `NEXT_PUBLIC_API_URL` (build arg) | localhost:4000 | `https://api.ibp.nx.sa` | دومين API الإنتاج |
+| `CORS_ORIGINS` | localhost:3000 | `https://ibp.payone.one` | دومين الإنتاج |
+| `NEXT_PUBLIC_API_URL` (build arg) | localhost:4000 | `https://api.ibp.payone.one` | دومين API الإنتاج |
 | `STORAGE_DRIVER` | local | **r2** (Cloudflare R2) | r2 (**دلو داخل المملكة**) |
 | `ZATCA_DEFAULT_ENV` | SANDBOX | SANDBOX | Production (بعد الاعتماد داخل المملكة) |
 | `NOTIFY_GATEWAY` / `BILLING_GATEWAY` | sandbox | **live** (Resend) | live (مفاتيح Taqnyat/Resend/Tap) |
@@ -50,7 +50,7 @@
 1. لوحة Resend → **Domains** → (إن لم يكن موثّقًا) **Add Domain** لنطاقك (مثلاً `mail.nx.sa`) → أضِف سجلّات DNS المعروضة (SPF/DKIM/DMARC) لدى مزوّد نطاقك → انتظر **Verified**.
 2. **API Keys → Create API Key** (Sending access يكفي) → انسخ المفتاح `re_...`.
 3. اختر عنوان المُرسِل على **النطاق الموثّق**: `notifications@<نطاقك الموثّق>` ⇒ هذا هو `EMAIL_FALLBACK_FROM`.
-4. اضبط: `NOTIFY_GATEWAY=live` · `RESEND_API_KEY` · `EMAIL_FALLBACK_FROM` · `API_PUBLIC_URL=https://api.ibp.nx.sa`.
+4. اضبط: `NOTIFY_GATEWAY=live` · `RESEND_API_KEY` · `EMAIL_FALLBACK_FROM` · `API_PUBLIC_URL=https://api.ibp.payone.one`.
 
 > **ملاحظة:** الـ`RESEND_API_KEY` المركزي هو **حساب المنصّة** للـ fallback فقط؛ كل شركة وساطة تربط لاحقًا **حساب Resend الخاص بها** من `/tenant/settings/email` (BYO) فترسل من نطاقها.
 
@@ -69,7 +69,7 @@ STORAGE_FORCE_PATH_STYLE=true  # افتراضي
 NOTIFY_GATEWAY=live
 RESEND_API_KEY=<المفتاح المركزي>
 EMAIL_FALLBACK_FROM=notifications@<نطاقك الموثّق في Resend>
-API_PUBLIC_URL=https://api.ibp.nx.sa
+API_PUBLIC_URL=https://api.ibp.payone.one
 ```
 > بعد ضبطها **أعد النشر مرّة**. تحقّق من السجلّ: `تخزين سحابي مفعّل (r2)`. اختبر البريد: أنشئ إشعارًا (مثلاً أضِف موظفًا) وتأكّد من وصول بريد `From: <اسم الشركة> <EMAIL_FALLBACK_FROM>` مع `Reply-To` بريد الشركة. كل مستأجر يستطيع لاحقًا ربط نطاقه الخاص من `/tenant/settings/email`.
 
@@ -165,7 +165,7 @@ DATABASE_URL="$MANAGED_DATABASE_URL" pnpm --filter @ibp/db migrate:deploy
 
 ## 7. الحالة
 - ✅ **الأساس جاهز**: تهيئة مدفوعة بالبيئة، أوضاع تكامل قابلة للتبديل (Sandbox↔حقيقي)، هجرات تقدّمية تلقائية، Terraform يعي البيئات.
-- ✅ **staging منشورة حيًّا** (2026-07-05): `https://ibp.nx.sa` + `https://api.ibp.nx.sa` على Coolify، بيانات ديمو GIB، تكاملات Sandbox. تُحاكي الإنتاج وتُستخدم للاختبار.
+- ✅ **staging منشورة حيًّا** (2026-07-05): `https://ibp.payone.one` + `https://api.ibp.payone.one` على Coolify، بيانات ديمو GIB، تكاملات Sandbox. تُحاكي الإنتاج وتُستخدم للاختبار.
 - ⏳ **production**: تُنشأ من staging بعد اجتيازها — قاعدة/دومين/أسرار مستقلّة داخل المملكة + مفاتيح حقيقية + `seed:prod` + GIB حقيقي. + ربط CI للترقية الآلية (`main`→staging، وسم إصدار→production).
 
 ## انظر أيضاً

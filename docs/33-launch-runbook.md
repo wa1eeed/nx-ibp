@@ -39,7 +39,7 @@
 - [ ] **بذرة إقلاع الإنتاج** (مرجعيات فقط، بلا مستأجرين وهميين): اضبط `PLATFORM_ADMIN_EMAIL`/`PLATFORM_ADMIN_PASSWORD` ثم `pnpm --filter @ibp/db seed:prod` (`SEED_MODE=production`). يبذر الباقات + الكتالوج + المزوّدين + سوبر أدمن فقط. بذرة الديمو مرفوضة تلقائيًا على `NODE_ENV=production` (إلا بـ`SEED_MODE=demo` لبيئة ديمو منفصلة).
 
 ## 2. خطوات الإطلاق (Go-Live)
-1. ✅ **Staging منشورة** (2026-07-05): `https://ibp.nx.sa` + `https://api.ibp.nx.sa` على Coolify، Sandbox، `seed:demo` — [32](./32-environments.md) و[`coolify.md`](../infra/docker/coolify.md). يجري اختبار الدخان/UAT عليها.
+1. ✅ **Staging منشورة** (2026-07-05): `https://ibp.payone.one` + `https://api.ibp.payone.one` على Coolify، Sandbox، `seed:demo` — [32](./32-environments.md) و[`coolify.md`](../infra/docker/coolify.md). يجري اختبار الدخان/UAT عليها.
 2. **Production** (لاحقًا): بعد قبول staging، تُنشأ نسخة مستقلّة داخل المملكة بمفاتيح الإنتاج (القسم 1-ب) + `SEED_MODE=production` (مرجعيات + سوبر أدمن، بلا بيانات وهمية) + GIB حقيقي عبر `/signup`، بموافقة صريحة.
 3. تحقّق من `/health` (DB+Redis) و`/health/live`، وتسجيل دخول كل واجهة، ودورة صفقة كاملة تجريبية.
 4. فعّل **MFA** لكل حسابات سوبر أدمن المنصة قبل فتح الوصول (مُطفأة افتراضيًا).

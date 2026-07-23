@@ -71,7 +71,7 @@ services:
       NOTIFY_GATEWAY: ${NOTIFY_GATEWAY:-sandbox}  # اضبط live لتفعيل Resend/Taqnyat فعليًا
       RESEND_API_KEY: ${RESEND_API_KEY:-}         # المفتاح المركزي للـ fallback
       EMAIL_FALLBACK_FROM: ${EMAIL_FALLBACK_FROM:-notifications@mail.nx.sa}
-      API_PUBLIC_URL: ${API_PUBLIC_URL:-}         # https://api.ibp.nx.sa — لبناء رابط الشعار في البريد
+      API_PUBLIC_URL: ${API_PUBLIC_URL:-}         # https://api.ibp.payone.one — لبناء رابط الشعار في البريد
       # ——— البذرة + سوبر أدمن (لأمر seed:demo/seed:prod/admin:set من طرفية الحاوية) ———
       SEED_MODE: ${SEED_MODE:-}
       # بذرة آلية عند الإقلاع (بعد الهجرات): اضبط SEED_ON_START=demo (staging) أو =production، أعد النشر مرّة، ثم أزِلها.
