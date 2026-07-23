@@ -2732,6 +2732,7 @@
       "subtitle": "حسابات شركات الوساطة المشتركة في المنصة وحالة اشتراكاتها",
       "clients": "عميل",
       "policies": "وثيقة",
+      "days": "يوم",
       "suspend": "تعليق",
       "activate": "تفعيل",
       "owner": "مالك الحساب",
@@ -2743,6 +2744,7 @@
         "seats": "المقاعد",
         "usage": "الاستخدام",
         "billing": "نموذج الفوترة",
+        "expiry": "انتهاء الاشتراك",
         "status": "الحالة"
       }
     },
@@ -2772,7 +2774,21 @@
       "policies": "الوثائق",
       "requests": "الطلبات",
       "claims": "المطالبات",
-      "impersonate": "الدخول كالحساب"
+      "impersonate": "الدخول كالحساب",
+      "statusControl": "حالة الحساب",
+      "daysLeft": "يوم متبقٍّ",
+      "noExpiry": "بلا تاريخ انتهاء",
+      "extend": "تمديد:",
+      "month": "شهر",
+      "year": "سنة",
+      "accessState": {
+        "active": "الاشتراك ساري",
+        "trial": "فترة تجريبية",
+        "trial_expired": "انتهت التجربة",
+        "subscription_expired": "انتهى الاشتراك",
+        "suspended": "موقوف",
+        "cancelled": "مُلغى"
+      }
     },
     "plans": {
       "title": "الباقات والصلاحيات",

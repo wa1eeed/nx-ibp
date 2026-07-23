@@ -114,6 +114,35 @@ describe("لوحة السوبر أدمن (e2e)", () => {
   it("مستخدم المستأجر ممنوع من الانتحال (مسار منصّة) ⇒ 403", () =>
     request(app.getHttpServer()).post("/platform/tenants/demo-tenant/impersonate").set(auth(tenantUser)).expect(403));
 
+  it("تغيير باقة مستأجر: يسري فورًا على الميزات (basic ⇒ premium يفتح ZATCA)", async () => {
+    const email = `plan-${Date.now()}@brk.sa`;
+    const signup = await request(app.getHttpServer()).post("/signup").send({ companyName: "شركة تغيير الباقة", adminName: "المالك", adminEmail: email, password: "Owner1Pass" }).expect(201);
+    const tId = signup.body.tenant.id; const tAuth = { Authorization: `Bearer ${signup.body.accessToken}` };
+    // basic ⇒ ZATCA محجوبة
+    await request(app.getHttpServer()).get("/zatca/config").set(tAuth).expect(403);
+    // السوبر أدمن يرفع الباقة إلى premium ⇒ تُتاح فورًا
+    const res = await request(app.getHttpServer()).put(`/platform/tenants/${tId}/plan`).set(auth(platform)).send({ planCode: "premium" }).expect(200);
+    expect(res.body.planCode).toBe("premium");
+    await request(app.getHttpServer()).get("/zatca/config").set(tAuth).expect(200);
+    // تفاصيل المستأجر تعكس الباقة الجديدة
+    const detail = (await request(app.getHttpServer()).get(`/platform/tenants/${tId}`).set(auth(platform)).expect(200)).body;
+    expect(detail.subscription.plan.code).toBe("premium");
+  });
+
+  it("ضبط/تمديد تاريخ التجديد: يضبط ACTIVE + renewsAt مستقبلي ويظهر في رؤية الانتهاء", async () => {
+    const email = `renew-${Date.now()}@brk.sa`;
+    const signup = await request(app.getHttpServer()).post("/signup").send({ companyName: "شركة التمديد", adminName: "المالك", adminEmail: email, password: "Owner1Pass" }).expect(201);
+    const tId = signup.body.tenant.id;
+    const res = await request(app.getHttpServer()).post(`/platform/tenants/${tId}/renewal`).set(auth(platform)).send({ months: 3 }).expect(200);
+    expect(res.body.status).toBe("ACTIVE");
+    expect(new Date(res.body.renewsAt).getTime()).toBeGreaterThan(Date.now());
+    // القائمة تعرض حالة الوصول (رؤية الانتهاء)
+    const list = (await request(app.getHttpServer()).get("/platform/tenants").set(auth(platform)).expect(200)).body as Array<{ id: string; access?: { state: string; endsAt: string | null } }>;
+    const row = list.find((r) => r.id === tId);
+    expect(row?.access?.state).toBe("active");
+    expect(row?.access?.endsAt).toBeTruthy();
+  });
+
   it("السوبر أدمن يعلّق ويعيد تفعيل مستأجر", async () => {
     const s = await request(app.getHttpServer()).post("/platform/tenants/demo-tenant-2/status").set(auth(platform)).send({ status: "SUSPENDED" }).expect(200);
     expect(s.body.status).toBe("SUSPENDED");

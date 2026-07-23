@@ -83,13 +83,24 @@ export class PlatformService {
       orderBy: { createdAt: "asc" },
       select: {
         id: true, name: true, nameEn: true, status: true, billingModel: true, crNumber: true, createdAt: true,
-        subscription: { select: { seatsUsed: true, cycle: true, plan: { select: { code: true, name: true, seatLimit: true } } } },
+        subscription: { select: { seatsUsed: true, cycle: true, renewsAt: true, plan: { select: { code: true, name: true, seatLimit: true } } } },
         // مالك الحساب (سوبر أدمن الشركة) = أوّل مستخدم أُنشئ للمستأجر
         users: { orderBy: { createdAt: "asc" }, take: 1, select: { fullName: true, email: true } },
         _count: { select: { users: true, clients: true, policies: true } },
       },
     });
-    return rows.map(({ users, ...t }) => ({ ...t, owner: users[0] ?? null }));
+    // حالة الوصول الفعّالة لكل مستأجر (تجربة/اشتراك ومتى ينتهي + الأيام المتبقية) — لرؤية الانتهاء في القائمة
+    return Promise.all(rows.map(async ({ users, ...t }) => {
+      const acc = await this.access.resolve(t.id);
+      return { ...t, owner: users[0] ?? null, access: this.accessView(acc, t.subscription?.renewsAt ?? null) };
+    }));
+  }
+
+  /** يعرض حالة الوصول للوحة المنصّة — يُظهر تاريخ الانتهاء دائمًا (حتى إن كان أبعد من نافذة التنبيه). */
+  private accessView(acc: { state: string; trialEndsAt: Date | null; daysLeft: number | null }, renewsAt: Date | null) {
+    const endsAt = acc.trialEndsAt ?? renewsAt ?? null;
+    const daysLeft = acc.daysLeft ?? (endsAt ? Math.ceil((new Date(endsAt).getTime() - Date.now()) / 86_400_000) : null);
+    return { state: acc.state, endsAt, daysLeft };
   }
 
   async tenant(id: string) {
@@ -97,7 +108,7 @@ export class PlatformService {
       where: { id },
       select: {
         id: true, name: true, nameEn: true, status: true, billingModel: true, crNumber: true, createdAt: true,
-        subscription: { select: { seatsUsed: true, cycle: true, renewsAt: true, plan: { select: { code: true, name: true, seatLimit: true } } } },
+        subscription: { select: { seatsUsed: true, seatsLicensed: true, cycle: true, startedAt: true, renewsAt: true, plan: { select: { code: true, name: true, seatLimit: true, trialDays: true } } } },
         // كل حسابات الشركة + أدوارهم (الأوّل = مالك الحساب/سوبر أدمن الشركة)
         users: {
           orderBy: { createdAt: "asc" },
@@ -108,7 +119,51 @@ export class PlatformService {
     });
     if (!t) throw new NotFoundException("المستأجر غير موجود");
     const { users, ...rest } = t;
-    return { ...rest, owner: users[0] ?? null, users };
+    const acc = await this.access.resolve(id);
+    return { ...rest, owner: users[0] ?? null, users, access: this.accessView(acc, rest.subscription?.renewsAt ?? null) };
+  }
+
+  /** تغيير باقة اشتراك مستأجر (سوبر أدمن) — يبدّل `planId` (+الدورة اختياريًا)، يُبطل كاش الوصول، ويُدقَّق. */
+  async changeTenantPlan(adminId: string, tenantId: string, planCode: string, cycle?: "MONTHLY" | "YEARLY") {
+    const [tenant, plan, sub] = await Promise.all([
+      this.prisma.tenant.findFirst({ where: { id: tenantId }, select: { id: true } }),
+      this.prisma.plan.findFirst({ where: { code: planCode }, select: { id: true, name: true } }),
+      this.prisma.subscription.findFirst({ where: { tenantId }, select: { id: true, plan: { select: { code: true } } } }),
+    ]);
+    if (!tenant) throw new NotFoundException("المستأجر غير موجود");
+    if (!plan) throw new NotFoundException("الباقة غير موجودة");
+    if (!sub) throw new BadRequestException("لا اشتراك لهذا المستأجر");
+    await this.prisma.subscription.update({ where: { id: sub.id }, data: { planId: plan.id, ...(cycle ? { cycle } : {}) } });
+    this.access.invalidate(tenantId); // الميزات/الخفض تُحسب من الباقة ⇒ يسري فورًا
+    await this.audit.log({ tenantId, userId: adminId, action: "update", entity: "tenant_plan", entityId: tenantId, meta: { by: "platform", from: sub.plan.code, to: planCode, cycle } });
+    return { tenantId, planCode, planName: plan.name, cycle };
+  }
+
+  /**
+   * ضبط/تمديد تاريخ تجديد اشتراك مستأجر (سوبر أدمن) — تاريخ صريح أو تمديد بعدد أشهر من الأبعد بين (الآن، التجديد الحالي).
+   * يضمن الحالة `ACTIVE` ويُبطل الكاش ⇒ يرفع أي حجب انتهاء فورًا. لمنح فترة سماح/تمديد يدوي.
+   */
+  async setRenewal(adminId: string, tenantId: string, dto: { renewsAt?: string; months?: number }) {
+    const sub = await this.prisma.subscription.findFirst({ where: { tenantId }, select: { id: true, renewsAt: true } });
+    if (!sub) throw new BadRequestException("لا اشتراك لهذا المستأجر");
+    let renewsAt: Date;
+    if (dto.renewsAt) {
+      renewsAt = new Date(dto.renewsAt);
+      if (Number.isNaN(renewsAt.getTime())) throw new BadRequestException("تاريخ غير صالح");
+    } else if (dto.months) {
+      const from = sub.renewsAt && sub.renewsAt.getTime() > Date.now() ? new Date(sub.renewsAt) : new Date();
+      from.setMonth(from.getMonth() + dto.months);
+      renewsAt = from;
+    } else {
+      throw new BadRequestException("مرّر renewsAt أو months");
+    }
+    await this.prisma.$transaction([
+      this.prisma.subscription.update({ where: { id: sub.id }, data: { renewsAt } }),
+      this.prisma.tenant.update({ where: { id: tenantId }, data: { status: "ACTIVE" } }),
+    ]);
+    this.access.invalidate(tenantId);
+    await this.audit.log({ tenantId, userId: adminId, action: "update", entity: "tenant_renewal", entityId: tenantId, meta: { by: "platform", renewsAt: renewsAt.toISOString(), months: dto.months } });
+    return { tenantId, renewsAt, status: "ACTIVE" };
   }
 
   async setStatus(adminId: string, id: string, dto: TenantStatusDto) {

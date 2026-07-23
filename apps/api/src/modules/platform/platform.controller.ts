@@ -5,7 +5,7 @@ import { PlatformPaymentSettingsService } from "./platform-payment-settings.serv
 import { AuditViewService } from "../audit/audit-view.service";
 import { NotificationsService } from "../notifications/notifications.service";
 import { UpdateNotificationDto } from "../notifications/dto/notification.dto";
-import { LeadStatusDto, MfaCodeDto, PlatformLoginDto, TenantStatusDto, UpdateEntitlementDto, UpdatePlanDto } from "./dto/platform.dto";
+import { ChangeTenantPlanDto, LeadStatusDto, MfaCodeDto, PlatformLoginDto, SetRenewalDto, TenantStatusDto, UpdateEntitlementDto, UpdatePlanDto } from "./dto/platform.dto";
 import { Public } from "../auth/public.decorator";
 import { CurrentUser } from "../auth/current-user.decorator";
 
@@ -84,6 +84,19 @@ export class PlatformController {
   @Post("tenants/:id/impersonate")
   impersonate(@CurrentUser("userId") adminId: string, @Param("id") id: string) {
     return this.platform.impersonate(adminId, id);
+  }
+
+  /** تغيير باقة اشتراك مستأجر (يسري فورًا على الميزات). */
+  @Put("tenants/:id/plan")
+  changePlan(@CurrentUser("userId") adminId: string, @Param("id") id: string, @Body() dto: ChangeTenantPlanDto) {
+    return this.platform.changeTenantPlan(adminId, id, dto.planCode, dto.cycle);
+  }
+
+  /** ضبط/تمديد تاريخ تجديد اشتراك مستأجر (منح فترة/تمديد يدوي) — يرفع أي حجب انتهاء فورًا. */
+  @HttpCode(200)
+  @Post("tenants/:id/renewal")
+  setRenewal(@CurrentUser("userId") adminId: string, @Param("id") id: string, @Body() dto: SetRenewalDto) {
+    return this.platform.setRenewal(adminId, id, dto);
   }
 
   @Get("plans")

@@ -2732,6 +2732,7 @@
       "subtitle": "Brokerage company accounts subscribed to the platform and their subscription status",
       "clients": "clients",
       "policies": "policies",
+      "days": "d",
       "suspend": "Suspend",
       "activate": "Activate",
       "owner": "Account owner",
@@ -2743,6 +2744,7 @@
         "seats": "Seats",
         "usage": "Usage",
         "billing": "Billing model",
+        "expiry": "Expiry",
         "status": "Status"
       }
     },
@@ -2772,7 +2774,21 @@
       "policies": "Policies",
       "requests": "Requests",
       "claims": "Claims",
-      "impersonate": "Log in as account"
+      "impersonate": "Log in as account",
+      "statusControl": "Account status",
+      "daysLeft": "days left",
+      "noExpiry": "No expiry date",
+      "extend": "Extend:",
+      "month": "1 month",
+      "year": "1 year",
+      "accessState": {
+        "active": "Subscription active",
+        "trial": "Trial period",
+        "trial_expired": "Trial expired",
+        "subscription_expired": "Subscription expired",
+        "suspended": "Suspended",
+        "cancelled": "Cancelled"
+      }
     },
     "plans": {
       "title": "Plans & entitlements",

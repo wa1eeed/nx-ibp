@@ -20,6 +20,18 @@ export class TenantStatusDto {
   status!: "ACTIVE" | "SUSPENDED" | "TRIAL" | "CANCELLED";
 }
 
+/** تغيير باقة اشتراك مستأجر (يفعله سوبر أدمن المنصّة). */
+export class ChangeTenantPlanDto {
+  @IsString() planCode!: string; // basic | premium | enterprise
+  @IsOptional() @IsIn(["MONTHLY", "YEARLY"]) cycle?: "MONTHLY" | "YEARLY";
+}
+
+/** ضبط/تمديد تاريخ تجديد اشتراك مستأجر — إمّا تاريخ صريح أو تمديد بعدد أشهر. */
+export class SetRenewalDto {
+  @IsOptional() @IsString() renewsAt?: string; // ISO date — تاريخ التجديد الصريح
+  @IsOptional() @IsInt() @Min(1) @Max(60) months?: number; // تمديد بعدد أشهر من الآن (بديل عن التاريخ)
+}
+
 export class UpdatePlanDto {
   @IsOptional() @IsInt() @Min(1) @Max(100000) seatLimit?: number; // الحد الأقصى للمستخدمين
   @IsOptional() @IsString() name?: string;

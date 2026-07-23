@@ -15,5 +15,15 @@
   - [`ImpersonationBanner`](../apps/web/src/components/layout/ImpersonationBanner.tsx): شريط **بنفسجي دائم** أعلى لوحة المستأجر — يعرض اسم الحساب + «العودة للوحة المنصّة». العودة = حذف `ibp_token` فقط (رمز المنصّة باقٍ) والرجوع لصفحة المستأجر في اللوحة.
 - **الأمان**: محروس للسوبر أدمن فقط · صلاحية قصيرة · بانر ظاهر لا يُخفى · كل بدء انتحال مُدقَّق. الكتابة أثناء الانتحال تخضع لنفس حواجز الوصول (تعليق/انتهاء) للحساب المُنتحَل.
 
+## 2. إدارة دورة حياة الاشتراك (باقة · تجديد · حالة)
+
+يتحكّم المشرف في اشتراك أي حساب مباشرةً من `/admin/tenants/[id]` — دون الرجوع لقاعدة البيانات:
+
+- **تغيير الباقة**: `PUT /platform/tenants/:id/plan` (`{planCode, cycle?}`) — [`changeTenantPlan`](../apps/api/src/modules/platform/platform.service.ts). يبدّل `subscription.planId` ويُبطل كاش الوصول ⇒ **الميزات تسري فورًا** (ترقية `basic⇒premium` تفتح ZATCA لحظيًّا). مُدقَّق (`tenant_plan`, from→to). الواجهة: قائمة منسدلة بالباقات.
+- **ضبط/تمديد التجديد**: `POST /platform/tenants/:id/renewal` (`{renewsAt?}` تاريخ صريح أو `{months}` تمديد) — [`setRenewal`](../apps/api/src/modules/platform/platform.service.ts). التمديد بالأشهر يبدأ من الأبعد بين (الآن، التجديد الحالي)، يضبط `ACTIVE`، ويُبطل الكاش ⇒ **يرفع أي حجب انتهاء فورًا** (منح فترة سماح/تمديد يدوي). مُدقَّق (`tenant_renewal`). الواجهة: زرّا «+شهر»/«+سنة».
+- **التحكّم في الحالة**: `POST /platform/tenants/:id/status` — قائمة منسدلة `ACTIVE/TRIAL/SUSPENDED/CANCELLED` في التفاصيل + زر تعليق/تفعيل في القائمة. يُبطل الكاش ⇒ فرض/رفع فوري.
+- **رؤية الانتهاء**: كل من `GET /platform/tenants` و`/platform/tenants/:id` يعيدان `access {state, endsAt, daysLeft}` — يُظهران **تاريخ انتهاء التجربة/الاشتراك دائمًا** (لا نافذة الـ7 أيام فقط، عبر [`accessView`](../apps/api/src/modules/platform/platform.service.ts)). القائمة تعرض عمود «انتهاء الاشتراك» بشارة ملوّنة؛ `renewsAt=null` ⇒ «بلا تاريخ انتهاء».
+- **المقاعد**: التفاصيل تعرض `المستخدمون النشطون / المرخّصة` (مثل `7 / 200`).
+
 ## انظر أيضاً
 [00 — الحالة](./00-project-status.md) · [06 — API](./06-api-reference.md) · [30 — الأمن](./30-security-and-compliance.md) · [34 — ما بعد الاكتمال](./34-post-completion-features.md) · [CHANGELOG](../CHANGELOG.md)

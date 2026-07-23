@@ -13,10 +13,12 @@ interface Tenant {
   id: string; name: string; status: string; billingModel: string;
   owner: { fullName: string; email: string } | null;
   subscription: { seatsUsed: number; plan: { code: string; name: string; seatLimit: number } } | null;
+  access?: { state: string; endsAt: string | null; daysLeft: number | null };
   _count: { users: number; clients: number; policies: number };
 }
 
 const TONE: Record<string, BadgeTone> = { ACTIVE: "success", SUSPENDED: "danger", TRIAL: "warning", CANCELLED: "neutral" };
+const ACCESS_TONE: Record<string, BadgeTone> = { active: "success", trial: "warning", trial_expired: "danger", subscription_expired: "danger", suspended: "danger", cancelled: "neutral" };
 
 export default function AdminTenantsPage() {
   const t = useTranslations();
@@ -55,6 +57,7 @@ export default function AdminTenantsPage() {
             <th className="px-5 py-3 text-start font-semibold">{t("admin.tenants.col.seats")}</th>
             <th className="px-5 py-3 text-start font-semibold">{t("admin.tenants.col.usage")}</th>
             <th className="px-5 py-3 text-start font-semibold">{t("admin.tenants.col.billing")}</th>
+            <th className="px-5 py-3 text-start font-semibold">{t("admin.tenants.col.expiry")}</th>
             <th className="px-5 py-3 text-start font-semibold">{t("admin.tenants.col.status")}</th>
             <th className="px-5 py-3"></th></tr></thead>
           <tbody className="divide-y divide-line">
@@ -70,6 +73,14 @@ export default function AdminTenantsPage() {
                 <td className="px-5 py-3 text-[12.5px] tnum">{r.subscription ? r.subscription.seatsUsed : "—"}</td>
                 <td className="px-5 py-3 text-[12px] text-subtle tnum">{r._count.clients} {t("admin.tenants.clients")} · {r._count.policies} {t("admin.tenants.policies")}</td>
                 <td className="px-5 py-3 text-[12px] text-muted">{t(`admin.billingModel.${r.billingModel}`)}</td>
+                <td className="px-5 py-3 text-[12px]">
+                  {r.access?.endsAt ? (
+                    <span className="inline-flex items-center gap-1.5">
+                      <span className="text-muted tnum">{new Date(r.access.endsAt).toLocaleDateString()}</span>
+                      <Badge tone={ACCESS_TONE[r.access.state] ?? "neutral"}>{r.access.daysLeft ?? 0} {t("admin.tenants.days")}</Badge>
+                    </span>
+                  ) : <span className="text-subtle">—</span>}
+                </td>
                 <td className="px-5 py-3"><Badge tone={TONE[r.status] ?? "neutral"}>{r.status}</Badge></td>
                 <td className="px-5 py-3 text-end">
                   <button onClick={() => toggle(r.id, r.status, r.name)} className="rounded-lg border border-line bg-card px-2.5 py-1.5 text-[12px] font-medium text-muted hover:bg-surface-2 hover:text-ink">
