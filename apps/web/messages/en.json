@@ -2850,6 +2850,10 @@
     "settled": "Settled",
     "incidentDate": "Incident date",
     "settledPrompt": "Enter settled amount:",
+    "policy": "Policy",
+    "noPolicy": "No policy linked",
+    "coverageOk": "Incident date falls within the policy coverage period",
+    "coverageWarnNote": "You may still record it — the mismatch will be logged on the claim timeline",
     "col": {
       "seq": "Claim #",
       "status": "Status"

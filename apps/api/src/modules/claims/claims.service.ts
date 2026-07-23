@@ -126,6 +126,43 @@ export class ClaimsService {
     return { ok: true };
   }
 
+  /**
+   * **التحقّق الآلي من التغطية عند فتح المطالبة** — يقارن تاريخ الحادثة بمدّة الوثيقة وحالتها.
+   * تحذيري لا يمنع (قد يحتاج الوسيط لتسجيل المطالبة رغم التنبيه) لكنه يوثّق التعارض في المسار.
+   * الأخطاء (error): الحادثة خارج مدّة التغطية أو الوثيقة ملغاة/مرفوضة. تنبيهات (warn): وثيقة غير مُصدَرة.
+   */
+  async validateCoverage(tenantId: string, policyId?: string, incidentDate?: string) {
+    type Warn = { code: string; severity: "error" | "warn" | "info"; message: string };
+    if (!policyId) return { policy: null, warnings: [] as Warn[] };
+    const policy = await this.prisma.policy.findFirst({
+      where: { id: policyId, tenantId },
+      select: { id: true, sequenceNo: true, insurerName: true, status: true, startDate: true, endDate: true },
+    });
+    if (!policy) return { policy: null, warnings: [{ code: "policy_not_found", severity: "error", message: "الوثيقة غير موجودة" }] as Warn[] };
+    const warnings: Warn[] = [];
+    const day = (d: Date | string) => new Date(d).toISOString().slice(0, 10);
+    const fmt = (d: Date | string) => day(d);
+    // حالة الوثيقة — التغطية سارية للمُصدَرة فقط
+    if (policy.status === "CANCELLED" || policy.status === "REJECTED") {
+      warnings.push({ code: "policy_inactive", severity: "error", message: `الوثيقة بحالة «${policy.status}» — التغطية غير سارية` });
+    } else if (policy.status !== "ISSUED") {
+      warnings.push({ code: "policy_not_issued", severity: "warn", message: `الوثيقة قيد «${policy.status}» ولم تُصدَر بعد` });
+    }
+    // مدّة التغطية مقابل تاريخ الحادثة
+    if (!policy.startDate || !policy.endDate) {
+      warnings.push({ code: "no_period", severity: "info", message: "مدّة التغطية غير محدّدة في الوثيقة" });
+    } else if (incidentDate) {
+      const d = day(incidentDate);
+      if (d < day(policy.startDate)) warnings.push({ code: "before_coverage", severity: "error", message: `تاريخ الحادثة (${d}) قبل بدء التغطية (${fmt(policy.startDate)})` });
+      else if (d > day(policy.endDate)) warnings.push({ code: "after_coverage", severity: "error", message: `تاريخ الحادثة (${d}) بعد انتهاء التغطية (${fmt(policy.endDate)})` });
+    }
+    if (!incidentDate) warnings.push({ code: "no_incident_date", severity: "info", message: "تاريخ الحادثة غير محدّد — تعذّر مطابقة المدّة" });
+    return {
+      policy: { id: policy.id, sequenceNo: policy.sequenceNo, insurerName: policy.insurerName, status: policy.status, startDate: policy.startDate, endDate: policy.endDate },
+      warnings,
+    };
+  }
+
   async create(tenantId: string, userId: string, dto: CreateClaimDto) {
     const sequenceNo = await this.seq.nextClaimSeq();
     const claim = await this.prisma.claim.create({
@@ -144,6 +181,18 @@ export class ClaimsService {
       select: FIELDS,
     });
     await this.audit.log({ tenantId, userId, action: "create", entity: "claim", entityId: claim.id, meta: { sequenceNo } });
+    // التحقّق الآلي من التغطية — يوثّق أي تعارض في المسار ولا يمنع الإنشاء
+    let coverageWarnings: Array<{ code: string; severity: string; message: string }> = [];
+    if (claim.policyId) {
+      const cov = await this.validateCoverage(tenantId, claim.policyId, dto.incidentDate).catch(() => null);
+      coverageWarnings = cov?.warnings ?? [];
+      const blocking = coverageWarnings.filter((w) => w.severity === "error");
+      if (blocking.length) {
+        const msg = blocking.map((w) => w.message).join(" · ");
+        await this.prisma.crmActivity.create({ data: { tenantId, entityType: "claim", entityId: claim.id, type: "note", visibility: "internal", body: `⚠️ تنبيه تغطية عند الفتح: ${msg}`, authorId: userId } }).catch(() => undefined);
+        await this.audit.log({ tenantId, userId, action: "coverage_warning", entity: "claim", entityId: claim.id, meta: { warnings: coverageWarnings } }).catch(() => undefined);
+      }
+    }
     // إشعار العميل باستلام مطالبته (لا يُفشل إنشاء المطالبة عند تعذّره)
     if (claim.clientId) {
       const client = await this.prisma.client.findFirst({ where: { id: claim.clientId }, select: { email: true, phone: true } });
@@ -151,7 +200,7 @@ export class ClaimsService {
     }
     // إشعار فريق المطالبات بمطالبة جديدة
     void this.notifications.notifyStaff(tenantId, "staff_claim_created", { ref: sequenceNo }).catch(() => undefined);
-    return claim;
+    return { ...claim, coverageWarnings };
   }
 
   async setStatus(tenantId: string, userId: string, id: string, status: string, settledAmount?: number) {

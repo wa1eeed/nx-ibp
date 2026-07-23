@@ -1,6 +1,6 @@
 import { Body, Controller, Get, HttpCode, Param, Post } from "@nestjs/common";
 import { ClaimsService } from "./claims.service";
-import { CreateClaimDto, UpdateClaimStatusDto, ClaimNoteDto, SendInsurerDto } from "./dto/claim.dto";
+import { CreateClaimDto, UpdateClaimStatusDto, ClaimNoteDto, SendInsurerDto, ValidateCoverageDto } from "./dto/claim.dto";
 import { Authorize } from "../rbac/authorize.decorator";
 import { CurrentUser, type AuthUser } from "../auth/current-user.decorator";
 
@@ -23,6 +23,17 @@ export class ClaimsController {
     @Body() dto: CreateClaimDto,
   ) {
     return this.claims.create(tenantId, userId, dto);
+  }
+
+  // فحص التغطية المُسبق قبل تسجيل المطالبة (تحذيري — تاريخ الحادثة مقابل مدّة الوثيقة وحالتها)
+  @Authorize({ module: "claims", action: "create", entitlement: "module.claims" })
+  @HttpCode(200)
+  @Post("validate-coverage")
+  validateCoverage(
+    @CurrentUser("tenantId") tenantId: string,
+    @Body() dto: ValidateCoverageDto,
+  ) {
+    return this.claims.validateCoverage(tenantId, dto.policyId, dto.incidentDate);
   }
 
   @Authorize({ module: "claims", action: "update", entitlement: "module.claims" })

@@ -30,3 +30,9 @@ export class SendInsurerDto {
   @IsOptional() @IsString() @MaxLength(5000) body?: string;
   @IsOptional() @IsArray() @IsEmail({}, { each: true }) cc?: string[];
 }
+
+/** فحص التغطية المُسبق — قبل تسجيل المطالبة: مطابقة تاريخ الحادثة بمدّة الوثيقة وحالتها. */
+export class ValidateCoverageDto {
+  @IsString() policyId!: string;
+  @IsOptional() @IsString() incidentDate?: string;
+}
