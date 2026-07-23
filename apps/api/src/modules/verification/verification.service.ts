@@ -3,6 +3,7 @@ import { PrismaService } from "../../prisma/prisma.service";
 import { AuditService } from "../../common/audit/audit.service";
 import { NotificationsService } from "../notifications/notifications.service";
 import { VERIFICATION_GATEWAY, type VerificationGateway } from "./verification.gateway";
+import { CrRegistryService, normalizeCrNumber } from "./cr-registry.service";
 
 /**
  * طبقة موفّري التحقّق (المرحلة 7) — تعمل عبر Sandbox تجريبي أولاً (GUIDELINES.md/BLUEPRINT).
@@ -21,6 +22,7 @@ const CONFIG: Record<string, CheckConfig> = {
   wathiq: { providerKey: "wathiq", checkType: "cr", cost: 5, walletService: "wathiq" },
   address: { providerKey: "spl", checkType: "address", cost: 0 }, // مجاني
   screening: { providerKey: "screening", checkType: "pep_sanctions", cost: 0 },
+  opendata: { providerKey: "opendata", checkType: "cr_opendata", cost: 0 }, // سجل تجاري من البيانات المفتوحة (مجاني)
 };
 
 /** حدّ التنبيه لرصيد محفظة التحقّق (عمليات متبقّية). */
@@ -32,8 +34,25 @@ export class VerificationService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly notifications: NotificationsService,
+    private readonly crRegistry: CrRegistryService,
     @Inject(VERIFICATION_GATEWAY) private readonly gateway: VerificationGateway,
   ) {}
+
+  /**
+   * التحقّق من السجل التجاري عبر «البيانات المفتوحة» لوزارة التجارة — بحث محليّ فوريّ برقم السجل.
+   * وُجِد ⇒ يُسجَّل كعملية تحقّق (مجانية) وتُعاد بياناته؛ لم يوجد ⇒ found:false (بلا تسجيل).
+   */
+  async crRegistry_lookup(tenantId: string, userId: string, crNumber: string, clientId?: string) {
+    const rec = await this.crRegistry.lookup(crNumber);
+    if (!rec) return { found: false, crNumber: normalizeCrNumber(crNumber) };
+    const res = await this.perform(tenantId, userId, "opendata", rec as unknown as Record<string, unknown>, clientId);
+    return { found: true, source: rec.source, ...res };
+  }
+
+  /** وصف اللقطة المستورَدة (عدد السجلات + المصدر) — لشارة الواجهة. */
+  crRegistryMeta() {
+    return this.crRegistry.meta();
+  }
 
   // ----- جلب البيانات عبر البوّابة (Sandbox افتراضيًا · موفّرون فعليون عند VERIFY_GATEWAY=live) -----
   async yaqeen(tenantId: string, userId: string, nationalId: string, clientId?: string) {

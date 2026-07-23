@@ -2705,6 +2705,28 @@
       "cost": "Cost",
       "risk": "Risk",
       "date": "Date"
+    },
+    "cr": {
+      "title": "Commercial Registration check",
+      "source": "Open Data — Ministry of Commerce",
+      "count": "{n} records",
+      "hint": "Enter a CR number to instantly verify it and its details (name · activity · legal entity · city · capital) against the active-registrations snapshot.",
+      "crNumber": "CR number",
+      "run": "Verify",
+      "found": "Active registration — match",
+      "notFound": "No registration with number {cr} in the current snapshot",
+      "fields": {
+        "name": "Registry name",
+        "crNumber": "CR number",
+        "unifiedNumber": "Unified number",
+        "activity": "Activity",
+        "legalEntity": "Legal entity",
+        "registryType": "Registry type",
+        "region": "Region",
+        "city": "City",
+        "capital": "Capital",
+        "issueDate": "Issue date"
+      }
     }
   },
   "service": {

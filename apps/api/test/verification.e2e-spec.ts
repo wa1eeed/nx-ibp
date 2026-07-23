@@ -85,4 +85,38 @@ describe("التحقّق الحكومي KYC/KYB (e2e)", () => {
     const res = await request(app.getHttpServer()).get("/verification/checks").set(auth(amanGm)).expect(200);
     expect(res.body.every((c: { tenantId: string }) => c.tenantId === "demo-tenant-2")).toBe(true);
   });
+
+  it("السجل التجاري (البيانات المفتوحة): بحث برقم موجود ⇒ found + بيانات + تسجيل عملية مجانية", async () => {
+    const res = await request(app.getHttpServer()).post("/verification/cr-registry").set(auth(sales))
+      .send({ crNumber: "1010000001", clientId: "cl-fahd" }).expect(200);
+    expect(res.body.found).toBe(true);
+    expect(res.body.data.name).toBeTruthy();
+    expect(res.body.data.city).toBeTruthy();
+    expect(res.body.cost).toBe(0);
+    expect(res.body.source).toContain("opendata");
+    expect(res.body.checkId).toBeTruthy();
+  });
+
+  it("السجل التجاري: أرقام عربية تُطبَّع لاتينيًّا ⇒ found", async () => {
+    const res = await request(app.getHttpServer()).post("/verification/cr-registry").set(auth(sales))
+      .send({ crNumber: "١٠١٠٠٠٠٠٠٢" }).expect(200);
+    expect(res.body.found).toBe(true);
+    expect(res.body.data.crNumber).toBe("1010000002");
+  });
+
+  it("السجل التجاري: رقم غير موجود ⇒ found=false بلا تسجيل", async () => {
+    const res = await request(app.getHttpServer()).post("/verification/cr-registry").set(auth(sales))
+      .send({ crNumber: "9999999999" }).expect(200);
+    expect(res.body.found).toBe(false);
+    expect(res.body.data).toBeUndefined();
+  });
+
+  it("السجل التجاري: وصف اللقطة (meta) يعيد العدد والمصدر", async () => {
+    const res = await request(app.getHttpServer()).get("/verification/cr-registry/meta").set(auth(sales)).expect(200);
+    expect(res.body.count).toBeGreaterThanOrEqual(12);
+    expect(res.body.source).toContain("opendata");
+  });
+
+  it("السجل التجاري: المحاسب (لا صلاحية clients) ممنوع ⇒ 403", () =>
+    request(app.getHttpServer()).post("/verification/cr-registry").set(auth(accountant)).send({ crNumber: "1010000001" }).expect(403));
 });

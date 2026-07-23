@@ -1,6 +1,6 @@
 import { Body, Controller, Get, HttpCode, Post, Query } from "@nestjs/common";
 import { VerificationService } from "./verification.service";
-import { YaqeenDto, WathiqDto, AddressDto, ScreeningDto } from "./dto/verification.dto";
+import { YaqeenDto, WathiqDto, AddressDto, ScreeningDto, CrRegistryDto } from "./dto/verification.dto";
 import { Authorize } from "../rbac/authorize.decorator";
 import { CurrentUser } from "../auth/current-user.decorator";
 
@@ -39,6 +39,20 @@ export class VerificationController {
   @Post("screening")
   screening(@CurrentUser("tenantId") t: string, @CurrentUser("userId") u: string, @Body() dto: ScreeningDto) {
     return this.verification.screening(t, u, dto.name, dto.clientId);
+  }
+
+  // التحقّق من السجل التجاري عبر «البيانات المفتوحة» لوزارة التجارة (بحث محليّ فوريّ برقم السجل، مجاني)
+  @Authorize({ module: "clients", action: "update", entitlement: "feature.verification" })
+  @HttpCode(200)
+  @Post("cr-registry")
+  crRegistry(@CurrentUser("tenantId") t: string, @CurrentUser("userId") u: string, @Body() dto: CrRegistryDto) {
+    return this.verification.crRegistry_lookup(t, u, dto.crNumber, dto.clientId);
+  }
+
+  @Authorize({ module: "clients", action: "read", entitlement: "feature.verification" })
+  @Get("cr-registry/meta")
+  crRegistryMeta() {
+    return this.verification.crRegistryMeta();
   }
 
   @Authorize({ module: "clients", action: "read", entitlement: "feature.verification" })

@@ -19,3 +19,8 @@ export class ScreeningDto {
   @IsString() @MinLength(2) name!: string;
   @IsOptional() @IsString() clientId?: string;
 }
+
+export class CrRegistryDto {
+  @IsString() @MinLength(4) crNumber!: string;
+  @IsOptional() @IsString() clientId?: string;
+}

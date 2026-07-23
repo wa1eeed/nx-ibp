@@ -238,9 +238,34 @@ async function seedProviders() {
     { key: "wathiq", name: "واثق" },
     { key: "spl", name: "العنوان الوطني" },
     { key: "screening", name: "فحص PEP/العقوبات" },
+    { key: "opendata", name: "البيانات المفتوحة — وزارة التجارة" },
   ];
   for (const p of providers) {
     await prisma.verificationProvider.upsert({ where: { key: p.key }, update: { name: p.name }, create: p });
+  }
+  await seedCrRegistry();
+}
+
+// عيّنة سجلات تجارية بصيغة الداتاست الرسمي (البيانات المفتوحة) — لتعمل ميزة التحقّق فورًا في الديمو.
+// الاستيراد الكامل عبر: pnpm --filter @ibp/db exec ts-node prisma/import-cr-registry.ts <file.csv>
+async function seedCrRegistry() {
+  const SAMPLE = [
+    { crNumber: "1010000001", unifiedNumber: "7000000001", name: "شركة الفهد للمقاولات", activity: "أعمال إنشاء المباني السكنية", legalEntity: "شركة ذات مسؤولية محدودة", region: "منطقة الرياض", city: "الرياض", capital: 5000000, registryType: "رئيسي", issueDate: "2016-03-14" },
+    { crNumber: "1010000002", unifiedNumber: "7000000002", name: "مجموعة الزهراء الطبية", activity: "أنشطة المستشفيات العامة", legalEntity: "شركة مساهمة مقفلة", region: "منطقة الرياض", city: "الرياض", capital: 25000000, registryType: "رئيسي", issueDate: "2012-08-02" },
+    { crNumber: "4030000003", unifiedNumber: "7000000003", name: "الشروق للنقل والتجارة", activity: "نقل البضائع على الطرق", legalEntity: "مؤسسة فردية", region: "منطقة مكة المكرمة", city: "جدة", capital: 800000, registryType: "رئيسي", issueDate: "2019-01-20" },
+    { crNumber: "1010000004", unifiedNumber: "7000000004", name: "أغذية الواحة", activity: "تصنيع منتجات الألبان", legalEntity: "شركة ذات مسؤولية محدودة", region: "منطقة الرياض", city: "الرياض", capital: 12000000, registryType: "رئيسي", issueDate: "2015-06-11" },
+    { crNumber: "4030000005", unifiedNumber: "7000000005", name: "شركة البحر الأحمر للتطوير", activity: "تطوير المشاريع العقارية", legalEntity: "شركة مساهمة", region: "منطقة مكة المكرمة", city: "جدة", capital: 100000000, registryType: "رئيسي", issueDate: "2018-11-05" },
+    { crNumber: "2050000006", unifiedNumber: "7000000006", name: "مصنع الرواد للبلاستيك", activity: "تصنيع منتجات البلاستيك", legalEntity: "شركة ذات مسؤولية محدودة", region: "المنطقة الشرقية", city: "الدمام", capital: 9000000, registryType: "رئيسي", issueDate: "2014-02-28" },
+    { crNumber: "2050000007", unifiedNumber: "7000000007", name: "درب الحرير اللوجستية", activity: "أنشطة المناولة والتخزين", legalEntity: "شركة ذات مسؤولية محدودة", region: "المنطقة الشرقية", city: "الخبر", capital: 3000000, registryType: "رئيسي", issueDate: "2020-09-17" },
+    { crNumber: "1010000008", unifiedNumber: "7000000008", name: "مستشفى السلامة التخصصي", activity: "أنشطة المستشفيات المتخصصة", legalEntity: "شركة مساهمة مقفلة", region: "منطقة الرياض", city: "الرياض", capital: 40000000, registryType: "رئيسي", issueDate: "2011-05-09" },
+    { crNumber: "1010000009", unifiedNumber: "7000000009", name: "شركة طيف للتقنية", activity: "برمجة الحاسب الآلي", legalEntity: "شركة ذات مسؤولية محدودة", region: "منطقة الرياض", city: "الرياض", capital: 1500000, registryType: "رئيسي", issueDate: "2021-04-01" },
+    { crNumber: "4030000010", unifiedNumber: "7000000010", name: "مجموعة الأصيل التجارية", activity: "تجارة الجملة متعددة الأصناف", legalEntity: "شركة ذات مسؤولية محدودة", region: "منطقة مكة المكرمة", city: "جدة", capital: 6000000, registryType: "رئيسي", issueDate: "2017-07-23" },
+    { crNumber: "2050000011", unifiedNumber: "7000000011", name: "مصانع الخزف السعودي", activity: "تصنيع منتجات الخزف والبورسلين", legalEntity: "شركة مساهمة", region: "المنطقة الشرقية", city: "الدمام", capital: 55000000, registryType: "رئيسي", issueDate: "2010-12-30" },
+    { crNumber: "1010000012", unifiedNumber: "7000000012", name: "مقاولات الإعمار الحديثة", activity: "أعمال الإنشاءات الهندسية المدنية", legalEntity: "شركة ذات مسؤولية محدودة", region: "منطقة الرياض", city: "الرياض", capital: 20000000, registryType: "رئيسي", issueDate: "2013-10-18" },
+  ];
+  for (const r of SAMPLE) {
+    const data = { ...r, capital: new Prisma.Decimal(r.capital), issueDate: new Date(r.issueDate), status: "active", source: "opendata_mc_2026q1" };
+    await prisma.crRegistryRecord.upsert({ where: { crNumber: r.crNumber }, update: data, create: data });
   }
 }
 

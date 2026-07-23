@@ -39,17 +39,26 @@
 
 `POST /verification/screening` (صلاحية الالتزام) يعيد `riskLevel` (`low`/`medium`/`high`) ومطابقة PEP/العقوبات — أساس التصنيف الآلي للمخاطر وقرار القبول/الرفض في بوّابة الالتزام (انظر [08](./08-deal-lifecycle-workflows.md)).
 
+## 4-أ. السجل التجاري عبر «البيانات المفتوحة» (وزارة التجارة)
+
+مصدر **مجاني** بديل/مكمّل لواثق للتحقّق من السجل التجاري — مبنيّ على [داتاست السجلات القائمة](https://open.data.gov.sa/ar/datasets/view/aef772cd-354c-48bb-9819-c60706dc8b56) (لقطة فصلية). لأن الداتاست يُنشَر **ملفًّا مجمَّعًا** (لا واجهة استعلام لحظي)، نستورده إلى جدول مرجعي محليّ ([`CrRegistryRecord`](../packages/db/prisma/schema.prisma)) فيصبح البحث **فوريًّا برقم السجل بلا نداء خارجي**.
+
+- **البحث** [`CrRegistryService.lookup`](../apps/api/src/modules/verification/cr-registry.service.ts): يُطبّع الرقم (يقبل الأرقام العربية) ويعيد السجل نظيفًا (اسم · نشاط · كيان قانوني · رقم موحّد · منطقة · مدينة · رأس مال · نوع السجل · تاريخ الإنشاء) أو `found:false`. الوجود ⇒ يُسجَّل كعملية تحقّق **مجانية** (`checkType=cr_opendata`, provider `opendata`).
+- **الاستيراد**: عيّنة تُبذَر تلقائيًّا في `seed.ts` لتعمل الميزة فورًا؛ والملفّ الكامل يُستورَد عبر [`prisma/import-cr-registry.ts`](../packages/db/prisma/import-cr-registry.ts) — نزّل لقطة الداتاست وصدّرها CSV ثم: `ts-node prisma/import-cr-registry.ts <file.csv> [source]`. المجلد المصدر (SharePoint) يحتاج تنزيلًا يدويًّا.
+- **الواجهة**: بطاقة «التحقّق من السجل التجاري» في صفحة التحقّق — إدخال رقم ⇒ عرض فوريّ لكل بيانات السجل مع وسم المصدر واللقطة، أو «غير موجود في اللقطة».
+
 ## 5. الـ endpoints
 
 | الطريقة والمسار | الصلاحية |
 |---|---|
 | `POST /verification/yaqeen` · `/wathiq` · `/address` | `clients:update` |
+| `POST /verification/cr-registry` (سجل تجاري — بيانات مفتوحة، مجاني) · `GET /verification/cr-registry/meta` | `clients:update` / `clients:read` |
 | `POST /verification/screening` | `compliance:update` |
 | `GET /verification/wallets` · `/checks?clientId=` | `clients:read` |
 
 ## 6. الاختبارات
 
-[`test/verification.e2e-spec.ts`](../apps/api/test/verification.e2e-spec.ts): سحب يقين يعبّئ النموذج و**يخصم عملية واحدة**، واثق (الشركاء/UBO)، العنوان الوطني مجاني (لا خصم)، فحص PEP (low/high)، منع RBAC (المحاسب من التحقّق، المبيعات من الفحص)، والعزل. **e2e 60/60**.
+[`test/verification.e2e-spec.ts`](../apps/api/test/verification.e2e-spec.ts): سحب يقين يعبّئ النموذج و**يخصم عملية واحدة**، واثق (الشركاء/UBO)، العنوان الوطني مجاني (لا خصم)، فحص PEP (low/high)، منع RBAC (المحاسب من التحقّق، المبيعات من الفحص)، والعزل؛ و**السجل التجاري من البيانات المفتوحة**: بحث موجود (بيانات + عملية مجانية) · تطبيع الأرقام العربية · غير موجود · meta · منع RBAC. **12/12**.
 
 ## انظر أيضاً
 - [03 — نموذج البيانات](./03-data-model.md) — `VerificationProvider`/`VerificationCheck`/`Wallet`/`TransactionLedger`

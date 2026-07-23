@@ -1619,9 +1619,30 @@ model Commission {
 
 model VerificationProvider {
   id     String              @id @default(cuid())
-  key    String              @unique // nafath | yaqeen | wathiq | spl
+  key    String              @unique // nafath | yaqeen | wathiq | spl | opendata
   name   String
   checks VerificationCheck[]
+}
+
+// سجلّ مرجعي للسجلات التجارية من «البيانات المفتوحة» لوزارة التجارة (لقطة فصلية) — مرجع عام لكل الشركات،
+// يُستورَد دوريًّا ويُتيح تحققًا فوريًّا برقم السجل بلا نداء خارجي. الحقول تطابق أعمدة الداتاست.
+model CrRegistryRecord {
+  id            String    @id @default(cuid())
+  crNumber      String    @unique // رقم السجل
+  unifiedNumber String? // الرقم الموحّد (700…)
+  name          String // اسم السجل
+  activity      String? // نوع النشاط التجاري (بالعربية)
+  legalEntity   String? // الكيان القانوني
+  issueDate     DateTime? // تاريخ إنشاء السجل
+  region        String? // المنطقة
+  city          String? // المدينة
+  capital       Decimal?  @db.Decimal(18, 2) // رأس المال
+  registryType  String? // نوع السجل (رئيسي/فرعي)
+  status        String    @default("active") // قائم
+  source        String    @default("opendata_mc_2026q1") // المصدر واللقطة الزمنية
+  importedAt    DateTime  @default(now())
+
+  @@index([name])
 }
 
 model VerificationCheck {

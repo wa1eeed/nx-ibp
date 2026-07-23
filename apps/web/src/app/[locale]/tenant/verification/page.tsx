@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { BadgeCheck, Wallet2, Search } from "lucide-react";
+import { BadgeCheck, Wallet2, Search, Landmark, CheckCircle2, XCircle } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/routing";
 import { api, getToken, ApiError } from "@/lib/api";
@@ -24,6 +24,11 @@ export default function VerificationPage() {
   const [nationalId, setNationalId] = useState("1012345678");
   const [result, setResult] = useState<VerifyResult | null>(null);
   const [error, setError] = useState("");
+  // التحقّق من السجل التجاري (البيانات المفتوحة)
+  const [crNumber, setCrNumber] = useState("1010000001");
+  const [crResult, setCrResult] = useState<{ found: boolean; crNumber?: string; source?: string; data?: Record<string, unknown> } | null>(null);
+  const [crMeta, setCrMeta] = useState<{ count: number; source: string | null } | null>(null);
+  const [crBusy, setCrBusy] = useState(false);
 
   const load = useCallback(async () => {
     const [w, c] = await Promise.all([api<WalletRow[]>("/verification/wallets"), api<CheckRow[]>("/verification/checks")]);
@@ -32,7 +37,19 @@ export default function VerificationPage() {
   useEffect(() => {
     if (!getToken()) { router.replace("/login"); return; }
     void load().catch(() => undefined);
+    void api<{ count: number; source: string | null }>("/verification/cr-registry/meta").then(setCrMeta).catch(() => undefined);
   }, [load, router]);
+
+  async function runCr(e: FormEvent) {
+    e.preventDefault();
+    setError(""); setCrResult(null); setCrBusy(true);
+    try {
+      const res = await api<{ found: boolean; crNumber?: string; source?: string; data?: Record<string, unknown> }>("/verification/cr-registry", { method: "POST", body: JSON.stringify({ crNumber }) });
+      setCrResult(res);
+      if (res.found) await load();
+    } catch (err) { setError(err instanceof ApiError ? err.message : "خطأ"); }
+    finally { setCrBusy(false); }
+  }
 
   async function runYaqeen(e: FormEvent) {
     e.preventDefault();
@@ -88,6 +105,43 @@ export default function VerificationPage() {
               ))}
             </div>
           </div>
+        ) : null}
+      </div>
+
+      {/* التحقّق من السجل التجاري — البيانات المفتوحة (وزارة التجارة) */}
+      <div className="mb-5 rounded-card border border-line bg-card p-5 shadow-card">
+        <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2 text-[14px] font-semibold text-ink"><Landmark size={17} className="text-primary" />{t("verification.cr.title")}</div>
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-primary-soft px-2.5 py-1 text-[11px] font-medium text-primary-strong">
+            <BadgeCheck size={12} /> {t("verification.cr.source")}{crMeta ? ` · ${t("verification.cr.count", { n: crMeta.count })}` : ""}
+          </span>
+        </div>
+        <p className="mb-3 text-[12px] text-subtle">{t("verification.cr.hint")}</p>
+        <form onSubmit={runCr} className="flex flex-wrap items-end gap-3">
+          <label className="block"><span className="mb-1 block text-[12px] font-medium text-muted">{t("verification.cr.crNumber")}</span>
+            <input value={crNumber} onChange={(e) => setCrNumber(e.target.value)} inputMode="numeric" placeholder="1010000000" className="h-9 w-56 rounded-lg border border-line bg-card px-3 text-[13px] tnum" /></label>
+          <button type="submit" disabled={crBusy} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary-strong px-4 text-[13px] font-semibold text-primary-fg hover:bg-primary disabled:opacity-60"><Search size={15} />{crBusy ? "…" : t("verification.cr.run")}</button>
+        </form>
+        {crResult ? (
+          crResult.found && crResult.data ? (
+            <div className="mt-4 rounded-lg border border-success/30 bg-success-soft/40 p-3">
+              <div className="mb-2 flex items-center gap-1.5 text-[12.5px] font-semibold text-success"><CheckCircle2 size={15} /> {t("verification.cr.found")}</div>
+              <div className="grid grid-cols-1 gap-x-6 gap-y-1 text-[12.5px] sm:grid-cols-2">
+                {(["name", "crNumber", "unifiedNumber", "activity", "legalEntity", "registryType", "region", "city", "capital", "issueDate"] as const).map((k) =>
+                  crResult.data![k] ? (
+                    <div key={k} className="flex justify-between gap-2 border-b border-line/60 py-1">
+                      <span className="text-subtle">{t(`verification.cr.fields.${k}`)}</span>
+                      <span className="font-medium text-ink">{k === "capital" ? `${Number(crResult.data![k]).toLocaleString("en-US")} ${t("common.sar")}` : String(crResult.data![k])}</span>
+                    </div>
+                  ) : null,
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="mt-4 flex items-center gap-1.5 rounded-lg border border-warning/30 bg-warning-soft/40 px-3 py-2.5 text-[12.5px] font-medium text-warning">
+              <XCircle size={15} /> {t("verification.cr.notFound", { cr: crResult.crNumber ?? crNumber })}
+            </div>
+          )
         ) : null}
       </div>
 
