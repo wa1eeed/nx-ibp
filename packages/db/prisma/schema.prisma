@@ -1645,19 +1645,6 @@ model CrRegistryRecord {
   @@index([name])
 }
 
-// سِجِلّ ملفّات لقطات السجل التجاري المُستورَدة من «مجلد الإسقاط» — لتخطّي المتطابق وعدم إعادة الاستيراد.
-model CrRegistryImport {
-  id         String   @id @default(cuid())
-  fileName   String
-  fileSize   BigInt // بايت
-  mtimeMs    BigInt // زمن تعديل الملف (ms)
-  rows       Int // عدد الصفوف المُدرَجة
-  source     String
-  importedAt DateTime @default(now())
-
-  @@unique([fileName, fileSize, mtimeMs])
-}
-
 model VerificationCheck {
   id         String               @id @default(cuid())
   tenantId   String

@@ -34,9 +34,5 @@ pnpm-debug.log*
 # test / coverage
 coverage/
 
-# Open-data CR dataset snapshots (large, imported not committed)
+# ملفّات مصدر خام كبيرة (لا تُلتزَم؛ اللقطة المضمَّنة هي packages/db/data/cr-registry/*.tsv.gz)
 *.xlsx
-2026*active*.xlsx
-data/cr-registry/*.xlsx
-data/cr-registry/*.csv
-!data/cr-registry/README.md

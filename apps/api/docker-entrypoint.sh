@@ -25,16 +25,13 @@ if [ -n "$SEED_ON_START" ]; then
   fi
 fi
 
-# مزامنة لقطة السجل التجاري (البيانات المفتوحة — وزارة التجارة) من مجلد مُثبَّت (volume) — اختياري.
-# اضبط CR_REGISTRY_DIR على مسار المجلد الذي رفعت فيه ملفّات اللقطة (.xlsx)، ثم أعد النشر.
-#   - idempotent: يستورد الملفّات الجديدة فقط (يتخطّى المستورَد سابقًا عبر جدول التتبّع) — سريع بعد أول تحميل.
-#   - CR_REGISTRY_FRESH=true ⇒ لقطة فصلية نظيفة (يمسح ثم يعيد الاستيراد الكامل).
-#   - يتطلّب unzip (مثبّت في الصورة). فشلُه لا يوقف الإقلاع.
-if [ -n "$CR_REGISTRY_DIR" ] && [ -d "$CR_REGISTRY_DIR" ]; then
-  echo "[entrypoint] مزامنة السجل التجاري من $CR_REGISTRY_DIR ..."
-  CR_FRESH=""
-  [ "$CR_REGISTRY_FRESH" = "true" ] && CR_FRESH="--fresh"
-  (cd /app && node packages/db/prisma/import-cr-dir.cjs "$CR_REGISTRY_DIR" $CR_FRESH) || echo "[entrypoint] ⚠ فشلت مزامنة السجل التجاري — يتابع الإقلاع."
+# تحميل لقطة السجل التجاري (البيانات المفتوحة — وزارة التجارة) — **تلقائيًّا وبلا أيّ إعداد**.
+# اللقطة مضمَّنة في المستودع/الصورة (ملفّ tsv.gz صغير). يُحمَّل **مرّة واحدة** عند أول نشر:
+# إن كان الجدول شبه فارغ (< 100000) يُستورَد، وإلا يُتخطّى فورًا (لا يبطئ النشرات التالية). فشلُه لا يوقف الإقلاع.
+CR_BUNDLE=/app/packages/db/data/cr-registry/cr_2026q1.tsv.gz
+if [ -f "$CR_BUNDLE" ]; then
+  echo "[entrypoint] تحميل لقطة السجل التجاري (إن لزم)..."
+  (cd /app && node packages/db/prisma/import-cr-tsv.cjs "$CR_BUNDLE" --replace --if-below 100000) || echo "[entrypoint] ⚠ فشل تحميل السجل التجاري — يتابع الإقلاع."
 fi
 
 echo "[entrypoint] إقلاع الـ API على المنفذ ${API_PORT:-4000}..."

@@ -246,8 +246,8 @@ async function seedProviders() {
   await seedCrRegistry();
 }
 
-// عيّنة سجلات تجارية بصيغة الداتاست الرسمي (البيانات المفتوحة) — لتعمل ميزة التحقّق فورًا في الديمو.
-// الاستيراد الكامل عبر: pnpm --filter @ibp/db exec ts-node prisma/import-cr-registry.ts <file.csv>
+// عيّنة سجلات تجارية (البيانات المفتوحة) — للتطوير/الاختبار قبل تحميل اللقطة الكاملة.
+// اللقطة الكاملة (~١٫٥ مليون) تُحمَّل تلقائيًّا عند النشر من الحزمة المضمَّنة عبر prisma/import-cr-tsv.cjs.
 async function seedCrRegistry() {
   const SAMPLE = [
     { crNumber: "1010000001", unifiedNumber: "7000000001", name: "شركة الفهد للمقاولات", activity: "أعمال إنشاء المباني السكنية", legalEntity: "شركة ذات مسؤولية محدودة", region: "منطقة الرياض", city: "الرياض", capital: 5000000, registryType: "رئيسي", issueDate: "2016-03-14" },
