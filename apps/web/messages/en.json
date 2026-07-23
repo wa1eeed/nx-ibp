@@ -270,7 +270,13 @@
     "newRequest": "New request",
     "newClient": "Add client",
     "newTask": "New task",
-    "newDeal": "New deal"
+    "newDeal": "New deal",
+    "sub": {
+      "newRequest": "Open an insurance request",
+      "newClient": "Register a new client",
+      "newTask": "Add a follow-up task",
+      "newDeal": "Log a pipeline opportunity"
+    }
   },
   "dashboard": {
     "title": "Dashboard",
@@ -1123,7 +1129,7 @@
     "save": "Save",
     "saved": "Payment settings saved",
     "error": "Could not save",
-    "securityNote": "🔒 The secret key is encrypted with AES-256-GCM and never exposed in the UI or logs. Your keys are private to your company and fully isolated from other tenants."
+    "securityNote": "🔒 The secret key is encrypted with AES-256-GCM and never exposed in the UI or logs. Your keys are private to your company and fully isolated from other companies."
   },
   "adminPayment": {
     "title": "Platform payment gateway (Tap)",
@@ -1961,7 +1967,9 @@
       "call": "Call",
       "email": "Email",
       "meeting": "Meeting"
-    }
+    },
+    "dropHere": "Drop here to move the deal",
+    "dragHint": "Drag to change stage"
   },
   "policy360": {
     "back": "Back to policies",
@@ -3590,8 +3598,8 @@
     "hero": {
       "badge": "Prepared for ZATCA Phase 2 (Fatoora) integration",
       "title": "The Operating System for Insurance Brokerage",
-      "titleEn": "InsurTech SaaS Platform for Insurance Brokers",
-      "subtitle": "A multi-tenant SaaS platform that automates the entire insurance-brokerage workflow — from client and underwriting to policy issuance, finance, claims and reporting — with granular permissions and designed to support Saudi compliance requirements.",
+      "titleEn": "Insurance Brokerage Operating System",
+      "subtitle": "An operating system that automates the entire insurance-brokerage workflow — from client and underwriting to policy issuance, finance, claims and reporting — with granular permissions and designed to support Saudi compliance requirements.",
       "ctaPrimary": "Get started",
       "ctaSecondary": "View plans",
       "t1": "Fast setup, no infrastructure",
@@ -3635,14 +3643,14 @@
         "desc": "Ready-to-activate connectors: Yaqeen · Wathiq · Nafath · National Address · PEP screening — smart-fill (activated with the provider contract)."
       },
       "multitenant": {
-        "title": "Multi-tenant & analytics",
+        "title": "Governance & analytics",
         "desc": "Strict per-firm data isolation, granular RBAC, and live analytics dashboards."
       }
     },
     "target": {
       "title": "Built specifically for insurance brokers",
       "desc": "Replace scattered systems and spreadsheets with one operating system that runs every operation and keeps you regulator-ready.",
-      "p1": "An independent portal per brokerage (tenant) with its own data, settings and plan.",
+      "p1": "An independent portal per brokerage with its own data, settings and plan.",
       "p2": "A client portal to track policies, claims, statements and documents.",
       "p3": "A super-admin console to manage plans, subscriptions and usage.",
       "p4": "Ready-to-activate government connectors (ZATCA · Nafath · Yaqeen · Wathiq) + reports designed for the insurance sector."
@@ -3699,7 +3707,7 @@
       "nafath": "Connectors: Nafath · Yaqeen · Wathiq (ready to activate)"
     },
     "cta": {
-      "title": "Ready to run your brokerage professionally?",
+      "title": "Your brokerage, on one operating system",
       "subtitle": "Start today and move your operations onto one operating system.",
       "button": "Get started"
     },

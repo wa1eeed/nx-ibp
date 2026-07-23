@@ -8,8 +8,22 @@ import { ConfirmProvider } from "@/components/ui/ConfirmProvider";
 import "../globals.css";
 
 export const metadata = {
-  title: "IBP — منصة وساطة التأمين",
-  description: "منصة SaaS متعددة المستأجرين لوساطة التأمين في السعودية",
+  metadataBase: new URL("https://ibp.payone.one"),
+  title: "IBP — منصة إدارة وساطة التأمين",
+  description: "منصة إدارة وساطة التأمين في السعودية — من العميل والاكتتاب إلى إصدار الوثائق والمالية والامتثال",
+  // الأيقونة وصورة المشاركة (Open Graph/تويتر) تُلتقَط تلقائيًا من app/icon.svg و app/opengraph-image.tsx
+  openGraph: {
+    title: "IBP — منصة إدارة وساطة التأمين",
+    description: "منصة إدارة وساطة التأمين في السعودية — من العميل والاكتتاب إلى إصدار الوثائق والمالية والامتثال",
+    siteName: "IBP",
+    type: "website",
+    locale: "ar_SA",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "IBP — منصة إدارة وساطة التأمين",
+    description: "منصة إدارة وساطة التأمين في السعودية — من العميل والاكتتاب إلى إصدار الوثائق والمالية والامتثال",
+  },
 };
 
 export function generateStaticParams() {
