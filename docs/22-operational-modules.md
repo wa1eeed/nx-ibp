@@ -24,6 +24,8 @@ stateDiagram-v2
 
 الحماية: `module.service` + RBAC `service:*` (مدير عناية العملاء، المدير العام). الموديول `service` مفعّل في كل الباقات.
 
+**مراسلة شركة التأمين:** من تفاصيل طلب الخدمة زرّ **«مراسلة شركة التأمين»** يفتح نافذة تحرير مشتركة ([`InsurerLetterModal`](../apps/web/src/components/insurer/InsurerLetterModal.tsx)). `GET /service-requests/:id/insurer-letter` يبني **صيغة عربية افتراضية** من سياق الطلب (المؤمِّن مطابقًا لسجلّ شركات التأمين للحصول على البريد + رقم الوثيقة + نوع التعديل)، قابلة للتعديل بالكامل مع **مُرسَل إليه/CC ومعاينة**. `POST /service-requests/:id/send-insurer` يُرسل عبر `TenantEmailService` (BYO Resend أو المركزي)، يضبط `sentToInsurerAt`، ويسجّل نشاطًا في مسار الطلب وتدقيقًا (`service_insurer_sent`). الحقل `sentToInsurerAt` أُضيف بهجرة `insurer_correspondence`.
+
 ## 2. المطالبات
 
 `Claim`: دورة كاملة من الاستقبال حتى الإغلاق، برقم `CL-2026-1001`، مع `claimedAmount`/`deductible`/`settledAmount`/`incidentDate`/`insurerName`.
@@ -42,6 +44,19 @@ stateDiagram-v2
 
 الحماية: `module.claims` + RBAC `claims:*` (مسؤول المطالبات، مدير عناية العملاء، المدير العام). **بوّابة الباقة:** المطالبات موديول مدفوع (ADDON في premium، DISABLED في basic) — مستأجر بلا اشتراك يُمنع (`403`).
 
+**التحقّق الآلي من التغطية عند الفتح:** `validateCoverage(policyId, incidentDate)` يقارن **تاريخ الحادثة بمدّة الوثيقة وحالتها**:
+
+| الحالة | الشدّة |
+|---|---|
+| تاريخ الحادثة قبل بدء التغطية أو بعد انتهائها | **خطأ** (`before_coverage`/`after_coverage`) |
+| الوثيقة ملغاة/مرفوضة (`CANCELLED`/`REJECTED`) | **خطأ** (`policy_inactive`) |
+| الوثيقة غير مُصدَرة بعد | تنبيه (`policy_not_issued`) |
+| لا مدّة على الوثيقة / لا تاريخ حادثة | معلومة (`no_period`/`no_incident_date`) |
+
+فحص **مُسبق تحذيري لا يمنع**: `POST /claims/validate-coverage` تستدعيه الواجهة عند اختيار الوثيقة/تغيّر تاريخ الحادثة فتُظهر شريط تنبيهات حيًّا. وعند الإنشاء (`POST /claims`) يُعاد `coverageWarnings` مع المطالبة، وإن وُجد تعارض بشدّة **خطأ** يُوثَّق في **مسار المطالبة** (ملاحظة داخلية `CrmActivity`) وفي **التدقيق** (`coverage_warning`) — فالوسيط قد يسجّل المطالبة رغم التنبيه لكن يبقى التعارض موثّقًا.
+
+**مراسلة شركة التأمين:** كما في الخدمة — `GET /claims/:id/insurer-letter` (صيغة تشمل تاريخ الحادثة والمبلغ المطالَب) + `POST /claims/:id/send-insurer` عبر نفس [`InsurerLetterModal`](../apps/web/src/components/insurer/InsurerLetterModal.tsx) و`TenantEmailService`؛ يضبط `sentToInsurerAt` ويسجّل نشاطًا وتدقيقًا.
+
 ## 3. التجديدات
 
 عرض الوثائق المُصدَرة (`ISSUED`) المنتهية خلال نافذة (افتراضي 60 يوماً)، مُثراة باسم العميل والقسط ومرتّبة حسب الإلحاح. الحماية: `module.production` + RBAC `production:*`.
@@ -57,7 +72,10 @@ stateDiagram-v2
 | الطريقة والمسار | الصلاحية |
 |---|---|
 | `GET/POST /service-requests` · `POST /service-requests/:id/status` | `module.service` + `service:read/create/update` |
+| `GET /service-requests/:id/insurer-letter` · `POST /service-requests/:id/send-insurer` | `module.service` + `service:read/update` |
 | `GET/POST /claims` · `GET /claims/:id` · `POST /claims/:id/status` | `module.claims` + `claims:read/create/update` |
+| `POST /claims/validate-coverage` | `module.claims` + `claims:create` (فحص تغطية مُسبق) |
+| `GET /claims/:id/insurer-letter` · `POST /claims/:id/send-insurer` | `module.claims` + `claims:read/update` |
 | `GET /renewals?days=` · `POST /renewals/:policyId/initiate` | `module.production` + `production:read/create` |
 
 ## 5. الاختبارات

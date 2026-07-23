@@ -111,6 +111,7 @@ sequenceDiagram
 | `GET /policies` · `GET /policies/:id` | `production:read` |
 | `POST /finance/policies/:id/approve` | `module.finance` + `finance:update` |
 | `GET /finance/vouchers` · `GET /finance/policies/:id/postings` | `finance:read` |
+| `POST /finance/vouchers` · `PUT /finance/vouchers/:id` · `POST /finance/vouchers/:id/approve` | `finance:create`/`finance:update` (السندات اليدوية) |
 | `GET /producers` · `GET /producers/:id` | `module.finance` + `finance:read` |
 | `POST /producers` · `PATCH /producers/:id` | `finance:create` / `finance:update` |
 | `POST /producers/:id/settle` | `finance:create` |
@@ -165,6 +166,21 @@ sequenceDiagram
 - **الفعلي لا يُخزَّن** — يُشتقّ آليًا من **حركة السندات على الحساب** ضمن نطاق تاريخ الفترة، بطبيعة الحساب (مدين−دائن للمصروف/الأصل · دائن−مدين للإيراد/الخصم/حقوق الملكية) — فيبقى متطابقًا مع دفتر الأستاذ دومًا.
 - **الانحراف** = الفعلي − الموازنة (+نسبة). دلالته تختلف بطبيعة الحساب: للمصروف موجب = تجاوز (سلبي)، وللإيراد موجب = تفوّق (إيجابي) — تُلوَّن في الواجهة تبعًا لذلك.
 - `GET /finance/budget?year` (بنود السنة) · `GET /finance/budget/vs-actual?year&period` (المقارنة + مجاميع) · `POST /finance/budget` (upsert بند) · `DELETE /finance/budget/:id`. فترة/حساب مجهول ⇒ 400. صفحة `/tenant/finance/budget` (منتقي سنة/ربع + إضافة/تعديل inline + جدول انحراف). النموذج في [03](./03-data-model.md).
+
+## 9ز. السندات اليدوية الكاملة (JRV / PYV / RCV / DPV)
+
+بعدما كان الإدخال اليدوي مقصورًا على **قيد يومية (JRV)** يُرحَّل فورًا، صار المحاسب يُنشئ **أيّ نوع سند** بدورة **مسودّة ← اعتماد**:
+
+| النوع | الاستخدام |
+|---|---|
+| `JRV` | قيد يومية عام |
+| `PYV` | سند صرف |
+| `RCV` | سند قبض |
+| `DPV` | دفع مباشر |
+
+- **تحقّق صارم** (`resolveEntries`): ≥ طرفين · كل سطر **مدين أو دائن (XOR)** · الحساب **ورقة ترحيل موجودة** · **مجموع المدين = مجموع الدائن**.
+- **الدورة:** `POST /finance/vouchers` يُنشئ السند بحالة **`draft`** (لا يظهر بعد في ميزان المراجعة المُرحَّل)؛ `PUT /finance/vouchers/:id` يعدّل **المسودّة فقط** (يرفض المُرحَّل أو الآلي `isAuto` ⇒ 409)؛ `POST /finance/vouchers/:id/approve` يحوّل **مسودّة ⇒ `posted`** مع تدقيق `voucher_approved`. أرقام التسلسل من `nextVoucherSeq(type)` ⇒ `PYV-2026-1001` مثلًا.
+- **العرض:** `GET /finance/vouchers` وُسِّع ليشمل **كل السندات اليدوية** (`isAuto:false`) بنوعها وحالتها؛ السندات الآلية (المولّدة من الاعتماد المالي) تبقى خارج قائمة التحرير. في تبويب «القيود» **محدِّد نوع السند** + شارة «مسودّة» + زرّ «اعتماد وترحيل» (محكوم بـ`finance:edit`).
 
 ## انظر أيضاً
 - [34 — طبقة ما بعد الاكتمال](./34-post-completion-features.md) — نموذج التحصيل · نظرة المالك · الملاحق
