@@ -10,6 +10,16 @@ import { Badge, type BadgeTone } from "@/components/ui/Badge";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
 import { usePermissions } from "@/hooks/usePermissions";
 
+/** تخمين الشكل القانوني (enum) من نصّ الكيان/النشاط في السجل التجاري — أفضل جهد. */
+function mapLegalForm(s: string): string {
+  if (/مساهمة/.test(s)) return "joint_stock";
+  if (/محدودة|مسؤولية|مسئولية/.test(s)) return "llc";
+  if (/تضامن/.test(s)) return "joint_liability";
+  if (/توصية/.test(s)) return "partnership";
+  if (/مؤسسة|فردية|فرد/.test(s)) return "sole_proprietor";
+  return "";
+}
+
 interface ClientRow {
   id: string;
   code: string | null;
@@ -80,6 +90,33 @@ export default function ClientsPage() {
   const [contactName, setContactName] = useState(""); // اسم شخص التواصل
   const [phone, setPhone] = useState(""); // جوال سعودي 05XXXXXXXX
   const [landline, setLandline] = useState(""); // هاتف ثابت 01XXXXXXXX
+  // تعبئة ذكية من السجل التجاري (رقم السجل أو الرقم الموحّد) ⇒ يملأ باقي حقول المنشأة
+  const [lookupCr, setLookupCr] = useState("");
+  const [lookupBusy, setLookupBusy] = useState(false);
+  const [lookupMsg, setLookupMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  async function fillFromCr() {
+    if (!lookupCr.trim()) return;
+    setLookupBusy(true); setLookupMsg(null);
+    try {
+      const res = await api<{ found: boolean; data?: Record<string, unknown> }>("/verification/cr-registry", { method: "POST", body: JSON.stringify({ crNumber: lookupCr.trim() }) });
+      if (res.found && res.data) {
+        const d = res.data as Record<string, string | null>;
+        setType("CORPORATE");
+        if (d.name) setName(d.name);
+        if (d.crNumber) setCrNumber(d.crNumber);
+        if (d.city) setCity(d.city);
+        if (d.activity) setBusinessActivity(d.activity);
+        const lf = mapLegalForm(`${d.legalEntity ?? ""} ${d.activity ?? ""}`);
+        if (lf) setLegalForm(lf);
+        setLookupMsg({ ok: true, text: t("clients.crLookup.filled", { name: d.name ?? "" }) });
+      } else {
+        setLookupMsg({ ok: false, text: t("clients.crLookup.notFound") });
+      }
+    } catch (err) {
+      setLookupMsg({ ok: false, text: err instanceof ApiError ? err.message : t("clients.crLookup.error") });
+    } finally { setLookupBusy(false); }
+  }
 
   const load = useCallback(async () => {
     const cs = await api<ClientRow[]>("/clients");
@@ -125,6 +162,7 @@ export default function ClientsPage() {
       setName(""); setCrNumber(""); setNationalId(""); setEmail(""); setCity("");
       setNationalAddress(""); setVatNumber(""); setRelationStatus(""); setLegalForm(""); setSource(""); setProducerName(""); setBusinessActivity(""); setCollectionModel("collect_full");
       setContactName(""); setPhone(""); setLandline("");
+      setLookupCr(""); setLookupMsg(null);
       await load();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "خطأ");
@@ -198,6 +236,24 @@ export default function ClientsPage() {
 
       {showForm ? (
         <form onSubmit={createClient} className="mb-4 grid grid-cols-1 gap-3 rounded-card border border-line bg-card p-5 shadow-card sm:grid-cols-3">
+          {/* تعبئة ذكية من السجل التجاري — أوّل حقل: رقم السجل/الرقم الموحّد + زر تحقّق يملأ الباقي */}
+          {type === "CORPORATE" ? (
+            <div className="rounded-xl border border-primary/25 bg-primary-soft/40 p-3 sm:col-span-3">
+              <div className="mb-1.5 flex items-center gap-1.5 text-[12.5px] font-semibold text-primary-strong"><BadgeCheck size={15} /> {t("clients.crLookup.title")}</div>
+              <div className="flex flex-wrap items-end gap-2">
+                <label className="block flex-1">
+                  <span className="mb-1 block text-[11.5px] font-medium text-muted">{t("clients.crLookup.label")}</span>
+                  <input value={lookupCr} onChange={(e) => setLookupCr(e.target.value.replace(/\D/g, ""))} inputMode="numeric" maxLength={10} placeholder="1010XXXXXX / 700XXXXXXX"
+                    onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); void fillFromCr(); } }}
+                    className="h-9 w-full min-w-[180px] rounded-lg border border-line bg-card px-3 text-[13px] tnum" />
+                </label>
+                <button type="button" onClick={() => void fillFromCr()} disabled={lookupBusy || !lookupCr.trim()} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary-strong px-4 text-[13px] font-semibold text-primary-fg hover:bg-primary disabled:opacity-60">
+                  <Search size={15} /> {lookupBusy ? "…" : t("clients.crLookup.button")}
+                </button>
+              </div>
+              {lookupMsg ? <p className={`mt-2 text-[12px] font-medium ${lookupMsg.ok ? "text-success" : "text-warning"}`}>{lookupMsg.ok ? "✓ " : "⚠ "}{lookupMsg.text}</p> : <p className="mt-1.5 text-[11px] text-subtle">{t("clients.crLookup.hint")}</p>}
+            </div>
+          ) : null}
           <label className="block">
             <span className="mb-1 block text-[12px] font-medium text-muted">{t("clients.type.label")}</span>
             <select value={type} onChange={(e) => setType(e.target.value as "CORPORATE" | "INDIVIDUAL")} className="h-9 w-full rounded-lg border border-line bg-card px-2 text-[13px]">

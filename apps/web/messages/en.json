@@ -997,7 +997,16 @@
     },
     "contactName": "Contact person",
     "phone": "Mobile number",
-    "landline": "Landline number"
+    "landline": "Landline number",
+    "crLookup": {
+      "title": "Smart-fill from Commercial Registration",
+      "label": "CR or Unified number",
+      "button": "Verify & fill",
+      "hint": "Enter the CR or Unified number then “Verify” to auto-fill the company details from the Ministry of Commerce registry.",
+      "filled": "Filled from: {name} — review and complete the rest.",
+      "notFound": "No record with this number in the current snapshot — enter manually.",
+      "error": "Verification failed — enter manually."
+    }
   },
   "commissions": {
     "title": "Commissions",
