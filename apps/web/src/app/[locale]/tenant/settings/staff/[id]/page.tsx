@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { ArrowRight, Activity, FileCheck2, CheckCircle2, Clock, ShieldCheck, ShieldOff, KeyRound, Check, Minus, Pencil } from "lucide-react";
+import { ArrowRight, Activity, FileCheck2, CheckCircle2, Clock, ShieldCheck, ShieldOff, KeyRound, Check, Minus, Pencil, UserMinus, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { RBAC_MODULES, type RbacModule } from "@ibp/shared";
 import { Link } from "@/i18n/routing";
@@ -44,6 +44,7 @@ export default function StaffDetailPage() {
   const id = String(params.id);
   const [d, setD] = useState<Detail | null>(null);
   const [tab, setTab] = useState<(typeof TABS)[number]>("permissions");
+  const [offboarding, setOffboarding] = useState(false);
 
   const load = useCallback(async () => {
     try { setD(await api<Detail>(`/staff/${id}`)); } catch { /* تجاهل */ }
@@ -86,9 +87,16 @@ export default function StaffDetailPage() {
               <ShieldOff size={14} /> {t("mfa.reset")}
             </button>
           ) : null}
+          {u.status === "ACTIVE" ? (
+            <button onClick={() => setOffboarding(true)} className="inline-flex items-center gap-1.5 rounded-lg border border-danger/30 bg-danger/5 px-3 py-1.5 text-[12px] font-semibold text-danger hover:bg-danger/10">
+              <UserMinus size={14} /> {t("offboard.button")}
+            </button>
+          ) : null}
           <Badge tone={u.status === "ACTIVE" ? "success" : "neutral"}>{u.status}</Badge>
         </div>
       </header>
+
+      {offboarding ? <OffboardDialog userId={id} userName={u.fullName} onClose={() => setOffboarding(false)} onDone={() => { setOffboarding(false); void load(); }} /> : null}
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr]">
         <div className="rounded-card border border-line bg-card p-4">
@@ -311,5 +319,69 @@ function ProductScope({ userId, current, onSaved }: { userId: string; current: s
       )}
       {msg ? <p className="mt-2 text-[11.5px] font-medium text-success">{msg}</p> : null}
     </section>
+  );
+}
+
+/** حوار إنهاء الخدمة (المغادرة/الاستقالة): نقل المهام المفتوحة + تعطيل الحساب + تحرير/إلغاء المقعد. */
+function OffboardDialog({ userId, userName, onClose, onDone }: { userId: string; userName: string; onClose: () => void; onDone: () => void }) {
+  const t = useTranslations("staffDetail");
+  const [peers, setPeers] = useState<Array<{ id: string; fullName: string; email: string; status: string }>>([]);
+  const [reassignToId, setReassignToId] = useState("");
+  const [cancelSeat, setCancelSeat] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<{ reassigned: { deals: number; tasks: number; serviceRequests: number; complaints: number } } | null>(null);
+
+  useEffect(() => {
+    void api<Array<{ id: string; fullName: string; email: string; status: string }>>("/staff")
+      .then((rows) => setPeers(rows.filter((r) => r.status === "ACTIVE" && r.id !== userId)))
+      .catch(() => undefined);
+  }, [userId]);
+
+  const submit = async () => {
+    setBusy(true);
+    try {
+      const res = await api<{ reassigned: { deals: number; tasks: number; serviceRequests: number; complaints: number } }>(`/staff/${userId}/offboard`, {
+        method: "POST", body: JSON.stringify({ reassignToId: reassignToId || undefined, cancelSeat }),
+      });
+      setResult(res);
+      setTimeout(onDone, 1400);
+    } catch { setBusy(false); }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={onClose}>
+      <div className="w-full max-w-md rounded-card border border-line bg-card p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="flex items-center gap-2 text-[15px] font-bold text-ink"><UserMinus size={17} className="text-danger" /> {t("offboard.title")}</h2>
+          <button onClick={onClose} className="grid h-7 w-7 place-items-center rounded-lg text-subtle hover:bg-surface-2 hover:text-ink"><X size={16} /></button>
+        </div>
+        {result ? (
+          <div className="rounded-lg bg-success-soft px-3 py-3 text-[12.5px] text-success">
+            {t("offboard.done", { deals: result.reassigned.deals, tasks: result.reassigned.tasks, service: result.reassigned.serviceRequests, complaints: result.reassigned.complaints })}
+          </div>
+        ) : (
+          <>
+            <p className="mb-3 text-[12.5px] leading-relaxed text-muted">{t("offboard.desc", { name: userName })}</p>
+            <label className="mb-3 block">
+              <span className="mb-1 block text-[11.5px] font-medium text-muted">{t("offboard.reassign")}</span>
+              <select value={reassignToId} onChange={(e) => setReassignToId(e.target.value)} className="w-full rounded-lg border border-line bg-bg px-2.5 py-2 text-[13px] text-ink">
+                <option value="">{t("offboard.noReassign")}</option>
+                {peers.map((p) => <option key={p.id} value={p.id}>{p.fullName}</option>)}
+              </select>
+            </label>
+            <label className="mb-4 flex items-start gap-2">
+              <input type="checkbox" checked={cancelSeat} onChange={(e) => setCancelSeat(e.target.checked)} className="mt-0.5 h-4 w-4 rounded border-line" />
+              <span className="text-[12.5px] text-ink">{t("offboard.cancelSeat")}<span className="mt-0.5 block text-[11px] text-subtle">{t("offboard.cancelSeatHint")}</span></span>
+            </label>
+            <div className="flex justify-end gap-2">
+              <button onClick={onClose} className="h-9 rounded-lg border border-line px-4 text-[12.5px] text-muted hover:bg-surface-2">{t("offboard.cancel")}</button>
+              <button onClick={submit} disabled={busy} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-danger px-4 text-[12.5px] font-semibold text-white hover:opacity-90 disabled:opacity-60">
+                <UserMinus size={14} /> {busy ? "…" : t("offboard.confirm")}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
   );
 }

@@ -88,4 +88,43 @@ describe("رخصة المقاعد — مسبق الدفع (e2e)", () => {
 
   it("عزل: مستخدم الشركة لا يعدّل الباقات (نطاق المنصّة فقط) ⇒ 403", () =>
     request(srv()).put("/platform/plans/basic").set(auth(omar)).send({ priceMonthly: 1 }).expect(403));
+
+  // ————————————————— إنهاء الخدمة (المغادرة/الاستقالة) — نقل الرخصة/إلغاؤها —————————————————
+
+  const ownerIdOf = async (t: string) => {
+    const staff = (await request(srv()).get("/staff").set(auth(t)).expect(200)).body as Array<{ id: string; email: string }>;
+    return staff.find((u) => u.email.startsWith("seatowner"))!.id;
+  };
+
+  it("إنهاء الخدمة يحرّر المقعد ويعطّل الحساب، مع نقل المهام لموظف آخر (الرخصة تبقى لبديل)", async () => {
+    const t = await signup(3);
+    const a = await request(srv()).post("/staff").set(auth(t)).send(newUser(`off-a-${uniq()}@seat-broker.sa`)).expect(201);
+    expect((await seatsOf(t)).used).toBe(2); // المالك + A
+    const ownerId = await ownerIdOf(t);
+    const res = await request(srv()).post(`/staff/${a.body.id}/offboard`).set(auth(t)).send({ reassignToId: ownerId }).expect(200);
+    expect(res.body.ok).toBe(true);
+    expect(res.body.reassignedToEmail).toBeTruthy();
+    expect(res.body.licenseCancelled).toBe(false);
+    const s = await seatsOf(t);
+    expect(s.used).toBe(1); // تحرّر مقعد A
+    expect(s.limit).toBe(3); // الرخصة باقية (لبديل)
+    expect(s.available).toBe(2);
+    const after = (await request(srv()).get("/staff").set(auth(t)).expect(200)).body as Array<{ id: string; status: string }>;
+    expect(after.find((u) => u.id === a.body.id)!.status).toBe("DISABLED");
+  });
+
+  it("إنهاء الخدمة مع إلغاء الرخصة يقلّل المقاعد المدفوعة", async () => {
+    const t = await signup(3);
+    const b = await request(srv()).post("/staff").set(auth(t)).send(newUser(`off-b-${uniq()}@seat-broker.sa`)).expect(201);
+    const res = await request(srv()).post(`/staff/${b.body.id}/offboard`).set(auth(t)).send({ cancelSeat: true }).expect(200);
+    expect(res.body.licenseCancelled).toBe(true);
+    const s = await seatsOf(t);
+    expect(s.used).toBe(1);
+    expect(s.limit).toBe(2); // 3 − 1 (لا تقلّ عن المستخدَم)
+  });
+
+  it("لا يمكن إنهاء خدمة الحساب لنفسه ⇒ 400", async () => {
+    const t = await signup(2);
+    await request(srv()).post(`/staff/${await ownerIdOf(t)}/offboard`).set(auth(t)).send({}).expect(400);
+  });
 });

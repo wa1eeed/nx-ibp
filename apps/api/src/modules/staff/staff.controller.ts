@@ -1,5 +1,5 @@
 import { Body, Controller, Get, HttpCode, Param, Post } from "@nestjs/common";
-import { IsArray, IsNumber, IsOptional, IsString } from "class-validator";
+import { IsArray, IsBoolean, IsNumber, IsOptional, IsString } from "class-validator";
 import { StaffService } from "./staff.service";
 import { CreateStaffDto } from "./dto/create-staff.dto";
 import { AssignRoleDto } from "./dto/role.dto";
@@ -12,6 +12,11 @@ class ProductScopeDto {
 
 class CommissionRateDto {
   @IsOptional() @IsNumber() rate?: number | null;
+}
+
+class OffboardDto {
+  @IsOptional() @IsString() reassignToId?: string; // نقل المهام المفتوحة لهذا الموظف (اختياري)
+  @IsOptional() @IsBoolean() cancelSeat?: boolean; // إلغاء الرخصة (تقليل المقاعد المدفوعة) بدل إبقائها لبديل
 }
 
 /**
@@ -83,5 +88,13 @@ export class StaffController {
   @Post(":id/role")
   assignRole(@CurrentUser() user: AuthUser, @Param("id") id: string, @Body() dto: AssignRoleDto) {
     return this.staff.assignRole(user, id, dto.roleId);
+  }
+
+  // إنهاء خدمة موظف (مغادرة/استقالة): نقل المهام + تعطيل الحساب + تحرير/إلغاء المقعد
+  @Authorize({ module: "settings", action: "delete" })
+  @HttpCode(200)
+  @Post(":id/offboard")
+  offboard(@CurrentUser() user: AuthUser, @Param("id") id: string, @Body() dto: OffboardDto) {
+    return this.staff.offboard(user, id, { reassignToId: dto.reassignToId, cancelSeat: dto.cancelSeat });
   }
 }

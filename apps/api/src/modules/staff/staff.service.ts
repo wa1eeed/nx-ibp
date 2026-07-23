@@ -295,6 +295,50 @@ export class StaffService {
     return { ok: true, roleId };
   }
 
+  /**
+   * **إنهاء خدمة موظف (مغادرة/استقالة)** — تجربة مرنة:
+   *  1) **نقل المهام المفتوحة** (صفقات · مهام · طلبات خدمة · شكاوى) لموظف آخر نشِط اختياريًا (بلا فقدان مسؤولية).
+   *  2) **تعطيل الحساب** (DISABLED) — يُحرَّر مقعده فورًا.
+   *  3) **الرخصة**: افتراضيًا يبقى المقعد المرخّص متاحًا لموظف بديل (نقل الرخصة)؛ أو `cancelSeat` لإلغائه (تقليل المقاعد المدفوعة).
+   * السجل التاريخي (AuditLog) لا يتغيّر — تُنقل المسؤولية الحالية فقط.
+   */
+  async offboard(admin: AuthUser, id: string, opts: { reassignToId?: string; cancelSeat?: boolean }) {
+    const target = await this.prisma.user.findFirst({ where: { id }, select: { id: true, email: true, fullName: true, status: true } });
+    if (!target) throw new NotFoundException("الموظف غير موجود");
+    if (id === admin.userId) throw new BadRequestException("لا يمكنك إنهاء خدمة حسابك بنفسك");
+    if (target.status === "DISABLED") throw new BadRequestException("الحساب مُنهى خدمته مسبقًا");
+
+    let reassigned = { deals: 0, tasks: 0, serviceRequests: 0, complaints: 0 };
+    let reassignedToEmail: string | null = null;
+    if (opts.reassignToId) {
+      const to = await this.prisma.user.findFirst({ where: { id: opts.reassignToId, status: "ACTIVE" }, select: { id: true, email: true } });
+      if (!to) throw new BadRequestException("الموظف المنقول إليه غير موجود أو غير نشِط");
+      if (to.id === id) throw new BadRequestException("لا يمكن النقل لنفس الموظف");
+      reassignedToEmail = to.email;
+      const [d, c, s, co] = await this.prisma.$transaction([
+        this.prisma.deal.updateMany({ where: { assigneeId: id }, data: { assigneeId: to.id } }),
+        this.prisma.crmTask.updateMany({ where: { assigneeId: id }, data: { assigneeId: to.id } }),
+        this.prisma.serviceRequest.updateMany({ where: { assigneeId: id }, data: { assigneeId: to.id } }),
+        this.prisma.complaint.updateMany({ where: { assigneeId: id }, data: { assigneeId: to.id } }),
+      ]);
+      reassigned = { deals: d.count, tasks: c.count, serviceRequests: s.count, complaints: co.count };
+    }
+
+    await this.prisma.user.update({ where: { id }, data: { status: "DISABLED" } });
+
+    // مزامنة المقاعد المستخدمة (بعد التعطيل) + إلغاء الرخصة اختياريًا (لا تقلّ عن المستخدَم فعليًا)
+    const seatsUsed = await this.prisma.user.count({ where: { tenantId: admin.tenantId, status: "ACTIVE" } });
+    const data: { seatsUsed: number; seatsLicensed?: number } = { seatsUsed };
+    if (opts.cancelSeat) {
+      const sub = await this.prisma.subscription.findFirst({ where: { tenantId: admin.tenantId }, select: { seatsLicensed: true } });
+      data.seatsLicensed = Math.max(seatsUsed, (sub?.seatsLicensed ?? seatsUsed) - 1);
+    }
+    await this.prisma.subscription.updateMany({ where: { tenantId: admin.tenantId }, data });
+
+    await this.audit.log({ tenantId: admin.tenantId, userId: admin.userId, action: "delete", entity: "user_offboard", entityId: id, meta: { target: target.email, reassignedTo: reassignedToEmail, reassigned, cancelSeat: !!opts.cancelSeat, seatsUsed } });
+    return { ok: true, reassigned, reassignedToEmail, seatsUsed, licenseCancelled: !!opts.cancelSeat, seatsLicensed: data.seatsLicensed };
+  }
+
   /** ضبط نسبة عمولة/حافز الموظف (% من عمولة الوساطة) — null = بلا عمولة. */
   async setCommissionRate(admin: AuthUser, id: string, rate: number | null) {
     const target = await this.prisma.user.findFirst({ where: { id }, select: { id: true, email: true } });
