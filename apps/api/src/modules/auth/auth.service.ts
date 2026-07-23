@@ -6,6 +6,7 @@ import { PrismaService } from "../../prisma/prisma.service";
 import { TenantAccessService } from "../access/tenant-access.service";
 import { AuditService } from "../../common/audit/audit.service";
 import { RateLimitService } from "../../common/security/rate-limit.service";
+import { HrService } from "../hr/hr.service";
 import { generateTotpSecret, otpauthUri, verifyTotp } from "../../common/security/totp";
 
 /** مدّة صلاحية رمز التحديث (أيام). */
@@ -20,6 +21,7 @@ export class AuthService {
     private readonly audit: AuditService,
     private readonly rateLimit: RateLimitService,
     private readonly access: TenantAccessService,
+    private readonly hr: HrService,
   ) {}
 
   /** هل تُلزِم الشركة موظفيها بالمصادقة الثنائية؟ (سياسة أمان على مستوى المستأجر). */
@@ -56,6 +58,9 @@ export class AuthService {
 
     // تسجيل دخول ناجح في سجل التدقيق (لا سياق مستأجر بعد ⇒ نمرّره صراحةً)
     await this.audit.log({ tenantId: user.tenantId, userId: user.id, action: "login", entity: "auth", entityId: user.id });
+
+    // حضور تلقائي عند أول دخول اليوم (غير حاجب — لا يُعطّل الدخول عند الفشل)
+    void this.hr.recordLogin(user.id, user.tenantId, user.fullName).catch(() => undefined);
 
     // إلزام الشركة بالـMFA ولم يُفعّلها المستخدم بعد ⇒ إشارة للواجهة لدفعه للتسجيل قبل المتابعة
     const mfaEnrollmentRequired = !user.mfaEnabled && (await this.mfaRequiredFor(user.tenantId));

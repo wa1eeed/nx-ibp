@@ -18,6 +18,36 @@ export class HrController {
     return this.hr.expiring(days ? Number(days) : undefined);
   }
 
+  // ————— الحضور والانصراف (خدمة ذاتية لكل موظف مصادَق — بلا بوّابة موديول) —————
+  @Get("attendance/today")
+  today(@CurrentUser("userId") userId: string) {
+    return this.hr.today(userId);
+  }
+
+  @HttpCode(200)
+  @Post("attendance/check-in")
+  checkIn(@CurrentUser() user: AuthUser) {
+    return this.hr.checkIn(user);
+  }
+
+  @HttpCode(200)
+  @Post("attendance/check-out")
+  checkOut(@CurrentUser() user: AuthUser) {
+    return this.hr.checkOut(user);
+  }
+
+  @Get("attendance/mine")
+  myAttendance(@CurrentUser("userId") userId: string, @Query("days") days?: string) {
+    return this.hr.mine(userId, days ? Number(days) : undefined);
+  }
+
+  // لوحة حضور الفريق — للمديرين (صلاحية hr)
+  @Authorize({ module: "hr", action: "read" })
+  @Get("attendance/team")
+  team(@Query("date") date?: string) {
+    return this.hr.team(date);
+  }
+
   @Authorize({ module: "hr", action: "read" })
   @Get("employees/:id/profile")
   profile(@Param("id") id: string) {

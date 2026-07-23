@@ -127,6 +127,7 @@ export const TENANT_NAV: NavGroup[] = [
   {
     key: "hr",
     items: [
+      { key: "attendance", href: "/tenant/settings/attendance", icon: "Clock", module: "dashboard" }, // خدمة ذاتية لكل موظف
       { key: "payroll", href: "/tenant/finance/payroll", icon: "Wallet", module: "hr" },
       { key: "leave", href: "/tenant/settings/leave", icon: "CalendarDays", module: "hr" },
     ],

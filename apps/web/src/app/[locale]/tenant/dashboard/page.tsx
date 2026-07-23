@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { api } from "@/lib/api";
 import { Link } from "@/i18n/routing";
 import { StatCard } from "@/components/ui/StatCard";
+import { AttendanceWidget } from "@/components/hr/AttendanceWidget";
 
 interface Renewal { id: string; sequenceNo: string | null; insurerName: string | null; amount: number; endDate: string | null }
 interface Activity { kind: string; ref: string | null; amount?: number; status?: string; at: string }
@@ -26,6 +27,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-5">
+      <AttendanceWidget />
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard tone="danger" icon={<CalendarX2 size={18} />} title={t("dashboard.kpi.expiringTitle")} value={k?.expiring ?? "…"} sub={t("dashboard.kpi.expiringSub")} />
         <StatCard tone="warning" icon={<MailOpen size={18} />} title={t("dashboard.kpi.pendingTitle")} value={k?.pending ?? "…"} sub={t("dashboard.kpi.pendingSub")} />

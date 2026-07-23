@@ -62,6 +62,29 @@ describe("الموارد البشرية (e2e)", () => {
     expect(after.find((d) => d.id === docId)).toBeFalsy();
   });
 
+  it("الحضور التلقائي عند الدخول: سجلّ اليوم موجود بمصدر login", async () => {
+    // الدخول في beforeAll سجّل حضور اليوم تلقائيًا
+    const today = (await request(srv()).get("/hr/attendance/today").set(auth(owner)).expect(200)).body;
+    expect(today).toBeTruthy();
+    expect(today.checkInAt).toBeTruthy();
+    expect(today.source).toBe("login");
+  });
+
+  it("تسجيل انصراف يدوي + ظهور اليوم في سجلّي الشخصي", async () => {
+    const out = (await request(srv()).post("/hr/attendance/check-out").set(auth(owner)).expect(200)).body;
+    expect(out.checkOutAt).toBeTruthy();
+    const mine = (await request(srv()).get("/hr/attendance/mine?days=7").set(auth(owner)).expect(200)).body as Array<{ checkOutAt: string | null }>;
+    expect(mine.length).toBeGreaterThanOrEqual(1);
+    expect(mine[0].checkOutAt).toBeTruthy();
+  });
+
+  it("لوحة حضور الفريق (للمديرين): تشمل المالك بحالة محدّثة", async () => {
+    const team = (await request(srv()).get("/hr/attendance/team").set(auth(owner)).expect(200)).body as { rows: Array<{ userId: string; status: string }> };
+    const me = team.rows.find((r) => r.userId === ownerId);
+    expect(me).toBeTruthy();
+    expect(["in", "out"]).toContain(me!.status);
+  });
+
   it("عزل الصلاحية: موظف بلا صلاحية hr ⇒ 403 على الملف الوظيفي", async () => {
     // موظف جديد بصلاحية dashboard فقط (بلا hr)
     const email = `nohr-${uniq()}@gulf-demo.sa`;

@@ -197,6 +197,7 @@
     "insurers": "Insurers",
     "compliance": "Compliance",
     "finance": "Finance",
+    "attendance": "Attendance",
     "payroll": "Payroll",
     "leave": "Leave",
     "addons": "Add-ons",
@@ -1716,6 +1717,21 @@
     },
     "doc": { "type": "Type", "title": "Title", "number": "Number", "expiry": "Expiry", "add": "Add" },
     "docType": { "contract": "Employment contract", "national_id": "National ID", "iqama": "Iqama", "passport": "Passport", "certificate": "Certificate", "other": "Other" }
+  },
+  "attendance": {
+    "title": "Today's attendance",
+    "pageTitle": "Attendance",
+    "pageSubtitle": "Attendance is recorded automatically on login; you can also check in/out manually.",
+    "in": "Check-in",
+    "out": "Check-out",
+    "checkIn": "Check in",
+    "checkOut": "Check out",
+    "done": "Day complete",
+    "teamTitle": "Team attendance",
+    "mineTitle": "My log (last 30 days)",
+    "mineEmpty": "No attendance records yet.",
+    "col": { "employee": "Employee", "dept": "Department", "status": "Status", "date": "Day", "duration": "Duration" },
+    "status": { "in": "Present", "out": "Left", "absent": "Absent" }
   },
   "leave": {
     "nav": "Leave",
