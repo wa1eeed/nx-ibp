@@ -251,6 +251,13 @@
     "title": "Demo Session",
     "subtitle": "نمط العرض المؤقت"
   },
+  "quickActions": {
+    "title": "إجراءات سريعة",
+    "newRequest": "طلب تأمين جديد",
+    "newClient": "إضافة عميل",
+    "newTask": "مهمة جديدة",
+    "newDeal": "صفقة محتملة"
+  },
   "dashboard": {
     "title": "لوحة التحكم",
     "subtitle": "أولوياتك اليوم — مرتّبة حسب الإلحاح",

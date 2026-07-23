@@ -45,6 +45,12 @@ export default function CrmPage() {
   const [taskForm, setTaskForm] = useState<{ title: string; assigneeId: string; dueDate: string; priority: string } | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [error, setError] = useState("");
+  // اختصار سريع من لوحة التحكّم (#new-deal / #new-task) ⇒ يفتح نموذج الإنشاء المناسب مباشرةً
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.location.hash === "#new-deal") setDealForm({ title: "", clientId: "", value: "", productLineCode: "", assigneeId: "" });
+    else if (window.location.hash === "#new-task") setTaskForm({ title: "", assigneeId: "", dueDate: "", priority: "normal" });
+  }, []);
 
   const load = useCallback(async () => {
     try {

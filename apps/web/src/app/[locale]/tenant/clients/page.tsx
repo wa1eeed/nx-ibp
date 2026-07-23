@@ -36,6 +36,8 @@ export default function ClientsPage() {
   const canDecide = can("compliance", "edit"); // اعتماد/رفض الالتزام = صلاحية قسم الالتزام
   const [rows, setRows] = useState<ClientRow[]>([]);
   const [showForm, setShowForm] = useState(false);
+  // اختصار سريع من لوحة التحكّم (#new) ⇒ يفتح نموذج إضافة عميل مباشرةً
+  useEffect(() => { if (typeof window !== "undefined" && window.location.hash === "#new") setShowForm(true); }, []);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [saving, setSaving] = useState(false);

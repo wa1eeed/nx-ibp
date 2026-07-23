@@ -251,6 +251,13 @@
     "title": "Demo Session",
     "subtitle": "Temporary preview mode"
   },
+  "quickActions": {
+    "title": "Quick actions",
+    "newRequest": "New request",
+    "newClient": "Add client",
+    "newTask": "New task",
+    "newDeal": "New deal"
+  },
   "dashboard": {
     "title": "Dashboard",
     "subtitle": "Your priorities today — sorted by urgency",
