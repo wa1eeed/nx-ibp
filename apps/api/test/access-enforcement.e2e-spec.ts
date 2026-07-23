@@ -64,6 +64,24 @@ describe("فرض حالة الوصول (e2e)", () => {
     expect(me.access.writeBlocked).toBe(true);
   });
 
+  it("انتهاء الاشتراك المدفوع (مرور تاريخ التجديد) ⇒ نفس الحجب المتدرّج (قراءة/402)، ثم يُرفع عند التجديد", async () => {
+    const { token, tenantId } = await newOwner();
+    // محاكاة اشتراك مدفوع منتهٍ: الحالة ACTIVE + renewsAt في الماضي
+    const past = new Date(); past.setDate(past.getDate() - 5);
+    await prisma.tenant.update({ where: { id: tenantId }, data: { status: "ACTIVE" } });
+    await prisma.subscription.updateMany({ where: { tenantId }, data: { renewsAt: past } });
+    accessSvc.invalidate(tenantId);
+    await request(srv()).get("/insurers").set(auth(token)).expect(200);      // قراءة مسموحة
+    await request(srv()).post("/insurers").set(auth(token)).send({ name: `x ${uniq()}` }).expect(402); // كتابة محجوبة
+    const me = (await request(srv()).get("/auth/me").set(auth(token)).expect(200)).body;
+    expect(me.access.state).toBe("subscription_expired");
+    // التجديد (renewsAt مستقبلي) ⇒ يُرفع الحجب فورًا
+    const future = new Date(); future.setMonth(future.getMonth() + 1);
+    await prisma.subscription.updateMany({ where: { tenantId }, data: { renewsAt: future } });
+    accessSvc.invalidate(tenantId);
+    await request(srv()).post("/insurers").set(auth(token)).send({ name: `y ${uniq()}` }).expect(201);
+  });
+
   it("انتهاء التجربة ⇒ خفض للأساسية: ميزة متقدّمة (ZATCA) تُحجب 403 وتختفي من features", async () => {
     const { token, tenantId } = await newOwner();
     // قبل الانتهاء: إن كانت ضمن الباقة تُتاح (أو 403 إن خارجها أصلًا) — نتحقّق من الخفض بعد الانتهاء

@@ -234,7 +234,9 @@
   },
   "access": {
     "trialSoon": "Your free trial ends in {days} day(s) — renew to keep working without interruption.",
+    "renewSoon": "Your subscription ends in {days} day(s) — renew to avoid interruption.",
     "expired": "Your free trial has ended — your data is safe and read access remains. Renew to resume creating and editing.",
+    "subExpired": "Your subscription has ended — your data is safe and read access remains. Renew to resume creating and editing.",
     "suspended": "Account temporarily suspended — contact support to reactivate.",
     "cancelled": "Account cancelled — contact support.",
     "renew": "Renew now"

@@ -36,8 +36,11 @@ export class TenantAccessGuard implements CanActivate {
       throw new ForbiddenException(acc.state === "cancelled" ? "الحساب مُلغى — تواصل مع الدعم." : "الحساب موقوف — تواصل مع الدعم لإعادة التفعيل.");
     }
     if (acc.writeBlocked && WRITE_METHODS.has(req.method)) {
+      const expiredMsg = acc.state === "subscription_expired"
+        ? "انتهى اشتراكك. جدّد للمتابعة — بياناتك محفوظة والقراءة متاحة."
+        : "انتهت فترتك التجريبية. جدّد اشتراكك للمتابعة — بياناتك محفوظة والقراءة متاحة.";
       throw new HttpException(
-        { statusCode: HttpStatus.PAYMENT_REQUIRED, error: "TRIAL_EXPIRED", message: "انتهت فترتك التجريبية. جدّد اشتراكك للمتابعة — بياناتك محفوظة والقراءة متاحة." },
+        { statusCode: HttpStatus.PAYMENT_REQUIRED, error: acc.state === "subscription_expired" ? "SUBSCRIPTION_EXPIRED" : "TRIAL_EXPIRED", message: expiredMsg },
         HttpStatus.PAYMENT_REQUIRED,
       );
     }

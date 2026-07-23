@@ -24,17 +24,19 @@ export function AccessBanner() {
   if (!acc) return null;
 
   const trialSoon = acc.state === "trial" && acc.daysLeft != null && acc.daysLeft <= 7;
-  const expired = acc.state === "trial_expired";
+  const renewSoon = acc.state === "active" && acc.daysLeft != null && acc.daysLeft <= 7;
+  const expired = acc.state === "trial_expired" || acc.state === "subscription_expired";
   const suspended = acc.state === "suspended" || acc.state === "cancelled";
-  if (!trialSoon && !expired && !suspended) return null;
+  if (!trialSoon && !renewSoon && !expired && !suspended) return null;
 
   const tone = suspended || expired ? "bg-danger/10 text-danger border-danger/30" : "bg-warning/10 text-warning border-warning/30";
   const Icon = suspended ? Ban : expired ? AlertTriangle : Clock;
   const msg = suspended
     ? t(acc.state === "cancelled" ? "cancelled" : "suspended")
-    : expired
-      ? t("expired")
-      : t("trialSoon", { days: acc.daysLeft ?? 0 });
+    : acc.state === "trial_expired" ? t("expired")
+    : acc.state === "subscription_expired" ? t("subExpired")
+    : renewSoon ? t("renewSoon", { days: acc.daysLeft ?? 0 })
+    : t("trialSoon", { days: acc.daysLeft ?? 0 });
 
   return (
     <div className={`flex flex-wrap items-center gap-2 border-b px-4 py-2 text-[12.5px] font-medium sm:px-7 ${tone}`}>

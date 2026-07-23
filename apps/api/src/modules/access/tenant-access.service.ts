@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
 
-export type AccessState = "active" | "trial" | "trial_expired" | "suspended" | "cancelled";
+export type AccessState = "active" | "trial" | "trial_expired" | "subscription_expired" | "suspended" | "cancelled";
 
 export interface TenantAccess {
   state: AccessState;
@@ -44,16 +44,26 @@ export class TenantAccessService {
     if (status === "SUSPENDED") return { ...base, state: "suspended", hardBlocked: true };
     if (status === "CANCELLED") return { ...base, state: "cancelled", hardBlocked: true };
 
+    const sub = await this.prisma.subscription.findFirst({ where: { tenantId }, select: { startedAt: true, renewsAt: true, plan: { select: { trialDays: true } } } });
+    const dayMs = 86_400_000;
+
     if (status === "TRIAL") {
-      const sub = await this.prisma.subscription.findFirst({ where: { tenantId }, select: { startedAt: true, plan: { select: { trialDays: true } } } });
       const trialDays = sub?.plan?.trialDays ?? 0;
       if (sub?.startedAt && trialDays > 0) {
         const end = new Date(sub.startedAt); end.setDate(end.getDate() + trialDays);
         const msLeft = end.getTime() - Date.now();
         if (msLeft <= 0) return { ...base, state: "trial_expired", trialEndsAt: end, daysLeft: 0, writeBlocked: true, downgradeToBasic: true };
-        return { ...base, state: "trial", trialEndsAt: end, daysLeft: Math.ceil(msLeft / 86_400_000) };
+        return { ...base, state: "trial", trialEndsAt: end, daysLeft: Math.ceil(msLeft / dayMs) };
       }
+      return base; // تجربة بلا مدّة محدّدة
     }
-    return base; // ACTIVE (مدفوع) أو تجربة بلا مدّة محدّدة
+
+    // مدفوع (ACTIVE): انتهاء الاشتراك عند مرور تاريخ التجديد (renewsAt=null ⇒ بلا فرض، مثل بيانات الديمو)
+    if (sub?.renewsAt) {
+      const msLeft = sub.renewsAt.getTime() - Date.now();
+      if (msLeft <= 0) return { ...base, state: "subscription_expired", trialEndsAt: sub.renewsAt, daysLeft: 0, writeBlocked: true, downgradeToBasic: true };
+      if (msLeft <= 7 * dayMs) return { ...base, state: "active", trialEndsAt: sub.renewsAt, daysLeft: Math.ceil(msLeft / dayMs) }; // تنبيه قرب التجديد
+    }
+    return base;
   }
 }

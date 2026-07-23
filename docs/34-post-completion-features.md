@@ -396,17 +396,18 @@ CRM بلا تذكير آلي نصف حلّ: المهام تفوت والوثائ
 
 كانت الفترة التجريبية تنتهي بلا أثر (وصول كامل دائم) وحتى الإيقاف اليدوي غير مفروض — عولجت الثغرة بنقطة فرض واحدة مع تدرّج لطيف (يسمح بالدفع للتعافي بدل حجب مفاجئ):
 
-- **مُحلِّل الحالة** [`TenantAccessService`](../apps/api/src/modules/access/tenant-access.service.ts): الحالة الفعّالة من `Tenant.status` + `trialEndsAt = subscription.startedAt + plan.trialDays` (فحص حيّ يسدّ فجوة الكرون). كاش 60 ثانية في الذاكرة، يُبطَل فورًا عند الدفع (`billing.activate`) أو تغيير الحالة (`platform.setStatus`).
+- **مُحلِّل الحالة** [`TenantAccessService`](../apps/api/src/modules/access/tenant-access.service.ts): الحالة الفعّالة من `Tenant.status` + `trialEndsAt = subscription.startedAt + plan.trialDays` للتجربة، و`renewsAt` للمستأجر المدفوع (كلاهما فحص حيّ يسدّ فجوة الكرون). كاش 60 ثانية في الذاكرة، يُبطَل فورًا عند الدفع (`billing.activate`) أو تغيير الحالة (`platform.setStatus`).
 - **الحارس العالمي** [`TenantAccessGuard`](../apps/api/src/modules/access/tenant-access.guard.ts) (APP_GUARD بعد المصادقة): مصفوفة الحجب —
   | الحالة | القراءة | الكتابة | الميزات المتقدّمة |
   |---|---|---|---|
   | `active` / `trial` سارية | ✓ | ✓ | ✓ |
-  | `trial_expired` | ✓ | **402** | **محجوبة (خفض للأساسية)** |
+  | `trial_expired` | ✓ | **402** (`TRIAL_EXPIRED`) | **محجوبة (خفض للأساسية)** |
+  | `subscription_expired` (مضى `renewsAt` لمستأجر مدفوع) | ✓ | **402** (`SUBSCRIPTION_EXPIRED`) | **محجوبة (خفض للأساسية)** |
   | `SUSPENDED`/`CANCELLED` | **403** | **403** | 403 |
-  - مستثنى دائمًا: `/auth` · `/billing` · `/config/payment` · `/notifications` · `/health`. مُتخطّى: `/platform` · `/portal` (دورة حياة خاصة).
+  - مستثنى دائمًا: `/auth` · `/billing` · `/config/payment` · `/notifications` · `/health`. مُتخطّى: `/platform` · `/portal` (دورة حياة خاصة). `renewsAt=null` (بيانات الديمو/البذرة) ⇒ بلا فرض.
 - **الخفض للأساسية** [`EntitlementService`](../apps/api/src/modules/rbac/entitlement.service.ts): عند `downgradeToBasic` تُقصَر الميزات على المشمول في باقة «basic» — كل `feature.*` المتقدّمة (CRM/ZATCA/التحليلات…) ⇒ 403، وتختفي من `features` في `/auth/me`.
-- **الواجهة**: `/auth/me` يعيد `access {state, trialEndsAt, daysLeft, writeBlocked, hardBlocked}`؛ شريط [`AccessBanner`](../apps/web/src/components/layout/AccessBanner.tsx) دائم (عدّاد ≤7 أيام · «انتهت» · «موقوف») يحترم RTL/LTR.
-- **رموز HTTP**: 402 (تجربة/دفع) · 403 (إيقاف). **الاختبار** [`access-enforcement.e2e-spec.ts`](../apps/api/test/access-enforcement.e2e-spec.ts) — 4. المجموع **422/422**.
+- **الواجهة**: `/auth/me` يعيد `access {state, trialEndsAt, daysLeft, writeBlocked, hardBlocked}`؛ شريط [`AccessBanner`](../apps/web/src/components/layout/AccessBanner.tsx) دائم (عدّاد تجربة/تجديد ≤7 أيام · «انتهت التجربة»/«انتهى الاشتراك» · «موقوف») يحترم RTL/LTR.
+- **رموز HTTP**: 402 (تجربة/اشتراك/دفع) · 403 (إيقاف). **الاختبار** [`access-enforcement.e2e-spec.ts`](../apps/api/test/access-enforcement.e2e-spec.ts) — 5 (يشمل انتهاء الاشتراك المدفوع ورفع الحجب فور التجديد). المجموع **422/422**.
 
 > **تذكيرات استباقية (متعدّدة القنوات) قبل الانتهاء (7/3/1/يوم الانتهاء):** الشريط الدائم يوفّر الوعي داخل المنصّة الآن؛ إرسال البريد/SMS عبر `RemindersService` (الكرون اليومي) — إضافة موثّقة قادمة تعيد استخدام نظام الإشعارات ثلاثي القناة.
 
