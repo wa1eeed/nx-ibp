@@ -79,6 +79,8 @@
 | `NODE_ENV` | `production` | staging والإنتاج |
 | `SEED_MODE` | `demo` (staging) · `production` (إنتاج) | يحدّد محتوى البذرة |
 | `SEED_ON_START` | `demo` مرّة ثم احذفه | يبذر عند الإقلاع (وإلّا لا بذر تلقائي) |
+| `CR_REGISTRY_DIR` | مسار مجلد مُثبَّت (volume) | لقطة السجل التجاري (البيانات المفتوحة): يُزامنها الـentrypoint عند الإقلاع من هذا المجلد (يستورد الجديد فقط). ارفع ملفّات `.xlsx` هناك. غير مضبوط ⇒ يُتخطّى |
+| `CR_REGISTRY_FRESH` | `true` مرّة عند لقطة فصلية جديدة | يمسح ثم يعيد الاستيراد الكامل؛ ثم احذفه |
 | `PLATFORM_ADMIN_EMAIL` | `admin@…` | 🔒 سوبر أدمن المنصّة |
 | `PLATFORM_ADMIN_PASSWORD` | ≥ 12 حرفًا | 🔒 يُغيَّر لاحقًا بـ`admin:set` |
 | `PLATFORM_ADMIN_NAME` | `مالك المنصة` | |

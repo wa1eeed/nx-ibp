@@ -25,6 +25,18 @@ if [ -n "$SEED_ON_START" ]; then
   fi
 fi
 
+# مزامنة لقطة السجل التجاري (البيانات المفتوحة — وزارة التجارة) من مجلد مُثبَّت (volume) — اختياري.
+# اضبط CR_REGISTRY_DIR على مسار المجلد الذي رفعت فيه ملفّات اللقطة (.xlsx)، ثم أعد النشر.
+#   - idempotent: يستورد الملفّات الجديدة فقط (يتخطّى المستورَد سابقًا عبر جدول التتبّع) — سريع بعد أول تحميل.
+#   - CR_REGISTRY_FRESH=true ⇒ لقطة فصلية نظيفة (يمسح ثم يعيد الاستيراد الكامل).
+#   - يتطلّب unzip (مثبّت في الصورة). فشلُه لا يوقف الإقلاع.
+if [ -n "$CR_REGISTRY_DIR" ] && [ -d "$CR_REGISTRY_DIR" ]; then
+  echo "[entrypoint] مزامنة السجل التجاري من $CR_REGISTRY_DIR ..."
+  CR_FRESH=""
+  [ "$CR_REGISTRY_FRESH" = "true" ] && CR_FRESH="--fresh"
+  (cd /app && node packages/db/prisma/import-cr-dir.cjs "$CR_REGISTRY_DIR" $CR_FRESH) || echo "[entrypoint] ⚠ فشلت مزامنة السجل التجاري — يتابع الإقلاع."
+fi
+
 echo "[entrypoint] إقلاع الـ API على المنفذ ${API_PORT:-4000}..."
 cd /app/apps/api
 exec node dist/main.js
