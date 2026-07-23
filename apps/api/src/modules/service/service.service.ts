@@ -6,6 +6,7 @@ import { AuditService } from "../../common/audit/audit.service";
 import { PermissionService } from "../rbac/permission.service";
 import { maskClientSensitive } from "../../common/security/dlp";
 import { NotificationsService } from "../notifications/notifications.service";
+import { TenantEmailService } from "../email/tenant-email.service";
 import type { AuthUser } from "../auth/current-user.decorator";
 import type { CreateServiceRequestDto } from "./dto/service.dto";
 
@@ -38,7 +39,56 @@ export class ServiceService {
     private readonly audit: AuditService,
     private readonly permissions: PermissionService,
     private readonly notifications: NotificationsService,
+    private readonly email: TenantEmailService,
   ) {}
+
+  /** يبني سياق خطاب التعديل لشركة التأمين (الوثيقة + المؤمِّن + العميل) والصيغة الافتراضية. */
+  private async insurerContext(id: string) {
+    const sr = await this.prisma.serviceRequest.findFirst({ where: { id }, select: { id: true, sequenceNo: true, type: true, subject: true, clientId: true, policyId: true, tenantId: true } });
+    if (!sr) throw new NotFoundException("طلب الخدمة غير موجود");
+    const [policy, client] = await Promise.all([
+      sr.policyId ? this.prisma.policy.findFirst({ where: { id: sr.policyId }, select: { sequenceNo: true, insurerName: true, productLineCode: true } }) : Promise.resolve(null),
+      sr.clientId ? this.prisma.client.findFirst({ where: { id: sr.clientId }, select: { name: true } }) : Promise.resolve(null),
+    ]);
+    const insurerName = policy?.insurerName ?? null;
+    const insurer = insurerName ? await this.prisma.insurer.findFirst({ where: { tenantId: sr.tenantId, name: insurerName }, select: { name: true, contactEmail: true } }) : null;
+    const TYPE_AR: Record<string, string> = { addition: "إضافة", deletion: "حذف/استبعاد", amendment: "تعديل", inquiry: "استفسار", renewal: "تجديد" };
+    const typeAr = TYPE_AR[sr.type] ?? sr.type;
+    const ref = sr.sequenceNo ?? sr.id;
+    const subject = `طلب ${typeAr} على الوثيقة ${policy?.sequenceNo ?? ""} — ${ref}`.trim();
+    const body =
+      `السادة / ${insurerName ?? "شركة التأمين"} المحترمين،\n\n` +
+      `نأمل تنفيذ طلب ${typeAr} على الوثيقة رقم ${policy?.sequenceNo ?? "—"} الخاصة بعميلنا ${client?.name ?? "—"}.\n` +
+      `تفاصيل الطلب: ${sr.subject ?? "—"}\n` +
+      `المرجع لدينا: ${ref}\n\n` +
+      `برجاء إفادتنا بالإجراء وموافاتنا بالملحق/التعديل المطلوب.\n\nمع التحية.`;
+    return { sr, insurerName, to: insurer?.contactEmail ?? null, subject, body, ref };
+  }
+
+  /** صيغة خطاب التعديل الافتراضية (للمعاينة/التحرير قبل الإرسال). */
+  async insurerLetter(id: string) {
+    const c = await this.insurerContext(id);
+    return { to: c.to, insurerName: c.insurerName, subject: c.subject, body: c.body };
+  }
+
+  /**
+   * إرسال خطاب طلب التعديل لشركة التأمين بالبريد (صيغة قابلة للتحرير + CC + بريد مستلِم بديل).
+   * يسجّل الإرسال (sentToInsurerAt) + ملاحظة في الخطّ الزمني + تدقيق.
+   */
+  async sendToInsurer(tenantId: string, userId: string, id: string, opts: { to?: string; subject?: string; body?: string; cc?: string[] }) {
+    const c = await this.insurerContext(id);
+    const to = (opts.to ?? "").trim() || c.to;
+    if (!to || !/.+@.+\..+/.test(to)) throw new NotFoundException("لا يوجد بريد لشركة التأمين — أدخل بريدًا في سجلّ المؤمِّن أو حقل المستلِم");
+    const subject = (opts.subject ?? "").trim() || c.subject;
+    const body = (opts.body ?? "").trim() || c.body;
+    const cc = [...new Set((opts.cc ?? []).map((x) => x.trim().toLowerCase()).filter((x) => /.+@.+\..+/.test(x)))].slice(0, 20);
+    const res = await this.email.sendTenantEmail(tenantId, to, subject, body, "ar", cc.length ? cc : undefined);
+    if (!res.ok) throw new NotFoundException("تعذّر إرسال البريد — راجع إعدادات البريد");
+    await this.prisma.serviceRequest.update({ where: { id }, data: { sentToInsurerAt: new Date() } });
+    await this.logActivity(tenantId, userId, id, "note", `أُرسل خطاب لشركة التأمين (${c.insurerName ?? to}) — ${subject}`).catch(() => undefined);
+    await this.audit.log({ tenantId, userId, action: "update", entity: "service_insurer_sent", entityId: id, meta: { to, insurer: c.insurerName, ref: c.ref, cc, edited: !!(opts.subject || opts.body) } });
+    return { ok: true, to, insurer: c.insurerName };
+  }
 
   /** يرى الهوية/الآيبان كاملةً فقط من له صلاحية الالتزام أو المالية (DLP — أقلّ امتياز). */
   private async canViewSensitive(user: AuthUser) {

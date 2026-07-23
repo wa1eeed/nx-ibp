@@ -1,6 +1,6 @@
 import { Body, Controller, Get, HttpCode, Param, Post } from "@nestjs/common";
 import { ClaimsService } from "./claims.service";
-import { CreateClaimDto, UpdateClaimStatusDto, ClaimNoteDto } from "./dto/claim.dto";
+import { CreateClaimDto, UpdateClaimStatusDto, ClaimNoteDto, SendInsurerDto } from "./dto/claim.dto";
 import { Authorize } from "../rbac/authorize.decorator";
 import { CurrentUser, type AuthUser } from "../auth/current-user.decorator";
 
@@ -53,5 +53,24 @@ export class ClaimsController {
     @Body() dto: ClaimNoteDto,
   ) {
     return this.claims.addNote(tenantId, userId, id, dto.body, dto.visibility ?? "internal");
+  }
+
+  // مراسلة شركة التأمين — تفاصيل/متابعة المطالبة (معاينة ثم إرسال)
+  @Authorize({ module: "claims", action: "read", entitlement: "module.claims" })
+  @Get(":id/insurer-letter")
+  insurerLetter(@Param("id") id: string) {
+    return this.claims.insurerLetter(id);
+  }
+
+  @Authorize({ module: "claims", action: "update", entitlement: "module.claims" })
+  @HttpCode(200)
+  @Post(":id/send-insurer")
+  sendInsurer(
+    @CurrentUser("tenantId") tenantId: string,
+    @CurrentUser("userId") userId: string,
+    @Param("id") id: string,
+    @Body() dto: SendInsurerDto,
+  ) {
+    return this.claims.sendToInsurer(tenantId, userId, id, dto);
   }
 }

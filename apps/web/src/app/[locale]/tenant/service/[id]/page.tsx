@@ -8,6 +8,7 @@ import { Link, useRouter } from "@/i18n/routing";
 import { api, getToken, ApiError } from "@/lib/api";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Badge, type BadgeTone } from "@/components/ui/Badge";
+import { InsurerLetterModal } from "@/components/insurer/InsurerLetterModal";
 
 interface Client {
   id: string; code: string | null; name: string; type: "CORPORATE" | "INDIVIDUAL";
@@ -52,6 +53,7 @@ export default function ServiceDetailPage() {
   const [notFound, setNotFound] = useState(false);
   const [internal, setInternal] = useState("");
   const [reply, setReply] = useState("");
+  const [showInsurer, setShowInsurer] = useState(false);
 
   const load = useCallback(() => {
     void api<SRDetail>(`/service-requests/${id}`).then(setD).catch(() => setNotFound(true));
@@ -167,6 +169,10 @@ export default function ServiceDetailPage() {
                 <select value={d.priority} onChange={(e) => setPriority(e.target.value)} disabled={busy} className={FIELD}>{PRIORITIES.map((p) => <option key={p} value={p}>{t(`service.priorities.${p}`)}</option>)}</select></label>
               <label className="block"><span className="mb-1 block text-[11px] text-muted">{t("service.assignee")}</span>
                 <select value={d.assigneeId ?? ""} onChange={(e) => assign(e.target.value)} disabled={busy} className={FIELD}><option value="">{t("service.unassigned")}</option>{staff.map((s) => <option key={s.id} value={s.id}>{s.fullName}</option>)}</select></label>
+              {/* مراسلة شركة التأمين بطلب التعديل */}
+              <button onClick={() => setShowInsurer(true)} className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-primary/30 bg-primary-soft px-3 text-[12.5px] font-semibold text-primary-strong hover:bg-primary/15">
+                <Send size={14} /> {t("insurerLetter.openService")}
+              </button>
             </div>
           </section>
         </div>
@@ -219,6 +225,7 @@ export default function ServiceDetailPage() {
           </section>
         </div>
       </div>
+      {showInsurer ? <InsurerLetterModal base={`/service-requests/${id}`} onClose={() => setShowInsurer(false)} onSent={load} /> : null}
     </div>
   );
 }

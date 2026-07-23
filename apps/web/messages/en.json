@@ -3978,5 +3978,20 @@
     "policies": "policies",
     "noProduction": "No production yet",
     "newRequest": "New request in this line"
+  },
+  "insurerLetter": {
+    "title": "Email the insurer",
+    "openService": "Email the insurer",
+    "openClaim": "Email the insurer",
+    "to": "To (insurer email)",
+    "subject": "Subject",
+    "body": "Message",
+    "optional": "optional",
+    "preview": "Preview",
+    "backEdit": "Back to edit",
+    "cancel": "Cancel",
+    "send": "Send",
+    "sent": "Sent to {to}",
+    "error": "Send failed"
   }
 }

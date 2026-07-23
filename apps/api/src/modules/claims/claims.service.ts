@@ -6,6 +6,7 @@ import { AuditService } from "../../common/audit/audit.service";
 import { PermissionService } from "../rbac/permission.service";
 import { maskClientSensitive } from "../../common/security/dlp";
 import { NotificationsService } from "../notifications/notifications.service";
+import { TenantEmailService } from "../email/tenant-email.service";
 import type { AuthUser } from "../auth/current-user.decorator";
 import type { CreateClaimDto } from "./dto/claim.dto";
 
@@ -32,10 +33,55 @@ export class ClaimsService {
     private readonly audit: AuditService,
     private readonly permissions: PermissionService,
     private readonly notifications: NotificationsService,
+    private readonly email: TenantEmailService,
   ) {}
 
   list() {
     return this.prisma.claim.findMany({ orderBy: { createdAt: "desc" }, select: FIELDS });
+  }
+
+  /** يبني سياق مراسلة شركة التأمين بتفاصيل المطالبة والصيغة الافتراضية. */
+  private async insurerContext(id: string) {
+    const claim = await this.prisma.claim.findFirst({ where: { id }, select: { id: true, sequenceNo: true, insurerName: true, clientId: true, policyId: true, incidentDate: true, claimedAmount: true, deductible: true, tenantId: true } });
+    if (!claim) throw new NotFoundException("المطالبة غير موجودة");
+    const [policy, client] = await Promise.all([
+      claim.policyId ? this.prisma.policy.findFirst({ where: { id: claim.policyId }, select: { sequenceNo: true, insurerName: true } }) : Promise.resolve(null),
+      claim.clientId ? this.prisma.client.findFirst({ where: { id: claim.clientId }, select: { name: true } }) : Promise.resolve(null),
+    ]);
+    const insurerName = claim.insurerName ?? policy?.insurerName ?? null;
+    const insurer = insurerName ? await this.prisma.insurer.findFirst({ where: { tenantId: claim.tenantId, name: insurerName }, select: { name: true, contactEmail: true } }) : null;
+    const ref = claim.sequenceNo ?? claim.id;
+    const dateAr = claim.incidentDate ? claim.incidentDate.toISOString().slice(0, 10) : "—";
+    const amount = claim.claimedAmount ? claim.claimedAmount.toString() : "—";
+    const subject = `مطالبة ${ref} على الوثيقة ${policy?.sequenceNo ?? ""}`.trim();
+    const body =
+      `السادة / ${insurerName ?? "شركة التأمين"} المحترمين،\n\n` +
+      `نرفع لكم تفاصيل مطالبة عميلنا ${client?.name ?? "—"} على الوثيقة رقم ${policy?.sequenceNo ?? "—"}:\n` +
+      `• رقم المطالبة: ${ref}\n• تاريخ الحادث: ${dateAr}\n• المبلغ المطالَب به: ${amount}\n\n` +
+      `برجاء الإفادة بالإجراء وموافاتنا بقرار التسوية.\n\nمع التحية.`;
+    return { claim, insurerName, to: insurer?.contactEmail ?? null, subject, body, ref };
+  }
+
+  /** صيغة مراسلة المؤمِّن الافتراضية (للمعاينة/التحرير). */
+  async insurerLetter(id: string) {
+    const c = await this.insurerContext(id);
+    return { to: c.to, insurerName: c.insurerName, subject: c.subject, body: c.body };
+  }
+
+  /** إرسال تفاصيل/متابعة المطالبة لشركة التأمين بالبريد + تسجيل (sentToInsurerAt) وملاحظة وتدقيق. */
+  async sendToInsurer(tenantId: string, userId: string, id: string, opts: { to?: string; subject?: string; body?: string; cc?: string[] }) {
+    const c = await this.insurerContext(id);
+    const to = (opts.to ?? "").trim() || c.to;
+    if (!to || !/.+@.+\..+/.test(to)) throw new NotFoundException("لا يوجد بريد لشركة التأمين — أدخل بريدًا في سجلّ المؤمِّن أو حقل المستلِم");
+    const subject = (opts.subject ?? "").trim() || c.subject;
+    const body = (opts.body ?? "").trim() || c.body;
+    const cc = [...new Set((opts.cc ?? []).map((x) => x.trim().toLowerCase()).filter((x) => /.+@.+\..+/.test(x)))].slice(0, 20);
+    const res = await this.email.sendTenantEmail(tenantId, to, subject, body, "ar", cc.length ? cc : undefined);
+    if (!res.ok) throw new NotFoundException("تعذّر إرسال البريد — راجع إعدادات البريد");
+    await this.prisma.claim.update({ where: { id }, data: { sentToInsurerAt: new Date() } });
+    await this.prisma.crmActivity.create({ data: { tenantId, entityType: "claim", entityId: id, type: "note", visibility: "internal", body: `أُرسل للمؤمِّن (${c.insurerName ?? to}) — ${subject}`, authorId: userId } }).catch(() => undefined);
+    await this.audit.log({ tenantId, userId, action: "update", entity: "claim_insurer_sent", entityId: id, meta: { to, insurer: c.insurerName, ref: c.ref, cc, edited: !!(opts.subject || opts.body) } });
+    return { ok: true, to, insurer: c.insurerName };
   }
 
   /** يرى الهوية/الآيبان كاملةً فقط من له صلاحية الالتزام أو المالية (DLP). */

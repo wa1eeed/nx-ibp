@@ -2,9 +2,10 @@ import { Module } from "@nestjs/common";
 import { ClaimsController } from "./claims.controller";
 import { ClaimsService } from "./claims.service";
 import { NotificationsModule } from "../notifications/notifications.module";
+import { EmailModule } from "../email/email.module";
 
 @Module({
-  imports: [NotificationsModule],
+  imports: [NotificationsModule, EmailModule],
   controllers: [ClaimsController],
   providers: [ClaimsService],
 })

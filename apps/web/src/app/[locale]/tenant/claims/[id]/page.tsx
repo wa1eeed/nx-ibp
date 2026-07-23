@@ -8,6 +8,7 @@ import { Link, useRouter } from "@/i18n/routing";
 import { api, getToken, ApiError } from "@/lib/api";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Badge, type BadgeTone } from "@/components/ui/Badge";
+import { InsurerLetterModal } from "@/components/insurer/InsurerLetterModal";
 
 interface Client {
   id: string; code: string | null; name: string; type: "CORPORATE" | "INDIVIDUAL";
@@ -42,6 +43,7 @@ export default function ClaimDetailPage() {
   const [notFound, setNotFound] = useState(false);
   const [internal, setInternal] = useState("");
   const [reply, setReply] = useState("");
+  const [showInsurer, setShowInsurer] = useState(false);
 
   const load = useCallback(() => { void api<Detail>(`/claims/${id}`).then(setD).catch(() => setNotFound(true)); }, [id]);
   useEffect(() => {
@@ -113,6 +115,10 @@ export default function ClaimDetailPage() {
           <section className="rounded-card border border-line bg-card p-4 shadow-card">
             <label className="block"><span className="mb-1 block text-[11px] text-muted">{t("claims.col.status")}</span>
               <select value={d.status} onChange={(e) => setStatus(e.target.value)} disabled={busy} className="h-9 w-full rounded-lg border border-line bg-card px-2 text-[12.5px] text-ink focus:outline-none focus:ring-2 focus:ring-primary/30">{STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}</select></label>
+            {/* مراسلة شركة التأمين بتفاصيل/متابعة المطالبة */}
+            <button onClick={() => setShowInsurer(true)} className="mt-3 inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-lg border border-primary/30 bg-primary-soft px-3 text-[12.5px] font-semibold text-primary-strong hover:bg-primary/15">
+              <Send size={14} /> {t("insurerLetter.openClaim")}
+            </button>
           </section>
         </div>
 
@@ -155,6 +161,7 @@ export default function ClaimDetailPage() {
           </section>
         </div>
       </div>
+      {showInsurer ? <InsurerLetterModal base={`/claims/${id}`} onClose={() => setShowInsurer(false)} onSent={load} /> : null}
     </div>
   );
 }

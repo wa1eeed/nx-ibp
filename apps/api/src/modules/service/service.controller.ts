@@ -1,6 +1,6 @@
 import { Body, Controller, Get, HttpCode, Param, Post, Query } from "@nestjs/common";
 import { ServiceService } from "./service.service";
-import { CreateServiceRequestDto, UpdateServiceStatusDto, AssignServiceDto, ServicePriorityDto, ServiceNoteDto } from "./dto/service.dto";
+import { CreateServiceRequestDto, UpdateServiceStatusDto, AssignServiceDto, ServicePriorityDto, ServiceNoteDto, SendInsurerDto } from "./dto/service.dto";
 import { Authorize } from "../rbac/authorize.decorator";
 import { CurrentUser, type AuthUser } from "../auth/current-user.decorator";
 
@@ -87,5 +87,24 @@ export class ServiceController {
     @Body() dto: ServiceNoteDto,
   ) {
     return this.service.addNote(tenantId, userId, id, dto.body, dto.visibility ?? "internal");
+  }
+
+  // مراسلة شركة التأمين — خطاب طلب التعديل (معاينة الصيغة ثم إرسال)
+  @Authorize({ module: "service", action: "read", entitlement: "module.service" })
+  @Get(":id/insurer-letter")
+  insurerLetter(@Param("id") id: string) {
+    return this.service.insurerLetter(id);
+  }
+
+  @Authorize({ module: "service", action: "update", entitlement: "module.service" })
+  @HttpCode(200)
+  @Post(":id/send-insurer")
+  sendInsurer(
+    @CurrentUser("tenantId") tenantId: string,
+    @CurrentUser("userId") userId: string,
+    @Param("id") id: string,
+    @Body() dto: SendInsurerDto,
+  ) {
+    return this.service.sendToInsurer(tenantId, userId, id, dto);
   }
 }

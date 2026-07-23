@@ -967,10 +967,11 @@ model ServiceRequest {
   subject    String?
   status     ServiceStatus @default(OPEN)
   priority   String        @default("normal") // low | normal | high | urgent
-  assigneeId String? // الموظف المُسنَد إليه معالجة الطلب
-  details    Json?
-  createdAt  DateTime      @default(now())
-  updatedAt  DateTime      @default(now()) @updatedAt
+  assigneeId     String? // الموظف المُسنَد إليه معالجة الطلب
+  details        Json?
+  sentToInsurerAt DateTime? // آخر إرسال لخطاب التعديل لشركة التأمين
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @default(now()) @updatedAt
 
   @@index([tenantId])
   @@index([tenantId, assigneeId, status])
@@ -998,6 +999,7 @@ model Claim {
   settledAmount Decimal?    @db.Decimal(14, 2)
   status        ClaimStatus @default(RECEIVED)
   details       Json?
+  sentToInsurerAt DateTime? // آخر إرسال لتفاصيل/متابعة المطالبة لشركة التأمين
   createdAt     DateTime    @default(now())
 
   @@index([tenantId])
