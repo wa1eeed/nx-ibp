@@ -25,6 +25,14 @@ interface Bordereau {
   rows: BordereauRow[];
   totals: { count: number; netPremium: number; vat: number; gross: number; commission: number; netToInsurer: number };
 }
+interface SamaLine { line: string; count: number; gwp: number; net: number; vat: number; commission: number; claimsCount: number; claimsSettled: number; lossRatio: number }
+interface SamaInsurer { insurer: string; count: number; gwp: number; net: number; commission: number; share: number }
+interface Sama {
+  period: { from: string | null; to: string | null };
+  totals: { policies: number; grossWrittenPremium: number; netPremium: number; vat: number; brokerageCommission: number; claimsCount: number; claimsClaimed: number; claimsSettled: number; lossRatio: number };
+  byLine: SamaLine[];
+  byInsurer: SamaInsurer[];
+}
 
 export default function ReportsPage() {
   const t = useTranslations();
@@ -36,6 +44,9 @@ export default function ReportsPage() {
   const [bInsurer, setBInsurer] = useState("");
   const [bFrom, setBFrom] = useState("");
   const [bTo, setBTo] = useState("");
+  const [sama, setSama] = useState<Sama | null>(null);
+  const [sFrom, setSFrom] = useState("");
+  const [sTo, setSTo] = useState("");
 
   const loadBordereau = () => {
     const qs = new URLSearchParams();
@@ -46,12 +57,18 @@ export default function ReportsPage() {
     void api<Bordereau>(`/reports/bordereau${q ? `?${q}` : ""}`).then(setBord).catch(() => undefined);
   };
 
+  const samaQs = () => { const qs = new URLSearchParams(); if (sFrom) qs.set("from", sFrom); if (sTo) qs.set("to", sTo); const q = qs.toString(); return q ? `?${q}` : ""; };
+  const loadSama = () => { void api<Sama>(`/reports/sama${samaQs()}`).then(setSama).catch(() => undefined); };
+  // اختصارات الفترات الرقابية — الأرباع والسنة الحالية (تُملأ الحقول ثم تُطبَّق فورًا)
+  const setQuarter = (q: 1 | 2 | 3 | 4) => { const y = new Date().getFullYear(); const m0 = (q - 1) * 3; const from = `${y}-${String(m0 + 1).padStart(2, "0")}-01`; const endM = m0 + 3; const to = new Date(y, endM, 0).toISOString().slice(0, 10); setSFrom(from); setSTo(to); void api<Sama>(`/reports/sama?from=${from}&to=${to}`).then(setSama).catch(() => undefined); };
+
   useEffect(() => {
     void api<Production>("/reports/production").then(setProd).catch(() => undefined);
     void api<Claims>("/reports/claims").then(setClaims).catch(() => undefined);
     void api<Regulatory>("/reports/regulatory").then(setReg).catch(() => undefined);
     void api<CatalogItem[]>("/reports/catalog").then(setCatalog).catch(() => undefined);
     void api<Bordereau>("/reports/bordereau").then(setBord).catch(() => undefined);
+    void api<Sama>("/reports/sama").then(setSama).catch(() => undefined);
   }, []);
 
   const fmt = (n: number) => n.toLocaleString("en-US");
@@ -209,6 +226,96 @@ export default function ReportsPage() {
             )}
           </table>
         </div>
+      </section>
+
+      {/* العائد التنظيمي الدوري (SAMA / هيئة التأمين) */}
+      <section className="rounded-card border border-line bg-card shadow-card">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-3.5">
+          <div className="flex items-center gap-2">
+            <FileBarChart size={17} className="text-primary" />
+            <div>
+              <h2 className="text-[15px] font-semibold text-ink">{t("reports.sama.title")}</h2>
+              <p className="text-[11.5px] text-subtle">{t("reports.sama.sub")}</p>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-end gap-2">
+            <div className="flex items-center gap-1">
+              {([1, 2, 3, 4] as const).map((q) => (
+                <button key={q} onClick={() => setQuarter(q)} className="h-7 rounded-md border border-line bg-surface-2/40 px-2 text-[11.5px] font-medium text-muted hover:bg-surface-2">{t("reports.sama.q")}{q}</button>
+              ))}
+            </div>
+            <label className="flex flex-col gap-1"><span className="text-[11px] text-subtle">{t("reports.bordereau.from")}</span>
+              <input type="date" value={sFrom} onChange={(e) => setSFrom(e.target.value)} className="h-9 rounded-lg border border-line bg-surface-2/40 px-2.5 text-[13px] text-ink outline-none focus:border-primary" /></label>
+            <label className="flex flex-col gap-1"><span className="text-[11px] text-subtle">{t("reports.bordereau.to")}</span>
+              <input type="date" value={sTo} onChange={(e) => setSTo(e.target.value)} className="h-9 rounded-lg border border-line bg-surface-2/40 px-2.5 text-[13px] text-ink outline-none focus:border-primary" /></label>
+            <button onClick={loadSama} className="h-9 rounded-lg bg-primary px-4 text-[13px] font-medium text-white hover:bg-primary/90">{t("reports.bordereau.apply")}</button>
+            <button onClick={() => { void downloadFile(`/reports/export/sama${samaQs()}`, "sama-return.csv").catch(() => undefined); }} className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-line bg-card px-3.5 text-[13px] font-medium text-muted hover:bg-surface-2"><Download size={15} /> {t("reports.exportCsv")}</button>
+          </div>
+        </div>
+
+        {/* مؤشرات العائد */}
+        <div className="grid grid-cols-2 gap-px bg-line sm:grid-cols-3 lg:grid-cols-6">
+          {[
+            { k: "policies", v: sama ? fmt(sama.totals.policies) : "…" },
+            { k: "gwp", v: sama ? fmt(sama.totals.grossWrittenPremium) : "…" },
+            { k: "net", v: sama ? fmt(sama.totals.netPremium) : "…" },
+            { k: "commission", v: sama ? fmt(sama.totals.brokerageCommission) : "…" },
+            { k: "claims", v: sama ? fmt(sama.totals.claimsCount) : "…" },
+            { k: "lossRatio", v: sama ? `${sama.totals.lossRatio}%` : "…" },
+          ].map((m) => (
+            <div key={m.k} className="bg-card px-4 py-3">
+              <div className="text-[11px] text-subtle">{t(`reports.sama.kpi.${m.k}`)}</div>
+              <div className="mt-0.5 text-[15px] font-bold text-ink tnum">{m.v}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* الأعمال المنتَجة بحسب فرع التأمين */}
+        <div className="overflow-x-auto border-t border-line">
+          <table className="w-full min-w-[820px]">
+            <thead><tr className="border-b border-line text-[11.5px] text-subtle">
+              <th className="px-4 py-2.5 text-start font-medium">{t("reports.sama.col.line")}</th>
+              <th className="px-4 py-2.5 text-end font-medium">{t("reports.sama.col.count")}</th>
+              <th className="px-4 py-2.5 text-end font-medium">{t("reports.sama.col.gwp")}</th>
+              <th className="px-4 py-2.5 text-end font-medium">{t("reports.sama.col.net")}</th>
+              <th className="px-4 py-2.5 text-end font-medium">{t("reports.sama.col.commission")}</th>
+              <th className="px-4 py-2.5 text-end font-medium">{t("reports.sama.col.claims")}</th>
+              <th className="px-4 py-2.5 text-end font-medium">{t("reports.sama.col.lossRatio")}</th>
+            </tr></thead>
+            <tbody className="divide-y divide-line">
+              {sama?.byLine.map((r) => (
+                <tr key={r.line} className="text-[12.5px]">
+                  <td className="px-4 py-2.5 font-medium text-ink">{r.line}</td>
+                  <td className="px-4 py-2.5 text-end text-muted tnum">{r.count}</td>
+                  <td className="px-4 py-2.5 text-end text-ink tnum">{fmt(r.gwp)}</td>
+                  <td className="px-4 py-2.5 text-end text-ink tnum">{fmt(r.net)}</td>
+                  <td className="px-4 py-2.5 text-end text-success tnum">{fmt(r.commission)}</td>
+                  <td className="px-4 py-2.5 text-end text-muted tnum">{r.claimsCount} · {fmt(r.claimsSettled)}</td>
+                  <td className={`px-4 py-2.5 text-end tnum ${r.lossRatio > 70 ? "font-semibold text-danger" : "text-muted"}`}>{r.lossRatio}%</td>
+                </tr>
+              ))}
+              {sama && sama.byLine.length === 0 && <tr><td colSpan={7} className="px-4 py-8 text-center text-[13px] text-subtle">{t("reports.sama.empty")}</td></tr>}
+            </tbody>
+          </table>
+        </div>
+
+        {/* التوزيع على المؤمِّنين + الحصّة السوقية */}
+        {sama && sama.byInsurer.length > 0 ? (
+          <div className="border-t border-line px-5 py-4">
+            <h3 className="mb-3 text-[13px] font-semibold text-ink">{t("reports.sama.byInsurer")}</h3>
+            <ul className="space-y-2.5">
+              {sama.byInsurer.map((i) => (
+                <li key={i.insurer}>
+                  <div className="mb-1 flex items-center justify-between text-[12.5px]">
+                    <span className="font-medium text-ink">{i.insurer} <span className="text-subtle">({i.count})</span></span>
+                    <span className="text-muted tnum">{fmt(i.gwp)} · <span className="font-semibold text-primary">{i.share}%</span></span>
+                  </div>
+                  <div className="h-1.5 overflow-hidden rounded-full bg-surface-2"><div className="h-full rounded-full bg-primary" style={{ width: `${i.share}%` }} /></div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
       </section>
 
       {/* §7.3 — التقارير المجدولة/بالبريد */}

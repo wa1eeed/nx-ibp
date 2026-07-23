@@ -52,6 +52,13 @@ export class ReportsController {
     return this.reports.bordereau(insurer, from, to);
   }
 
+  // العائد التنظيمي الدوري (SAMA/هيئة التأمين) — عائد الوسيط المرحلي بحسب الفرع والمؤمِّن
+  @Get("sama")
+  @Authorize({ module: "reports", action: "read", entitlement: "module.reports" })
+  sama(@Query("from") from?: string, @Query("to") to?: string) {
+    return this.reports.samaReturn(from, to);
+  }
+
   // تصدير تقرير جدولي إلى CSV (§7.1) — bordereau/commissions
   @Get("export/:key")
   @Authorize({ module: "reports", action: "read", entitlement: "module.reports" })

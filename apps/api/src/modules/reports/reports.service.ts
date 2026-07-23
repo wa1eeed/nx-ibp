@@ -165,6 +165,102 @@ export class ReportsService {
     };
   }
 
+  /**
+   * **العائد التنظيمي الدوري (SAMA/هيئة التأمين)** — تقرير الوسيط المرحلي القياسي لفترة محدّدة.
+   * أقسام: (١) الأعمال المنتَجة بحسب فرع التأمين · (٢) دخل الوساطة بحسب المؤمِّن + الحصّة السوقية ·
+   * (٣) المطالبات بحسب الفرع (عدد/مطالَب/مُسوّى/معدّل الخسارة). القسط المكتتب الإجمالي أساس النسب.
+   * افتراضيًا يشمل كل الفترات (بلا from/to)؛ يُقيَّد بالفترة عند تمريرها (رُبع/سنة تنظيمية).
+   */
+  async samaReturn(from?: string, to?: string) {
+    const r2 = (n: number) => Math.round(n * 100) / 100;
+    const fromD = from ? new Date(from) : null;
+    const toD = to ? new Date(`${to}T23:59:59.999Z`) : null;
+    const period = fromD || toD ? { createdAt: { ...(fromD ? { gte: fromD } : {}), ...(toD ? { lte: toD } : {}) } } : {};
+
+    const [issued, claims] = await Promise.all([
+      this.prisma.policy.findMany({
+        where: { status: "ISSUED", ...period },
+        select: { productLineCode: true, insurerName: true, premium: true, vat: true, totalPremium: true, commissionAmount: true },
+      }),
+      this.prisma.claim.findMany({
+        where: period,
+        select: { policyId: true, claimedAmount: true, settledAmount: true, status: true },
+      }),
+    ]);
+
+    // خريطة الوثيقة ⇐ الفرع (لتصنيف المطالبات بحسب فرع التأمين)
+    const claimPolicyIds = [...new Set(claims.map((c) => c.policyId).filter((x): x is string => !!x))];
+    const claimPolicies = claimPolicyIds.length
+      ? await this.prisma.policy.findMany({ where: { id: { in: claimPolicyIds } }, select: { id: true, productLineCode: true } })
+      : [];
+    const lineOfPolicy = Object.fromEntries(claimPolicies.map((p) => [p.id, p.productLineCode ?? "—"]));
+
+    // (١) الأعمال المنتَجة بحسب الفرع
+    const lines = new Map<string, { line: string; count: number; gwp: number; net: number; vat: number; commission: number; claimsCount: number; claimsSettled: number }>();
+    const bump = (line: string) => {
+      const k = line || "—";
+      if (!lines.has(k)) lines.set(k, { line: k, count: 0, gwp: 0, net: 0, vat: 0, commission: 0, claimsCount: 0, claimsSettled: 0 });
+      return lines.get(k)!;
+    };
+    for (const p of issued) {
+      const row = bump(p.productLineCode ?? "—");
+      row.count += 1;
+      row.net += this.num(p.premium);
+      row.vat += this.num(p.vat);
+      row.gwp += this.num(p.totalPremium) || r2(this.num(p.premium) + this.num(p.vat));
+      row.commission += this.num(p.commissionAmount);
+    }
+    for (const c of claims) {
+      const line = c.policyId ? (lineOfPolicy[c.policyId] ?? "—") : "—";
+      const row = bump(line);
+      row.claimsCount += 1;
+      row.claimsSettled += this.num(c.settledAmount);
+    }
+    const byLine = [...lines.values()].map((r) => ({
+      ...r, gwp: r2(r.gwp), net: r2(r.net), vat: r2(r.vat), commission: r2(r.commission), claimsSettled: r2(r.claimsSettled),
+      lossRatio: r.net > 0 ? Math.round((r.claimsSettled / r.net) * 1000) / 10 : 0,
+    })).sort((a, b) => b.gwp - a.gwp);
+
+    // (٢) دخل الوساطة والتوزيع بحسب المؤمِّن + الحصّة السوقية
+    const insurers = new Map<string, { insurer: string; count: number; gwp: number; net: number; commission: number }>();
+    for (const p of issued) {
+      const k = p.insurerName ?? "—";
+      if (!insurers.has(k)) insurers.set(k, { insurer: k, count: 0, gwp: 0, net: 0, commission: 0 });
+      const row = insurers.get(k)!;
+      row.count += 1;
+      row.net += this.num(p.premium);
+      row.gwp += this.num(p.totalPremium) || r2(this.num(p.premium) + this.num(p.vat));
+      row.commission += this.num(p.commissionAmount);
+    }
+    const gwpTotal = r2([...insurers.values()].reduce((s, x) => s + x.gwp, 0));
+    const byInsurer = [...insurers.values()].map((r) => ({
+      ...r, gwp: r2(r.gwp), net: r2(r.net), commission: r2(r.commission),
+      share: gwpTotal > 0 ? Math.round((r.gwp / gwpTotal) * 1000) / 10 : 0,
+    })).sort((a, b) => b.gwp - a.gwp);
+
+    // إجماليات التقرير
+    const sum = (f: (r: (typeof byLine)[number]) => number) => r2(byLine.reduce((s, x) => s + f(x), 0));
+    const claimsClaimed = r2(claims.reduce((s, c) => s + this.num(c.claimedAmount), 0));
+    const claimsSettled = r2(claims.reduce((s, c) => s + this.num(c.settledAmount), 0));
+    const netTotal = sum((r) => r.net);
+    return {
+      period: { from: from ?? null, to: to ?? null },
+      totals: {
+        policies: issued.length,
+        grossWrittenPremium: gwpTotal,
+        netPremium: netTotal,
+        vat: sum((r) => r.vat),
+        brokerageCommission: sum((r) => r.commission),
+        claimsCount: claims.length,
+        claimsClaimed,
+        claimsSettled,
+        lossRatio: netTotal > 0 ? Math.round((claimsSettled / netTotal) * 1000) / 10 : 0,
+      },
+      byLine,
+      byInsurer,
+    };
+  }
+
   /** بناء CSV مع BOM (UTF-8) لدعم العربية في Excel. الفواصل بالإنجليزية، التهريب قياسي. */
   private csv(headers: string[], rows: (string | number | null)[][]): string {
     const esc = (v: string | number | null) => {
@@ -194,6 +290,17 @@ export class ReportsService {
       const rows = c.rows.map((r) => [r.insurerName, r.clientName, r.productLine, this.num(r.rate), this.num(r.amount), this.num(r.receivedAmount), r.status, r.periodMonth]);
       return { filename: "commissions.csv", csv: this.csv(headers, rows) };
     }
+    if (key === "sama") {
+      const s = await this.samaReturn(params.from, params.to);
+      const headers = ["فرع التأمين", "عدد الوثائق", "القسط الإجمالي", "القسط الصافي", "ض.ق.م", "عمولة الوساطة", "عدد المطالبات", "المطالبات المُسوّاة", "معدّل الخسارة%"];
+      const rows: (string | number | null)[][] = s.byLine.map((r) => [r.line, r.count, r.gwp, r.net, r.vat, r.commission, r.claimsCount, r.claimsSettled, r.lossRatio]);
+      rows.push(["الإجمالي", s.totals.policies, s.totals.grossWrittenPremium, s.totals.netPremium, s.totals.vat, s.totals.brokerageCommission, s.totals.claimsCount, s.totals.claimsSettled, s.totals.lossRatio]);
+      rows.push([]);
+      rows.push(["المؤمِّن", "عدد الوثائق", "القسط الإجمالي", "القسط الصافي", "عمولة الوساطة", "الحصّة%"]);
+      for (const r of s.byInsurer) rows.push([r.insurer, r.count, r.gwp, r.net, r.commission, r.share]);
+      const period = params.from || params.to ? `${params.from ?? ""}_${params.to ?? ""}` : "all";
+      return { filename: `sama-return-${period}.csv`, csv: this.csv(headers, rows) };
+    }
     throw new BadRequestException("تقرير غير قابل للتصدير");
   }
 
@@ -212,6 +319,7 @@ export class ReportsService {
       { key: "renewals", name: "الوثائق المستحقّة للتجديد", category: "production" },
       { key: "risk_analysis", name: "تحليل المخاطر والتوصيات", category: "compliance" },
       { key: "regulatory", name: "تقرير هيئة التأمين الموحّد", category: "regulatory" },
+      { key: "sama", name: "العائد التنظيمي الدوري (SAMA/هيئة التأمين)", category: "regulatory" },
     ];
   }
 }

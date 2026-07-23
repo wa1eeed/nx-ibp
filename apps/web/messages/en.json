@@ -379,6 +379,30 @@
         "commission": "Commission",
         "netToInsurer": "Net to insurer"
       }
+    },
+    "sama": {
+      "title": "Periodic regulatory return (SAMA / Insurance Authority)",
+      "sub": "Broker interim return — business produced, brokerage income, and claims by line of business and insurer",
+      "q": "Q",
+      "empty": "No policies issued in this period.",
+      "byInsurer": "Placement by insurer & market share",
+      "kpi": {
+        "policies": "Policies",
+        "gwp": "Gross written premium",
+        "net": "Net premium",
+        "commission": "Brokerage income",
+        "claims": "Claims count",
+        "lossRatio": "Loss ratio"
+      },
+      "col": {
+        "line": "Line of business",
+        "count": "Policies",
+        "gwp": "Gross premium",
+        "net": "Net premium",
+        "commission": "Commission",
+        "claims": "Claims (count · settled)",
+        "lossRatio": "Loss ratio"
+      }
     }
   },
   "finance": {
