@@ -5,6 +5,8 @@ import { SequenceService } from "../../common/sequence/sequence.service";
 import { AuditService } from "../../common/audit/audit.service";
 import { NotificationsService } from "../notifications/notifications.service";
 import { TenantEmailService } from "../email/tenant-email.service";
+import { ConfigService } from "../config/config.service";
+import { fillRfqPlaceholders } from "../config/rfq-template.defaults";
 import { vatTreatmentForClass } from "../../common/tax/vat";
 import type { CreateSlipDto } from "./dto/create-slip.dto";
 import type { CreateQuotationDto } from "./dto/create-quotation.dto";
@@ -24,6 +26,7 @@ export class SlipsService {
     private readonly audit: AuditService,
     private readonly notifications: NotificationsService,
     private readonly email: TenantEmailService,
+    private readonly config: ConfigService,
   ) {}
 
   listSlips() {
@@ -141,28 +144,18 @@ export class SlipsService {
     const lineName = line?.name ?? slip.request?.productLineCode ?? "—";
     const period = base.startDate && base.endDate ? `${base.startDate} — ${base.endDate}` : "—";
     const ref = slip.sequenceNo ?? slip.id;
-    const subject = `طلب عرض سعر — ${clientName} — ${lineName} (${ref})`;
-    const body = [
-      `السلام عليكم ورحمة الله وبركاته،`,
-      ``,
-      `نأمل تزويدنا بعرض سعر للتغطية التالية:`,
-      `• العميل: ${clientName}`,
-      `• فرع التأمين: ${lineName}`,
-      `• مدة التغطية: ${period}`,
-      `• رقم المرجع: ${ref}`,
-      ``,
-      `نرجو موافاتنا بأفضل الشروط والأسعار في أقرب وقت ممكن. وللاستفسار يُرجى الرد على هذا البريد مباشرةً.`,
-      ``,
-      `مع خالص التقدير،`,
-      tenant?.name ?? "",
-    ].join("\n");
-    return { slip, subject, body, ref };
+    // القالب من الإعدادات (المخصّص أو الافتراضي) مع استبدال العناصر النائبة بقيم الـslip
+    const tpl = await this.config.getRfqTemplate(tenantId);
+    const vars = { client: clientName, line: lineName, period, ref: String(ref), company: tenant?.name ?? "" };
+    const subject = fillRfqPlaceholders(tpl.subject, vars);
+    const body = fillRfqPlaceholders(tpl.body, vars);
+    return { slip, subject, body, ref, cc: tpl.cc };
   }
 
-  /** الصيغة الافتراضية (الموضوع + النصّ) لعرضها للموظف كي يعدّلها قبل الإرسال. */
+  /** الصيغة (الموضوع + النصّ + CC الافتراضية) لعرضها للموظف كي يعدّلها قبل الإرسال. */
   async rfqTemplate(tenantId: string, slipId: string) {
-    const { subject, body } = await this.rfqContext(tenantId, slipId);
-    return { subject, body };
+    const { subject, body, cc } = await this.rfqContext(tenantId, slipId);
+    return { subject, body, cc };
   }
 
   /**

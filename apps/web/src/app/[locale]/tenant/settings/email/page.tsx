@@ -148,6 +148,67 @@ export default function TenantEmailPage() {
           </div>
         </section>
       ) : null}
+
+      <RfqTemplateSettings />
     </div>
+  );
+}
+
+/** قالب طلب العرض (RFQ) القابل للتخصيص — يُعبّئ شاشة الإرسال؛ يبقى قابلًا للتعديل الحرّ لكل إرسال. */
+function RfqTemplateSettings() {
+  const t = useTranslations("rfqTemplateSettings");
+  const [subject, setSubject] = useState("");
+  const [body, setBody] = useState("");
+  const [ccText, setCcText] = useState("");
+  const [isDefault, setIsDefault] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const load = useCallback(async () => {
+    try {
+      const d = await api<{ subject: string; body: string; cc: string[]; isDefault: boolean }>("/config/rfq-template");
+      setSubject(d.subject); setBody(d.body); setCcText((d.cc ?? []).join(", ")); setIsDefault(d.isDefault);
+    } catch { /* */ }
+  }, []);
+  useEffect(() => { void load(); }, [load]);
+
+  const validEmail = (e: string) => /.+@.+\..+/.test(e);
+  const ccList = [...new Set(ccText.split(/[\s,;]+/).map((s) => s.trim().toLowerCase()).filter(validEmail))];
+  const save = async () => {
+    setBusy(true); setSaved(false);
+    try { await api("/config/rfq-template", { method: "PUT", body: JSON.stringify({ subject: subject.trim(), body, cc: ccList }) }); setSaved(true); await load(); } finally { setBusy(false); }
+  };
+  const restore = async () => {
+    setBusy(true); setSaved(false);
+    try { await api("/config/rfq-template", { method: "PUT", body: JSON.stringify({ subject: "", body: "", cc: [] }) }); await load(); setSaved(true); } finally { setBusy(false); }
+  };
+
+  return (
+    <section className="rounded-card border border-line bg-card p-5 shadow-card">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-[15px] font-bold text-ink">{t("title")}</h2>
+        <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${isDefault ? "bg-surface-2 text-subtle" : "bg-success-soft text-success"}`}>{isDefault ? t("usingDefault") : t("usingCustom")}</span>
+      </div>
+      <p className="mt-1 text-[12.5px] text-subtle">{t("subtitle")}</p>
+      <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px]">
+        <span className="text-subtle">{t("placeholders")}:</span>
+        {["{client}", "{line}", "{period}", "{ref}", "{company}"].map((p) => <code key={p} className="rounded bg-surface-2 px-1.5 py-0.5 font-mono text-primary-strong">{p}</code>)}
+      </div>
+
+      <label className="mt-3 block text-[11.5px] font-semibold text-muted">{t("subject")}</label>
+      <input value={subject} onChange={(e) => setSubject(e.target.value)} className="mt-1 h-9 w-full rounded-lg border border-line bg-bg px-3 text-[12.5px] text-ink" />
+
+      <label className="mt-3 block text-[11.5px] font-semibold text-muted">{t("cc")}</label>
+      <input value={ccText} onChange={(e) => setCcText(e.target.value)} dir="ltr" placeholder={t("ccHint")} className="mt-1 h-9 w-full rounded-lg border border-line bg-bg px-3 text-[12.5px] text-ink placeholder:text-subtle" />
+
+      <label className="mt-3 block text-[11.5px] font-semibold text-muted">{t("body")}</label>
+      <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={9} className="mt-1 w-full rounded-lg border border-line bg-bg p-3 text-[12.5px] leading-relaxed text-ink" />
+
+      <div className="mt-3 flex items-center gap-2">
+        <button onClick={save} disabled={busy} className="h-9 rounded-lg bg-primary-strong px-4 text-[12.5px] font-semibold text-primary-fg hover:bg-primary disabled:opacity-60">{busy ? "…" : t("save")}</button>
+        {!isDefault ? <button onClick={restore} disabled={busy} className="h-9 rounded-lg border border-line px-4 text-[12.5px] font-medium text-muted hover:bg-surface-2 disabled:opacity-60">{t("restore")}</button> : null}
+        {saved ? <span className="text-[12px] font-medium text-success">{t("saved")}</span> : null}
+      </div>
+    </section>
   );
 }

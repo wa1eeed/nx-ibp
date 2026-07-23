@@ -4,6 +4,7 @@ import { PrismaService } from "../../prisma/prisma.service";
 import { AuditService } from "../../common/audit/audit.service";
 import { StorageService } from "../../common/storage/storage.service";
 import { RBAC_MODULES, type RbacModule, type RbacAction } from "../rbac/rbac.constants";
+import { RFQ_DEFAULT_BODY, RFQ_DEFAULT_SUBJECT } from "./rfq-template.defaults";
 
 /** خطوة اعتماد إضافية قابلة للتهيئة ضمن سلسلة اعتماد الوثيقة (E2). */
 export interface ApprovalStep {
@@ -148,6 +149,37 @@ export class ConfigService {
     else await this.prisma.tenantConfig.create({ data: { tenantId, enabledProducts: [], operationsPolicy: asJson(merged) } });
     await this.audit.log({ tenantId, userId, action: "update", entity: "operations_config", entityId: "policy", meta: { freeLookDays } });
     return { ok: true, freeLookDays };
+  }
+
+  /**
+   * قالب طلب العرض (RFQ) المحفوظ في الإعدادات — يعيد المخصّص أو الافتراضي (بعناصر نائبة) مع `isDefault`.
+   * `cc` قائمة بريد افتراضية تُعبّأ في شاشة الإرسال. مخزَّن في `TenantConfig.emailTemplates.rfq`.
+   */
+  async getRfqTemplate(tenantId: string): Promise<{ subject: string; body: string; cc: string[]; isDefault: boolean }> {
+    const cfg = await this.prisma.tenantConfig.findFirst({ where: { tenantId }, select: { emailTemplates: true } });
+    const rfq = ((cfg?.emailTemplates ?? {}) as { rfq?: { subject?: string; body?: string; cc?: string[] } }).rfq;
+    const hasCustom = !!(rfq?.subject?.trim() || rfq?.body?.trim());
+    return {
+      subject: rfq?.subject?.trim() || RFQ_DEFAULT_SUBJECT,
+      body: rfq?.body?.trim() ? rfq.body : RFQ_DEFAULT_BODY,
+      cc: Array.isArray(rfq?.cc) ? rfq!.cc.filter((c) => /.+@.+\..+/.test(c)) : [],
+      isDefault: !hasCustom,
+    };
+  }
+
+  /** يحفظ قالب طلب العرض (الموضوع/النصّ بعناصر نائبة + CC افتراضية). حقول فارغة ⇒ استعادة الافتراضي. */
+  async setRfqTemplate(tenantId: string, userId: string, input: { subject?: string; body?: string; cc?: string[] }): Promise<{ ok: true }> {
+    const rfq = {
+      subject: (input.subject ?? "").trim().slice(0, 300) || null,
+      body: (input.body ?? "").trim().slice(0, 8000) || null,
+      cc: [...new Set((input.cc ?? []).map((c) => c.trim().toLowerCase()).filter((c) => /.+@.+\..+/.test(c)))].slice(0, 20),
+    };
+    const cfg = await this.prisma.tenantConfig.findFirst({ where: { tenantId }, select: { id: true, emailTemplates: true } });
+    const merged = { ...((cfg?.emailTemplates ?? {}) as Record<string, unknown>), rfq };
+    if (cfg) await this.prisma.tenantConfig.update({ where: { tenantId }, data: { emailTemplates: asJson(merged) } });
+    else await this.prisma.tenantConfig.create({ data: { tenantId, enabledProducts: [], emailTemplates: asJson(merged) } });
+    await this.audit.log({ tenantId, userId, action: "update", entity: "rfq_template", entityId: "config", meta: { hasSubject: !!rfq.subject, hasBody: !!rfq.body, cc: rfq.cc.length } });
+    return { ok: true };
   }
 
   /** يحفظ إعداد سلسلة اعتماد الوثيقة (البوّابة الفنية + الخطوات) بعد التحقّق. */

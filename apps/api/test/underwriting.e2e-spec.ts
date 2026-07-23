@@ -121,6 +121,21 @@ describe("الاكتتاب الفني وعروض الأسعار (e2e)", () => {
     await request(srv).post(`/slips/${slip.id}/send-rfq`).set(auth(underwriter))
       .send({ recipients: [{ insurerId: withEmail.id }], cc: ["not-an-email"] }).expect(400);
 
+    // قالب مخصّص من الإعدادات (settings) ⇒ ينعكس في صيغة الإرسال مع استبدال العناصر النائبة + CC افتراضية
+    await request(srv).put("/config/rfq-template").set(auth(gm))
+      .send({ subject: "عرض {line} — {ref}", body: "عميلنا {client} يطلب تغطية {line} من {company}.", cc: ["uw@brk.sa"] }).expect(200);
+    const tpl2 = (await request(srv).get(`/slips/${slip.id}/rfq-template`).set(auth(underwriter)).expect(200)).body;
+    expect(tpl2.subject).not.toContain("{line}"); // استُبدلت العناصر النائبة
+    expect(tpl2.body).toContain("عميلنا");
+    expect(tpl2.body).not.toContain("{client}");
+    expect(tpl2.cc).toEqual(["uw@brk.sa"]);
+    // استعادة الافتراضي (تفريغ) ⇒ يعود القالب المبرمَج
+    await request(srv).put("/config/rfq-template").set(auth(gm)).send({ subject: "", body: "", cc: [] }).expect(200);
+    const tpl3 = (await request(srv).get(`/slips/${slip.id}/rfq-template`).set(auth(underwriter)).expect(200)).body;
+    expect(tpl3.subject).toContain("طلب عرض سعر");
+    // موظف بلا صلاحية الإعدادات لا يحفظ القالب ⇒ 403
+    await request(srv).put("/config/rfq-template").set(auth(underwriter)).send({ subject: "x" }).expect(403);
+
     // قائمة فارغة ⇒ 400
     await request(srv).post(`/slips/${slip.id}/send-rfq`).set(auth(underwriter)).send({ recipients: [] }).expect(400);
   });

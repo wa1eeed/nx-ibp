@@ -1122,6 +1122,20 @@
     "error": "Could not save",
     "securityNote": "Secret keys are encrypted with AES-256-GCM and never exposed in the UI or logs. Managed exclusively from this panel and never stored in the repository."
   },
+  "rfqTemplateSettings": {
+    "title": "RFQ email template",
+    "subtitle": "The default message that pre-fills the “Send to insurers” screen. Still freely editable on every send.",
+    "placeholders": "Placeholders replaced automatically",
+    "subject": "Default subject",
+    "cc": "Default CC",
+    "ccHint": "One or more emails, comma-separated (optional)",
+    "body": "Default body",
+    "save": "Save template",
+    "restore": "Restore default",
+    "saved": "Saved ✓",
+    "usingDefault": "Default",
+    "usingCustom": "Custom"
+  },
   "tenantEmail": {
     "title": "Official email & notifications",
     "subtitle": "Send your company notifications from your official domain via your own Resend account — auto-linked with DNS verification.",

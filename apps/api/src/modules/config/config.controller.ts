@@ -1,5 +1,5 @@
 import { Body, Controller, Get, HttpCode, Post, Put } from "@nestjs/common";
-import { IsBoolean, IsInt, IsOptional, IsString, Matches, Max, MaxLength, Min } from "class-validator";
+import { IsArray, IsBoolean, IsEmail, IsInt, IsOptional, IsString, Matches, Max, MaxLength, Min } from "class-validator";
 import { ConfigService, type ApprovalStep } from "./config.service";
 import { SetApprovalChainDto } from "./dto/approval-chain.dto";
 import { Authorize } from "../rbac/authorize.decorator";
@@ -12,6 +12,13 @@ class SetSecurityDto {
 /** §6.4 — سياسات التشغيل: مدّة حق العدول (0–90 يومًا؛ 0 = مُعطَّل). */
 class SetOperationsDto {
   @IsInt() @Min(0) @Max(90) freeLookDays!: number;
+}
+
+/** قالب طلب العرض (RFQ): موضوع/نصّ بعناصر نائبة + CC افتراضية. حقول فارغة ⇒ استعادة الافتراضي. */
+class SetRfqTemplateDto {
+  @IsOptional() @IsString() @MaxLength(300) subject?: string;
+  @IsOptional() @IsString() @MaxLength(8000) body?: string;
+  @IsOptional() @IsArray() @IsEmail({}, { each: true }) cc?: string[];
 }
 
 class SetRetentionDto {
@@ -88,6 +95,19 @@ export class ConfigController {
   @Put("security")
   setSecurity(@CurrentUser("tenantId") tenantId: string, @CurrentUser("userId") userId: string, @Body() dto: SetSecurityDto) {
     return this.config.setSecurityConfig(tenantId, userId, { mfaRequired: dto.mfaRequired });
+  }
+
+  // ——— قالب طلب العرض (RFQ) القابل للتخصيص ———
+  @Authorize({ module: "settings", action: "read" })
+  @Get("rfq-template")
+  getRfqTemplate(@CurrentUser("tenantId") tenantId: string) {
+    return this.config.getRfqTemplate(tenantId);
+  }
+
+  @Authorize({ module: "settings", action: "update" })
+  @Put("rfq-template")
+  setRfqTemplate(@CurrentUser("tenantId") tenantId: string, @CurrentUser("userId") userId: string, @Body() dto: SetRfqTemplateDto) {
+    return this.config.setRfqTemplate(tenantId, userId, { subject: dto.subject, body: dto.body, cc: dto.cc });
   }
 
   // ——— بيانات الشركة ———

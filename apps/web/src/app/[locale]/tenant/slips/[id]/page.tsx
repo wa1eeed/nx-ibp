@@ -382,8 +382,8 @@ function SendRfq({ slipId, onClose, onSent, onError }: { slipId: string; onClose
   const [result, setResult] = useState<{ sent: Array<{ name: string }>; skipped: Array<{ name: string }> } | null>(null);
 
   useEffect(() => { void api<typeof insurers>("/insurers/options").then(setInsurers).catch(() => setInsurers([])); }, []);
-  // جلب الصيغة الافتراضية (موضوع + نصّ) لتعبئتها قابلةً للتعديل
-  useEffect(() => { void api<{ subject: string; body: string }>(`/slips/${slipId}/rfq-template`).then((d) => { setSubject(d.subject); setBody(d.body); }).catch(() => undefined); }, [slipId]);
+  // جلب صيغة القالب (المخصّص من الإعدادات أو الافتراضي) لتعبئتها قابلةً للتعديل + CC الافتراضية
+  useEffect(() => { void api<{ subject: string; body: string; cc?: string[] }>(`/slips/${slipId}/rfq-template`).then((d) => { setSubject(d.subject); setBody(d.body); if (d.cc?.length) setCcText(d.cc.join(", ")); }).catch(() => undefined); }, [slipId]);
 
   const validEmail = (e: string) => /.+@.+\..+/.test(e);
   const ccList = [...new Set(ccText.split(/[\s,;]+/).map((s) => s.trim().toLowerCase()).filter(validEmail))];
