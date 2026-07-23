@@ -138,6 +138,11 @@ body {
 @keyframes fv-step { 0%,100% { background-color: var(--off,#e5eaed); } 50% { background-color: rgb(16,127,109); } }
 @keyframes fv-trend { to { stroke-dashoffset: 0; } }
 @keyframes fv-drop { 0% { transform: translateY(-10px); opacity: 0; } 40% { opacity: 1; } 100% { transform: translateY(0); opacity: 1; } }
+@keyframes fv-tip { 0%,100% { transform: rotate(0deg); } 25% { transform: rotate(9deg); } 55% { transform: rotate(-6deg); } 78% { transform: rotate(2deg); } }
+@keyframes fv-seal { 0% { transform: scale(.2) rotate(-90deg); opacity: 0; } 55% { opacity: 0; } 72% { transform: scale(1.12) rotate(6deg); opacity: 1; } 100% { transform: scale(1) rotate(0deg); opacity: 1; } }
+@keyframes fv-emit { 0% { transform: scale(.4); opacity: 0; } 20% { opacity: 1; } 100% { transform: scale(1); opacity: 0; } }
+@keyframes fv-print { 0%,10% { transform: scaleX(0); } 30%,100% { transform: scaleX(1); } }
+@keyframes fv-tap { 0%,60% { transform: scale(1); box-shadow: 0 0 0 0 rgba(16,127,109,.5); } 80% { transform: scale(.94); box-shadow: 0 0 0 8px rgba(16,127,109,0); } 100% { transform: scale(1); } }
 
 /* كشف عند التمرير (Scroll reveal) — يظهر المحتوى بانزلاق لطيف عند دخوله للعرض */
 .reveal { opacity: 0; transform: translateY(18px); transition: opacity .65s ease, transform .65s cubic-bezier(.2,.7,.2,1); will-change: opacity, transform; }

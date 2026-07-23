@@ -2387,14 +2387,15 @@
     "offboard": {
       "button": "Offboard",
       "title": "Offboard employee",
-      "desc": "{name}'s account will be disabled and their seat freed immediately. You can transfer their open work to another employee first. Their historical activity log is preserved.",
-      "reassign": "Transfer open work to",
-      "noReassign": "No transfer (leave unassigned)",
+      "desc": "{name}’s account will be disabled immediately and their seat freed. Pick a colleague to inherit all of their current responsibilities before disabling.",
+      "reassign": "Transfer current responsibilities (clients & their policies · deals · tasks · service requests · complaints) to",
+      "noReassign": "Do not transfer (left unassigned — can be reassigned later)",
       "cancelSeat": "Cancel the paid license",
-      "cancelSeatHint": "Unchecked: the seat stays available for a replacement at no extra cost. Checked: the number of paid seats is reduced.",
+      "cancelSeatHint": "Leave unchecked to keep the paid seat ready for a replacement at no extra cost. Check it only if you want to reduce the number of paid seats (shrink the subscription).",
       "cancel": "Cancel",
       "confirm": "Confirm offboarding",
-      "done": "Offboarded. Transferred: {deals} deals · {tasks} tasks · {service} service requests · {complaints} complaints."
+      "done": "Offboarded and responsibilities transferred: {clients} clients · {deals} deals · {tasks} tasks · {service} service requests · {complaints} complaints.",
+      "dataNote": "No data is lost: policies, claims and records belong to the company and stay intact, and the historical trail (who created what, and when) is unchanged. Only current ownership is transferred."
     },
     "back": "Back to staff",
     "role": "Role",
@@ -3529,9 +3530,9 @@
         "title": "E-invoicing (ZATCA)",
         "desc": "Invoices built to the Phase 2 (Fatoora) spec — QR, signature, and complete tax fields."
       },
-      "multitenant": {
-        "title": "Multi-tenancy & governance",
-        "desc": "Full data isolation per company, granular editable permissions, and an immutable audit log."
+      "portal": {
+        "title": "Client Portal",
+        "desc": "A branded self-service portal for every client: track policies and installments, pay, and file claims 24/7 — cutting your team’s load and lifting client satisfaction."
       }
     }
   },

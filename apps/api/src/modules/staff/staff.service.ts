@@ -302,10 +302,10 @@ export class StaffService {
 
   /**
    * **إنهاء خدمة موظف (مغادرة/استقالة)** — تجربة مرنة:
-   *  1) **نقل المهام المفتوحة** (صفقات · مهام · طلبات خدمة · شكاوى) لموظف آخر نشِط اختياريًا (بلا فقدان مسؤولية).
+   *  1) **نقل المسؤولية الحالية بالكامل** (محفظة العملاء ⇐ وبالتبعية وثائقهم/طلباتهم · الصفقات · المهام · طلبات الخدمة · الشكاوى) لموظف آخر نشِط اختياريًا (بلا فقدان مسؤولية).
    *  2) **تعطيل الحساب** (DISABLED) — يُحرَّر مقعده فورًا.
    *  3) **الرخصة**: افتراضيًا يبقى المقعد المرخّص متاحًا لموظف بديل (نقل الرخصة)؛ أو `cancelSeat` لإلغائه (تقليل المقاعد المدفوعة).
-   * السجل التاريخي (AuditLog) لا يتغيّر — تُنقل المسؤولية الحالية فقط.
+   * البيانات نفسها (وثائق · مطالبات · سجلّات) ملك الشركة ولا تُحذف؛ والسجل التاريخي (AuditLog: مَن أنشأ/عدّل) يبقى كما هو — تُنقل المسؤولية الحالية فقط.
    */
   async offboard(admin: AuthUser, id: string, opts: { reassignToId?: string; cancelSeat?: boolean }) {
     const target = await this.prisma.user.findFirst({ where: { id }, select: { id: true, email: true, fullName: true, status: true } });
@@ -313,20 +313,23 @@ export class StaffService {
     if (id === admin.userId) throw new BadRequestException("لا يمكنك إنهاء خدمة حسابك بنفسك");
     if (target.status === "DISABLED") throw new BadRequestException("الحساب مُنهى خدمته مسبقًا");
 
-    let reassigned = { deals: 0, tasks: 0, serviceRequests: 0, complaints: 0 };
+    let reassigned = { clients: 0, deals: 0, tasks: 0, serviceRequests: 0, complaints: 0 };
     let reassignedToEmail: string | null = null;
     if (opts.reassignToId) {
       const to = await this.prisma.user.findFirst({ where: { id: opts.reassignToId, status: "ACTIVE" }, select: { id: true, email: true } });
       if (!to) throw new BadRequestException("الموظف المنقول إليه غير موجود أو غير نشِط");
       if (to.id === id) throw new BadRequestException("لا يمكن النقل لنفس الموظف");
       reassignedToEmail = to.email;
-      const [d, c, s, co] = await this.prisma.$transaction([
+      // تُنقَل المسؤولية الحالية بالكامل: محفظة العملاء (وبالتبعية وثائقهم/طلباتهم) + الصفقات + المهام + طلبات الخدمة + الشكاوى.
+      // البيانات نفسها ملك الشركة ولا تُمَسّ؛ والسجل التاريخي (مَن أنشأ/عدّل) يبقى كما هو.
+      const [cl, d, c, s, co] = await this.prisma.$transaction([
+        this.prisma.client.updateMany({ where: { tenantId: admin.tenantId, accountManagerId: id }, data: { accountManagerId: to.id } }),
         this.prisma.deal.updateMany({ where: { assigneeId: id }, data: { assigneeId: to.id } }),
         this.prisma.crmTask.updateMany({ where: { assigneeId: id }, data: { assigneeId: to.id } }),
         this.prisma.serviceRequest.updateMany({ where: { assigneeId: id }, data: { assigneeId: to.id } }),
         this.prisma.complaint.updateMany({ where: { assigneeId: id }, data: { assigneeId: to.id } }),
       ]);
-      reassigned = { deals: d.count, tasks: c.count, serviceRequests: s.count, complaints: co.count };
+      reassigned = { clients: cl.count, deals: d.count, tasks: c.count, serviceRequests: s.count, complaints: co.count };
     }
 
     await this.prisma.user.update({ where: { id }, data: { status: "DISABLED" } });

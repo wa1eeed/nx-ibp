@@ -11,7 +11,7 @@ const sx = (o: Record<string, string | number>): CSSProperties => o as CSSProper
  */
 export type VizVariant =
   | "crm" | "quotes" | "policy" | "ledger" | "donut" | "claim"
-  | "hr" | "aml" | "fingerprint" | "chart" | "qr" | "tenants";
+  | "hr" | "aml" | "fingerprint" | "chart" | "qr" | "portal";
 
 const MAP: Record<VizVariant, () => JSX.Element> = {
   crm: VizCrm,
@@ -25,7 +25,7 @@ const MAP: Record<VizVariant, () => JSX.Element> = {
   fingerprint: VizFingerprint,
   chart: VizChart,
   qr: VizQr,
-  tenants: VizTenants,
+  portal: VizPortal,
 };
 
 export function FeatureViz({ variant }: { variant: VizVariant }) {
@@ -59,58 +59,87 @@ function VizCrm() {
   );
 }
 
-/** الاكتتاب/طلبات التسعير — طلب مركزي يشعّ لعدّة شركات ثم عروض تتنافس وأفضلها يُبرَز. */
+/** الاكتتاب/طلبات التسعير — مركز RFQ يبثّ الطلب لعدّة شركات تأمين حوله ثم يعود عرض فائز. */
 function VizQuotes() {
-  const H = [46, 72, 58, 90];
+  // مواضع شركات التأمين حول المركز (SVG 120×88)
+  const NODES = [{ x: 16, y: 20, win: false }, { x: 104, y: 18, win: true }, { x: 14, y: 68, win: false }, { x: 106, y: 66, win: false }];
+  const CX = 60, CY = 44;
   return (
-    <div className="flex h-16 items-end gap-1.5">
-      {H.map((h, i) => {
-        const best = i === 3;
-        return (
-          <div key={i} className="flex flex-col items-center gap-1">
-            <div className={`w-3.5 rounded-t ${best ? "bg-success" : "bg-primary/55"}`} style={{ height: `${h}%`, transformOrigin: "bottom", animation: "fx-bar 1.9s ease-in-out infinite alternate", animationDelay: `${i * 0.16}s` }} />
-            {best ? <span className="grid h-3 w-3 place-items-center rounded-full bg-success text-white" style={{ animation: "fv-win 3.2s ease-in-out infinite" }}><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round"><path d="M20 6L9 17l-5-5" /></svg></span> : <span className="h-3 w-3" />}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-/** إصدار الوثائق والملاحق — وثيقة يهبط عليها ختم رسميّ ثم يُضاف سطر ملحق. */
-function VizPolicy() {
-  return (
-    <div className="relative h-16 w-14 rounded-md bg-card ring-1 ring-line">
-      <div className="space-y-1.5 p-2">
-        {[10, 7, 9].map((w, i) => <div key={i} className="h-1 rounded bg-line" style={{ width: `${w * 9}%` }} />)}
-        {/* سطر الملحق يُضاف */}
-        <div className="h-1 origin-right rounded bg-primary/60" style={{ width: "70%", animation: "fv-line 3.6s ease-in-out infinite" }} />
-      </div>
-      {/* ختم رسميّ يهبط */}
-      <span className="absolute inset-0 grid place-items-center" style={{ animation: "fv-stamp 3.6s ease-in-out infinite" }}>
-        <span className="grid h-9 w-9 place-items-center rounded-full border-2 border-primary/70 text-primary" style={{ boxShadow: "inset 0 0 0 2px rgba(16,127,109,.18)" }}>
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
+    <div className="relative h-[88px] w-[120px]">
+      <svg className="absolute inset-0" viewBox="0 0 120 88" fill="none">
+        {NODES.map((n, i) => (
+          <line key={i} x1={CX} y1={CY} x2={n.x} y2={n.y} stroke={n.win ? TEAL : "rgba(16,127,109,.3)"} strokeWidth={n.win ? 2 : 1.4} strokeDasharray="4 4" style={{ animation: `dash-flow ${2.6 + i * 0.2}s linear infinite` }} />
+        ))}
+      </svg>
+      {/* شركات التأمين */}
+      {NODES.map((n, i) => (
+        <span key={i} className={`absolute grid h-5 w-5 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-lg ${n.win ? "bg-success text-white" : "bg-card text-primary ring-1 ring-primary/25"}`} style={{ left: n.x, top: n.y, animation: n.win ? "fv-win 3.4s ease-in-out infinite" : "none" }}>
+          {n.win ? <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg> : <span className="h-1.5 w-1.5 rounded-full bg-primary/70" />}
         </span>
+      ))}
+      {/* موجات بثّ من المركز */}
+      {[0, 1].map((i) => (
+        <span key={i} className="absolute h-6 w-6 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-primary/50" style={{ left: CX, top: CY, animation: "fv-emit 2.6s ease-out infinite", animationDelay: `${i * 1.3}s` }} />
+      ))}
+      {/* مركز الـRFQ */}
+      <span className="absolute grid h-8 w-8 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-xl bg-primary-strong text-white" style={{ left: CX, top: CY, animation: "core-pulse 2.8s ease-in-out infinite" }}>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2L11 13" /><path d="M22 2l-7 20-4-9-9-4z" /></svg>
       </span>
     </div>
   );
 }
 
-/** المالية والمحاسبة — قيد مزدوج: مدين/دائن يتوازنان مع ميزان يستقرّ. */
+/** إصدار الوثائق والملاحق — وثيقة تُطبَع سطرًا سطرًا ثم يظهر خاتم رسميّ + شارة ملحق. */
+function VizPolicy() {
+  return (
+    <div className="relative h-[68px] w-[58px] rounded-md bg-card shadow-sm ring-1 ring-line">
+      {/* ترويسة */}
+      <div className="flex items-center gap-1 px-2 pt-2">
+        <span className="h-2 w-2 rounded-[2px] bg-primary/70" />
+        <span className="h-1 w-6 rounded bg-primary/40" />
+      </div>
+      {/* أسطر تُطبَع تباعًا */}
+      <div className="mt-2 space-y-1.5 px-2">
+        {[11, 9, 10, 7].map((w, i) => (
+          <div key={i} className="h-1 origin-right rounded bg-line" style={{ width: `${w * 8}%`, animation: "fv-print 3.4s ease-in-out infinite", animationDelay: `${i * 0.28}s` }} />
+        ))}
+      </div>
+      {/* خاتم رسميّ يُرسَم */}
+      <span className="absolute -bottom-1.5 start-1.5" style={{ animation: "fv-seal 3.4s ease-in-out infinite" }}>
+        <svg width="26" height="26" viewBox="0 0 40 40" fill="none">
+          <circle cx="20" cy="20" r="15" stroke={TEAL} strokeWidth="2" strokeDasharray="94" style={{ strokeDashoffset: 94, animation: "fx-draw 3.4s ease-in-out infinite" }} />
+          <circle cx="20" cy="20" r="9" stroke={TEAL} strokeWidth="1.4" opacity="0.5" />
+          <path d="M15 20l3.6 3.6L26 15" stroke={TEAL} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </span>
+      {/* شارة ملحق */}
+      <span className="absolute -end-1.5 -top-1.5 rounded-full bg-primary-strong px-1.5 py-0.5 text-[8px] font-bold text-white shadow" style={{ animation: "fv-drop 3.4s ease-in-out infinite", animationDelay: "1.4s" }}>+ملحق</span>
+    </div>
+  );
+}
+
+/** المالية والمحاسبة — قيد مزدوج كميزان: الكفّتان (مدين/دائن) تتمايلان ثم تستقرّان متوازنتين. */
 function VizLedger() {
   return (
-    <div className="flex flex-col items-center gap-2">
-      <div className="flex items-end gap-6">
-        <div className="flex flex-col items-center gap-1">
-          <div className="w-8 rounded-t bg-primary/60" style={{ height: 30, transformOrigin: "bottom", animation: "fx-bar 2.2s ease-in-out infinite alternate" }} />
-          <span className="text-[9px] font-bold text-muted">مدين</span>
-        </div>
-        <div className="flex flex-col items-center gap-1">
-          <div className="w-8 rounded-t bg-primary-strong/70" style={{ height: 30, transformOrigin: "bottom", animation: "fx-bar 2.2s ease-in-out infinite alternate", animationDelay: "0.15s" }} />
-          <span className="text-[9px] font-bold text-muted">دائن</span>
+    <div className="relative h-[72px] w-[104px]">
+      {/* العمود والقاعدة */}
+      <span className="absolute bottom-2 left-1/2 h-11 w-[3px] -translate-x-1/2 rounded bg-primary/50" />
+      <span className="absolute bottom-1.5 left-1/2 h-1.5 w-10 -translate-x-1/2 rounded-full bg-primary/30" />
+      {/* الذراع + الكفّتان تتمايلان معًا */}
+      <div className="absolute left-1/2 top-3 -translate-x-1/2" style={{ transformOrigin: "center", animation: "fv-tip 3.4s ease-in-out infinite" }}>
+        <div className="relative h-[3px] w-[86px] rounded-full bg-primary">
+          <span className="absolute left-0 top-0 h-2 w-2 -translate-x-1/2 rounded-full bg-primary" />
+          <span className="absolute right-0 top-0 h-2 w-2 translate-x-1/2 rounded-full bg-primary" />
+          {/* كفّة مدين */}
+          <span className="absolute -left-3 top-2 flex h-4 w-9 items-center justify-center rounded-b-xl border border-t-0 border-primary/60 bg-primary/10 text-[8px] font-bold text-primary-strong">مدين</span>
+          {/* كفّة دائن */}
+          <span className="absolute -right-3 top-2 flex h-4 w-9 items-center justify-center rounded-b-xl border border-t-0 border-primary/60 bg-primary/10 text-[8px] font-bold text-primary-strong">دائن</span>
         </div>
       </div>
-      <div className="h-[3px] w-24 rounded-full bg-gradient-to-r from-transparent via-primary to-transparent" style={{ backgroundSize: "300% 100%", animation: "wf-track 2.6s linear infinite" }} />
+      {/* شارة توازن */}
+      <span className="absolute -top-0.5 left-1/2 grid h-4 w-4 -translate-x-1/2 place-items-center rounded-full bg-success text-white" style={{ animation: "fv-win 3.4s ease-in-out infinite" }}>
+        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
+      </span>
     </div>
   );
 }
@@ -236,21 +265,27 @@ function VizQr() {
   );
 }
 
-/** تعدّد المستأجرين والحوكمة — شبكة حاويات معزولة تُضيء مستقلّةً حول درع مركزي. */
-function VizTenants() {
+/** بوّابة العملاء — جوّال يعرض خدمة ذاتية للعميل: بطاقات وثائق + زرّ إجراء ينبض (دفع/مطالبة). */
+function VizPortal() {
   return (
-    <div className="relative grid h-20 w-20 place-items-center">
-      <div className="grid grid-cols-3 gap-1.5">
-        {Array.from({ length: 9 }).map((_, i) => {
-          const center = i === 4;
-          return center ? (
-            <span key={i} className="grid h-5 w-5 place-items-center rounded-md bg-primary-strong text-white" style={{ animation: "core-pulse 2.6s ease-in-out infinite" }}>
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l7 3v6c0 4-3 7-7 9-4-2-7-5-7-9V6z" /></svg>
-            </span>
-          ) : (
-            <span key={i} className="h-5 w-5 rounded-md ring-1 ring-primary/40 bg-primary/40" style={{ animation: "fv-cell 3s ease-in-out infinite", animationDelay: `${(i % 5) * 0.24}s` }} />
-          );
-        })}
+    <div className="relative h-[72px] w-[44px] rounded-[10px] bg-card p-1 shadow-sm ring-1 ring-line">
+      {/* شقّ السمّاعة */}
+      <span className="absolute left-1/2 top-1 h-0.5 w-4 -translate-x-1/2 rounded-full bg-line" />
+      <div className="mt-2.5 space-y-1 rounded-[7px] bg-surface-2/50 p-1">
+        {/* ترويسة */}
+        <div className="flex items-center gap-1">
+          <span className="h-2.5 w-2.5 rounded-full bg-primary/70" />
+          <span className="h-1 w-5 rounded bg-primary/30" />
+        </div>
+        {/* بطاقتا وثيقة تظهران تباعًا */}
+        {[0, 1].map((i) => (
+          <div key={i} className="flex items-center gap-1 rounded bg-card p-1 ring-1 ring-line" style={{ animation: "fv-drop 3.2s ease-in-out infinite", animationDelay: `${i * 0.3}s` }}>
+            <span className="h-2.5 w-2.5 rounded bg-primary-soft" />
+            <span className="flex-1"><span className="block h-0.5 w-full rounded bg-line" /><span className="mt-0.5 block h-0.5 w-2/3 rounded bg-line" /></span>
+          </div>
+        ))}
+        {/* زرّ إجراء ذاتي ينبض */}
+        <div className="grid place-items-center rounded bg-primary-strong py-1 text-[7px] font-bold text-white" style={{ animation: "fv-tap 2.6s ease-in-out infinite" }}>دفع القسط</div>
       </div>
     </div>
   );

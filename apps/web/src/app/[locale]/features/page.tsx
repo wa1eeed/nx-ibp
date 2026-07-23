@@ -1,6 +1,6 @@
 "use client";
 
-import { ShieldCheck, ArrowLeft, ArrowRight, KanbanSquare, BadgeCheck, FileCheck2, Landmark, Percent, ClipboardList, Users, ShieldAlert, BarChart3, QrCode } from "lucide-react";
+import { ShieldCheck, ArrowLeft, ArrowRight, KanbanSquare, BadgeCheck, FileCheck2, Landmark, Percent, ClipboardList, Users, ShieldAlert, BarChart3, QrCode, Smartphone } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
 import { LocaleSwitcher } from "@/components/layout/LocaleSwitcher";
@@ -20,7 +20,7 @@ const ITEMS = [
   { key: "verification", Icon: BadgeCheck, viz: "fingerprint" },
   { key: "reports", Icon: BarChart3, viz: "chart" },
   { key: "zatca", Icon: QrCode, viz: "qr" },
-  { key: "multitenant", Icon: Landmark, viz: "tenants" },
+  { key: "portal", Icon: Smartphone, viz: "portal" },
 ] as const;
 
 export default function FeaturesPage() {

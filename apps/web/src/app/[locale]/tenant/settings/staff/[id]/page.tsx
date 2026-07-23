@@ -330,7 +330,7 @@ function OffboardDialog({ userId, userName, onClose, onDone }: { userId: string;
   const [reassignToId, setReassignToId] = useState("");
   const [cancelSeat, setCancelSeat] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [result, setResult] = useState<{ reassigned: { deals: number; tasks: number; serviceRequests: number; complaints: number } } | null>(null);
+  const [result, setResult] = useState<{ reassigned: { clients: number; deals: number; tasks: number; serviceRequests: number; complaints: number } } | null>(null);
 
   useEffect(() => {
     void api<Array<{ id: string; fullName: string; email: string; status: string }>>("/staff")
@@ -341,7 +341,7 @@ function OffboardDialog({ userId, userName, onClose, onDone }: { userId: string;
   const submit = async () => {
     setBusy(true);
     try {
-      const res = await api<{ reassigned: { deals: number; tasks: number; serviceRequests: number; complaints: number } }>(`/staff/${userId}/offboard`, {
+      const res = await api<{ reassigned: { clients: number; deals: number; tasks: number; serviceRequests: number; complaints: number } }>(`/staff/${userId}/offboard`, {
         method: "POST", body: JSON.stringify({ reassignToId: reassignToId || undefined, cancelSeat }),
       });
       setResult(res);
@@ -358,11 +358,14 @@ function OffboardDialog({ userId, userName, onClose, onDone }: { userId: string;
         </div>
         {result ? (
           <div className="rounded-lg bg-success-soft px-3 py-3 text-[12.5px] text-success">
-            {t("offboard.done", { deals: result.reassigned.deals, tasks: result.reassigned.tasks, service: result.reassigned.serviceRequests, complaints: result.reassigned.complaints })}
+            {t("offboard.done", { clients: result.reassigned.clients, deals: result.reassigned.deals, tasks: result.reassigned.tasks, service: result.reassigned.serviceRequests, complaints: result.reassigned.complaints })}
           </div>
         ) : (
           <>
-            <p className="mb-3 text-[12.5px] leading-relaxed text-muted">{t("offboard.desc", { name: userName })}</p>
+            <p className="mb-2.5 text-[12.5px] leading-relaxed text-muted">{t("offboard.desc", { name: userName })}</p>
+            <p className="mb-3 flex items-start gap-1.5 rounded-lg bg-primary-soft/50 px-2.5 py-2 text-[11.5px] leading-relaxed text-primary-strong">
+              <ShieldCheck size={14} className="mt-0.5 shrink-0" /> {t("offboard.dataNote")}
+            </p>
             <label className="mb-3 block">
               <span className="mb-1 block text-[11.5px] font-medium text-muted">{t("offboard.reassign")}</span>
               <select value={reassignToId} onChange={(e) => setReassignToId(e.target.value)} className="w-full rounded-lg border border-line bg-bg px-2.5 py-2 text-[13px] text-ink">
