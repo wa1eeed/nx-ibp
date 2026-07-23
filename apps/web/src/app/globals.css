@@ -99,6 +99,31 @@ body {
 @keyframes fx-sweep { 0% { transform: translateX(-120%); } 100% { transform: translateX(120%); } }
 @keyframes fx-count { 0% { opacity: .4; } 100% { opacity: 1; } }
 @keyframes fx-scan { 0% { top: -24px; } 100% { top: 105%; } }
+/* حزمة بيانات تسري على السكّة (منطقيّة الاتجاه: inset-inline-start تحترم RTL تلقائيًا) */
+@keyframes wf-packet {
+  0%   { inset-inline-start: 4%;  opacity: 0; }
+  8%   { opacity: 1; }
+  92%  { opacity: 1; }
+  100% { inset-inline-start: 96%; opacity: 0; }
+}
+/* توهّج «أورورا» يتنفّس خلف البطل — يعطي عمقًا حيًّا كصفحات الفنتك */
+@keyframes hero-aurora {
+  0%, 100% { transform: translate3d(-4%, -2%, 0) scale(1); opacity: .8; }
+  50%      { transform: translate3d(4%, 3%, 0) scale(1.12); opacity: 1; }
+}
+@keyframes fx-float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+@keyframes fx-ticker { 0%,100% { opacity: .55; } 50% { opacity: 1; } }
+
+/* كشف عند التمرير (Scroll reveal) — يظهر المحتوى بانزلاق لطيف عند دخوله للعرض */
+.reveal { opacity: 0; transform: translateY(18px); transition: opacity .65s ease, transform .65s cubic-bezier(.2,.7,.2,1); will-change: opacity, transform; }
+.reveal.in { opacity: 1; transform: none; }
+
 @media (prefers-reduced-motion: reduce) {
-  [class*="wf-"], [class*="fx-"] { animation: none !important; }
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .reveal { opacity: 1 !important; transform: none !important; }
 }

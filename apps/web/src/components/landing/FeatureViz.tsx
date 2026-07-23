@@ -13,6 +13,8 @@ export function FeatureViz({ variant }: { variant: "cards" | "flow" | "bars" | "
       {variant === "count" ? <VizCount /> : null}
       {variant === "scan" ? <VizScan /> : null}
       {variant === "calendar" ? <VizCalendar /> : null}
+      {/* لمعان دوريّ يعبر الصندوق (لمسة فنتك) */}
+      <span className="pointer-events-none absolute inset-y-0 -left-1/3 w-1/3 skew-x-12 bg-gradient-to-r from-transparent via-white/25 to-transparent" style={{ animation: "fx-sweep 4.5s ease-in-out infinite" }} aria-hidden />
     </div>
   );
 }

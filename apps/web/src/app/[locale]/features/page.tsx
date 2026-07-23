@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
 import { LocaleSwitcher } from "@/components/layout/LocaleSwitcher";
 import { FeatureViz } from "@/components/landing/FeatureViz";
+import { Reveal } from "@/components/landing/Reveal";
 
 const ITEMS = [
   { key: "crm", Icon: KanbanSquare, viz: "cards" },
@@ -41,27 +42,40 @@ export default function FeaturesPage() {
         </div>
       </header>
 
-      <section className="mx-auto max-w-6xl px-5 pb-6 pt-12 text-center">
-        <Link href="/" className="mb-4 inline-flex items-center gap-1.5 text-[12.5px] font-medium text-muted hover:text-ink">
-          <ArrowRight size={14} className="ltr:rotate-180" /> {t("featuresPage.back")}
-        </Link>
-        <h1 className="mx-auto max-w-3xl text-[32px] font-bold leading-tight tracking-tight text-ink sm:text-[40px]">{t("featuresPage.title")}</h1>
-        <p className="mx-auto mt-4 max-w-2xl text-[15px] leading-relaxed text-muted">{t("featuresPage.subtitle")}</p>
+      <section className="relative overflow-hidden">
+        {/* توهّج أورورا خلف العنوان */}
+        <div
+          className="pointer-events-none absolute inset-x-0 -top-20 -z-0 h-80 opacity-80"
+          style={{ background: "radial-gradient(36% 60% at 50% 25%, rgba(16,127,109,.12), transparent 70%)", animation: "hero-aurora 11s ease-in-out infinite" }}
+          aria-hidden
+        />
+        <div className="relative z-10 mx-auto max-w-6xl px-5 pb-6 pt-12 text-center">
+          <Link href="/" className="mb-4 inline-flex items-center gap-1.5 text-[12.5px] font-medium text-muted hover:text-ink">
+            <ArrowRight size={14} className="ltr:rotate-180" /> {t("featuresPage.back")}
+          </Link>
+          <Reveal>
+            <h1 className="mx-auto max-w-3xl text-[32px] font-bold leading-tight tracking-tight text-ink sm:text-[40px]">{t("featuresPage.title")}</h1>
+            <p className="mx-auto mt-4 max-w-2xl text-[15px] leading-relaxed text-muted">{t("featuresPage.subtitle")}</p>
+          </Reveal>
+        </div>
       </section>
 
       <section className="mx-auto max-w-6xl px-5 pb-16">
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {ITEMS.map((f, i) => (
-            <div key={f.key} className="overflow-hidden rounded-card border border-line bg-card shadow-card" style={{ animation: "fx-rise .5s ease-out both", animationDelay: `${i * 0.05}s` }}>
-              <div className="p-3 pb-0"><FeatureViz variant={f.viz} /></div>
-              <div className="p-5 pt-4">
-                <div className="flex items-center gap-2.5">
-                  <div className="grid h-9 w-9 place-items-center rounded-xl bg-primary-soft text-primary"><f.Icon size={18} /></div>
-                  <h3 className="text-[15px] font-bold text-ink">{t(`featuresPage.items.${f.key}.title`)}</h3>
+            <Reveal key={f.key} delay={(i % 3) * 90}>
+              <div className="group relative h-full overflow-hidden rounded-card border border-line bg-card shadow-card transition-all duration-300 hover:-translate-y-1.5 hover:border-primary/30 hover:shadow-lg">
+                <span className="absolute end-4 top-4 z-10 text-[12px] font-bold tabular-nums text-white/70 mix-blend-plus-lighter">{String(i + 1).padStart(2, "0")}</span>
+                <div className="p-3 pb-0"><FeatureViz variant={f.viz} /></div>
+                <div className="p-5 pt-4">
+                  <div className="flex items-center gap-2.5">
+                    <div className="grid h-9 w-9 place-items-center rounded-xl bg-primary-soft text-primary transition-transform duration-300 group-hover:scale-110"><f.Icon size={18} /></div>
+                    <h3 className="text-[15px] font-bold text-ink">{t(`featuresPage.items.${f.key}.title`)}</h3>
+                  </div>
+                  <p className="mt-2.5 text-[13px] leading-relaxed text-muted">{t(`featuresPage.items.${f.key}.desc`)}</p>
                 </div>
-                <p className="mt-2.5 text-[13px] leading-relaxed text-muted">{t(`featuresPage.items.${f.key}.desc`)}</p>
               </div>
-            </div>
+            </Reveal>
           ))}
         </div>
 

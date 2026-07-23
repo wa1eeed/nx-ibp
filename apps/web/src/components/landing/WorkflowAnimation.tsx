@@ -13,19 +13,41 @@ const STAGES = [
 const CYCLE = 6; // ثوانٍ لدورة كاملة
 
 /**
- * أنيميشن سير المعاملة — مصمَّم بالكود (CSS keyframes): إشارة تنتقل عبر مراحل دورة حياة الوثيقة
- * (طلب ⇐ اكتتاب ⇐ تسعير ⇐ إصدار ⇐ تحقّق) بتوهّج متتابع + مسار متحرّك + علامة تحقّق مرسومة.
- * يحترم RTL (ترتيب flex ينعكس تلقائيًا فتتبع الإشارة اتجاه القراءة) و prefers-reduced-motion.
+ * أنيميشن سير المعاملة — مصمَّم بالكود (CSS keyframes) بأسلوب مخطّطات تدفّق الفنتك:
+ * حزمة بيانات متوهّجة تسري على السكّة عبر مراحل دورة حياة الوثيقة (طلب ⇐ اكتتاب ⇐ تسعير ⇐ إصدار ⇐ تحقّق)،
+ * فتُضيء كل عُقدة عند مرورها، مع خلفية «أورورا» تتنفّس وشارة «معالجة فورية».
+ * يحترم RTL (السكّة وحزمة البيانات منطقيّتا الاتجاه فتتبعان القراءة) و prefers-reduced-motion.
  */
 export function WorkflowAnimation() {
   const t = useTranslations("landing.workflow");
   return (
-    <div className="relative mx-auto max-w-3xl rounded-2xl border border-line bg-card/70 p-6 shadow-card backdrop-blur sm:p-8">
-      <div className="relative flex items-start justify-between gap-1.5">
-        {/* المسار المتوهّج المتحرّك خلف العُقَد */}
+    <div className="relative mx-auto max-w-3xl overflow-hidden rounded-2xl border border-line bg-card/70 p-6 shadow-card backdrop-blur sm:p-8">
+      {/* توهّج أورورا خلف المخطّط */}
+      <div
+        className="pointer-events-none absolute -inset-16 -z-0 opacity-70"
+        style={{ background: "radial-gradient(40% 55% at 30% 30%, rgba(16,127,109,.16), transparent 70%), radial-gradient(45% 60% at 75% 70%, rgba(16,127,109,.12), transparent 70%)", animation: `hero-aurora 9s ease-in-out infinite` }}
+      />
+
+      {/* شارة «معالجة فورية» */}
+      <div className="relative z-10 mb-5 flex items-center justify-center gap-1.5">
+        <span className="relative flex h-2 w-2">
+          <span className="absolute inline-flex h-full w-full rounded-full bg-primary/60" style={{ animation: `fx-ticker 1.8s ease-in-out infinite` }} />
+          <span className="relative inline-flex h-2 w-2 rounded-full bg-primary-strong" />
+        </span>
+        <span className="text-[11px] font-semibold tracking-wide text-primary-strong">{t("live")}</span>
+      </div>
+
+      <div className="relative z-10 flex items-start justify-between gap-1.5">
+        {/* السكّة المتوهّجة خلف العُقَد */}
         <div
           className="pointer-events-none absolute inset-x-8 top-6 h-[3px] -translate-y-1/2 rounded-full opacity-70"
           style={{ background: "linear-gradient(90deg, transparent, rgb(16 127 109) 45%, rgb(16 127 109) 55%, transparent)", backgroundSize: "300% 100%", animation: `wf-track ${CYCLE}s linear infinite` }}
+        />
+        {/* حزمة البيانات المتنقّلة على السكّة */}
+        <span
+          className="pointer-events-none absolute top-6 z-20 h-2.5 w-2.5 -translate-y-1/2 rounded-full bg-primary-strong"
+          style={{ boxShadow: "0 0 0 4px rgba(16,127,109,.16), 0 0 18px 4px rgba(16,127,109,.6)", animation: `wf-packet ${CYCLE}s ease-in-out infinite` }}
+          aria-hidden
         />
         {STAGES.map((s, i) => {
           const delay = `${(i * CYCLE) / STAGES.length}s`;
@@ -44,7 +66,7 @@ export function WorkflowAnimation() {
           );
         })}
       </div>
-      <p className="mt-6 text-center text-[12.5px] leading-relaxed text-subtle">{t("caption")}</p>
+      <p className="relative z-10 mt-6 text-center text-[12.5px] leading-relaxed text-subtle">{t("caption")}</p>
     </div>
   );
 }

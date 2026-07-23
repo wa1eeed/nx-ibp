@@ -9,6 +9,8 @@ import { PricingSection } from "@/components/landing/PricingSection";
 import { PlanComparisonTable } from "@/components/landing/PlanComparisonTable";
 import { WorkflowAnimation } from "@/components/landing/WorkflowAnimation";
 import { AiAgentsSection } from "@/components/landing/AiAgentsSection";
+import { StatsBand } from "@/components/landing/StatsBand";
+import { Reveal } from "@/components/landing/Reveal";
 
 // المميزات تغطّي كل الموديولات (تشمل CRM · المالية · العمولات · الموارد البشرية)
 const FEATURES = [
@@ -53,42 +55,64 @@ export default function LandingPage() {
       </header>
 
       {/* البطل (Hero) */}
-      <section className="mx-auto max-w-6xl px-5 pb-10 pt-16 text-center">
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-primary-soft px-3 py-1 text-[12.5px] font-medium text-primary-strong">
-          <QrCode size={14} /> {t("landing.hero.badge")}
-        </span>
-        <h1 className="mx-auto mt-5 max-w-3xl text-[34px] font-bold leading-tight tracking-tight text-ink sm:text-[44px]">{t("landing.hero.title")}</h1>
-        <p className="mx-auto mt-3 text-[15px] font-medium text-primary-strong">{t("landing.hero.titleEn")}</p>
-        <p className="mx-auto mt-4 max-w-2xl text-[15px] leading-relaxed text-muted">{t("landing.hero.subtitle")}</p>
-        <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
-          <Link href="/signup" className="inline-flex items-center gap-2 rounded-lg bg-primary-strong px-5 py-2.5 text-[14px] font-semibold text-primary-fg hover:bg-primary">
-            {t("landing.hero.ctaPrimary")} <ArrowLeft size={16} className="ltr:rotate-180" />
-          </Link>
-          <a href="#pricing" className="inline-flex items-center gap-2 rounded-lg border border-line bg-card px-5 py-2.5 text-[14px] font-semibold text-muted hover:bg-surface-2 hover:text-ink">{t("landing.hero.ctaSecondary")}</a>
-        </div>
-        <div className="mx-auto mt-8 flex max-w-2xl flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[12.5px] text-subtle">
-          <span className="inline-flex items-center gap-1.5"><Check size={14} className="text-success" /> {t("landing.hero.t1")}</span>
-          <span className="inline-flex items-center gap-1.5"><Check size={14} className="text-success" /> {t("landing.hero.t2")}</span>
-          <span className="inline-flex items-center gap-1.5"><Check size={14} className="text-success" /> {t("landing.hero.t3")}</span>
-        </div>
+      <section className="relative overflow-hidden">
+        {/* توهّج أورورا يتنفّس خلف البطل — عمق حيّ بأسلوب صفحات الفنتك */}
+        <div
+          className="pointer-events-none absolute inset-x-0 -top-24 -z-0 h-[520px] opacity-80"
+          style={{ background: "radial-gradient(38% 50% at 50% 20%, rgba(16,127,109,.14), transparent 70%), radial-gradient(30% 42% at 22% 45%, rgba(16,127,109,.10), transparent 70%), radial-gradient(30% 42% at 80% 40%, rgba(16,127,109,.09), transparent 70%)", animation: "hero-aurora 11s ease-in-out infinite" }}
+          aria-hidden
+        />
+        <div className="relative z-10 mx-auto max-w-6xl px-5 pb-10 pt-16 text-center">
+          <Reveal>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-primary-soft px-3 py-1 text-[12.5px] font-medium text-primary-strong">
+              <QrCode size={14} /> {t("landing.hero.badge")}
+            </span>
+            <h1 className="mx-auto mt-5 max-w-3xl text-[34px] font-bold leading-tight tracking-tight text-ink sm:text-[44px]">{t("landing.hero.title")}</h1>
+            <p className="mx-auto mt-3 text-[15px] font-medium text-primary-strong">{t("landing.hero.titleEn")}</p>
+            <p className="mx-auto mt-4 max-w-2xl text-[15px] leading-relaxed text-muted">{t("landing.hero.subtitle")}</p>
+          </Reveal>
+          <Reveal delay={120}>
+            <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
+              <Link href="/signup" className="inline-flex items-center gap-2 rounded-lg bg-primary-strong px-5 py-2.5 text-[14px] font-semibold text-primary-fg transition-transform hover:-translate-y-0.5 hover:bg-primary">
+                {t("landing.hero.ctaPrimary")} <ArrowLeft size={16} className="ltr:rotate-180" />
+              </Link>
+              <a href="#pricing" className="inline-flex items-center gap-2 rounded-lg border border-line bg-card px-5 py-2.5 text-[14px] font-semibold text-muted hover:bg-surface-2 hover:text-ink">{t("landing.hero.ctaSecondary")}</a>
+            </div>
+            <div className="mx-auto mt-8 flex max-w-2xl flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[12.5px] text-subtle">
+              <span className="inline-flex items-center gap-1.5"><Check size={14} className="text-success" /> {t("landing.hero.t1")}</span>
+              <span className="inline-flex items-center gap-1.5"><Check size={14} className="text-success" /> {t("landing.hero.t2")}</span>
+              <span className="inline-flex items-center gap-1.5"><Check size={14} className="text-success" /> {t("landing.hero.t3")}</span>
+            </div>
+          </Reveal>
 
-        {/* أنيميشن سير المعاملة — مصمَّم بالكود (يعطي انطباع منصّة متقدّمة) */}
-        <div className="mt-12">
-          <WorkflowAnimation />
+          {/* أنيميشن سير المعاملة — مصمَّم بالكود (يعطي انطباع منصّة متقدّمة) */}
+          <Reveal delay={220}>
+            <div className="mt-12">
+              <WorkflowAnimation />
+            </div>
+          </Reveal>
         </div>
       </section>
 
+      {/* شريط إحصاءات المنصّة — أرقام تتصاعد عند التمرير */}
+      <StatsBand />
+
       {/* المزايا — تغطّي كل الموديولات */}
       <section id="features" className="mx-auto max-w-6xl scroll-mt-20 px-5 py-12">
-        <h2 className="text-center text-[26px] font-bold tracking-tight text-ink">{t("landing.features.title")}</h2>
-        <p className="mx-auto mt-2 max-w-xl text-center text-[14px] text-muted">{t("landing.features.subtitle")}</p>
+        <Reveal>
+          <h2 className="text-center text-[26px] font-bold tracking-tight text-ink">{t("landing.features.title")}</h2>
+          <p className="mx-auto mt-2 max-w-xl text-center text-[14px] text-muted">{t("landing.features.subtitle")}</p>
+        </Reveal>
         <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {FEATURES.map((f) => (
-            <div key={f.key} className="rounded-card border border-line bg-card p-5 shadow-card transition-shadow hover:shadow-lg">
-              <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary-soft text-primary"><f.icon size={20} /></div>
-              <h3 className="mt-3 text-[15px] font-bold text-ink">{t(`landing.features.${f.key}.title`)}</h3>
-              <p className="mt-1.5 text-[13px] leading-relaxed text-muted">{t(`landing.features.${f.key}.desc`)}</p>
-            </div>
+          {FEATURES.map((f, i) => (
+            <Reveal key={f.key} delay={(i % 4) * 80}>
+              <div className="group relative h-full overflow-hidden rounded-card border border-line bg-card p-5 shadow-card transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg">
+                <span className="absolute end-4 top-4 text-[12px] font-bold tabular-nums text-line transition-colors group-hover:text-primary/50">{String(i + 1).padStart(2, "0")}</span>
+                <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary-soft text-primary transition-transform duration-300 group-hover:scale-110"><f.icon size={20} /></div>
+                <h3 className="mt-3 text-[15px] font-bold text-ink">{t(`landing.features.${f.key}.title`)}</h3>
+                <p className="mt-1.5 text-[13px] leading-relaxed text-muted">{t(`landing.features.${f.key}.desc`)}</p>
+              </div>
+            </Reveal>
           ))}
         </div>
         {/* تصفّح جميع المميزات — يقود للصفحة المستقلّة */}
@@ -107,17 +131,21 @@ export default function LandingPage() {
       {/* مخصّص لشركات الوساطة */}
       <section className="border-y border-line bg-card/50">
         <div className="mx-auto grid max-w-6xl items-center gap-8 px-5 py-12 lg:grid-cols-2">
-          <div>
-            <div className="grid h-11 w-11 place-items-center rounded-xl bg-ink text-white"><Building2 size={22} /></div>
-            <h2 className="mt-4 text-[26px] font-bold tracking-tight text-ink">{t("landing.target.title")}</h2>
-            <p className="mt-3 text-[14px] leading-relaxed text-muted">{t("landing.target.desc")}</p>
-          </div>
+          <Reveal>
+            <div>
+              <div className="grid h-11 w-11 place-items-center rounded-xl bg-ink text-white"><Building2 size={22} /></div>
+              <h2 className="mt-4 text-[26px] font-bold tracking-tight text-ink">{t("landing.target.title")}</h2>
+              <p className="mt-3 text-[14px] leading-relaxed text-muted">{t("landing.target.desc")}</p>
+            </div>
+          </Reveal>
           <ul className="space-y-3">
-            {["p1", "p2", "p3", "p4"].map((p) => (
-              <li key={p} className="flex items-start gap-3 rounded-lg border border-line bg-card p-3.5">
-                <Check size={18} className="mt-0.5 shrink-0 text-success" />
-                <span className="text-[13.5px] text-ink">{t(`landing.target.${p}`)}</span>
-              </li>
+            {["p1", "p2", "p3", "p4"].map((p, i) => (
+              <Reveal key={p} delay={i * 80}>
+                <li className="flex items-start gap-3 rounded-lg border border-line bg-card p-3.5 transition-colors hover:border-primary/30">
+                  <Check size={18} className="mt-0.5 shrink-0 text-success" />
+                  <span className="text-[13.5px] text-ink">{t(`landing.target.${p}`)}</span>
+                </li>
+              </Reveal>
             ))}
           </ul>
         </div>
@@ -138,12 +166,16 @@ export default function LandingPage() {
       {/* الامتثال */}
       <section className="border-t border-line bg-card/50">
         <div className="mx-auto max-w-6xl px-5 py-12 text-center">
-          <h2 className="text-[22px] font-bold tracking-tight text-ink">{t("landing.compliance.title")}</h2>
+          <Reveal>
+            <h2 className="text-[22px] font-bold tracking-tight text-ink">{t("landing.compliance.title")}</h2>
+          </Reveal>
           <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-            {["zatca", "pdpl", "ia", "nafath"].map((c) => (
-              <span key={c} className="inline-flex items-center gap-2 rounded-lg border border-line bg-card px-4 py-2.5 text-[13px] font-medium text-ink shadow-card">
-                <ShieldCheck size={15} className="text-primary" /> {t(`landing.compliance.${c}`)}
-              </span>
+            {["zatca", "pdpl", "ia", "nafath"].map((c, i) => (
+              <Reveal key={c} delay={i * 70}>
+                <span className="inline-flex items-center gap-2 rounded-lg border border-line bg-card px-4 py-2.5 text-[13px] font-medium text-ink shadow-card transition-transform hover:-translate-y-0.5">
+                  <ShieldCheck size={15} className="text-primary" /> {t(`landing.compliance.${c}`)}
+                </span>
+              </Reveal>
             ))}
           </div>
         </div>
@@ -151,12 +183,14 @@ export default function LandingPage() {
 
       {/* دعوة ختامية */}
       <section className="mx-auto max-w-4xl px-5 py-16 text-center">
-        <Headset size={28} className="mx-auto text-primary" />
-        <h2 className="mt-3 text-[26px] font-bold tracking-tight text-ink">{t("landing.cta.title")}</h2>
-        <p className="mx-auto mt-2 max-w-xl text-[14px] text-muted">{t("landing.cta.subtitle")}</p>
-        <Link href="/signup" className="mt-6 inline-flex items-center gap-2 rounded-lg bg-primary-strong px-6 py-3 text-[14px] font-semibold text-primary-fg hover:bg-primary">
-          {t("landing.cta.button")} <ArrowLeft size={16} className="ltr:rotate-180" />
-        </Link>
+        <Reveal>
+          <Headset size={28} className="mx-auto text-primary" />
+          <h2 className="mt-3 text-[26px] font-bold tracking-tight text-ink">{t("landing.cta.title")}</h2>
+          <p className="mx-auto mt-2 max-w-xl text-[14px] text-muted">{t("landing.cta.subtitle")}</p>
+          <Link href="/signup" className="mt-6 inline-flex items-center gap-2 rounded-lg bg-primary-strong px-6 py-3 text-[14px] font-semibold text-primary-fg transition-transform hover:-translate-y-0.5 hover:bg-primary">
+            {t("landing.cta.button")} <ArrowLeft size={16} className="ltr:rotate-180" />
+          </Link>
+        </Reveal>
       </section>
 
       <footer className="border-t border-line">

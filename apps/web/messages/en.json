@@ -228,11 +228,25 @@
   },
   "gsearch": {
     "empty": "No results for “{q}”",
-    "type": { "client": "Clients", "policy": "Policies", "request": "Requests", "claim": "Claims", "insurer": "Insurers" }
+    "type": {
+      "client": "Clients",
+      "policy": "Policies",
+      "request": "Requests",
+      "claim": "Claims",
+      "insurer": "Insurers"
+    }
   },
   "timeline": {
     "empty": "No history yet",
-    "phase": { "crm": "CRM", "request": "Request", "underwriting": "Underwriting", "issuance": "Issuance", "finance": "Finance", "service": "Service", "other": "Other" }
+    "phase": {
+      "crm": "CRM",
+      "request": "Request",
+      "underwriting": "Underwriting",
+      "issuance": "Issuance",
+      "finance": "Finance",
+      "service": "Service",
+      "other": "Other"
+    }
   },
   "access": {
     "trialSoon": "Your free trial ends in {days} day(s) — renew to keep working without interruption.",
@@ -405,7 +419,10 @@
       "posted": "Posted (expense voucher)",
       "remove": "Delete",
       "error": "Operation failed",
-      "status": { "draft": "Draft", "posted": "Posted" }
+      "status": {
+        "draft": "Draft",
+        "posted": "Posted"
+      }
     },
     "budget": {
       "nav": "Budget",
@@ -659,7 +676,11 @@
       "clear": "Show all",
       "filterHint": "Tap a card to filter",
       "emptyFiltered": "No installments in this category",
-      "st": { "overdue": "Overdue", "due_soon": "Due soon", "upcoming": "Upcoming" }
+      "st": {
+        "overdue": "Overdue",
+        "due_soon": "Due soon",
+        "upcoming": "Upcoming"
+      }
     },
     "balanceSheet": {
       "title": "Balance sheet",
@@ -1075,7 +1096,11 @@
     "active": "Active",
     "gateway": "Payment gateway",
     "gatewayHint": "Choose one gateway to enable for collecting payments. “None” disables online payment.",
-    "providers": { "none": "None", "tap": "Tap", "moyasar": "Moyasar" },
+    "providers": {
+      "none": "None",
+      "tap": "Tap",
+      "moyasar": "Moyasar"
+    },
     "keysFor": "{provider} keys",
     "apiDocs": "API docs",
     "publicKey": "Public key",
@@ -1121,7 +1146,10 @@
     "badLivePublic": "Live public key must start with pk_live_",
     "badLiveSecret": "Live secret key must start with sk_live_",
     "enableNeedsKeys": "Cannot enable: complete both “{mode}” keys first",
-    "mode": { "test": "Test mode", "live": "Live mode (production)" },
+    "mode": {
+      "test": "Test mode",
+      "live": "Live mode (production)"
+    },
     "enable": "Enable platform payment gateway",
     "enableHint": "requires both active-mode keys (public + secret)",
     "save": "Save",
@@ -1291,7 +1319,12 @@
     "total": "Total premium",
     "period": "Cover period",
     "validUntil": "Valid until",
-    "status": { "active": "Active", "superseded": "Policy issued", "expired": "Expired", "cancelled": "Cancelled" },
+    "status": {
+      "active": "Active",
+      "superseded": "Policy issued",
+      "expired": "Expired",
+      "cancelled": "Cancelled"
+    },
     "disclaimerTitle": "Temporary cover note",
     "disclaimer": "This is a temporary cover note confirming that cover is in force on the terms above until the final insurance policy is issued or the note expires, whichever is earlier. The final policy supersedes it upon issuance.",
     "footer": "Issued electronically via {brand} — no signature required."
@@ -1318,8 +1351,16 @@
     "credit": "Credit",
     "total": "Total",
     "footer": "Voucher issued electronically via {brand} — no signature required.",
-    "type": { "RCV": "Receipt voucher", "PYV": "Payment voucher", "JRV": "Journal voucher" },
-    "methodOpt": { "transfer": "Bank transfer", "cash": "Cash", "cheque": "Cheque" }
+    "type": {
+      "RCV": "Receipt voucher",
+      "PYV": "Payment voucher",
+      "JRV": "Journal voucher"
+    },
+    "methodOpt": {
+      "transfer": "Bank transfer",
+      "cash": "Cash",
+      "cheque": "Cheque"
+    }
   },
   "bank": {
     "title": "Bank reconciliation",
@@ -1338,15 +1379,31 @@
     "pending": "In progress",
     "import": "Import statement",
     "statement": "Bank statement",
-    "col": { "date": "Date", "desc": "Description", "amount": "Amount", "status": "Status", "match": "Match" },
-    "st": { "matched": "Matched", "unmatched": "Unmatched", "ignored": "Ignored" },
+    "col": {
+      "date": "Date",
+      "desc": "Description",
+      "amount": "Amount",
+      "status": "Status",
+      "match": "Match"
+    },
+    "st": {
+      "matched": "Matched",
+      "unmatched": "Unmatched",
+      "ignored": "Ignored"
+    },
     "matchWith": "Match to voucher…",
     "ignore": "Ignore (bank fee)",
     "unlink": "Unmatch",
     "restore": "Restore",
     "noTxns": "No transactions — import the bank statement.",
     "addTitle": "New bank account",
-    "f": { "name": "Account name", "bank": "Bank", "opening": "Opening balance", "iban": "IBAN", "accountNo": "Account no." },
+    "f": {
+      "name": "Account name",
+      "bank": "Bank",
+      "opening": "Opening balance",
+      "iban": "IBAN",
+      "accountNo": "Account no."
+    },
     "importTitle": "Import bank statement",
     "importHint": "Paste statement lines — each line: date,description,amount,reference (positive = deposit · negative = withdrawal).",
     "importEmpty": "No valid lines.",
@@ -1736,8 +1793,21 @@
       "emergencyContact": "Emergency contact",
       "addressLine": "Address"
     },
-    "doc": { "type": "Type", "title": "Title", "number": "Number", "expiry": "Expiry", "add": "Add" },
-    "docType": { "contract": "Employment contract", "national_id": "National ID", "iqama": "Iqama", "passport": "Passport", "certificate": "Certificate", "other": "Other" }
+    "doc": {
+      "type": "Type",
+      "title": "Title",
+      "number": "Number",
+      "expiry": "Expiry",
+      "add": "Add"
+    },
+    "docType": {
+      "contract": "Employment contract",
+      "national_id": "National ID",
+      "iqama": "Iqama",
+      "passport": "Passport",
+      "certificate": "Certificate",
+      "other": "Other"
+    }
   },
   "attendance": {
     "title": "Today's attendance",
@@ -1751,11 +1821,24 @@
     "teamTitle": "Team attendance",
     "mineTitle": "My log (last 30 days)",
     "mineEmpty": "No attendance records yet.",
-    "col": { "employee": "Employee", "dept": "Department", "status": "Status", "date": "Day", "duration": "Duration" },
-    "status": { "in": "Present", "out": "Left", "absent": "Absent" }
+    "col": {
+      "employee": "Employee",
+      "dept": "Department",
+      "status": "Status",
+      "date": "Day",
+      "duration": "Duration"
+    },
+    "status": {
+      "in": "Present",
+      "out": "Left",
+      "absent": "Absent"
+    }
   },
   "checklist": {
-    "title": { "onboarding": "Onboarding checklist", "offboarding": "Offboarding checklist" },
+    "title": {
+      "onboarding": "Onboarding checklist",
+      "offboarding": "Offboarding checklist"
+    },
     "addPlaceholder": "Add an item…",
     "add": "Add"
   },
@@ -1778,8 +1861,19 @@
     "reject": "Reject",
     "empty": "No requests",
     "error": "Operation failed",
-    "type": { "label": "Type", "annual": "Annual", "sick": "Sick", "unpaid": "Unpaid", "other": "Other" },
-    "status": { "label": "Status", "pending": "Pending", "approved": "Approved", "rejected": "Rejected" }
+    "type": {
+      "label": "Type",
+      "annual": "Annual",
+      "sick": "Sick",
+      "unpaid": "Unpaid",
+      "other": "Other"
+    },
+    "status": {
+      "label": "Status",
+      "pending": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected"
+    }
   },
   "crm": {
     "title": "CRM",
@@ -1987,46 +2081,157 @@
     "addNote": "Add an internal note…",
     "addBtn": "Add",
     "noNotes": "No notes yet",
-    "kpi": { "total": "Total complaints", "open": "In progress", "overdue": "Overdue", "escalated": "Escalated", "sla": "SLA compliance", "slaWindow": "{d}-day SLA", "avgDays": "avg resolution {d}d" },
-    "filter": { "allStatus": "All statuses", "allCategory": "All categories" },
-    "col": { "no": "No.", "subject": "Subject", "category": "Category", "client": "Client", "due": "Due", "priority": "Priority", "status": "Status" },
-    "meta": { "client": "Client", "priority": "Priority", "due": "Resolution due", "created": "Logged on" },
-    "category": { "pricing": "Pricing/Underwriting", "claims": "Claims", "service": "Service", "sales_conduct": "Sales conduct", "billing": "Billing", "data_privacy": "Data privacy", "other": "Other" },
-    "sourceOpt": { "phone": "Phone", "email": "Email", "portal": "Portal", "walk_in": "Walk-in", "regulator": "Regulator", "social": "Social" },
-    "status": { "open": "Open", "investigating": "In progress", "resolved": "Resolved", "escalated": "Escalated", "closed": "Closed" },
-    "priority": { "urgent": "Urgent", "high": "High", "normal": "Normal", "low": "Low" }
+    "kpi": {
+      "total": "Total complaints",
+      "open": "In progress",
+      "overdue": "Overdue",
+      "escalated": "Escalated",
+      "sla": "SLA compliance",
+      "slaWindow": "{d}-day SLA",
+      "avgDays": "avg resolution {d}d"
+    },
+    "filter": {
+      "allStatus": "All statuses",
+      "allCategory": "All categories"
+    },
+    "col": {
+      "no": "No.",
+      "subject": "Subject",
+      "category": "Category",
+      "client": "Client",
+      "due": "Due",
+      "priority": "Priority",
+      "status": "Status"
+    },
+    "meta": {
+      "client": "Client",
+      "priority": "Priority",
+      "due": "Resolution due",
+      "created": "Logged on"
+    },
+    "category": {
+      "pricing": "Pricing/Underwriting",
+      "claims": "Claims",
+      "service": "Service",
+      "sales_conduct": "Sales conduct",
+      "billing": "Billing",
+      "data_privacy": "Data privacy",
+      "other": "Other"
+    },
+    "sourceOpt": {
+      "phone": "Phone",
+      "email": "Email",
+      "portal": "Portal",
+      "walk_in": "Walk-in",
+      "regulator": "Regulator",
+      "social": "Social"
+    },
+    "status": {
+      "open": "Open",
+      "investigating": "In progress",
+      "resolved": "Resolved",
+      "escalated": "Escalated",
+      "closed": "Closed"
+    },
+    "priority": {
+      "urgent": "Urgent",
+      "high": "High",
+      "normal": "Normal",
+      "low": "Low"
+    }
   },
   "aml": {
     "title": "Anti-Money Laundering",
     "subtitle": "Client risk rating · sanctions & PEP screening · Suspicious Transaction Reports (STR) — licensing compliance",
-    "kpi": { "high": "High-risk clients", "unassessed": "Unassessed", "reviewOverdue": "Review overdue", "pendingDisp": "Screenings to disposition", "strOpen": "Open STRs" },
-    "tab": { "clients": "Risk register", "screening": "Screening", "str": "Suspicious reports" },
-    "filter": { "allLevels": "All levels" },
-    "level": { "low": "Low", "medium": "Medium", "high": "High" },
-    "clientType": { "CORPORATE": "Corporate", "INDIVIDUAL": "Individual" },
-    "col": { "client": "Client", "level": "Risk level", "score": "Score", "reviewDue": "Review due", "name": "Screened name", "result": "Result", "matches": "Matches", "disposition": "Disposition", "no": "No.", "subject": "Subject", "status": "Status" },
+    "kpi": {
+      "high": "High-risk clients",
+      "unassessed": "Unassessed",
+      "reviewOverdue": "Review overdue",
+      "pendingDisp": "Screenings to disposition",
+      "strOpen": "Open STRs"
+    },
+    "tab": {
+      "clients": "Risk register",
+      "screening": "Screening",
+      "str": "Suspicious reports"
+    },
+    "filter": {
+      "allLevels": "All levels"
+    },
+    "level": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High"
+    },
+    "clientType": {
+      "CORPORATE": "Corporate",
+      "INDIVIDUAL": "Individual"
+    },
+    "col": {
+      "client": "Client",
+      "level": "Risk level",
+      "score": "Score",
+      "reviewDue": "Review due",
+      "name": "Screened name",
+      "result": "Result",
+      "matches": "Matches",
+      "disposition": "Disposition",
+      "no": "No.",
+      "subject": "Subject",
+      "status": "Status"
+    },
     "notAssessed": "Not assessed",
     "assess": "Assess",
     "emptyClients": "No matching clients.",
     "assessTitle": "AML risk assessment",
     "factorsHint": "Select the applicable risk factors — the score and level are computed automatically (a sanctions hit forces high):",
-    "factor": { "sanctionsHit": "Sanctions hit", "pep": "Politically exposed (PEP)", "highRiskCountry": "High-risk country", "complexStructure": "Complex ownership", "cashIntensive": "Cash-intensive", "adverseMedia": "Adverse media", "nonResident": "Non-resident" },
+    "factor": {
+      "sanctionsHit": "Sanctions hit",
+      "pep": "Politically exposed (PEP)",
+      "highRiskCountry": "High-risk country",
+      "complexStructure": "Complex ownership",
+      "cashIntensive": "Cash-intensive",
+      "adverseMedia": "Adverse media",
+      "nonResident": "Non-resident"
+    },
     "rationale": "Rationale (optional)",
     "saveAssess": "Save assessment",
     "screenPlaceholder": "Name to screen…",
     "runScreen": "Screen",
-    "result": { "clear": "Clear", "potential_match": "Potential match", "confirmed_match": "Confirmed match" },
-    "disp": { "pending": "Pending", "cleared": "False positive", "escalated": "Escalated" },
+    "result": {
+      "clear": "Clear",
+      "potential_match": "Potential match",
+      "confirmed_match": "Confirmed match"
+    },
+    "disp": {
+      "pending": "Pending",
+      "cleared": "False positive",
+      "escalated": "Escalated"
+    },
     "clearFP": "False positive",
     "escalate": "Escalate",
     "emptyScreen": "No screenings yet.",
     "newStr": "New STR",
     "newStrTitle": "Suspicious Transaction Report",
-    "strStatus": { "draft": "Draft", "filed": "Filed", "closed": "Closed" },
+    "strStatus": {
+      "draft": "Draft",
+      "filed": "Filed",
+      "closed": "Closed"
+    },
     "file": "File",
     "close": "Close",
     "indicators": "Suspicion indicators",
-    "indicator": { "unusual_volume": "Unusual volume", "structuring": "Structuring", "third_party_payment": "Third-party payment", "high_risk_jurisdiction": "High-risk jurisdiction", "pep_involvement": "PEP involvement", "adverse_media": "Adverse media", "inconsistent_activity": "Inconsistent activity", "refusal_of_info": "Refusal of info", "other": "Other" },
+    "indicator": {
+      "unusual_volume": "Unusual volume",
+      "structuring": "Structuring",
+      "third_party_payment": "Third-party payment",
+      "high_risk_jurisdiction": "High-risk jurisdiction",
+      "pep_involvement": "PEP involvement",
+      "adverse_media": "Adverse media",
+      "inconsistent_activity": "Inconsistent activity",
+      "refusal_of_info": "Refusal of info",
+      "other": "Other"
+    },
     "fileNow": "File immediately (instead of saving as draft)",
     "saveStr": "Save report",
     "emptyStr": "No suspicious reports yet.",
@@ -2050,12 +2255,32 @@
       "commissionOutstanding": "Commission outstanding",
       "claims": "Claims"
     },
-    "tabs": { "policies": "Policies", "commissions": "Commissions", "claims": "Claims", "settlements": "Settlements" },
+    "tabs": {
+      "policies": "Policies",
+      "commissions": "Commissions",
+      "claims": "Claims",
+      "settlements": "Settlements"
+    },
     "col": {
-      "ref": "Ref", "client": "Client", "line": "Line", "premium": "Premium", "commission": "Commission",
-      "status": "Status", "end": "Expiry", "rate": "Rate", "accrued": "Accrued", "received": "Received",
-      "outstanding": "Outstanding", "period": "Period", "policy": "Policy", "claimed": "Claimed", "settled": "Settled",
-      "date": "Date", "voucher": "Voucher", "amount": "Amount", "paidDate": "Paid date"
+      "ref": "Ref",
+      "client": "Client",
+      "line": "Line",
+      "premium": "Premium",
+      "commission": "Commission",
+      "status": "Status",
+      "end": "Expiry",
+      "rate": "Rate",
+      "accrued": "Accrued",
+      "received": "Received",
+      "outstanding": "Outstanding",
+      "period": "Period",
+      "policy": "Policy",
+      "claimed": "Claimed",
+      "settled": "Settled",
+      "date": "Date",
+      "voucher": "Voucher",
+      "amount": "Amount",
+      "paidDate": "Paid date"
     }
   },
   "client360": {
@@ -2142,7 +2367,12 @@
     "instOverdue": "{n} overdue",
     "seq": "No.",
     "due": "Due date",
-    "inst": { "paid": "Paid", "partial": "Partial", "overdue": "Overdue", "due": "Due" },
+    "inst": {
+      "paid": "Paid",
+      "partial": "Partial",
+      "overdue": "Overdue",
+      "due": "Due"
+    },
     "empty": "No activity yet"
   },
   "staffDetail": {
@@ -2667,7 +2897,11 @@
       "title": "Present proposals to client",
       "desc": "The current quotations ({count}) will be shown to the client in their portal to accept or decline. Your commission details are hidden from them.",
       "presented": "Presented to the client ({count} options)",
-      "decision": { "pending": "Awaiting client decision", "accepted": "Client accepted", "declined": "Client declined" }
+      "decision": {
+        "pending": "Awaiting client decision",
+        "accepted": "Client accepted",
+        "declined": "Client declined"
+      }
     },
     "coverNote": {
       "hint": "Firm order is in place — you can issue a temporary cover note confirming cover until the policy is issued.",
@@ -2824,7 +3058,10 @@
       "expiringTitle": "Subscriptions expiring soon (within 30 days)",
       "expiringEmpty": "No subscriptions expiring in the next month.",
       "recentTitle": "Recent signups",
-      "kind": { "trial": "Trial", "subscription": "Subscription" }
+      "kind": {
+        "trial": "Trial",
+        "subscription": "Subscription"
+      }
     },
     "tenants": {
       "title": "Accounts",
@@ -2996,7 +3233,12 @@
       "dueIn": "in {n} days",
       "empty": "No installments on your account",
       "note": "Your payments are applied automatically to the oldest-due installments first, and you are reminded before and on each due date.",
-      "st": { "paid": "Paid", "partial": "Partial", "overdue": "Overdue", "due": "Due" }
+      "st": {
+        "paid": "Paid",
+        "partial": "Partial",
+        "overdue": "Overdue",
+        "due": "Due"
+      }
     },
     "proposals": {
       "title": "Insurance proposals",
@@ -3009,7 +3251,11 @@
       "review": "Review",
       "empty": "No proposals presented to you yet.",
       "back": "Back to proposals",
-      "decision": { "pending": "Awaiting your decision", "accepted": "Accepted", "declined": "Declined" },
+      "decision": {
+        "pending": "Awaiting your decision",
+        "accepted": "Accepted",
+        "declined": "Declined"
+      },
       "pickHint": "Choose the option that suits you best",
       "accepted": "Your choice",
       "acceptThis": "Accept this proposal",
@@ -3017,7 +3263,15 @@
       "acceptedNote": "You accepted this proposal — your broker is now issuing your policy, and the payment notice will appear in your statement.",
       "declinedNote": "You declined these proposals — your broker will reach out with alternatives.",
       "error": "Could not complete the action",
-      "q": { "premium": "Net premium", "fees": "Policy fees", "vat": "VAT", "total": "Total", "deductible": "Deductible", "limit": "Cover limit", "validUntil": "Valid until" }
+      "q": {
+        "premium": "Net premium",
+        "fees": "Policy fees",
+        "vat": "VAT",
+        "total": "Total",
+        "deductible": "Deductible",
+        "limit": "Cover limit",
+        "validUntil": "Valid until"
+      }
     },
     "login": {
       "title": "Client portal sign-in",
@@ -3149,7 +3403,11 @@
       "noRedirect": "Could not create the payment",
       "confirming": "Confirming payment…",
       "confirmingSub": "We’re checking your transaction status with the payment gateway.",
-      "result": { "paid": "Payment successful ✓", "pending": "Payment processing", "failed": "Payment incomplete" },
+      "result": {
+        "paid": "Payment successful ✓",
+        "pending": "Payment processing",
+        "failed": "Payment incomplete"
+      },
       "resultSub": {
         "paid": "We received your payment and a receipt was recorded automatically in your account.",
         "pending": "The transaction is not confirmed yet — it may take a moment. Check your statement.",
@@ -3227,18 +3485,54 @@
     "ctaTitle": "Try the whole platform free",
     "ctaSubtitle": "Start your trial today — no infrastructure, no card.",
     "items": {
-      "crm": { "title": "CRM & relationships", "desc": "Visual sales pipelines, deals, tasks and follow-ups, and a 360° client view gathering every interaction, document and claim in one screen." },
-      "underwriting": { "title": "Underwriting & RFQ", "desc": "Send an RFQ to multiple carriers, compare quotes in an automated table that flags the best fit, and issue the placement order in one click." },
-      "policies": { "title": "Policy issuance & endorsements", "desc": "Issue policies with sequence numbers, endorsements (amend/cancel/renew), and temporary cover notes through a governed approval flow." },
-      "finance": { "title": "Finance & accounting", "desc": "Balanced double-entry, chart of accounts, general ledger, trial balance and financial statements, plus flexible-schedule installments." },
-      "commissions": { "title": "Commissions & sub-brokers", "desc": "Automatic brokerage commission per policy, rep incentives, and transparent sub-broker settlements." },
-      "claims": { "title": "Claims & customer service", "desc": "Full claims lifecycle with a conversation thread, SLA-tiered service requests, and renewals with status tracking and alerts." },
-      "hr": { "title": "HR & payroll", "desc": "Employee profiles and (encrypted) documents, leave, smart attendance, payroll, and onboarding/offboarding checklists." },
-      "compliance": { "title": "Compliance & AML", "desc": "KYC risk assessment, sanctions and PEP screening, a suspicious-activity log, and a structured complaints register." },
-      "verification": { "title": "Government verification", "desc": "Ready connectors: Yakeen · Wathq · Nafath · National Address — smart client-data prefill (activated with a provider contract)." },
-      "reports": { "title": "Reports & analytics", "desc": "KPI dashboards, exportable reports (Excel/PDF), and scheduled reports emailed to management periodically." },
-      "zatca": { "title": "E-invoicing (ZATCA)", "desc": "Invoices built to the Phase 2 (Fatoora) spec — QR, signature, and complete tax fields." },
-      "multitenant": { "title": "Multi-tenancy & governance", "desc": "Full data isolation per company, granular editable permissions, and an immutable audit log." }
+      "crm": {
+        "title": "CRM & relationships",
+        "desc": "Visual sales pipelines, deals, tasks and follow-ups, and a 360° client view gathering every interaction, document and claim in one screen."
+      },
+      "underwriting": {
+        "title": "Underwriting & RFQ",
+        "desc": "Send an RFQ to multiple carriers, compare quotes in an automated table that flags the best fit, and issue the placement order in one click."
+      },
+      "policies": {
+        "title": "Policy issuance & endorsements",
+        "desc": "Issue policies with sequence numbers, endorsements (amend/cancel/renew), and temporary cover notes through a governed approval flow."
+      },
+      "finance": {
+        "title": "Finance & accounting",
+        "desc": "Balanced double-entry, chart of accounts, general ledger, trial balance and financial statements, plus flexible-schedule installments."
+      },
+      "commissions": {
+        "title": "Commissions & sub-brokers",
+        "desc": "Automatic brokerage commission per policy, rep incentives, and transparent sub-broker settlements."
+      },
+      "claims": {
+        "title": "Claims & customer service",
+        "desc": "Full claims lifecycle with a conversation thread, SLA-tiered service requests, and renewals with status tracking and alerts."
+      },
+      "hr": {
+        "title": "HR & payroll",
+        "desc": "Employee profiles and (encrypted) documents, leave, smart attendance, payroll, and onboarding/offboarding checklists."
+      },
+      "compliance": {
+        "title": "Compliance & AML",
+        "desc": "KYC risk assessment, sanctions and PEP screening, a suspicious-activity log, and a structured complaints register."
+      },
+      "verification": {
+        "title": "Government verification",
+        "desc": "Ready connectors: Yakeen · Wathq · Nafath · National Address — smart client-data prefill (activated with a provider contract)."
+      },
+      "reports": {
+        "title": "Reports & analytics",
+        "desc": "KPI dashboards, exportable reports (Excel/PDF), and scheduled reports emailed to management periodically."
+      },
+      "zatca": {
+        "title": "E-invoicing (ZATCA)",
+        "desc": "Invoices built to the Phase 2 (Fatoora) spec — QR, signature, and complete tax fields."
+      },
+      "multitenant": {
+        "title": "Multi-tenancy & governance",
+        "desc": "Full data isolation per company, granular editable permissions, and an immutable audit log."
+      }
     }
   },
   "landing": {
@@ -3257,7 +3551,8 @@
         "quote": "Quote",
         "issue": "Issue",
         "verify": "Verify"
-      }
+      },
+      "live": "Live processing"
     },
     "ai": {
       "badge": "Coming — AI agents",
@@ -3265,12 +3560,30 @@
       "subtitle": "Agents that work alongside your team: suggest the next action, surface risk, and automate repetitive work — across every part of the platform.",
       "soon": "Soon",
       "agents": {
-        "crm": { "name": "Client follow-up agent", "desc": "Suggests the next step for every deal and flags at-risk clients before they churn." },
-        "pricing": { "name": "Smart pricing agent", "desc": "Analyzes risk data and proposes the best price, comparing carrier quotes automatically." },
-        "claims": { "name": "Claims triage agent", "desc": "Classifies incoming claims, detects duplicates and potential fraud, and recommends a decision." },
-        "finance": { "name": "Reconciliation agent", "desc": "Matches payments and commissions and flags variances and anomalies in entries automatically." },
-        "compliance": { "name": "Compliance agent", "desc": "Continuously screens sanctions and PEP lists and alerts on regulatory obligations before they're due." },
-        "hr": { "name": "HR agent", "desc": "Summarizes attendance and leave, and alerts on expiring documents and assets ahead of time." }
+        "crm": {
+          "name": "Client follow-up agent",
+          "desc": "Suggests the next step for every deal and flags at-risk clients before they churn."
+        },
+        "pricing": {
+          "name": "Smart pricing agent",
+          "desc": "Analyzes risk data and proposes the best price, comparing carrier quotes automatically."
+        },
+        "claims": {
+          "name": "Claims triage agent",
+          "desc": "Classifies incoming claims, detects duplicates and potential fraud, and recommends a decision."
+        },
+        "finance": {
+          "name": "Reconciliation agent",
+          "desc": "Matches payments and commissions and flags variances and anomalies in entries automatically."
+        },
+        "compliance": {
+          "name": "Compliance agent",
+          "desc": "Continuously screens sanctions and PEP lists and alerts on regulatory obligations before they're due."
+        },
+        "hr": {
+          "name": "HR agent",
+          "desc": "Summarizes attendance and leave, and alerts on expiring documents and assets ahead of time."
+        }
       }
     },
     "hero": {
@@ -3398,6 +3711,12 @@
       "privacy": "Privacy Policy",
       "dpa": "Data Processing Agreement",
       "sla": "Service Level & Support"
+    },
+    "stats": {
+      "lines": "Insurance lines & products",
+      "modules": "Integrated modules",
+      "zatca": "ZATCA e-invoicing compliance",
+      "compliance": "Saudi compliance frameworks"
     }
   },
   "legal": {
@@ -3420,58 +3739,160 @@
       "title": "Terms of Service",
       "intro": "These terms govern your use of the IBP insurance-brokerage operations platform, and are entered into between the brokerage (the Customer) and Sky Solutions (the Provider).",
       "sections": [
-        { "h": "Definitions", "b": "“Platform” means the IBP system and its cloud services. “Customer” is the subscribing brokerage. “User” is any employee account created under the Customer’s subscription. “Customer Data” is everything entered into the Platform by the Customer, its users, or its clients." },
-        { "h": "Account & subscription", "b": "Self-service sign-up is available for standard plans with a stated trial period; the Enterprise plan is offered via the sales team. The Customer confirms the accuracy of its entity details (CR, unified number, VAT number) and is responsible for the confidentiality of login credentials." },
-        { "h": "Pricing & billing", "b": "Pricing is based on the number of actual active users with no plan seat cap; users added mid-cycle are prorated for the remaining period. VAT is added per applicable regulations, and fees are payable in advance each cycle." },
-        { "h": "Acceptable use", "b": "The Customer will use the Platform for its lawful insurance-brokerage purposes in compliance with the laws of the Kingdom, and will not attempt to breach it, resell it, misuse its resources, or upload unlawful content." },
-        { "h": "Customer data & privacy", "b": "The Customer owns its client and business data entered into the Platform. Personal data is processed per the attached Privacy Policy and Data Processing Agreement, consistent with the principles of the Personal Data Protection Law." },
-        { "h": "Intellectual property", "b": "All intellectual property rights in the Platform, its code, and its marks remain owned by Sky Solutions. The subscription grants only a limited, non-exclusive, non-transferable license to use, and transfers no intellectual property." },
-        { "h": "Limitation of liability", "b": "The Platform is provided “as is” with reasonable professional care. The Provider is not liable for indirect or consequential damages, and its aggregate liability — to the extent permitted by law — is limited to the fees paid in the twelve months preceding the event." },
-        { "h": "Termination & data export", "b": "Either party may terminate per the agreed term. On termination the Customer may export its data within a reasonable period, after which data is deleted or returned per the Data Processing Agreement." },
-        { "h": "Governing law", "b": "These terms are governed by the laws of the Kingdom of Saudi Arabia, and disputes are settled before the competent judicial authorities in the Kingdom." },
-        { "h": "Changes to terms", "b": "The Provider may update these terms with reasonable prior notice via the Platform or email. Continued use after an update takes effect constitutes acceptance." }
+        {
+          "h": "Definitions",
+          "b": "“Platform” means the IBP system and its cloud services. “Customer” is the subscribing brokerage. “User” is any employee account created under the Customer’s subscription. “Customer Data” is everything entered into the Platform by the Customer, its users, or its clients."
+        },
+        {
+          "h": "Account & subscription",
+          "b": "Self-service sign-up is available for standard plans with a stated trial period; the Enterprise plan is offered via the sales team. The Customer confirms the accuracy of its entity details (CR, unified number, VAT number) and is responsible for the confidentiality of login credentials."
+        },
+        {
+          "h": "Pricing & billing",
+          "b": "Pricing is based on the number of actual active users with no plan seat cap; users added mid-cycle are prorated for the remaining period. VAT is added per applicable regulations, and fees are payable in advance each cycle."
+        },
+        {
+          "h": "Acceptable use",
+          "b": "The Customer will use the Platform for its lawful insurance-brokerage purposes in compliance with the laws of the Kingdom, and will not attempt to breach it, resell it, misuse its resources, or upload unlawful content."
+        },
+        {
+          "h": "Customer data & privacy",
+          "b": "The Customer owns its client and business data entered into the Platform. Personal data is processed per the attached Privacy Policy and Data Processing Agreement, consistent with the principles of the Personal Data Protection Law."
+        },
+        {
+          "h": "Intellectual property",
+          "b": "All intellectual property rights in the Platform, its code, and its marks remain owned by Sky Solutions. The subscription grants only a limited, non-exclusive, non-transferable license to use, and transfers no intellectual property."
+        },
+        {
+          "h": "Limitation of liability",
+          "b": "The Platform is provided “as is” with reasonable professional care. The Provider is not liable for indirect or consequential damages, and its aggregate liability — to the extent permitted by law — is limited to the fees paid in the twelve months preceding the event."
+        },
+        {
+          "h": "Termination & data export",
+          "b": "Either party may terminate per the agreed term. On termination the Customer may export its data within a reasonable period, after which data is deleted or returned per the Data Processing Agreement."
+        },
+        {
+          "h": "Governing law",
+          "b": "These terms are governed by the laws of the Kingdom of Saudi Arabia, and disputes are settled before the competent judicial authorities in the Kingdom."
+        },
+        {
+          "h": "Changes to terms",
+          "b": "The Provider may update these terms with reasonable prior notice via the Platform or email. Continued use after an update takes effect constitutes acceptance."
+        }
       ]
     },
     "privacy": {
       "title": "Privacy Policy",
       "intro": "This policy explains how IBP handles personal data, and is designed to align with the principles of the Kingdom’s Personal Data Protection Law (PDPL).",
       "sections": [
-        { "h": "Data we collect", "b": "Account and entity data, users’ work-related data, the Customer’s client data entered to conduct brokerage business (such as identity, contact details, and policy information), and usage and technical logs." },
-        { "h": "Purposes of processing", "b": "Operating and delivering the Platform, issuing policies and invoices, sending operational notifications, preventing fraud and meeting regulatory obligations, and improving performance and support." },
-        { "h": "Legal basis", "b": "Performance of the contract, compliance with regulatory obligations on brokerages, legitimate interest in securing and improving the service, and consent where required by law." },
-        { "h": "Sharing with third parties", "b": "We may use trusted sub-processors (such as an email, SMS, or payment-gateway provider) only as needed to operate the service, under appropriate confidentiality and data-protection obligations. We do not sell personal data." },
-        { "h": "Retention", "b": "We retain data for the subscription term and as required by regulatory obligations (such as financial and regulatory record-keeping), after which it is deleted or anonymized per approved policies." },
-        { "h": "Data subject rights", "b": "Subject to law, a data subject has the right to be informed, to access, rectify, delete, and object within legal limits. These rights are usually exercised through the brokerage (the controller), which we support as a processor." },
-        { "h": "Data security", "b": "We apply reasonable technical and organizational controls including encryption in transit, tenant data isolation, role-based access control, immutable audit logs, and periodic backups." },
-        { "h": "Data hosting", "b": "Platform data is hosted inside the Kingdom of Saudi Arabia. It is not transferred outside the Kingdom except where legally justified and with the required safeguards." },
-        { "h": "Contact", "b": "For any privacy question or request, contact the Sky Solutions team via the contact form on the home page." }
+        {
+          "h": "Data we collect",
+          "b": "Account and entity data, users’ work-related data, the Customer’s client data entered to conduct brokerage business (such as identity, contact details, and policy information), and usage and technical logs."
+        },
+        {
+          "h": "Purposes of processing",
+          "b": "Operating and delivering the Platform, issuing policies and invoices, sending operational notifications, preventing fraud and meeting regulatory obligations, and improving performance and support."
+        },
+        {
+          "h": "Legal basis",
+          "b": "Performance of the contract, compliance with regulatory obligations on brokerages, legitimate interest in securing and improving the service, and consent where required by law."
+        },
+        {
+          "h": "Sharing with third parties",
+          "b": "We may use trusted sub-processors (such as an email, SMS, or payment-gateway provider) only as needed to operate the service, under appropriate confidentiality and data-protection obligations. We do not sell personal data."
+        },
+        {
+          "h": "Retention",
+          "b": "We retain data for the subscription term and as required by regulatory obligations (such as financial and regulatory record-keeping), after which it is deleted or anonymized per approved policies."
+        },
+        {
+          "h": "Data subject rights",
+          "b": "Subject to law, a data subject has the right to be informed, to access, rectify, delete, and object within legal limits. These rights are usually exercised through the brokerage (the controller), which we support as a processor."
+        },
+        {
+          "h": "Data security",
+          "b": "We apply reasonable technical and organizational controls including encryption in transit, tenant data isolation, role-based access control, immutable audit logs, and periodic backups."
+        },
+        {
+          "h": "Data hosting",
+          "b": "Platform data is hosted inside the Kingdom of Saudi Arabia. It is not transferred outside the Kingdom except where legally justified and with the required safeguards."
+        },
+        {
+          "h": "Contact",
+          "b": "For any privacy question or request, contact the Sky Solutions team via the contact form on the home page."
+        }
       ]
     },
     "dpa": {
       "title": "Data Processing Agreement",
       "intro": "This agreement governs Sky Solutions’ processing of personal data on the Customer’s behalf, and supplements the Terms of Service.",
       "sections": [
-        { "h": "Roles of the parties", "b": "The Customer acts as the “controller” of its client and employee data, and Sky Solutions acts as the “processor” that processes data per the Customer’s documented instructions and in compliance with law." },
-        { "h": "Scope & instructions", "b": "Processing is limited to what is necessary to provide the Platform services (storage, processing, issuing documents and invoices, notifications). The processor does not process data for its own purposes." },
-        { "h": "Sub-processors", "b": "The processor may engage sub-processors to operate the service, binds them to data-protection obligations no less than this agreement, remains responsible for their performance, and notifies the Customer of any material change." },
-        { "h": "Security of processing", "b": "The processor applies technical and organizational controls appropriate to the risk, including encryption in transit, access control, tenant isolation, audit logs, and backups." },
-        { "h": "Personal data breach notification", "b": "The processor notifies the Customer without undue delay upon becoming aware of a personal-data breach, with the available information to help the Customer meet its regulatory obligations." },
-        { "h": "Assistance to the controller", "b": "The processor provides reasonable assistance to the Customer in responding to data-subject requests and in impact assessments and consultations with competent authorities where applicable." },
-        { "h": "Deletion or return", "b": "On termination of the service the processor deletes or returns Customer data at the Customer’s choice within a reasonable period, unless law requires retention." },
-        { "h": "Audit", "b": "The processor provides the information needed to demonstrate compliance and allows — on reasonable arrangement and under confidentiality — appropriate audits of data-protection controls." }
+        {
+          "h": "Roles of the parties",
+          "b": "The Customer acts as the “controller” of its client and employee data, and Sky Solutions acts as the “processor” that processes data per the Customer’s documented instructions and in compliance with law."
+        },
+        {
+          "h": "Scope & instructions",
+          "b": "Processing is limited to what is necessary to provide the Platform services (storage, processing, issuing documents and invoices, notifications). The processor does not process data for its own purposes."
+        },
+        {
+          "h": "Sub-processors",
+          "b": "The processor may engage sub-processors to operate the service, binds them to data-protection obligations no less than this agreement, remains responsible for their performance, and notifies the Customer of any material change."
+        },
+        {
+          "h": "Security of processing",
+          "b": "The processor applies technical and organizational controls appropriate to the risk, including encryption in transit, access control, tenant isolation, audit logs, and backups."
+        },
+        {
+          "h": "Personal data breach notification",
+          "b": "The processor notifies the Customer without undue delay upon becoming aware of a personal-data breach, with the available information to help the Customer meet its regulatory obligations."
+        },
+        {
+          "h": "Assistance to the controller",
+          "b": "The processor provides reasonable assistance to the Customer in responding to data-subject requests and in impact assessments and consultations with competent authorities where applicable."
+        },
+        {
+          "h": "Deletion or return",
+          "b": "On termination of the service the processor deletes or returns Customer data at the Customer’s choice within a reasonable period, unless law requires retention."
+        },
+        {
+          "h": "Audit",
+          "b": "The processor provides the information needed to demonstrate compliance and allows — on reasonable arrangement and under confidentiality — appropriate audits of data-protection controls."
+        }
       ]
     },
     "sla": {
       "title": "Service Level & Support",
       "intro": "This document sets out the Platform’s availability targets and support response times by plan.",
       "sections": [
-        { "h": "Availability target", "b": "We target 99.9% monthly Platform availability, excluding scheduled maintenance windows and circumstances beyond reasonable control. “Availability” means access to the Platform’s core functions." },
-        { "h": "Scheduled maintenance", "b": "Planned maintenance is generally performed outside peak hours with reasonable prior notice when material impact is expected, and is not counted as downtime." },
-        { "h": "Support response times", "b": "First response time depends on the plan: up to 24 business hours for Basic, up to 4 hours for Professional, and up to 2 hours for Enterprise. These are first-response, not final-resolution, times." },
-        { "h": "Support channels", "b": "Support is provided via the channels published inside the Platform and the official email, with priority support for higher plans." },
-        { "h": "Backup & recovery", "b": "Periodic data backups are taken within the in-Kingdom hosting environment, with recovery procedures aimed at minimizing data loss and downtime." },
-        { "h": "Exclusions", "b": "This document’s commitments exclude failures caused by Customer misuse, third parties beyond our control, force majeure, or scheduled maintenance." },
-        { "h": "Reporting incidents", "b": "Incidents are reported via the published support channels and classified by severity to prioritize handling and response." }
+        {
+          "h": "Availability target",
+          "b": "We target 99.9% monthly Platform availability, excluding scheduled maintenance windows and circumstances beyond reasonable control. “Availability” means access to the Platform’s core functions."
+        },
+        {
+          "h": "Scheduled maintenance",
+          "b": "Planned maintenance is generally performed outside peak hours with reasonable prior notice when material impact is expected, and is not counted as downtime."
+        },
+        {
+          "h": "Support response times",
+          "b": "First response time depends on the plan: up to 24 business hours for Basic, up to 4 hours for Professional, and up to 2 hours for Enterprise. These are first-response, not final-resolution, times."
+        },
+        {
+          "h": "Support channels",
+          "b": "Support is provided via the channels published inside the Platform and the official email, with priority support for higher plans."
+        },
+        {
+          "h": "Backup & recovery",
+          "b": "Periodic data backups are taken within the in-Kingdom hosting environment, with recovery procedures aimed at minimizing data loss and downtime."
+        },
+        {
+          "h": "Exclusions",
+          "b": "This document’s commitments exclude failures caused by Customer misuse, third parties beyond our control, force majeure, or scheduled maintenance."
+        },
+        {
+          "h": "Reporting incidents",
+          "b": "Incidents are reported via the published support channels and classified by severity to prioritize handling and response."
+        }
       ]
     }
   },
