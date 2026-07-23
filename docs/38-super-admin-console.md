@@ -36,6 +36,13 @@
 
 > **قرار تصميمي (أقلّ امتياز):** لا نضيف «إعادة تعيين كلمة مرور المالك» — **الانتحال** (القسم 1) يغطّي حاجة الدعم دون كشف/تغيير كلمات المرور.
 
+## 3-أ. سجلّ السجلات التجارية المرجعي (تنزيل قالب + استيراد بيانات)
+
+من `/admin/cr-registry` ([`AdminCrRegistryPage`](../apps/web/src/app/[locale]/admin/cr-registry/page.tsx)) يدير السوبر أدمن بيانات الشركات التي تُغذّي التحقّق والتعبئة الذكية — **دون نشر جديد**:
+- **العرض**: `GET /platform/cr-registry/meta` ⇒ عدد السجلات + آخر مصدر/لقطة.
+- **القالب**: زرّ يبني **CSV** (بترميز عربي — BOM) بأعمدة الداتاست القياسية + صفّ مثال (يُنشأ في المتصفّح، لا endpoint).
+- **الاستيراد**: رفع CSV يُحلَّل **في المتصفّح** ثم يُرسَل على **دُفعات (٢٠٠٠ صفّ/طلب، مع شريط تقدّم)** إلى `POST /platform/cr-registry/import` — [`importCrRegistry`](../apps/api/src/modules/platform/platform.service.ts) يستدعي `CrRegistryService.importRows` (**upsert برقم السجل**، ≤٥٠٠٠ صفّ/طلب، وسم `manual_<الملفّ>`، تدقيق `cr_registry`). التفصيل الكامل في [docs/23 §4-أ](./23-government-verification.md).
+
 ## 4. إنهاء خدمة الموظف (المغادرة/الاستقالة) — على مستوى الشركة
 
 *(هذه قدرة لأدمن الشركة لا للمنصّة، لكنها جزء من إدارة الرخص.)* من ملف الموظف `/tenant/settings/staff/[id]` — [`offboard`](../apps/api/src/modules/staff/staff.service.ts) عبر `POST /staff/:id/offboard` (`settings.delete`):
