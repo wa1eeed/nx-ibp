@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Plus, Check, Trophy, X, CalendarClock, RefreshCw, FileText, ClipboardList, Percent, AlarmClock, ArrowRightLeft, ExternalLink, Phone, Mail, Users, StickyNote, ArrowRight, Send } from "lucide-react";
+import { Plus, Check, Trophy, X, CalendarClock, RefreshCw, FileText, ClipboardList, Percent, AlarmClock, ArrowRightLeft, ExternalLink, Phone, Mail, Users, StickyNote, ArrowRight, Send, GripVertical } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { api, ApiError, getToken } from "@/lib/api";
 import { Link } from "@/i18n/routing";
@@ -45,6 +45,8 @@ export default function CrmPage() {
   const [taskForm, setTaskForm] = useState<{ title: string; assigneeId: string; dueDate: string; priority: string } | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [dragId, setDragId] = useState<string | null>(null); // الصفقة المسحوبة
+  const [dragOverStage, setDragOverStage] = useState<string | null>(null); // العمود تحت المؤشّر
   // اختصار سريع من لوحة التحكّم (#new-deal / #new-task) ⇒ يفتح نموذج الإنشاء المناسب مباشرةً
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -76,7 +78,15 @@ export default function CrmPage() {
   }, []);
 
   const run = async (p: Promise<unknown>) => { setError(""); try { await p; await load(); } catch { setError(t("error")); } };
-  const moveDeal = (id: string, stage: string) => run(api(`/crm/deals/${id}`, { method: "PATCH", body: JSON.stringify({ stage }) }));
+  // نقل الصفقة بين المراحل (اختيار من القائمة أو سحب وإفلات) — تحديث تفاؤليّ فوريّ ثم مزامنة الخادم؛ يتراجع بإعادة التحميل عند الفشل
+  const moveDeal = async (id: string, stage: string) => {
+    const cur = deals.find((d) => d.id === id);
+    if (!cur || cur.stage === stage) return;
+    setDeals((prev) => prev.map((d) => (d.id === id ? { ...d, stage } : d)));
+    setError("");
+    try { await api(`/crm/deals/${id}`, { method: "PATCH", body: JSON.stringify({ stage }) }); await load(); }
+    catch { setError(t("error")); await load(); }
+  };
   const setStatus = (id: string, status: string) => run(api(`/crm/deals/${id}`, { method: "PATCH", body: JSON.stringify({ status }) }));
   const completeTask = (id: string) => run(api(`/crm/tasks/${id}/complete`, { method: "POST" }));
 
@@ -163,17 +173,33 @@ export default function CrmPage() {
           <div className="flex gap-3 overflow-x-auto pb-2">
             {STAGES.map((stage) => {
               const col = deals.filter((d) => d.stage === stage);
+              const isOver = dragOverStage === stage && dragId !== null;
               return (
-                <div key={stage} className="w-64 shrink-0">
+                <div
+                  key={stage}
+                  className="w-64 shrink-0"
+                  onDragOver={(e) => { if (dragId) { e.preventDefault(); e.dataTransfer.dropEffect = "move"; if (dragOverStage !== stage) setDragOverStage(stage); } }}
+                  onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragOverStage((s) => (s === stage ? null : s)); }}
+                  onDrop={(e) => { e.preventDefault(); const id = dragId ?? e.dataTransfer.getData("text/plain"); if (id) void moveDeal(id, stage); setDragId(null); setDragOverStage(null); }}
+                >
                   <div className="mb-2 flex items-center justify-between px-1">
                     <span className="text-[12.5px] font-bold text-ink">{t(`stages.${stage}`)}</span>
                     <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[11px] font-semibold text-subtle">{col.length}</span>
                   </div>
-                  <div className="space-y-2">
-                    {col.length === 0 ? <p className="rounded-lg border border-dashed border-line px-3 py-4 text-center text-[11.5px] text-subtle">{t("emptyDeals")}</p> : null}
+                  <div className={`space-y-2 rounded-xl transition-colors ${isOver ? "bg-primary-soft/60 ring-2 ring-primary/40 ring-inset" : ""}`}>
+                    {col.length === 0 ? <p className={`rounded-lg border border-dashed px-3 py-4 text-center text-[11.5px] ${isOver ? "border-primary/50 text-primary-strong" : "border-line text-subtle"}`}>{isOver ? t("dropHere") : t("emptyDeals")}</p> : null}
                     {col.map((d) => (
-                      <div key={d.id} className="rounded-card border border-line bg-card p-3 shadow-sm">
-                        <button onClick={() => setDetailId(d.id)} className="block w-full text-start text-[13px] font-semibold text-ink hover:text-primary">{d.title}</button>
+                      <div
+                        key={d.id}
+                        draggable
+                        onDragStart={(e) => { setDragId(d.id); e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", d.id); }}
+                        onDragEnd={() => { setDragId(null); setDragOverStage(null); }}
+                        className={`group rounded-card border border-line bg-card p-3 shadow-sm transition-opacity ${dragId === d.id ? "opacity-40" : ""}`}
+                      >
+                        <div className="flex items-start gap-1.5">
+                          <span className="mt-0.5 cursor-grab text-line transition-colors group-hover:text-subtle active:cursor-grabbing" title={t("dragHint")} aria-hidden><GripVertical size={15} /></span>
+                          <button onClick={() => setDetailId(d.id)} className="block flex-1 text-start text-[13px] font-semibold text-ink hover:text-primary">{d.title}</button>
+                        </div>
                         <div className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[11.5px] text-subtle">
                           {d.clientName ? <span>{d.clientName}</span> : null}
                           {d.productLineCode ? <span className="rounded bg-surface-2 px-1.5 py-0.5 text-[10px] text-muted">{lineName(d.productLineCode)}</span> : null}
