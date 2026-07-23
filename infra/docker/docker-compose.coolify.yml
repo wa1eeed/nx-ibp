@@ -51,6 +51,7 @@ services:
       # ——— الأساسيات (مطلوبة) ———
       NODE_ENV: production
       API_PORT: 4000
+      TZ: ${TZ:-Asia/Riyadh}                       # منطقة زمنية للكرون الداخلي (تذكيرات 8ص بتوقيت الرياض)
       DATABASE_URL: postgresql://${POSTGRES_USER:-ibp}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-ibp}?schema=public
       REDIS_URL: redis://redis:6379
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET مطلوب}
