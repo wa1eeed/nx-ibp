@@ -233,6 +233,7 @@ export class TenantEmailService {
     subject: string,
     bodyText: string,
     locale: "ar" | "en" = "ar",
+    cc?: string[],
   ): Promise<{ ok: boolean; via: "tenant" | "fallback" | "disabled"; id?: string }> {
     const r = await this.row(tenantId);
     const branding = await this.config.getBranding(tenantId);
@@ -245,7 +246,7 @@ export class TenantEmailService {
     if (canTenant) {
       const apiKey = this.vault.decrypt(r!.resendApiKeyEncrypted!);
       const from = `${sanitizeName(r!.fromName ?? "")} <${r!.fromEmail}>`;
-      const res = await this.resend.sendEmail(apiKey, { from, to, subject, html, text: bodyText });
+      const res = await this.resend.sendEmail(apiKey, { from, to, subject, html, text: bodyText, cc });
       if (res.ok) {
         this.logger.log(`بريد عبر مستأجر (${tenantId}) → ${to}`);
         return { ok: true, via: "tenant", id: res.data?.id };
@@ -256,14 +257,14 @@ export class TenantEmailService {
 
     // fallback مركزي (بلا مفتاح مركزي ⇒ لا إرسال حقيقي، Sandbox/تطوير)
     if (!central) {
-      this.logger.log(`[sandbox email] → ${to} :: ${subject}`);
+      this.logger.log(`[sandbox email] → ${to}${cc?.length ? ` (cc: ${cc.join(",")})` : ""} :: ${subject}`);
       return { ok: true, via: "disabled" };
     }
     const displayName = r?.fromName || branding.displayName || branding.logoText || "IBP";
     const from = `${sanitizeName(displayName)} <${this.fallbackFrom()}>`;
     // Reply-To دائمًا مضبوط كي تصل الردود للشركة لا للمنصّة: بريد الشركة ← وإلا بريد مالك الحساب
     const replyTo = r?.fromEmail ?? (await this.ownerEmail(tenantId));
-    const res = await this.resend.sendEmail(central, { from, to, subject, html, text: bodyText, replyTo: replyTo ?? undefined });
+    const res = await this.resend.sendEmail(central, { from, to, subject, html, text: bodyText, replyTo: replyTo ?? undefined, cc });
     if (res.ok) {
       this.logger.log(`بريد عبر fallback → ${to}`);
       return { ok: true, via: "fallback", id: res.data?.id };

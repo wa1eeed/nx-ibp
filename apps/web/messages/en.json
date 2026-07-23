@@ -2630,7 +2630,15 @@
       "sentCount": "Sent to {n} insurer(s)",
       "skipped": "Skipped {n} (no email)",
       "done": "Done",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "recipients": "Recipient insurers",
+      "cc": "CC",
+      "ccHint": "One or more emails, comma-separated (optional)",
+      "subject": "Subject",
+      "body": "Message body",
+      "to": "To",
+      "preview": "Preview",
+      "backEdit": "Back to edit"
     },
     "present": {
       "action": "Present to client",

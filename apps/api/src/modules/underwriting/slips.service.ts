@@ -122,48 +122,77 @@ export class SlipsService {
    * يُرسَل من نطاق الوسيط (BYO Resend) مع Reply-To إيميله كي تصل ردود الشركات إليه.
    * الشركات بلا بريد مسجّل تُتخطّى وتُعاد في skipped. يُسجَّل مَن أُرسِل إليهم في slip.insurers + تدقيق.
    */
-  async sendRfq(tenantId: string, userId: string, slipId: string, recipients: Array<{ insurerId: string; email?: string }>) {
-    if (!recipients?.length) throw new BadRequestException("اختر شركة تأمين واحدة على الأقل");
+  /**
+   * يبني سياق طلب العرض والصيغة الافتراضية المشتركة (موضوع + نصّ موحّد لكل الشركات المختارة).
+   * النصّ لا يذكر اسم الشركة (البريد يصل إليها) فيصلح كصيغة واحدة قابلة للتعديل قبل الإرسال.
+   */
+  private async rfqContext(tenantId: string, slipId: string) {
     const slip = await this.prisma.slip.findFirst({
       where: { id: slipId },
       select: { id: true, sequenceNo: true, status: true, insurers: true, request: { select: { productLineCode: true, base: true, client: { select: { name: true } } } } },
     });
     if (!slip) throw new NotFoundException("طلب الأسعار غير موجود");
-    if (slip.status === "SELECTED" || slip.status === "CLOSED") throw new ConflictException("لا يمكن إرسال طلب أسعار بعد الإسناد أو الإغلاق");
-
-    const overrideById = new Map(recipients.map((r) => [r.insurerId, r.email?.trim()]));
-    const insurers = await this.prisma.insurer.findMany({ where: { tenantId, id: { in: recipients.map((r) => r.insurerId) } }, select: { id: true, name: true, contactEmail: true } });
-    const line = await this.prisma.productLine.findFirst({ where: { code: slip.request?.productLineCode ?? "" }, select: { name: true } });
-    const tenant = await this.prisma.tenant.findFirst({ where: { id: tenantId }, select: { name: true } });
-
+    const [line, tenant] = await Promise.all([
+      this.prisma.productLine.findFirst({ where: { code: slip.request?.productLineCode ?? "" }, select: { name: true } }),
+      this.prisma.tenant.findFirst({ where: { id: tenantId }, select: { name: true } }),
+    ]);
     const base = (slip.request?.base ?? {}) as { startDate?: string; endDate?: string; insuredName?: string };
     const clientName = slip.request?.client?.name ?? base.insuredName ?? "—";
     const lineName = line?.name ?? slip.request?.productLineCode ?? "—";
     const period = base.startDate && base.endDate ? `${base.startDate} — ${base.endDate}` : "—";
     const ref = slip.sequenceNo ?? slip.id;
+    const subject = `طلب عرض سعر — ${clientName} — ${lineName} (${ref})`;
+    const body = [
+      `السلام عليكم ورحمة الله وبركاته،`,
+      ``,
+      `نأمل تزويدنا بعرض سعر للتغطية التالية:`,
+      `• العميل: ${clientName}`,
+      `• فرع التأمين: ${lineName}`,
+      `• مدة التغطية: ${period}`,
+      `• رقم المرجع: ${ref}`,
+      ``,
+      `نرجو موافاتنا بأفضل الشروط والأسعار في أقرب وقت ممكن. وللاستفسار يُرجى الرد على هذا البريد مباشرةً.`,
+      ``,
+      `مع خالص التقدير،`,
+      tenant?.name ?? "",
+    ].join("\n");
+    return { slip, subject, body, ref };
+  }
+
+  /** الصيغة الافتراضية (الموضوع + النصّ) لعرضها للموظف كي يعدّلها قبل الإرسال. */
+  async rfqTemplate(tenantId: string, slipId: string) {
+    const { subject, body } = await this.rfqContext(tenantId, slipId);
+    return { subject, body };
+  }
+
+  /**
+   * إرسال طلب العرض (RFQ) للشركات المختارة — مع **موضوع ونصّ قابلين للتعديل** و**نسخة كربونية (CC)**.
+   * إن لم يُمرَّر subject/body تُستخدم الصيغة الافتراضية. CC يُنقّى ويُطبَّق على كل رسالة.
+   */
+  async sendRfq(
+    tenantId: string,
+    userId: string,
+    slipId: string,
+    recipients: Array<{ insurerId: string; email?: string }>,
+    opts?: { subject?: string; body?: string; cc?: string[] },
+  ) {
+    if (!recipients?.length) throw new BadRequestException("اختر شركة تأمين واحدة على الأقل");
+    const { slip, subject: defSubject, body: defBody, ref } = await this.rfqContext(tenantId, slipId);
+    if (slip.status === "SELECTED" || slip.status === "CLOSED") throw new ConflictException("لا يمكن إرسال طلب أسعار بعد الإسناد أو الإغلاق");
+
+    const subject = (opts?.subject ?? "").trim() || defSubject;
+    const body = (opts?.body ?? "").trim() || defBody;
+    const cc = [...new Set((opts?.cc ?? []).map((c) => c.trim().toLowerCase()).filter((c) => /.+@.+\..+/.test(c)))].slice(0, 20);
+
+    const overrideById = new Map(recipients.map((r) => [r.insurerId, r.email?.trim()]));
+    const insurers = await this.prisma.insurer.findMany({ where: { tenantId, id: { in: recipients.map((r) => r.insurerId) } }, select: { id: true, name: true, contactEmail: true } });
 
     const sent: Array<{ name: string; email: string }> = [];
     const skipped: Array<{ name: string; reason: string }> = [];
     for (const ins of insurers) {
       const email = overrideById.get(ins.id) || ins.contactEmail; // البريد الفوري يتجاوز/يكمل السجلّ
       if (!email) { skipped.push({ name: ins.name, reason: "no_email" }); continue; }
-      const subject = `طلب عرض سعر — ${clientName} — ${lineName} (${ref})`;
-      const body = [
-        `السلام عليكم ورحمة الله وبركاته،`,
-        ``,
-        `نأمل تزويدنا بعرض سعر للتغطية التالية:`,
-        `• شركة التأمين: ${ins.name}`,
-        `• العميل: ${clientName}`,
-        `• فرع التأمين: ${lineName}`,
-        `• مدة التغطية: ${period}`,
-        `• رقم المرجع: ${ref}`,
-        ``,
-        `نرجو موافاتنا بأفضل الشروط والأسعار في أقرب وقت ممكن. وللاستفسار يُرجى الرد على هذا البريد مباشرةً.`,
-        ``,
-        `مع خالص التقدير،`,
-        tenant?.name ?? "",
-      ].join("\n");
-      const res = await this.email.sendTenantEmail(tenantId, email, subject, body, "ar");
+      const res = await this.email.sendTenantEmail(tenantId, email, subject, body, "ar", cc.length ? cc : undefined);
       if (res.ok) sent.push({ name: ins.name, email });
       else skipped.push({ name: ins.name, reason: "send_failed" });
     }
@@ -173,7 +202,7 @@ export class SlipsService {
       const names = [...new Set([...(slip.insurers ?? []), ...sent.map((s) => s.name)])];
       await this.prisma.slip.update({ where: { id: slip.id }, data: { insurers: names } });
     }
-    await this.audit.log({ tenantId, userId, action: "update", entity: "slip_rfq_sent", entityId: slip.id, meta: { sent: sent.map((s) => s.name), skipped: skipped.map((s) => s.name), ref } });
+    await this.audit.log({ tenantId, userId, action: "update", entity: "slip_rfq_sent", entityId: slip.id, meta: { sent: sent.map((s) => s.name), skipped: skipped.map((s) => s.name), ref, cc, edited: !!(opts?.subject || opts?.body) } });
     return { sent, skipped };
   }
 

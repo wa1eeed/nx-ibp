@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { useParams } from "next/navigation";
-import { Plus, Award, Trophy, Info, Send, CheckCircle2, XCircle, Clock, FileSignature, Mail, X } from "lucide-react";
+import { Plus, Award, Trophy, Info, Send, CheckCircle2, XCircle, Clock, FileSignature, Mail, X, Eye } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/routing";
 import { api, getToken, ApiError } from "@/lib/api";
@@ -368,38 +368,48 @@ function AddQuotation({ slipId, vatRate, onDone, onError }: { slipId: string; va
   );
 }
 
-/** الطبقة ١ — إرسال طلب العرض (RFQ) بالبريد لشركات التأمين المختارة من السجلّ. */
+/** الطبقة ١ — إرسال طلب العرض (RFQ): اختيار الشركات + صيغة قابلة للتعديل (موضوع/نصّ) + CC + معاينة قبل الإرسال. */
 function SendRfq({ slipId, onClose, onSent, onError }: { slipId: string; onClose: () => void; onSent: () => void; onError: (s: string) => void }) {
   const t = useTranslations();
   const [insurers, setInsurers] = useState<Array<{ id: string; name: string; contactEmail: string | null }>>([]);
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [emails, setEmails] = useState<Record<string, string>>({}); // بريد فوري للشركات بلا بريد مسجّل
+  const [subject, setSubject] = useState("");
+  const [body, setBody] = useState("");
+  const [ccText, setCcText] = useState("");
+  const [preview, setPreview] = useState(false);
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<{ sent: Array<{ name: string }>; skipped: Array<{ name: string }> } | null>(null);
 
   useEffect(() => { void api<typeof insurers>("/insurers/options").then(setInsurers).catch(() => setInsurers([])); }, []);
+  // جلب الصيغة الافتراضية (موضوع + نصّ) لتعبئتها قابلةً للتعديل
+  useEffect(() => { void api<{ subject: string; body: string }>(`/slips/${slipId}/rfq-template`).then((d) => { setSubject(d.subject); setBody(d.body); }).catch(() => undefined); }, [slipId]);
 
   const validEmail = (e: string) => /.+@.+\..+/.test(e);
+  const ccList = [...new Set(ccText.split(/[\s,;]+/).map((s) => s.trim().toLowerCase()).filter(validEmail))];
   const toggle = (id: string) => setPicked((p) => { const n = new Set(p); if (n.has(id)) n.delete(id); else n.add(id); return n; });
-  // كتابة بريد فوري: تُحدّث القيمة وتُدرِج/تُخرِج الشركة تلقائيًا حسب صحّة البريد
   const setEmail = (id: string, v: string) => {
     setEmails((m) => ({ ...m, [id]: v }));
     setPicked((p) => { const n = new Set(p); if (validEmail(v.trim())) n.add(id); else n.delete(id); return n; });
   };
+  const pickedNames = insurers.filter((i) => picked.has(i.id)).map((i) => i.name);
 
   async function send() {
     if (!picked.size) return;
     setSending(true); onError("");
     try {
       const recipients = [...picked].map((id) => { const typed = emails[id]?.trim(); return typed ? { insurerId: id, email: typed } : { insurerId: id }; });
-      const r = await api<{ sent: Array<{ name: string }>; skipped: Array<{ name: string }> }>(`/slips/${slipId}/send-rfq`, { method: "POST", body: JSON.stringify({ recipients }) });
+      const r = await api<{ sent: Array<{ name: string }>; skipped: Array<{ name: string }> }>(`/slips/${slipId}/send-rfq`, {
+        method: "POST",
+        body: JSON.stringify({ recipients, subject: subject.trim(), body, cc: ccList }),
+      });
       setResult(r);
     } catch (e) { onError(e instanceof ApiError ? e.message : "خطأ"); setSending(false); }
   }
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onMouseDown={onClose}>
-      <div className="w-full max-w-md rounded-card border border-line bg-card p-5 shadow-card" onMouseDown={(e) => e.stopPropagation()}>
+      <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-card border border-line bg-card p-5 shadow-card" onMouseDown={(e) => e.stopPropagation()}>
         <div className="mb-1 flex items-center justify-between">
           <h2 className="inline-flex items-center gap-2 text-[15px] font-bold text-ink"><Mail size={17} className="text-primary" /> {t("underwriting.rfq.title")}</h2>
           <button onClick={onClose} className="text-subtle hover:text-ink"><X size={18} /></button>
@@ -414,9 +424,25 @@ function SendRfq({ slipId, onClose, onSent, onError }: { slipId: string; onClose
           </div>
         ) : insurers.length === 0 ? (
           <p className="py-6 text-center text-[12.5px] text-subtle">{t("underwriting.rfq.noInsurers")}</p>
+        ) : preview ? (
+          /* معاينة قبل الإرسال — للقراءة فقط */
+          <div className="space-y-3">
+            <div className="rounded-lg border border-line bg-surface-2/40 p-3.5 text-[12.5px]">
+              <div className="mb-1.5 flex gap-2"><span className="w-12 shrink-0 text-subtle">{t("underwriting.rfq.to")}:</span><span className="text-ink">{pickedNames.join("، ") || "—"}</span></div>
+              {ccList.length ? <div className="mb-1.5 flex gap-2"><span className="w-12 shrink-0 text-subtle">CC:</span><span dir="ltr" className="text-ink">{ccList.join(", ")}</span></div> : null}
+              <div className="mb-1.5 flex gap-2"><span className="w-12 shrink-0 text-subtle">{t("underwriting.rfq.subject")}:</span><span className="font-semibold text-ink">{subject || "—"}</span></div>
+              <div className="mt-2 whitespace-pre-wrap border-t border-line pt-2 leading-relaxed text-muted">{body}</div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setPreview(false)} className="h-9 rounded-lg border border-line px-4 text-[12.5px] font-medium text-muted hover:bg-surface-2">{t("underwriting.rfq.backEdit")}</button>
+              <button onClick={send} disabled={sending || !picked.size} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary-strong px-4 text-[12.5px] font-semibold text-primary-fg hover:bg-primary disabled:opacity-60"><Mail size={15} /> {sending ? "…" : t("underwriting.rfq.send")}</button>
+            </div>
+          </div>
         ) : (
           <>
-            <div className="max-h-72 space-y-1 overflow-auto">
+            {/* الشركات المستلِمة */}
+            <label className="mb-1.5 block text-[11.5px] font-semibold text-muted">{t("underwriting.rfq.recipients")}</label>
+            <div className="max-h-44 space-y-1 overflow-auto">
               {insurers.map((i) => {
                 const canPick = !!i.contactEmail || validEmail((emails[i.id] ?? "").trim());
                 return (
@@ -431,10 +457,25 @@ function SendRfq({ slipId, onClose, onSent, onError }: { slipId: string; onClose
                 );
               })}
             </div>
-            <div className="mt-3 flex items-center justify-between">
+
+            {/* CC — نسخة كربونية */}
+            <label className="mt-3 block text-[11.5px] font-semibold text-muted">{t("underwriting.rfq.cc")}</label>
+            <input value={ccText} onChange={(e) => setCcText(e.target.value)} dir="ltr" placeholder={t("underwriting.rfq.ccHint")}
+              className="mt-1 h-9 w-full rounded-lg border border-line bg-card px-3 text-[12.5px] text-ink placeholder:text-subtle" />
+
+            {/* الموضوع (قابل للتعديل) */}
+            <label className="mt-3 block text-[11.5px] font-semibold text-muted">{t("underwriting.rfq.subject")}</label>
+            <input value={subject} onChange={(e) => setSubject(e.target.value)} className="mt-1 h-9 w-full rounded-lg border border-line bg-card px-3 text-[12.5px] text-ink" />
+
+            {/* النصّ (قابل للتعديل) */}
+            <label className="mt-3 block text-[11.5px] font-semibold text-muted">{t("underwriting.rfq.body")}</label>
+            <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={9} className="mt-1 w-full rounded-lg border border-line bg-card p-3 text-[12.5px] leading-relaxed text-ink" />
+
+            <div className="mt-4 flex items-center justify-between">
               <span className="text-[11px] text-subtle">{t("underwriting.rfq.selected", { n: picked.size })}</span>
               <div className="flex gap-2">
                 <button onClick={onClose} className="h-9 rounded-lg border border-line px-3 text-[12.5px] font-medium text-muted hover:bg-surface-2">{t("underwriting.rfq.cancel")}</button>
+                <button onClick={() => setPreview(true)} disabled={!picked.size || !subject.trim()} className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-primary/30 bg-primary-soft px-4 text-[12.5px] font-semibold text-primary-strong hover:bg-primary/15 disabled:opacity-50"><Eye size={15} /> {t("underwriting.rfq.preview")}</button>
                 <button onClick={send} disabled={sending || !picked.size} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary-strong px-4 text-[12.5px] font-semibold text-primary-fg hover:bg-primary disabled:opacity-60"><Mail size={15} /> {sending ? "…" : t("underwriting.rfq.send")}</button>
               </div>
             </div>

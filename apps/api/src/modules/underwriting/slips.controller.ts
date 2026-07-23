@@ -54,7 +54,14 @@ export class SlipsController {
     return this.slips.addQuotation(tenantId, userId, id, dto);
   }
 
-  // الطبقة ١ — إرسال طلب العرض (RFQ) بالبريد لشركات التأمين المختارة
+  // الصيغة الافتراضية (موضوع + نصّ) لعرضها للموظف كي يعدّلها قبل الإرسال
+  @Authorize({ module: "underwriting", action: "read", entitlement: "module.production" })
+  @Get(":id/rfq-template")
+  rfqTemplate(@CurrentUser("tenantId") tenantId: string, @Param("id") id: string) {
+    return this.slips.rfqTemplate(tenantId, id);
+  }
+
+  // الطبقة ١ — إرسال طلب العرض (RFQ): موضوع/نصّ قابلان للتعديل + CC + معاينة قبل الإرسال
   @Authorize({ module: "underwriting", action: "create", entitlement: "module.production" })
   @HttpCode(200)
   @Post(":id/send-rfq")
@@ -64,7 +71,7 @@ export class SlipsController {
     @Param("id") id: string,
     @Body() dto: SendRfqDto,
   ) {
-    return this.slips.sendRfq(tenantId, userId, id, dto.recipients);
+    return this.slips.sendRfq(tenantId, userId, id, dto.recipients, { subject: dto.subject, body: dto.body, cc: dto.cc });
   }
 
   // أمر الإسناد (Firm Order)

@@ -107,6 +107,20 @@ describe("الاكتتاب الفني وعروض الأسعار (e2e)", () => {
     const after = (await request(srv).get(`/slips/${slip.id}`).set(auth(underwriter)).expect(200)).body;
     expect(after.insurers).toContain("التعاونية للتأمين");
 
+    // الصيغة الافتراضية متاحة للموظف للتعديل (موضوع + نصّ)
+    const tpl = (await request(srv).get(`/slips/${slip.id}/rfq-template`).set(auth(underwriter)).expect(200)).body;
+    expect(tpl.subject).toContain("طلب عرض سعر");
+    expect(tpl.body).toContain("فرع التأمين");
+
+    // إرسال بصيغة معدّلة (موضوع/نصّ) + CC صالحة ⇒ ينجح
+    const custom = (await request(srv).post(`/slips/${slip.id}/send-rfq`).set(auth(underwriter))
+      .send({ recipients: [{ insurerId: withEmail.id }], subject: "عرض سعر مخصّص", body: "نصّ معدّل من الموظف", cc: ["manager@brk.sa", "ceo@brk.sa"] }).expect(200)).body;
+    expect(custom.sent.map((s: { name: string }) => s.name)).toEqual(["التعاونية للتأمين"]);
+
+    // CC ببريد غير صالح ⇒ 400 (تحقّق DTO)
+    await request(srv).post(`/slips/${slip.id}/send-rfq`).set(auth(underwriter))
+      .send({ recipients: [{ insurerId: withEmail.id }], cc: ["not-an-email"] }).expect(400);
+
     // قائمة فارغة ⇒ 400
     await request(srv).post(`/slips/${slip.id}/send-rfq`).set(auth(underwriter)).send({ recipients: [] }).expect(400);
   });

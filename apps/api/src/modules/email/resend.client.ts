@@ -40,10 +40,11 @@ export function listDomainsRequest(apiKey: string): HttpRequest {
 export function verifyDomainRequest(apiKey: string, id: string): HttpRequest {
   return { url: `${apiBase()}/domains/${id}/verify`, init: { method: "POST", headers: authHeaders(apiKey) } };
 }
-export function sendEmailRequest(apiKey: string, msg: { from: string; to: string; subject: string; html: string; text?: string; replyTo?: string }): HttpRequest {
+export function sendEmailRequest(apiKey: string, msg: { from: string; to: string; subject: string; html: string; text?: string; replyTo?: string; cc?: string[] }): HttpRequest {
   const body: Record<string, unknown> = { from: msg.from, to: [msg.to], subject: msg.subject, html: msg.html };
   if (msg.text) body.text = msg.text;
   if (msg.replyTo) body.reply_to = msg.replyTo;
+  if (msg.cc?.length) body.cc = msg.cc; // نسخة كربونية (CC)
   return { url: `${apiBase()}/emails`, init: { method: "POST", headers: authHeaders(apiKey), body: JSON.stringify(body) } };
 }
 
@@ -89,7 +90,7 @@ export class ResendClient {
   verifyDomain(apiKey: string, id: string) {
     return this.exec<ResendDomain>(verifyDomainRequest(apiKey, id));
   }
-  sendEmail(apiKey: string, msg: { from: string; to: string; subject: string; html: string; text?: string; replyTo?: string }) {
+  sendEmail(apiKey: string, msg: { from: string; to: string; subject: string; html: string; text?: string; replyTo?: string; cc?: string[] }) {
     return this.exec<{ id: string }>(sendEmailRequest(apiKey, msg));
   }
 }
