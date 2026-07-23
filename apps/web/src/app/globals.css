@@ -112,7 +112,32 @@ body {
   50%      { transform: translate3d(4%, 3%, 0) scale(1.12); opacity: 1; }
 }
 @keyframes fx-float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+@keyframes fx-float2 { 0%,100% { transform: translateY(0); } 50% { transform: translateY(7px); } }
 @keyframes fx-ticker { 0%,100% { opacity: .55; } 50% { opacity: 1; } }
+
+/* ————— حركات البطل الفلكي (Hero constellation) ————— */
+@keyframes orbit-cw { to { transform: rotate(360deg); } }
+@keyframes orbit-ccw { to { transform: rotate(-360deg); } }
+@keyframes core-pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(16,127,109,.45), 0 10px 30px -8px rgba(16,127,109,.5); } 50% { box-shadow: 0 0 0 12px rgba(16,127,109,0), 0 10px 34px -6px rgba(16,127,109,.6); } }
+@keyframes dash-flow { to { stroke-dashoffset: -240; } }
+
+/* ————— حركات مميزة لكل ميزة (بطاقات /features) ————— */
+@keyframes fv-slot { 0%,10% { transform: translateX(0); } 45%,55% { transform: translateX(calc(var(--dir,1) * 108%)); } 90%,100% { transform: translateX(0); } }
+@keyframes fv-win { 0%,40% { opacity: 0; transform: scale(.6); } 55% { opacity: 1; transform: scale(1.15); } 75%,100% { opacity: 1; transform: scale(1); } }
+@keyframes fv-stamp { 0% { transform: scale(1.9) rotate(-14deg); opacity: 0; } 55% { opacity: 0; } 68% { transform: scale(.86) rotate(2deg); opacity: 1; } 82% { transform: scale(1.04) rotate(0); } 100% { transform: scale(1) rotate(0); opacity: 1; } }
+@keyframes fv-line { 0%,55% { transform: scaleX(0); } 80%,100% { transform: scaleX(1); } }
+@keyframes fv-coin { 0% { transform: translateY(-16px) rotateX(0); opacity: 0; } 25% { opacity: 1; } 60%,100% { transform: translateY(0); opacity: 1; } }
+@keyframes fv-blip { 0% { transform: scale(.2); opacity: 0; } 25% { opacity: .9; } 100% { transform: scale(2.2); opacity: 0; } }
+@keyframes fv-gauge { 0%,8% { transform: rotate(-82deg); } 60% { transform: rotate(46deg); } 72% { transform: rotate(30deg); } 100% { transform: rotate(38deg); } }
+@keyframes fv-ring { 0% { stroke-dashoffset: var(--circ,170); } 70%,100% { stroke-dashoffset: var(--fill,60); } }
+@keyframes fv-scanline { 0% { transform: translateY(-2px); } 100% { transform: translateY(58px); } }
+@keyframes fv-fp { 0%,100% { opacity: .35; } 50% { opacity: 1; } }
+@keyframes fv-qr { 0%,12% { opacity: 0; transform: scale(.35); } 26% { opacity: 1; transform: scale(1); } 100% { opacity: 1; } }
+@keyframes fv-wave { 0%,100% { transform: scaleY(.35); } 50% { transform: scaleY(1); } }
+@keyframes fv-cell { 0%,100% { opacity: .2; } 50% { opacity: 1; } }
+@keyframes fv-step { 0%,100% { background-color: var(--off,#e5eaed); } 50% { background-color: rgb(16,127,109); } }
+@keyframes fv-trend { to { stroke-dashoffset: 0; } }
+@keyframes fv-drop { 0% { transform: translateY(-10px); opacity: 0; } 40% { opacity: 1; } 100% { transform: translateY(0); opacity: 1; } }
 
 /* كشف عند التمرير (Scroll reveal) — يظهر المحتوى بانزلاق لطيف عند دخوله للعرض */
 .reveal { opacity: 0; transform: translateY(18px); transition: opacity .65s ease, transform .65s cubic-bezier(.2,.7,.2,1); will-change: opacity, transform; }

@@ -7,7 +7,7 @@ import { Link } from "@/i18n/routing";
 import { LocaleSwitcher } from "@/components/layout/LocaleSwitcher";
 import { PricingSection } from "@/components/landing/PricingSection";
 import { PlanComparisonTable } from "@/components/landing/PlanComparisonTable";
-import { WorkflowAnimation } from "@/components/landing/WorkflowAnimation";
+import { HeroOrbit } from "@/components/landing/HeroOrbit";
 import { AiAgentsSection } from "@/components/landing/AiAgentsSection";
 import { StatsBand } from "@/components/landing/StatsBand";
 import { Reveal } from "@/components/landing/Reveal";
@@ -85,10 +85,10 @@ export default function LandingPage() {
             </div>
           </Reveal>
 
-          {/* أنيميشن سير المعاملة — مصمَّم بالكود (يعطي انطباع منصّة متقدّمة) */}
+          {/* البطل الفلكي — منظومة الموديولات الحيّة حول نواة المنصّة */}
           <Reveal delay={220}>
-            <div className="mt-12">
-              <WorkflowAnimation />
+            <div className="mt-8">
+              <HeroOrbit />
             </div>
           </Reveal>
         </div>

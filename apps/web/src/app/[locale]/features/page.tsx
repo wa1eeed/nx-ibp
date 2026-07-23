@@ -7,19 +7,20 @@ import { LocaleSwitcher } from "@/components/layout/LocaleSwitcher";
 import { FeatureViz } from "@/components/landing/FeatureViz";
 import { Reveal } from "@/components/landing/Reveal";
 
+// لكل ميزة أنيميشن فريد يعبّر عن وظيفتها (لا تكرار)
 const ITEMS = [
-  { key: "crm", Icon: KanbanSquare, viz: "cards" },
-  { key: "underwriting", Icon: BadgeCheck, viz: "flow" },
-  { key: "policies", Icon: FileCheck2, viz: "flow" },
-  { key: "finance", Icon: Landmark, viz: "bars" },
-  { key: "commissions", Icon: Percent, viz: "count" },
-  { key: "claims", Icon: ClipboardList, viz: "flow" },
-  { key: "hr", Icon: Users, viz: "calendar" },
-  { key: "compliance", Icon: ShieldAlert, viz: "scan" },
-  { key: "verification", Icon: BadgeCheck, viz: "scan" },
-  { key: "reports", Icon: BarChart3, viz: "bars" },
-  { key: "zatca", Icon: QrCode, viz: "scan" },
-  { key: "multitenant", Icon: Landmark, viz: "bars" },
+  { key: "crm", Icon: KanbanSquare, viz: "crm" },
+  { key: "underwriting", Icon: BadgeCheck, viz: "quotes" },
+  { key: "policies", Icon: FileCheck2, viz: "policy" },
+  { key: "finance", Icon: Landmark, viz: "ledger" },
+  { key: "commissions", Icon: Percent, viz: "donut" },
+  { key: "claims", Icon: ClipboardList, viz: "claim" },
+  { key: "hr", Icon: Users, viz: "hr" },
+  { key: "compliance", Icon: ShieldAlert, viz: "aml" },
+  { key: "verification", Icon: BadgeCheck, viz: "fingerprint" },
+  { key: "reports", Icon: BarChart3, viz: "chart" },
+  { key: "zatca", Icon: QrCode, viz: "qr" },
+  { key: "multitenant", Icon: Landmark, viz: "tenants" },
 ] as const;
 
 export default function FeaturesPage() {
