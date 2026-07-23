@@ -61,6 +61,18 @@ describe("لوحة السوبر أدمن (e2e)", () => {
   it("السوبر أدمن ممنوع من مسارات المستأجر (لا نطاق مستأجر) ⇒ 403", () =>
     request(app.getHttpServer()).get("/clients").set(auth(platform)).expect(403));
 
+  it("لوحة القيادة (overview): توزيع الحالات + MRR + الوشيك على الانتهاء + أحدث التسجيلات", async () => {
+    const res = await request(app.getHttpServer()).get("/platform/overview").set(auth(platform)).expect(200);
+    expect(res.body.byStatus).toBeTruthy();
+    expect(res.body.byStatus.ACTIVE).toBeGreaterThanOrEqual(1);
+    expect(typeof res.body.mrr).toBe("number");
+    expect(Array.isArray(res.body.expiring)).toBe(true);
+    expect(Array.isArray(res.body.recentSignups)).toBe(true);
+    expect(typeof res.body.newLeads).toBe("number");
+    // مستخدم المستأجر ممنوع
+    await request(app.getHttpServer()).get("/platform/overview").set(auth(tenantUser)).expect(403);
+  });
+
   it("استخدام المنصّة عبر كل المستأجرين", async () => {
     const res = await request(app.getHttpServer()).get("/platform/usage").set(auth(platform)).expect(200);
     expect(res.body.tenants).toBeGreaterThanOrEqual(2);

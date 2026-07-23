@@ -2727,6 +2727,18 @@
       "claims": "Claims",
       "checks": "Verification checks"
     },
+    "overview": {
+      "mrr": "Monthly recurring revenue",
+      "active": "Active accounts",
+      "trial": "Trial",
+      "suspended": "Suspended",
+      "cancelled": "Cancelled",
+      "newLeads": "New sales leads",
+      "expiringTitle": "Subscriptions expiring soon (within 30 days)",
+      "expiringEmpty": "No subscriptions expiring in the next month.",
+      "recentTitle": "Recent signups",
+      "kind": { "trial": "Trial", "subscription": "Subscription" }
+    },
     "tenants": {
       "title": "Accounts",
       "subtitle": "Brokerage company accounts subscribed to the platform and their subscription status",

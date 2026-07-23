@@ -253,6 +253,54 @@ export class PlatformService {
     });
   }
 
+  /**
+   * لوحة القيادة (360°) — نظرة شاملة على صحّة المنصّة: توزيع الحالات، تقدير الإيراد الشهري المتكرّر (MRR)،
+   * الاشتراكات المنتهية/الوشيكة خلال 30 يومًا (تحتاج متابعة)، أحدث التسجيلات، وطلبات التواصل الجديدة.
+   */
+  async overview() {
+    const now = Date.now();
+    const soonMs = now + 30 * 86_400_000;
+    const [tenants, newLeads, recent] = await Promise.all([
+      this.prisma.tenant.findMany({
+        select: {
+          id: true, name: true, status: true, createdAt: true,
+          subscription: { select: { seatsLicensed: true, cycle: true, startedAt: true, renewsAt: true, plan: { select: { code: true, name: true, priceMonthly: true, priceYearly: true, trialDays: true } } } },
+        },
+      }),
+      this.prisma.lead.count({ where: { status: "new" } }),
+      this.prisma.tenant.findMany({ orderBy: { createdAt: "desc" }, take: 6, select: { id: true, name: true, status: true, createdAt: true, users: { orderBy: { createdAt: "asc" }, take: 1, select: { email: true } } } }),
+    ]);
+
+    const byStatus: Record<string, number> = { ACTIVE: 0, TRIAL: 0, SUSPENDED: 0, CANCELLED: 0 };
+    let mrr = 0;
+    const expiring: Array<{ id: string; name: string; kind: "trial" | "subscription"; endsAt: Date; daysLeft: number }> = [];
+    for (const t of tenants) {
+      byStatus[t.status] = (byStatus[t.status] ?? 0) + 1;
+      const sub = t.subscription;
+      if (!sub) continue;
+      // MRR: الاشتراكات المدفوعة النشطة فقط (شهري = السعر×المقاعد؛ سنوي = السنوي/12×المقاعد)
+      if (t.status === "ACTIVE") {
+        const seats = sub.seatsLicensed || 0;
+        const monthly = sub.cycle === "YEARLY" ? Number(sub.plan.priceYearly) / 12 : Number(sub.plan.priceMonthly);
+        mrr += monthly * seats;
+      }
+      // الوشيك على الانتهاء: تجربة (startedAt+trialDays) أو اشتراك (renewsAt) خلال 30 يومًا
+      let endsAt: Date | null = null;
+      let kind: "trial" | "subscription" = "subscription";
+      if (t.status === "TRIAL" && sub.startedAt && sub.plan.trialDays > 0) {
+        endsAt = new Date(sub.startedAt); endsAt.setDate(endsAt.getDate() + sub.plan.trialDays); kind = "trial";
+      } else if (t.status === "ACTIVE" && sub.renewsAt) {
+        endsAt = sub.renewsAt; kind = "subscription";
+      }
+      if (endsAt && endsAt.getTime() <= soonMs) {
+        expiring.push({ id: t.id, name: t.name, kind, endsAt, daysLeft: Math.ceil((endsAt.getTime() - now) / 86_400_000) });
+      }
+    }
+    expiring.sort((a, b) => a.endsAt.getTime() - b.endsAt.getTime());
+    const recentSignups = recent.map(({ users, ...r }) => ({ ...r, ownerEmail: users[0]?.email ?? null }));
+    return { byStatus, mrr: Math.round(mrr), expiring, recentSignups, newLeads };
+  }
+
   /** استخدام المنصّة (عبر كل المستأجرين — استعلامات غير مفلترة). */
   async usage() {
     const [tenants, users, clients, policies, requests, claims, verificationChecks] = await Promise.all([

@@ -116,6 +116,12 @@ export class PlatformController {
     return this.platform.updateEntitlement(code, dto);
   }
 
+  /** لوحة القيادة 360°: توزيع الحالات · MRR · الوشيك على الانتهاء · أحدث التسجيلات · طلبات جديدة. */
+  @Get("overview")
+  overview() {
+    return this.platform.overview();
+  }
+
   @Get("usage")
   usage() {
     return this.platform.usage();
