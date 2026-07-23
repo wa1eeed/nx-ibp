@@ -38,7 +38,7 @@ export class AuthController {
 
   @Get("me")
   me(@CurrentUser() user: AuthUser) {
-    return this.auth.me(user.userId);
+    return this.auth.me(user.userId, user.impersonatorId);
   }
 
   // ——— المصادقة الثنائية (TOTP) للموظف ———

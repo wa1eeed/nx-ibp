@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { ArrowRight, Crown, Building2 } from "lucide-react";
+import { ArrowRight, Crown, Building2, UserCog } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { papi } from "@/lib/api";
+import { papi, setToken } from "@/lib/api";
 import { Link } from "@/i18n/routing";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -23,8 +23,19 @@ const TONE: Record<string, BadgeTone> = { ACTIVE: "success", SUSPENDED: "danger"
 export default function TenantDetailPage({ params }: { params: { id: string } }) {
   const t = useTranslations();
   const [d, setD] = useState<TenantDetail | null>(null);
+  const [busy, setBusy] = useState(false);
   const load = useCallback(async () => setD(await papi<TenantDetail>(`/platform/tenants/${params.id}`)), [params.id]);
   useEffect(() => { void load().catch(() => undefined); }, [load]);
+
+  // الدخول كالحساب (انتحال): يُصدر توكن مستأجر موسوم، يُحفظ كتوكن الموظف (منفصل عن توكن المنصّة) ثم ينتقل للوحة المستأجر
+  const enterAs = async () => {
+    setBusy(true);
+    try {
+      const res = await papi<{ accessToken: string }>(`/platform/tenants/${params.id}/impersonate`, { method: "POST" });
+      setToken(res.accessToken);
+      window.location.href = "/ar/tenant/dashboard";
+    } catch { setBusy(false); }
+  };
 
   const date = (s: string | null) => (s ? new Date(s).toLocaleDateString() : "—");
   const Cell = ({ label, value }: { label: string; value: React.ReactNode }) => (
@@ -43,13 +54,22 @@ export default function TenantDetailPage({ params }: { params: { id: string } })
         <div className="space-y-5">
           {/* مالك الحساب — سوبر أدمن الشركة */}
           <section className="rounded-card border border-primary/30 bg-primary/5 p-5">
-            <div className="flex items-center gap-2 text-[12px] font-semibold text-primary"><Crown size={15} /> {t("admin.tenantDetail.owner")}</div>
-            {d.owner ? (
-              <div className="mt-2 flex flex-wrap items-baseline gap-x-4 gap-y-1">
-                <span className="text-[15px] font-bold text-ink">{d.owner.fullName}</span>
-                <span dir="ltr" className="text-[13px] text-muted">{d.owner.email}</span>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2 text-[12px] font-semibold text-primary"><Crown size={15} /> {t("admin.tenantDetail.owner")}</div>
+                {d.owner ? (
+                  <div className="mt-2 flex flex-wrap items-baseline gap-x-4 gap-y-1">
+                    <span className="text-[15px] font-bold text-ink">{d.owner.fullName}</span>
+                    <span dir="ltr" className="text-[13px] text-muted">{d.owner.email}</span>
+                  </div>
+                ) : <p className="mt-2 text-[13px] text-subtle">{t("admin.tenantDetail.noOwner")}</p>}
               </div>
-            ) : <p className="mt-2 text-[13px] text-subtle">{t("admin.tenantDetail.noOwner")}</p>}
+              {/* الدخول كالحساب (انتحال) — يفتح لوحة المستأجر بصلاحية المالك مع بانر عودة */}
+              <button onClick={enterAs} disabled={busy || !d.owner}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-[#6d28d9] px-3 py-2 text-[12.5px] font-semibold text-white hover:bg-[#5b21b6] disabled:opacity-50">
+                <UserCog size={15} /> {busy ? t("common.loading") : t("admin.tenantDetail.impersonate")}
+              </button>
+            </div>
           </section>
 
           {/* بيانات الحساب + الاشتراك */}

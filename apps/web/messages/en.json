@@ -7,7 +7,8 @@
     "comingSoon": "Coming soon",
     "viewAll": "View all",
     "search": "Search",
-    "sar": "SAR"
+    "sar": "SAR",
+    "loading": "Loading…"
   },
   "pagination": {
     "showing": "Showing {from}–{to} of {total}",
@@ -240,6 +241,10 @@
     "suspended": "Account temporarily suspended — contact support to reactivate.",
     "cancelled": "Account cancelled — contact support.",
     "renew": "Renew now"
+  },
+  "impersonation": {
+    "banner": "You are viewing the “{company}” account as a platform admin — every action is recorded in the audit log.",
+    "back": "Return to platform console"
   },
   "demo": {
     "title": "Demo Session",
@@ -2766,7 +2771,8 @@
       "clients": "Clients",
       "policies": "Policies",
       "requests": "Requests",
-      "claims": "Claims"
+      "claims": "Claims",
+      "impersonate": "Log in as account"
     },
     "plans": {
       "title": "Plans & entitlements",

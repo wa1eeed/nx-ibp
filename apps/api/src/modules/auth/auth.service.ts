@@ -112,7 +112,7 @@ export class AuthService {
   }
 
   /** بيانات المستخدم الحالي — ضمن سياق المستأجر فتُفلتر تلقائياً. */
-  async me(userId: string) {
+  async me(userId: string, impersonatorId?: string) {
     const user = await this.prisma.user.findFirst({
       where: { id: userId },
       select: {
@@ -151,7 +151,16 @@ export class AuthService {
       features = features.filter((f) => basicKeys.has(f));
     }
     const access = { state: acc.state, status: acc.status, trialEndsAt: acc.trialEndsAt, daysLeft: acc.daysLeft, writeBlocked: acc.writeBlocked, downgradeToBasic: acc.downgradeToBasic, hardBlocked: acc.hardBlocked };
-    return { ...rest, roleName: role?.name ?? null, permissions, features, access, mfaEnrollmentRequired };
+    // جلسة انتحال (سوبر أدمن دخل كالحساب) — للواجهة كي تعرض بانر «العودة للوحة المنصّة» + اسم الحساب المُنتحَل
+    let impersonation: { tenantId: string; tenantName: string; adminEmail: string | null } | null = null;
+    if (impersonatorId) {
+      const [tenant, admin] = await Promise.all([
+        this.prisma.tenant.findFirst({ where: { id: user.tenantId }, select: { name: true } }),
+        this.prisma.platformAdmin.findFirst({ where: { id: impersonatorId }, select: { email: true } }),
+      ]);
+      impersonation = { tenantId: user.tenantId, tenantName: tenant?.name ?? "", adminEmail: admin?.email ?? null };
+    }
+    return { ...rest, roleName: role?.name ?? null, permissions, features, access, mfaEnrollmentRequired, impersonation };
   }
 
   // ————————————————— المصادقة الثنائية (TOTP) للموظف —————————————————

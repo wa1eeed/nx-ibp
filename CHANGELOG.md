@@ -2,6 +2,13 @@
 
 كل التغييرات الملموسة في منصة IBP، منظّمة حسب المراحل. الصيغة مستلهمة من [Keep a Changelog](https://keepachangelog.com).
 
+## [السوبر أدمن: الدخول كالحساب (انتحال آمن مع عودة)] ✅
+كان على مشرف المنصّة تخمين ما يراه العميل دون وسيلة للدخول لحسابه للدعم/التشخيص. أُضيف **انتحال آمن** بنقطة واحدة موسومة ومُدقَّقة:
+- **الخلفية** [`PlatformService.impersonate`](apps/api/src/modules/platform/platform.service.ts): `POST /platform/tenants/:id/impersonate` (يحرسها `PlatformGuard`) يُصدر توكن مستأجر لمالك الحساب (أول مستخدم نشِط) بصلاحية **60 دقيقة** وموسومًا بـ`imp=adminId`. كل عملية تُسجَّل في التدقيق (`tenant_impersonate`).
+- **الوسم يتدفّق**: `TenantContextMiddleware` يقرأ `imp` ⇒ `req.user.impersonatorId`؛ و`/auth/me` يعيد كائن `impersonation {tenantId, tenantName, adminEmail}` — للبانر (جلسة عادية ⇒ `null`).
+- **الواجهة**: زر «الدخول كالحساب» في تفاصيل المستأجر يحفظ التوكن كـ`ibp_token` (منفصل عن `ibp_platform_token`) وينتقل للوحة المستأجر؛ **بانر بنفسجي دائم** [`ImpersonationBanner`](apps/web/src/components/layout/ImpersonationBanner.tsx) يعرض اسم الحساب + «العودة للوحة المنصّة» (حذف توكن الانتحال والرجوع — رمز المنصّة يبقى). يحترم RTL/LTR.
+- **الاختبار** [`platform.e2e-spec.ts`](apps/api/test/platform.e2e-spec.ts): إصدار التوكن + كشف `/auth/me` + العمل بصلاحية المالك + منع مستخدم المستأجر (403) — **13/13**. مُتحقَّق حيًّا (دخول ⇒ بانر ⇒ عودة نظيفة).
+
 ## [فرض انتهاء الاشتراك المدفوع (مرور تاريخ التجديد)] ✅
 كان الفرض يغطّي التجربة والإيقاف الإداري فقط — أمّا **المستأجر المدفوع الذي مضى تاريخ تجديده** (`renewsAt`) فكان يبقى بوصول كامل. أُغلقت الثغرة بنفس نقطة الحقيقة الواحدة وبنفس الحجب المتدرّج اللطيف:
 - **مُحلِّل الحالة** [`TenantAccessService`](apps/api/src/modules/access/tenant-access.service.ts): للمستأجر `ACTIVE` يقرأ `renewsAt` حيًّا — مضى ⇒ **`subscription_expired`** (قراءة فقط + خفض للأساسية)؛ خلال ≤7 أيام ⇒ يبقى `active` مع `daysLeft` (عدّاد قرب التجديد). `renewsAt=null` (بيانات الديمو/البذرة) ⇒ **بلا فرض** (لا انقطاع للعروض الحيّة).

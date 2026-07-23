@@ -120,6 +120,28 @@ export class PlatformService {
     return { id, status: dto.status };
   }
 
+  /**
+   * **الدخول كالحساب (انتحال)** — يُصدر توكن مستأجر لمالك الشركة (أول مستخدم نشِط) موسومًا بـ`imp=adminId`
+   * وبصلاحية قصيرة (60 دقيقة). كل عملية انتحال تُسجَّل في التدقيق. الواجهة تعرض بانرًا دائمًا مع «العودة للوحة المنصّة».
+   * لا يُلمَس رمز السوبر أدمن (محفوظ بمفتاح منفصل)، فالعودة = حذف توكن الانتحال والرجوع.
+   */
+  async impersonate(adminId: string, tenantId: string) {
+    const tenant = await this.prisma.tenant.findFirst({ where: { id: tenantId }, select: { id: true, name: true, nameEn: true } });
+    if (!tenant) throw new NotFoundException("المستأجر غير موجود");
+    const owner = await this.prisma.user.findFirst({
+      where: { tenantId, status: "ACTIVE" },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, fullName: true, email: true, roleId: true },
+    });
+    if (!owner) throw new BadRequestException("لا يوجد مستخدم نشِط في هذا الحساب للدخول كه");
+    const accessToken = await this.jwt.signAsync(
+      { sub: owner.id, tenantId, roleId: owner.roleId ?? null, email: owner.email, sid: `imp-${adminId.slice(0, 8)}`, imp: adminId },
+      { expiresIn: "60m" },
+    );
+    await this.audit.log({ tenantId, userId: adminId, action: "login", entity: "tenant_impersonate", entityId: tenantId, meta: { by: "platform", actingAs: owner.email } });
+    return { accessToken, tenant, actingAs: { id: owner.id, fullName: owner.fullName, email: owner.email } };
+  }
+
   plans() {
     return this.prisma.plan.findMany({
       orderBy: { priceMonthly: "asc" },

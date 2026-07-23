@@ -3,6 +3,7 @@ import { setRequestLocale } from "next-intl/server";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
 import { AccessBanner } from "@/components/layout/AccessBanner";
+import { ImpersonationBanner } from "@/components/layout/ImpersonationBanner";
 import { MobileNavProvider } from "@/components/layout/MobileNavContext";
 import { BrandingProvider } from "@/components/branding/BrandingProvider";
 
@@ -21,6 +22,7 @@ export default function TenantLayout({
         <Sidebar />
         <div className="flex min-w-0 flex-1 flex-col">
           <Topbar />
+          <ImpersonationBanner />
           <AccessBanner />
           <main className="flex-1 px-5 py-6 sm:px-7">{children}</main>
         </div>

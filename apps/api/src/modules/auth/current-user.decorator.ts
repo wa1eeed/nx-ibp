@@ -8,6 +8,7 @@ export interface AuthUser {
   isSuperAdmin?: boolean;
   clientId?: string; // نطاق بوّابة العميل
   scope?: string; // "platform" | "client" | undefined
+  impersonatorId?: string; // معرّف سوبر أدمن المنصّة عند «الدخول كالحساب» (انتحال) — للبانر والتدقيق
 }
 
 /** يستخرج المستخدم المصادَق (الذي يضبطه TenantContextMiddleware) من الطلب. */

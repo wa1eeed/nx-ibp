@@ -94,6 +94,26 @@ describe("لوحة السوبر أدمن (e2e)", () => {
     await request(app.getHttpServer()).post(`/platform/leads/${a.body.id}/status`).set(auth(platform)).send({ status: "nope" }).expect(400);
   });
 
+  it("الدخول كالحساب (انتحال): السوبر أدمن يُصدر توكن مستأجر موسوم؛ /auth/me يكشف الجلسة؛ ويعمل بصلاحية المالك", async () => {
+    const res = await request(app.getHttpServer()).post("/platform/tenants/demo-tenant/impersonate").set(auth(platform)).expect(200);
+    expect(res.body.accessToken).toBeTruthy();
+    expect(res.body.actingAs.email).toBe("waleed@gulf-demo.sa");
+    const impToken = res.body.accessToken as string;
+    // /auth/me على توكن الانتحال يكشف الجلسة (اسم الحساب + بريد المشرف) — للبانر
+    const me = (await request(app.getHttpServer()).get("/auth/me").set(auth(impToken)).expect(200)).body;
+    expect(me.impersonation).toBeTruthy();
+    expect(me.impersonation.tenantId).toBe("demo-tenant");
+    expect(me.impersonation.adminEmail).toBe("admin@ibp-platform.sa");
+    // يعمل بصلاحية مستأجر demo-tenant (قراءة عملاء الحساب)
+    await request(app.getHttpServer()).get("/clients").set(auth(impToken)).expect(200);
+    // جلسة عادية (بلا انتحال) ⇒ impersonation = null
+    const meNormal = (await request(app.getHttpServer()).get("/auth/me").set(auth(tenantUser)).expect(200)).body;
+    expect(meNormal.impersonation).toBeNull();
+  });
+
+  it("مستخدم المستأجر ممنوع من الانتحال (مسار منصّة) ⇒ 403", () =>
+    request(app.getHttpServer()).post("/platform/tenants/demo-tenant/impersonate").set(auth(tenantUser)).expect(403));
+
   it("السوبر أدمن يعلّق ويعيد تفعيل مستأجر", async () => {
     const s = await request(app.getHttpServer()).post("/platform/tenants/demo-tenant-2/status").set(auth(platform)).send({ status: "SUSPENDED" }).expect(200);
     expect(s.body.status).toBe("SUSPENDED");

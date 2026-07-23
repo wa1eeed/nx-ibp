@@ -79,6 +79,13 @@ export class PlatformController {
     return this.platform.setStatus(adminId, id, dto);
   }
 
+  /** الدخول كالحساب (انتحال) — يُصدر توكن مستأجر موسومًا للعودة، ويُسجَّل في التدقيق. */
+  @HttpCode(200)
+  @Post("tenants/:id/impersonate")
+  impersonate(@CurrentUser("userId") adminId: string, @Param("id") id: string) {
+    return this.platform.impersonate(adminId, id);
+  }
+
   @Get("plans")
   plans() {
     return this.platform.plans();
