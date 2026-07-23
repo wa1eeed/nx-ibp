@@ -54,6 +54,7 @@ import { BankModule } from "./modules/bank/bank.module";
 import { BudgetModule } from "./modules/budget/budget.module";
 import { PayrollModule } from "./modules/payroll/payroll.module";
 import { LeaveModule } from "./modules/leave/leave.module";
+import { HrModule } from "./modules/hr/hr.module";
 import { TargetsModule } from "./modules/targets/targets.module";
 import { AuditViewModule } from "./modules/audit/audit.module";
 import { InsurersModule } from "./modules/insurers/insurers.module";
@@ -120,6 +121,7 @@ import { WebhooksModule } from "./modules/webhooks/webhooks.module";
     BudgetModule,
     PayrollModule,
     LeaveModule,
+    HrModule,
     TargetsModule,
     AuditViewModule,
     InsurersModule,

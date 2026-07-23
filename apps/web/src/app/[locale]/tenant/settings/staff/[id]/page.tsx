@@ -6,7 +6,7 @@ import { ArrowRight, Activity, FileCheck2, CheckCircle2, Clock, ShieldCheck, Shi
 import { useTranslations } from "next-intl";
 import { RBAC_MODULES, type RbacModule } from "@ibp/shared";
 import { Link } from "@/i18n/routing";
-import { api, getToken } from "@/lib/api";
+import { api, getToken, ApiError } from "@/lib/api";
 import { LifecycleTimeline } from "@/components/LifecycleTimeline";
 import { Badge } from "@/components/ui/Badge";
 import { useConfirm } from "@/components/ui/ConfirmProvider";
@@ -24,7 +24,7 @@ const STAGE_TONE: Record<string, "info" | "warning" | "neutral" | "success"> = {
 const STAGES = ["new", "contacted", "quoting", "proposal", "negotiation"];
 const PRIOS = ["low", "normal", "high"];
 const ENTITIES = ["client", "policy", "request", "claim", "service_request", "deal"];
-const TABS = ["permissions", "policies", "deals", "tasks", "activity"] as const;
+const TABS = ["hr", "permissions", "policies", "deals", "tasks", "activity"] as const;
 const PERM_COLS: Array<{ key: "canAccess" | "canCreate" | "canEdit" | "canDelete" | "canRevert"; labelKey: string }> = [
   { key: "canAccess", labelKey: "staff.colAccess" },
   { key: "canCreate", labelKey: "staff.colCreate" },
@@ -43,7 +43,7 @@ export default function StaffDetailPage() {
   const confirm = useConfirm();
   const id = String(params.id);
   const [d, setD] = useState<Detail | null>(null);
-  const [tab, setTab] = useState<(typeof TABS)[number]>("permissions");
+  const [tab, setTab] = useState<(typeof TABS)[number]>("hr");
   const [offboarding, setOffboarding] = useState(false);
 
   const load = useCallback(async () => {
@@ -126,6 +126,7 @@ export default function StaffDetailPage() {
       </div>
 
       <div>
+        {tab === "hr" ? <HrTab userId={id} /> : null}
         {tab === "permissions" ? (
           <div className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-line bg-card p-3.5 shadow-card">
@@ -382,6 +383,145 @@ function OffboardDialog({ userId, userName, onClose, onDone }: { userId: string;
           </>
         )}
       </div>
+    </div>
+  );
+}
+
+interface EmpProfile { id: string; fullName: string; email: string; jobTitle: string | null; hireDate: string | null; dateOfBirth: string | null; nationalId: string | null; nationalIdExpiry: string | null; nationality: string | null; phone: string | null; baseSalary: string | null; emergencyContact: string | null; addressLine: string | null; role: { name: string } | null; department: { name: string } | null }
+interface EmpDoc { id: string; type: string; title: string; number: string | null; issueDate: string | null; expiryDate: string | null; fileUrl: string | null }
+const DOC_TYPES = ["contract", "national_id", "iqama", "passport", "certificate", "other"] as const;
+const PROFILE_FIELDS = [
+  { key: "jobTitle", type: "text" }, { key: "hireDate", type: "date" }, { key: "dateOfBirth", type: "date" },
+  { key: "nationality", type: "text" }, { key: "phone", type: "text" }, { key: "nationalId", type: "text" },
+  { key: "nationalIdExpiry", type: "date" }, { key: "baseSalary", type: "number" }, { key: "emergencyContact", type: "text" },
+  { key: "addressLine", type: "text" },
+] as const;
+
+/** تبويب الملف الوظيفي (HR): بيانات التوظيف + الوثائق بتنبيه الانتهاء. محكوم بصلاحية hr (403 ⇒ رسالة لطيفة). */
+function HrTab({ userId }: { userId: string }) {
+  const t = useTranslations("hr");
+  const [p, setP] = useState<EmpProfile | null>(null);
+  const [docs, setDocs] = useState<EmpDoc[]>([]);
+  const [denied, setDenied] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState<Record<string, string>>({});
+  const [busy, setBusy] = useState(false);
+  const [doc, setDoc] = useState<{ type: string; title: string; number: string; issueDate: string; expiryDate: string }>({ type: "contract", title: "", number: "", issueDate: "", expiryDate: "" });
+
+  const load = useCallback(async () => {
+    try {
+      const prof = await api<EmpProfile>(`/hr/employees/${userId}/profile`);
+      setP(prof);
+      setForm(Object.fromEntries(PROFILE_FIELDS.map((f) => {
+        const raw = (prof as unknown as Record<string, unknown>)[f.key];
+        let v = raw == null ? "" : String(raw);
+        if (f.type === "date" && v) v = v.slice(0, 10); // ISO ⇒ yyyy-mm-dd لمُدخل التاريخ
+        return [f.key, v] as [string, string];
+      })));
+      setDocs(await api<EmpDoc[]>(`/hr/employees/${userId}/documents`));
+    } catch (e) { if (e instanceof ApiError && e.status === 403) setDenied(true); }
+  }, [userId]);
+  useEffect(() => { void load(); }, [load]);
+
+  if (denied) return <p className="rounded-card border border-line bg-card p-5 text-[12.5px] text-subtle">{t("denied")}</p>;
+  if (!p) return <p className="text-[12.5px] text-subtle">…</p>;
+
+  const save = async () => {
+    setBusy(true);
+    try {
+      const body: Record<string, unknown> = {};
+      for (const f of PROFILE_FIELDS) { const v = (form[f.key] ?? "").trim(); if (f.type === "number") body[f.key] = v ? Number(v) : undefined; else body[f.key] = v || ""; }
+      await api(`/hr/employees/${userId}/profile`, { method: "PUT", body: JSON.stringify(body) });
+      setEditing(false); await load();
+    } finally { setBusy(false); }
+  };
+  const addDoc = async () => {
+    if (!doc.title.trim()) return;
+    setBusy(true);
+    try {
+      await api(`/hr/employees/${userId}/documents`, { method: "POST", body: JSON.stringify({ type: doc.type, title: doc.title.trim(), number: doc.number.trim() || undefined, issueDate: doc.issueDate || undefined, expiryDate: doc.expiryDate || undefined }) });
+      setDoc({ type: "contract", title: "", number: "", issueDate: "", expiryDate: "" }); await load();
+    } finally { setBusy(false); }
+  };
+  const delDoc = async (id: string) => { await api(`/hr/documents/${id}`, { method: "DELETE" }).catch(() => undefined); await load(); };
+
+  const val = (k: string) => ((p as unknown as Record<string, unknown>)[k] as string | null) ?? null;
+  const expTone = (s: string | null) => { if (!s) return "text-subtle"; const d = Math.ceil((new Date(s).getTime() - Date.now()) / 86400000); return d < 0 ? "text-danger font-semibold" : d <= 60 ? "text-warning font-semibold" : "text-muted"; };
+
+  return (
+    <div className="space-y-4">
+      {/* بيانات التوظيف */}
+      <section className="rounded-card border border-line bg-card p-4 shadow-card">
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="text-[13.5px] font-bold text-ink">{t("profileTitle")}</h3>
+          {!editing ? <button onClick={() => setEditing(true)} className="inline-flex items-center gap-1.5 rounded-lg border border-line px-3 py-1.5 text-[12px] font-medium text-muted hover:bg-surface-2"><Pencil size={13} /> {t("edit")}</button> : null}
+        </div>
+        {!editing ? (
+          <dl className="grid gap-x-6 gap-y-2.5 text-[12.5px] sm:grid-cols-2">
+            {PROFILE_FIELDS.map((f) => (
+              <div key={f.key} className="flex justify-between gap-3 border-b border-line/60 pb-1.5">
+                <dt className="text-subtle">{t(`field.${f.key}`)}</dt>
+                <dd className={`text-end font-medium ${f.key === "nationalIdExpiry" ? expTone(val(f.key)) : "text-ink"}`}>
+                  {f.type === "date" ? d2(val(f.key)) : f.key === "baseSalary" ? (val(f.key) ? `${Number(val(f.key)).toLocaleString()} ﷼` : "—") : (val(f.key) || "—")}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2">
+            {PROFILE_FIELDS.map((f) => (
+              <label key={f.key} className="block">
+                <span className="mb-1 block text-[11.5px] font-medium text-muted">{t(`field.${f.key}`)}</span>
+                <input type={f.type} value={form[f.key] ?? ""} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })} className="w-full rounded-lg border border-line bg-bg px-2.5 py-1.5 text-[13px] text-ink" />
+              </label>
+            ))}
+            <div className="col-span-full mt-1 flex justify-end gap-2">
+              <button onClick={() => { setEditing(false); void load(); }} className="h-9 rounded-lg border border-line px-4 text-[12.5px] text-muted hover:bg-surface-2">{t("cancel")}</button>
+              <button onClick={save} disabled={busy} className="h-9 rounded-lg bg-primary-strong px-4 text-[12.5px] font-semibold text-primary-fg hover:bg-primary disabled:opacity-60">{busy ? "…" : t("save")}</button>
+            </div>
+          </div>
+        )}
+        <p className="mt-3 text-[11px] leading-relaxed text-subtle">{t("encNote")}</p>
+      </section>
+
+      {/* الوثائق */}
+      <section className="rounded-card border border-line bg-card p-4 shadow-card">
+        <h3 className="mb-3 text-[13.5px] font-bold text-ink">{t("docsTitle")} ({docs.length})</h3>
+        {docs.length ? (
+          <div className="mb-3 overflow-x-auto">
+            <table className="w-full min-w-[520px] text-[12.5px]">
+              <thead><tr className="border-b border-line text-[11px] uppercase text-subtle">
+                <th className="px-2 py-2 text-start font-semibold">{t("doc.type")}</th>
+                <th className="px-2 py-2 text-start font-semibold">{t("doc.title")}</th>
+                <th className="px-2 py-2 text-start font-semibold">{t("doc.number")}</th>
+                <th className="px-2 py-2 text-start font-semibold">{t("doc.expiry")}</th>
+                <th className="px-2 py-2"></th>
+              </tr></thead>
+              <tbody className="divide-y divide-line">
+                {docs.map((dd) => (
+                  <tr key={dd.id} className="hover:bg-surface-2/50">
+                    <td className="px-2 py-2 text-muted">{t(`docType.${dd.type}`)}</td>
+                    <td className="px-2 py-2 font-medium text-ink">{dd.title}</td>
+                    <td className="px-2 py-2 text-muted tnum">{dd.number || "—"}</td>
+                    <td className={`px-2 py-2 tnum ${expTone(dd.expiryDate)}`}>{d2(dd.expiryDate)}</td>
+                    <td className="px-2 py-2 text-end"><button onClick={() => void delDoc(dd.id)} className="rounded p-1 text-subtle hover:bg-danger/10 hover:text-danger"><X size={14} /></button></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : <p className="mb-3 text-[12px] text-subtle">{t("docsEmpty")}</p>}
+        {/* إضافة وثيقة */}
+        <div className="grid gap-2 rounded-lg bg-surface-2/50 p-3 sm:grid-cols-[auto_1fr_auto_auto_auto]">
+          <select value={doc.type} onChange={(e) => setDoc({ ...doc, type: e.target.value })} className="rounded-lg border border-line bg-bg px-2 py-1.5 text-[12.5px] text-ink">
+            {DOC_TYPES.map((x) => <option key={x} value={x}>{t(`docType.${x}`)}</option>)}
+          </select>
+          <input value={doc.title} onChange={(e) => setDoc({ ...doc, title: e.target.value })} placeholder={t("doc.title")} className="rounded-lg border border-line bg-bg px-2.5 py-1.5 text-[12.5px] text-ink" />
+          <input value={doc.number} onChange={(e) => setDoc({ ...doc, number: e.target.value })} placeholder={t("doc.number")} className="w-28 rounded-lg border border-line bg-bg px-2.5 py-1.5 text-[12.5px] text-ink" />
+          <input type="date" value={doc.expiryDate} onChange={(e) => setDoc({ ...doc, expiryDate: e.target.value })} title={t("doc.expiry")} className="rounded-lg border border-line bg-bg px-2 py-1.5 text-[12.5px] text-ink" />
+          <button onClick={addDoc} disabled={busy || !doc.title.trim()} className="inline-flex items-center gap-1 rounded-lg bg-primary-strong px-3 py-1.5 text-[12px] font-semibold text-primary-fg hover:bg-primary disabled:opacity-50">{t("doc.add")}</button>
+        </div>
+      </section>
     </div>
   );
 }

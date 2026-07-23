@@ -1693,6 +1693,30 @@
       "underwriting": "Underwriting"
     }
   },
+  "hr": {
+    "denied": "You don't have HR permission to view this profile.",
+    "profileTitle": "Employment details",
+    "edit": "Edit",
+    "cancel": "Cancel",
+    "save": "Save",
+    "encNote": "National ID/Iqama and phone are stored encrypted (AES-256-GCM) and shown only to holders of the HR permission.",
+    "docsTitle": "Documents",
+    "docsEmpty": "No documents recorded.",
+    "field": {
+      "jobTitle": "Job title",
+      "hireDate": "Hire date",
+      "dateOfBirth": "Date of birth",
+      "nationality": "Nationality",
+      "phone": "Phone",
+      "nationalId": "National ID / Iqama",
+      "nationalIdExpiry": "ID / Iqama expiry",
+      "baseSalary": "Base salary",
+      "emergencyContact": "Emergency contact",
+      "addressLine": "Address"
+    },
+    "doc": { "type": "Type", "title": "Title", "number": "Number", "expiry": "Expiry", "add": "Add" },
+    "docType": { "contract": "Employment contract", "national_id": "National ID", "iqama": "Iqama", "passport": "Passport", "certificate": "Certificate", "other": "Other" }
+  },
   "leave": {
     "nav": "Leave",
     "title": "Leave requests",
@@ -2114,6 +2138,7 @@
     },
     "tabs": {
       "overview": "Overview",
+      "hr": "Employment file",
       "permissions": "Permissions",
       "policies": "Policies (responsibility)",
       "deals": "Deals",

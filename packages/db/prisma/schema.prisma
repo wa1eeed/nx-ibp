@@ -77,6 +77,9 @@ model Tenant {
   reportSchedules      ReportSchedule[]
   payrollRuns          PayrollRun[]
   leaveRequests        LeaveRequest[]
+  employeeDocuments    EmployeeDocument[]
+  attendance           Attendance[]
+  checklistItems       EmployeeChecklistItem[]
   serviceRequests      ServiceRequest[]
   claims               Claim[]
   chartOfAccounts      ChartOfAccount[]
@@ -345,10 +348,74 @@ model User {
   // — متوافق رجعيًا: السلوك الافتراضي بلا تغيير ولا يتأثّر أي مستخدم قائم.
   allowedProductLines String[]    @default([])
   commissionRate      Decimal?    @db.Decimal(6, 3) // نسبة عمولة/حافز الموظف (% من عمولة الوساطة) — لمندوبي المبيعات
+  // ————— ملف الموارد البشرية (HR) — بيانات التوظيف. الحقول الحسّاسة (الهوية/الجوال) مشفّرة at-rest (AES-256-GCM). —————
+  jobTitle            String? // المسمّى الوظيفي
+  hireDate            DateTime? // تاريخ التعيين
+  dateOfBirth         DateTime? // تاريخ الميلاد
+  nationalId          String? // الهوية/الإقامة — PII مشفّر at-rest
+  nationalIdExpiry    DateTime? // انتهاء الهوية/الإقامة (لتنبيه التجديد)
+  nationality         String? // الجنسية
+  phone               String? // الجوال — PII مشفّر at-rest
+  baseSalary          Decimal?    @db.Decimal(14, 2) // الراتب الأساسي (يُعبّئ كشف الرواتب) — حسّاس، محكوم بصلاحية hr
+  emergencyContact    String? // جهة اتصال الطوارئ (اسم/رقم)
+  addressLine         String? // العنوان
   createdAt           DateTime    @default(now())
 
   @@unique([tenantId, email])
   @@index([tenantId])
+}
+
+/// ملف موظف — وثيقة (عقد/هوية/إقامة/شهادة) بتاريخ انتهاء لتنبيه التجديد. معزول بالمستأجر.
+model EmployeeDocument {
+  id         String    @id @default(cuid())
+  tenantId   String
+  tenant     Tenant    @relation(fields: [tenantId], references: [id])
+  userId     String // الموظف صاحب الوثيقة
+  type       String // contract | national_id | iqama | passport | certificate | other
+  title      String
+  number     String? // رقم الوثيقة (اختياري)
+  issueDate  DateTime?
+  expiryDate DateTime? // للتنبيه قبل الانتهاء
+  fileUrl    String? // رابط/مرجع الملف (اختياري)
+  createdAt  DateTime  @default(now())
+
+  @@index([tenantId, userId])
+  @@index([tenantId, expiryDate])
+}
+
+/// حضور وانصراف يومي لموظف — سجلّ واحد لكل (موظف، يوم). مصدر الدخول: login (تلقائي عند تسجيل الدخول) | manual (زر) | auto.
+model Attendance {
+  id           String    @id @default(cuid())
+  tenantId     String
+  tenant       Tenant    @relation(fields: [tenantId], references: [id])
+  userId       String
+  employeeName String // لقطة الاسم
+  workDate     DateTime  @db.Date // اليوم (تجزئة يومية)
+  checkInAt    DateTime? // أول حضور
+  checkOutAt   DateTime? // آخر انصراف
+  source       String    @default("manual") // login | manual | auto
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@unique([tenantId, userId, workDate])
+  @@index([tenantId, workDate])
+}
+
+/// عنصر قائمة تعيين/إنهاء خدمة موظف (Onboarding/Offboarding checklist item). يُبذَر افتراضيًا عند التعيين.
+model EmployeeChecklistItem {
+  id        String    @id @default(cuid())
+  tenantId  String
+  tenant    Tenant    @relation(fields: [tenantId], references: [id])
+  userId    String
+  kind      String // onboarding | offboarding
+  label     String
+  done      Boolean   @default(false)
+  doneAt    DateTime?
+  doneBy    String?
+  order     Int       @default(0)
+  createdAt DateTime  @default(now())
+
+  @@index([tenantId, userId, kind])
 }
 
 enum UserStatus {
